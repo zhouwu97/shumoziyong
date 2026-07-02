@@ -3,7 +3,7 @@
 ## 1. 执行说明
 
 - PDF 文件：`E:\AI\数模\高教社杯全国大学生数学建模竞赛优秀论文\2023年高教社杯全国大学生数学建模竞赛优秀论文\A127.pdf`
-- 工作流依据：`E:\AI\数模\数模AI训练总控工作流v3.md`
+- 工作流依据：`docs/workflows/数模AI训练总控工作流v3.md`
 - 核验方式：使用 `pdfplumber` 抽取文本和页面结构，使用 Poppler 完整渲染 PDF，再用图像检测检查空页、页面尺寸和异常黑块。
 - 渲染目录：`E:\AI\数模\tmp\pdfs\A127_render`
 - 文本抽取文件：`E:\AI\数模\tmp\pdfs\A127_clean_extract.txt`

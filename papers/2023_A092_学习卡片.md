@@ -3,7 +3,7 @@
 ## 1. 执行说明
 
 - PDF 文件：`E:\AI\数模\高教社杯全国大学生数学建模竞赛优秀论文\2023年高教社杯全国大学生数学建模竞赛优秀论文\A092.pdf`
-- 工作流依据：`数学建模AI优秀论文学习与解题工作流优化版v2.txt`
+- 工作流依据：`docs/archive/数学建模AI优秀论文学习与解题工作流优化版v2.txt`
 - 核验方式：先用 `pdfinfo`、`pdfplumber` 抽取结构信息，再用 Poppler 将全 PDF 渲染为 PNG，最后结合自动图像检测与关键页人工视觉检查。
 - 渲染目录：`E:\AI\数模\tmp\pdfs\A092_render`
 - 文本抽取文件：`E:\AI\数模\tmp\pdfs\A092_extracted_text.txt`
