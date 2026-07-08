@@ -20,6 +20,7 @@
 | 2026-07-08 | runtime_pack Gate 2 dry-run：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_2_before_coding |  | 未触发完整代码/优化器/最终方案 | dry-run | 否 | Gate 2 能先设计数据结构、约束检查和基准方案；未进入完整代码实现 |
 | 2026-07-08 | 2024-C 代码小样例验证 | runtime_pack Gate 2.5 + code mini-run |  | 未触发完整优化器/最终方案/论文 | mini-run | 否 | 读取、集合、约束检查和基准方案通过；不计入 stable |
 | 2026-07-08 | 2024-C 简单优化器验证 | runtime_pack Gate 2.6 + bounded greedy local replacement |  | 未触发复杂优化器/全局最优声明/论文 | dry-run | 否 | 基准收益 16250142.79，改进收益 17276602.82，约束违规为 0；不计入 stable |
+| 2026-07-08 | 2024-C 不确定性情景验证 | runtime_pack Gate 2.7 + scenario analysis |  | 未触发重新优化/最终答案/论文 | dry-run | 否 | base/pessimistic/optimistic/mixed 四情景均重新检查约束，违规为 0；不计入 stable |
 
 ## 标签统计
 
