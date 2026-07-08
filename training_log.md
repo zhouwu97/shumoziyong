@@ -21,6 +21,7 @@
 | 2026-07-08 | 2024-C 代码小样例验证 | runtime_pack Gate 2.5 + code mini-run |  | 未触发完整优化器/最终方案/论文 | mini-run | 否 | 读取、集合、约束检查和基准方案通过；不计入 stable |
 | 2026-07-08 | 2024-C 简单优化器验证 | runtime_pack Gate 2.6 + bounded greedy local replacement |  | 未触发复杂优化器/全局最优声明/论文 | dry-run | 否 | 基准收益 16250142.79，改进收益 17276602.82，约束违规为 0；不计入 stable |
 | 2026-07-08 | 2024-C 不确定性情景验证 | runtime_pack Gate 2.7 + scenario analysis |  | 未触发重新优化/最终答案/论文 | dry-run | 否 | base/pessimistic/optimistic/mixed 四情景均重新检查约束，违规为 0；不计入 stable |
+| 2026-07-08 | 2024-C 结果报告生成 | runtime_pack Gate 3 + RESULTS_REPORT.md |  | 未触发论文正文/摘要/最终最优声明 | dry-run | 否 | 结果证据包可追溯，明确 smoke-test 边界和人工确认项；不计入 stable |
 
 ## 标签统计
 
