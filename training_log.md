@@ -13,8 +13,8 @@
 | 2026-07-02 | 2023-A165 工程优化旧题材料受限测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization | 88 | 无，M1 | T0/T1 | 否 | 保留测试记录，换官方材料重测 |
 | 2026-07-02 | 2023-A175 工程优化旧题同题泄漏冒烟测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 90 | 无，M1/M2/M3 | T0/T1 | 否 | 保留测试记录，换跨题官方材料重测 |
 | 2026-07-02 | 2023-B226 多波束测线布设流程冒烟测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 92 | 无，M1/M2 | T0 | 否 | 补官方题面、附件和模板后重测 |
-| 2026-07-02 | 2023-B 多波束测线问题官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 98 | 无 | T3 | 是 | 作为第 1 道官方 T3 通过记录 |
-| 2026-07-05 | 2024-C 农作物种植策略官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 96 | 无 | T3 | 是 | 可作为第 2 道官方 T3 候选，等待人工确认 stable |
+| 2026-07-02 | 2023-B 多波束测线问题官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 98 | 无 | T3 | 否，候选证据 | 作为第 1 道官方 T3 通过记录 |
+| 2026-07-05 | 2024-C 农作物种植策略官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 96 | 无 | T3 | 否，候选证据 | 可作为第 2 道官方 T3 候选，等待后续链路验证 |
 | 2026-07-08 | runtime_pack Gate 0 冒烟测试：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_0_problem_diagnosis |  | 未触发代码/论文 | smoke | 否 | Gate 0 控制有效，仅记录运行包可控性 |
 | 2026-07-08 | runtime_pack Gate 1 dry-run：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_1_before_modeling |  | 未触发代码/论文/最终方案 | dry-run | 否 | Gate 1 能先核验字段、定义变量和约束；未进入 Gate 2 |
 | 2026-07-08 | runtime_pack Gate 2 dry-run：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_2_before_coding |  | 未触发完整代码/优化器/最终方案 | dry-run | 否 | Gate 2 能先设计数据结构、约束检查和基准方案；未进入完整代码实现 |
@@ -22,6 +22,10 @@
 | 2026-07-08 | 2024-C 简单优化器验证 | runtime_pack Gate 2.6 + bounded greedy local replacement |  | 未触发复杂优化器/全局最优声明/论文 | dry-run | 否 | 基准收益 16250142.79，改进收益 17276602.82，约束违规为 0；不计入 stable |
 | 2026-07-08 | 2024-C 不确定性情景验证 | runtime_pack Gate 2.7 + scenario analysis |  | 未触发重新优化/最终答案/论文 | dry-run | 否 | base/pessimistic/optimistic/mixed 四情景均重新检查约束，违规为 0；不计入 stable |
 | 2026-07-08 | 2024-C 结果报告生成 | runtime_pack Gate 3 + RESULTS_REPORT.md |  | 未触发论文正文/摘要/最终最优声明 | dry-run | 否 | 结果证据包可追溯，明确 smoke-test 边界和人工确认项；不计入 stable |
+| 2026-07-08 | 2024-C 论文写作测试 | runtime_pack Gate 4 + draft_gate4.md |  | 未触发终稿验收/正式最优声明/stable 标记 | dry-run | 否 | Gate 4 paper draft dry-run pass；测试版论文受 RESULTS_REPORT.md 约束 |
+| 2026-07-08 | 2024-C 终稿验收测试 | runtime_pack Gate 5 + FINAL_REVIEW_REPORT.md |  | pass；未触发重写论文/新增结果/stable 标记 | dry-run | 否 | 2024-C full smoke chain pass；只验证 smoke chain 论文验收，不计入 stable |
+| 2026-07-08 | 2023-B Gate 0-2 跨题泛化测试 | export/cumcm_runtime_pack.md + engineering_optimization_runtime + gate_0/1/2 |  | pass；未触发代码/论文/最终测线方案 | cross-problem | 否 | 2023-B Gate 0-2 cross-problem generalization pass；可进入 Gate 2.5 小样例，仍不得标记 stable |
+| 2026-07-08 | 2023-B Gate 2.5 代码小样例验证 | export/cumcm_runtime_pack.md + runtime_cross_2023B_gate0_2.md + code mini-run |  | pass；未触发最终测线方案/论文/完整优化器 | mini-run | 否 | 2023-B Gate 2.5 code mini-run pass；下一步只考虑 Gate 2.6 方向角粗网格搜索 |
 
 ## 标签统计
 
@@ -37,6 +41,10 @@
 | P8 | 0 |  |  |  |
 | P9 | 0 |  |  |  |
 | P10 | 0 |  |  |  |
+
+## 当前工程优化 runtime 状态
+
+2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-2 cross-problem generalization pass，并完成 Gate 2.5 code mini-run pass，证明 runtime 初步能在不同机制工程优化题上重新识别变量、目标函数、约束和数据需求，并能进入受控代码小样例。但尚未完成 2023-B Gate 2.6 或 Gate 3-5。当前状态仍为 candidate，不得标记 stable。
 
 ## 稳定版本记录
 
