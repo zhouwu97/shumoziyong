@@ -21,10 +21,11 @@
 - 2023-B 多波束测线问题 Gate 2.5 代码小样例验证
 - 2023-B 多波束测线问题 Gate 2.6 方向角粗网格搜索验证
 - 2023-B 多波束测线问题 Gate 3 结果证据报告
+- 2023-B 多波束测线问题 Gate 4 论文草稿测试
 
 ## 未验证
 
-- 2023-B Gate 4-5 后续链路
+- 2023-B Gate 5 终稿验收测试
 - 完整最优化算法
 - 正式论文提交质量
 - 不同工程优化题型下的稳定性
@@ -39,7 +40,9 @@
 - 说明：Gate 2.6 只验证方向角粗网格下的平行测线基线比较，未输出最终测线方案，未声明全局最优，未进入论文或完整优化器。
 - 2026-07-08：`2023-B Gate 3 results report pass`。
 - 说明：Gate 3 只汇总 Gate 2.5 和 Gate 2.6 的已有结果、数据口径和边界说明，未新增实验结果，未写论文正文，未输出最终测线方案。
-- 下一步：若人工确认，可进入 Gate 4 论文草稿测试；Gate 5 通过后可记录为 `engineering_optimization runtime candidate+`，但仍不能直接标记 stable。
+- 2026-07-08：`2023-B Gate 4 paper draft dry-run pass`。
+- 说明：Gate 4 只生成测试版论文草稿，草稿受 `RESULTS_REPORT_2023B.md` 约束，未编造新增数值，未输出最终测线方案，未把 75° 或任何方向角写成最优方向。
+- 下一步：若人工确认，可进入 Gate 5 终稿验收测试；Gate 5 通过后可记录为 `engineering_optimization runtime candidate+`，但仍不能直接标记 stable。
 
 ## 禁止
 
