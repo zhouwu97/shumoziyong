@@ -17,6 +17,7 @@
 | 2026-07-05 | 2024-C 农作物种植策略官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 96 | 无 | T3 | 是 | 可作为第 2 道官方 T3 候选，等待人工确认 stable |
 | 2026-07-08 | runtime_pack Gate 0 冒烟测试：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_0_problem_diagnosis |  | 未触发代码/论文 | smoke | 否 | Gate 0 控制有效，仅记录运行包可控性 |
 | 2026-07-08 | runtime_pack Gate 1 dry-run：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_1_before_modeling |  | 未触发代码/论文/最终方案 | dry-run | 否 | Gate 1 能先核验字段、定义变量和约束；未进入 Gate 2 |
+| 2026-07-08 | runtime_pack Gate 2 dry-run：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_2_before_coding |  | 未触发完整代码/优化器/最终方案 | dry-run | 否 | Gate 2 能先设计数据结构、约束检查和基准方案；未进入完整代码实现 |
 
 ## 标签统计
 

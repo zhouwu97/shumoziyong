@@ -133,6 +133,12 @@ training_log.md
 
 本仓库负责规则、经验、闸门和复盘；MathModelAgent 负责比赛目录内的代码、图表、论文和验收。
 
+如需读取 Excel 附件或运行基础数模代码，先安装依赖：
+
+```bash
+pip install -r requirements.txt
+```
+
 导出运行包：
 
 ```bash
