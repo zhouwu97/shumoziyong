@@ -15,6 +15,8 @@
 | 2026-07-02 | 2023-B226 多波束测线布设流程冒烟测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 92 | 无，M1/M2 | T0 | 否 | 补官方题面、附件和模板后重测 |
 | 2026-07-02 | 2023-B 多波束测线问题官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 98 | 无 | T3 | 是 | 作为第 1 道官方 T3 通过记录 |
 | 2026-07-05 | 2024-C 农作物种植策略官方泛化测试 | prompt_base_v1.0 + plugin_optimization_v1 + patch_A092_engineering_optimization + patch_A127_engineering_layout_optimization | 96 | 无 | T3 | 是 | 可作为第 2 道官方 T3 候选，等待人工确认 stable |
+| 2026-07-08 | runtime_pack Gate 0 冒烟测试：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_0_problem_diagnosis |  | 未触发代码/论文 | smoke | 否 | Gate 0 控制有效，仅记录运行包可控性 |
+| 2026-07-08 | runtime_pack Gate 1 dry-run：2024-C 农作物种植策略 | export/cumcm_runtime_pack.md + gate_1_before_modeling |  | 未触发代码/论文/最终方案 | dry-run | 否 | Gate 1 能先核验字段、定义变量和约束；未进入 Gate 2 |
 
 ## 标签统计
 
