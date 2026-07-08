@@ -355,6 +355,73 @@ training_log.md
 
 比赛时不要直接把题目丢给 AI 让它“解出来”。推荐按闸门推进。
 
+## 与 MathModelAgent 结合使用
+
+本仓库不复制 MathModelAgent 源码，也不替代它的 skill 流程。推荐分工是：
+
+```text
+shumoziyong 负责规则、经验、闸门、复盘
+MathModelAgent 负责执行、代码、图表、论文、验收
+```
+
+比赛时先从本仓库导出规则包，再让 MathModelAgent 在比赛工作目录读取：
+
+```bash
+python scripts/export_runtime_pack.py
+```
+
+默认导出工程优化规则包：
+
+```text
+export/cumcm_runtime_pack.md
+```
+
+把它复制到比赛目录：
+
+```text
+比赛工作目录/
+  problem/
+  rules/
+    runtime_pack.md
+  reports/
+  code/
+  results/
+  figures/
+  paper/
+```
+
+MathModelAgent 安装方式：
+
+```bash
+npx skills add jihe520/MathModelAgent --all
+```
+
+Claude Code 第一轮只做总控诊断：
+
+```text
+/1start-mathmodel 完成当前目录下的数学建模任务。
+
+在执行前，必须先读取：
+1. problem/ 下的题面和附件
+2. rules/runtime_pack.md
+
+rules/runtime_pack.md 的优先级高于 MathModelAgent 默认流程。
+本轮只允许完成 plan.md、todo.md 和总控诊断。
+禁止直接写代码、直接写论文、直接生成最终答案。
+请在最后列出“需要我确认的建模路线”。
+```
+
+Codex 第一轮只做总控诊断：
+
+```text
+$start-mathmodel 完成当前目录下的数学建模任务。
+
+在执行前，必须先读取 problem/ 和 rules/runtime_pack.md。
+本轮只允许完成总控诊断，不允许进入代码和论文。
+```
+
+人工确认路线后，才进入代码、图表和论文阶段。详见 [examples/2026_cumcm_demo/README.md](examples/2026_cumcm_demo/README.md)。
+
 ### 阶段 1：总控诊断
 
 给 AI：
