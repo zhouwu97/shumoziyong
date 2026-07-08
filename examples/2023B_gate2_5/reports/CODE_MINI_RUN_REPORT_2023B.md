@@ -20,11 +20,11 @@
 
 | 文件 | 作用 |
 |---|---|
-| `code/load_2023B_data.py` | 读取附件水深网格，输出坐标范围、深度范围和空值检查 |
-| `code/geometry_model.py` | 实现平坦海底、斜坡剖面、方向等效坡度下的覆盖宽度函数 |
-| `code/overlap_check.py` | 实现相邻测线重叠率和 10%-20% 区间检查 |
-| `code/baseline_lines.py` | 生成规则平行测线基线，仅用于 sanity check |
-| `reports/CODE_MINI_RUN_REPORT_2023B.md` | 记录本轮 Gate 2.5 小样例验证 |
+| `examples/2023B_gate2_5/code/load_2023B_data.py` | 读取附件水深网格，输出坐标范围、深度范围和空值检查 |
+| `examples/2023B_gate2_5/code/geometry_model.py` | 实现平坦海底、斜坡剖面、方向等效坡度下的覆盖宽度函数 |
+| `examples/2023B_gate2_5/code/overlap_check.py` | 实现相邻测线重叠率和 10%-20% 区间检查 |
+| `examples/2023B_gate2_5/code/baseline_lines.py` | 生成规则平行测线基线，仅用于 sanity check |
+| `examples/2023B_gate2_5/reports/CODE_MINI_RUN_REPORT_2023B.md` | 记录本轮 Gate 2.5 小样例验证 |
 
 ## 运行命令与输出
 
@@ -33,7 +33,7 @@
 命令：
 
 ```powershell
-python code\load_2023B_data.py
+python examples\2023B_gate2_5\code\load_2023B_data.py
 ```
 
 关键输出：
@@ -57,7 +57,7 @@ has_nan: False
 命令：
 
 ```powershell
-python code\geometry_model.py
+python examples\2023B_gate2_5\code\geometry_model.py
 ```
 
 关键输出：
@@ -75,7 +75,7 @@ directional_width_beta_90: 416.549
 命令：
 
 ```powershell
-python code\overlap_check.py
+python examples\2023B_gate2_5\code\overlap_check.py
 ```
 
 关键输出：
@@ -92,7 +92,7 @@ status: 通过
 命令：
 
 ```powershell
-python code\baseline_lines.py
+python examples\2023B_gate2_5\code\baseline_lines.py
 ```
 
 关键输出：

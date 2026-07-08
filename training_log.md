@@ -26,6 +26,7 @@
 | 2026-07-08 | 2024-C 终稿验收测试 | runtime_pack Gate 5 + FINAL_REVIEW_REPORT.md |  | pass；未触发重写论文/新增结果/stable 标记 | dry-run | 否 | 2024-C full smoke chain pass；只验证 smoke chain 论文验收，不计入 stable |
 | 2026-07-08 | 2023-B Gate 0-2 跨题泛化测试 | export/cumcm_runtime_pack.md + engineering_optimization_runtime + gate_0/1/2 |  | pass；未触发代码/论文/最终测线方案 | cross-problem | 否 | 2023-B Gate 0-2 cross-problem generalization pass；可进入 Gate 2.5 小样例，仍不得标记 stable |
 | 2026-07-08 | 2023-B Gate 2.5 代码小样例验证 | export/cumcm_runtime_pack.md + runtime_cross_2023B_gate0_2.md + code mini-run |  | pass；未触发最终测线方案/论文/完整优化器 | mini-run | 否 | 2023-B Gate 2.5 code mini-run pass；下一步只考虑 Gate 2.6 方向角粗网格搜索 |
+| 2026-07-08 | 2023-B Gate 2.6 方向角粗网格搜索 | export/cumcm_runtime_pack.md + examples/2023B_gate2_5 + direction_grid_search |  | pass；未触发最终测线方案/论文/完整优化器/全局最优声明 | smoke | 否 | 2023-B Gate 2.6 direction grid search pass；下一步可进入 Gate 3 结果报告 |
 
 ## 标签统计
 
@@ -44,7 +45,7 @@
 
 ## 当前工程优化 runtime 状态
 
-2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-2 cross-problem generalization pass，并完成 Gate 2.5 code mini-run pass，证明 runtime 初步能在不同机制工程优化题上重新识别变量、目标函数、约束和数据需求，并能进入受控代码小样例。但尚未完成 2023-B Gate 2.6 或 Gate 3-5。当前状态仍为 candidate，不得标记 stable。
+2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-2 cross-problem generalization pass、Gate 2.5 code mini-run pass 和 Gate 2.6 direction grid search pass，证明 runtime 初步能在不同机制工程优化题上重新识别变量、目标函数、约束和数据需求，并能进入受控代码小样例与方向粗搜索。但尚未完成 2023-B Gate 3-5。当前状态仍为 candidate，不得标记 stable。
 
 ## 稳定版本记录
 

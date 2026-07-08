@@ -23,7 +23,7 @@
 | 材料 | 路径 | 用途 |
 |---|---|---|
 | 官方题面文本 | `official_materials/2023_B/problem/B题_extracted_text.txt` | 识别题目背景、问题要求、参数和输出模板要求 |
-| 官方附件 | `official_materials/2023_B/attachments/附件.xlsx` | 问题 4 的单波束水深网格，253 行 x 203 列 |
+| 官方附件 | `official_materials/2023_B/attachments/附件.xlsx` | 问题 4 的单波束水深原始表格，工作表尺寸为 253 行 x 203 列 |
 | 结果模板 | `official_materials/2023_B/templates/result1.xlsx` | 问题 1 输出模板 |
 | 结果模板 | `official_materials/2023_B/templates/result2.xlsx` | 问题 2 输出模板 |
 | runtime pack | `export/cumcm_runtime_pack.md` | 合并后的工程优化运行规则 |
@@ -31,6 +31,8 @@
 | Gate 清单 | `checklists/gate_0_problem_diagnosis.md`、`checklists/gate_1_before_modeling.md`、`checklists/gate_2_before_coding.md` | 本轮闸门依据 |
 
 备注：仓库中未发现独立的 `rules/runtime_pack.md`，本轮使用等价导出文件 `export/cumcm_runtime_pack.md`。
+
+Gate 2.5 口径补充：代码实际读取的有效水深网格为 251 x 201；此前 253 行 x 203 列指 Excel 原始工作表尺寸，包含标题行和坐标标签列。后续建模、代码和报告均以 251 x 201 有效水深网格为准。
 
 ## Gate 0：总控诊断
 
