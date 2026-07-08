@@ -31,6 +31,7 @@
 | 2026-07-08 | 2023-B Gate 4 论文草稿测试 | RESULTS_REPORT_2023B.md + draft_gate4_2023B.md |  | pass；未编造新增数值/未输出最终测线方案/未声明最优方向 | dry-run | 否 | 2023-B Gate 4 paper draft dry-run pass；下一步可进入 Gate 5 终稿验收测试 |
 | 2026-07-08 | 2023-B Gate 5 终稿验收测试 | draft_gate4_2023B.md + FINAL_REVIEW_REPORT_2023B.md |  | pass；未重写论文/未新增结果/未标 stable | dry-run | 否 | 2023-B full smoke chain pass；工程优化 runtime 升级为 candidate+，仍需新机制题验证后才考虑 stable candidate |
 | 2026-07-08 | 2024-B Gate 0-2 第三类机制泛化测试 | official_materials/2024_B + export/cumcm_runtime_pack.md + engineering_optimization_runtime |  | pass；未触发代码/论文/最终生产决策方案 | cross-problem | 否，stable candidate 证据 | 2024-B Gate 0-2 third-mechanism generalization pass；工程优化 runtime 升级为 stable candidate，仍不得标记 stable |
+| 2026-07-08 | B311 论文学习 | 2023_B311_学习卡片 + 知识卡片 + patch_B311_spatial_coverage_optimization |  | 未验证 | 论文学习 | 否 | 等待旧题闭环验证，不修改 base/plugin |
 
 ## 标签统计
 
