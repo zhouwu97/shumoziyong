@@ -171,8 +171,13 @@ export/cumcm_runtime_pack.md
 
 - 已有工程优化 base/plugin/patch。
 - 已有 A092、A127 学习卡片和知识卡片。
-- 已有 2023-B 与 2024-C 官方 T3 总控诊断测试记录。
-- 工程优化处于候选待人工确认状态，未正式标记 stable。
+- 当前工程优化 runtime 状态：stable candidate，未 stable。
+- 依据：
+  1. 2024-C 农作物种植策略完成 Gate 0-5 full smoke chain pass；
+  2. 2023-B 多波束测线问题完成 Gate 0-5 full smoke chain pass；
+  3. 2024-B 生产过程中的决策问题完成 Gate 0-2 third-mechanism generalization pass。
+- 边界：该状态只说明工程优化 runtime 已具备初步跨题可用性，不代表正式提交质量、完整最优化算法能力或最终 stable。
+- 建议比赛时默认使用本状态对应的 `export/cumcm_runtime_pack.md`；后续大改应另开分支，不直接在当前验证结构上重写。
 
 ## 使用原则
 
