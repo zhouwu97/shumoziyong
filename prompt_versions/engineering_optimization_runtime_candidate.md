@@ -1,6 +1,6 @@
-# engineering_optimization runtime candidate+ 记录
+# engineering_optimization runtime stable candidate 记录
 
-状态：candidate+
+状态：stable candidate，未 stable
 
 ## 依据
 
@@ -8,7 +8,9 @@
 
 2023-B 多波束测线问题已完成 Gate 0-5 full smoke chain pass。
 
-两道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是多波束测深的空间覆盖、几何约束和测线布设优化。该结果说明工程优化 runtime 已具备初步跨题可用性，但仍不得标记为 stable。
+2024-B 生产过程中的决策问题已完成 Gate 0-2 third-mechanism generalization pass。
+
+三道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是多波束测深的空间覆盖、几何约束和测线布设优化，2024-B 是生产过程、质量检测、工序决策和成本收益权衡。该结果说明工程优化 runtime 已进入 stable candidate 阶段，但仍不得标记为 stable。
 
 ## 已验证
 
@@ -28,13 +30,15 @@
 - 2023-B 多波束测线问题 Gate 4 论文草稿测试
 - 2023-B 多波束测线问题 Gate 5 终稿验收测试
 - 2023-B full smoke chain pass
+- 2024-B 生产过程中的决策问题 Gate 0-2 第三类机制泛化测试
 
 ## 未验证
 
 - 完整最优化算法
 - 正式论文提交质量
-- 第三道不同机制工程优化题 full chain 或至少 Gate 0-2 泛化验证
-- stable candidate 所需的更广泛题型稳定性
+- 2024-B Gate 2.5 及后续代码、结果报告、论文草稿和终稿验收链路
+- 第三道不同机制工程优化题 full chain
+- stable 所需的更广泛题型稳定性和正式提交质量
 
 ## 跨题泛化记录
 
@@ -51,7 +55,9 @@
 - 2026-07-08：`2023-B Gate 5 final review pass`。
 - 2026-07-08：`2023-B full smoke chain pass`。
 - 说明：Gate 5 只对测试版论文草稿做审稿式验收，未重写论文，未新增实验结果，未新增数值，未输出最终测线方案，未把粗网格搜索写成正式优化结果。
-- 当前结论：`engineering_optimization runtime candidate+`。2024-C 完整链路通过；2023-B 完整链路通过；两个题机制明显不同，具备初步跨题可用性。仍需至少一道新机制工程优化题验证后，才考虑 stable candidate。
+- 2026-07-08：`2024-B Gate 0-2 third-mechanism generalization pass`。
+- 说明：2024-B 属于生产过程、质量检测、工序决策和成本收益权衡机制，明显不同于 2024-C 的农业资源配置和 2023-B 的空间覆盖几何。本次只验证 Gate 0-2，未进入代码、论文或最终方案阶段。
+- 当前结论：`engineering_optimization runtime stable candidate`。2024-C 与 2023-B 完整链路通过；2024-B 第三类机制 Gate 0-2 泛化通过。该状态不是 stable，后续仍需更多机制题和正式求解质量验证。
 
 ## 禁止
 
