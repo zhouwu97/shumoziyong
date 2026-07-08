@@ -29,6 +29,7 @@
 | 2026-07-08 | 2023-B Gate 2.6 方向角粗网格搜索 | export/cumcm_runtime_pack.md + examples/2023B_gate2_5 + direction_grid_search |  | pass；未触发最终测线方案/论文/完整优化器/全局最优声明 | smoke | 否 | 2023-B Gate 2.6 direction grid search pass；下一步可进入 Gate 3 结果报告 |
 | 2026-07-08 | 2023-B Gate 3 结果证据报告 | Gate 2.5/2.6 reports + RESULTS_REPORT_2023B.md |  | pass；未新增实验结果/未写论文/未输出最终测线方案 | dry-run | 否 | 2023-B Gate 3 results report pass；下一步可进入 Gate 4 论文草稿测试 |
 | 2026-07-08 | 2023-B Gate 4 论文草稿测试 | RESULTS_REPORT_2023B.md + draft_gate4_2023B.md |  | pass；未编造新增数值/未输出最终测线方案/未声明最优方向 | dry-run | 否 | 2023-B Gate 4 paper draft dry-run pass；下一步可进入 Gate 5 终稿验收测试 |
+| 2026-07-08 | 2023-B Gate 5 终稿验收测试 | draft_gate4_2023B.md + FINAL_REVIEW_REPORT_2023B.md |  | pass；未重写论文/未新增结果/未标 stable | dry-run | 否 | 2023-B full smoke chain pass；工程优化 runtime 升级为 candidate+，仍需新机制题验证后才考虑 stable candidate |
 
 ## 标签统计
 
@@ -47,13 +48,13 @@
 
 ## 当前工程优化 runtime 状态
 
-2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-2 cross-problem generalization pass、Gate 2.5 code mini-run pass、Gate 2.6 direction grid search pass、Gate 3 results report pass 和 Gate 4 paper draft dry-run pass，证明 runtime 初步能在不同机制工程优化题上重新识别变量、目标函数、约束和数据需求，并能进入受控代码小样例、方向粗搜索、结果证据汇总与受约束论文草稿。但尚未完成 2023-B Gate 5。当前状态仍为 candidate，不得标记 stable。
+2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-5 full smoke chain pass，且两个题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是空间覆盖、几何约束和测线布设优化。当前状态为 engineering_optimization runtime candidate+，具备初步跨题可用性；仍需至少一道新机制工程优化题验证后，才考虑 stable candidate，不得标记 stable。
 
 ## 稳定版本记录
 
 | 题型 | 稳定版本 | 成熟度 | 通过旧题数量 | 最近测试日期 | 备注 |
 |---|---|---|---:|---|---|
-| 工程优化 | 未稳定，候选待人工确认 | L4 | 2 | 2026-07-05 | 2023-B 与 2024-C 官方 T3 总控诊断通过；未获人工确认前不正式标记 stable |
+| 工程优化 | candidate+，未 stable | L4 | 2 | 2026-07-08 | 2024-C 与 2023-B full smoke chain pass；仍需至少一道新机制工程优化题验证后才考虑 stable candidate |
 | 预测类 | 待创建 | L1 | 0 |  |  |
 | 评价类 | 待创建 | L1 | 0 |  |  |
 | 仿真类 | 待创建 | L1 | 0 |  |  |
