@@ -32,6 +32,7 @@
 | 2026-07-08 | 2023-B Gate 5 终稿验收测试 | draft_gate4_2023B.md + FINAL_REVIEW_REPORT_2023B.md |  | pass；未重写论文/未新增结果/未标 stable | dry-run | 否 | 2023-B full smoke chain pass；工程优化 runtime 升级为 candidate+，仍需新机制题验证后才考虑 stable candidate |
 | 2026-07-08 | 2024-B Gate 0-2 第三类机制泛化测试 | official_materials/2024_B + export/cumcm_runtime_pack.md + engineering_optimization_runtime |  | pass；未触发代码/论文/最终生产决策方案 | cross-problem | 否，stable candidate 证据 | 2024-B Gate 0-2 third-mechanism generalization pass；工程优化 runtime 升级为 stable candidate，仍不得标记 stable |
 | 2026-07-08 | B311 论文学习 | 2023_B311_学习卡片 + 知识卡片 + patch_B311_spatial_coverage_optimization |  | 未验证 | 论文学习 | 否 | 等待旧题闭环验证，不修改 base/plugin |
+| 2026-07-09 | B311/B477 candidate patch 负控验证：2024-B 生产过程中的决策问题 | default runtime_pack(A092+A127) vs candidate runtime_pack(A092+A127+B311+B477) | 96/96 | 无；M1-M5均无 | T4 | 否，不升级 | candidate 包未误触发空间覆盖/路径搜索经验；无实质提分，B311/B477 保持 candidate，下一步做相似非同题验证 |
 
 ## 标签统计
 
