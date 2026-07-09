@@ -15,13 +15,19 @@
 
 1. `prompt_base/prompt_base_v1.0.md`
 2. `prompt_plugins/plugin_optimization_v1.md`
-3. `prompt_patches/patch_A092_engineering_optimization.md`
-4. `prompt_patches/patch_A127_engineering_layout_optimization.md`
-5. `checklists/gate_0_problem_diagnosis.md`
-6. `checklists/gate_1_before_modeling.md`
-7. `checklists/gate_2_before_coding.md`
-8. `checklists/gate_3_before_writing.md`
-9. `checklists/gate_4_final_review.md`
+3. `prompt_patches/patch_index.json` 中 `runtime_profiles` 包含 `engineering_optimization`，且状态为 `verified_candidate` 或 `stable` 的 patch
+4. `checklists/gate_0_problem_diagnosis.md`
+5. `checklists/gate_1_before_modeling.md`
+6. `checklists/gate_2_before_coding.md`
+7. `checklists/gate_3_before_writing.md`
+8. `checklists/gate_4_final_review.md`
+
+当前默认导入的工程优化 patch：
+
+1. `prompt_patches/patch_A092_engineering_optimization.md`
+2. `prompt_patches/patch_A127_engineering_layout_optimization.md`
+
+`candidate` patch 只允许在旧题闭环测试中显式启用，不进入默认比赛运行包。
 
 硬规则：
 
@@ -70,4 +76,3 @@
 2. 人工确认建模路线后，才允许调用代码和图表阶段。
 3. 代码结果必须写入 `results/`，图表必须写入 `figures/`。
 4. 论文阶段只能引用 `reports/RESULTS_REPORT.md` 和 `figures/` 中已经确认的结果。
-

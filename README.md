@@ -56,9 +56,11 @@ prompt_plugins/
 
 prompt_patches/
   单篇优秀论文经验补丁。
+  patch_index.json 用于按题型、状态和 profile 自动筛选 patch。
 
 papers/
   优秀论文学习卡片和知识卡片 JSON。
+  templates/ 存放学习卡片和知识卡片模板。
 
 tests/old_problems/
   旧题测试记录。
@@ -149,6 +151,12 @@ python scripts/export_runtime_pack.py
 
 ```text
 export/cumcm_runtime_pack.md
+```
+
+导出器会读取 `prompt_patches/patch_index.json`，默认只导入状态为 `verified_candidate` 或 `stable` 的 patch。若要做旧题实验，可以显式加入候选 patch：
+
+```bash
+python scripts/export_runtime_pack.py --include-candidate-patches
 ```
 
 比赛目录建议：

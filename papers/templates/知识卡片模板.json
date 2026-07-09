@@ -1,0 +1,41 @@
+{
+  "paper_id": "YYYY_X000",
+  "source": {
+    "year": "",
+    "problem": "",
+    "award": "",
+    "title": ""
+  },
+  "problem_type": [],
+  "keywords": [],
+  "transferable_skills": [
+    {
+      "skill": "",
+      "when_to_use": "",
+      "how_to_use": "",
+      "risk": ""
+    }
+  ],
+  "model_chain": [],
+  "data_chain": [],
+  "figure_evidence": [
+    {
+      "figure_or_table": "",
+      "supports": "",
+      "risk": ""
+    }
+  ],
+  "not_to_copy": [],
+  "suggested_patch": {
+    "patch_id": "",
+    "file": "",
+    "status": "candidate",
+    "runtime_profiles": [],
+    "validation_targets": []
+  },
+  "upgrade_notes": {
+    "candidate_reason": "",
+    "required_old_problem_tests": [],
+    "do_not_upgrade_before": ""
+  }
+}
