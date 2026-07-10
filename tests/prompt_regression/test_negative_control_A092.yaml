@@ -33,18 +33,12 @@ cases:
         subproblems:
           - 空间布局
           - 布局设计
-          - 工程方案寻优
-          - 工程设计优化
-          - 约束方案优化
-          - 设计变量优化
 
         decision_variables:
           - 空间坐标
           - 对象间距
           - 安全距离
           - 布局变量
-          - 工程设计变量
-          - 方案选择变量
 
         selected_route:
           - 同心圆布局
