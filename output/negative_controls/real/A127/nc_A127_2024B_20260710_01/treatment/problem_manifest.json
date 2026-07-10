@@ -1,0 +1,113 @@
+{
+  "problem_id": "2024-B",
+  "material_root": "official_materials/2024_B",
+  "material_exists": true,
+  "files": [
+    {
+      "path": "official_materials/2024_B/2024_CUMCM_problems_official_cn.rar",
+      "size": 91657765,
+      "sha256": "4c2eb55554dcf85e53e8f64f988247028439ec17833be81b83e8de82b2180c11"
+    },
+    {
+      "path": "official_materials/2024_B/manifest.md",
+      "size": 3021,
+      "sha256": "f1a2ef3afb119a7b58d10eceda4d2059cb54324dd9e7f6c25dc1bb1c9b8f446e"
+    },
+    {
+      "path": "official_materials/2024_B/problem/B题.pdf",
+      "size": 636910,
+      "sha256": "f54529dd15d729b046e248ea41033b4f66ef68333be2bee912b0c54eafd227ab"
+    },
+    {
+      "path": "official_materials/2024_B/problem/B题_extracted_text.txt",
+      "size": 4106,
+      "sha256": "e2fc9aa62dcd6dd23851ca4acbcf951ed5f70a5d0945983f854a0d3540257529"
+    },
+    {
+      "path": "official_materials/2024_B/raw/A题/A题.pdf",
+      "size": 758066,
+      "sha256": "7ece8c6d2b876781e5219091c38980e1321ffd1d56604cbe36cd867edb7a1933"
+    },
+    {
+      "path": "official_materials/2024_B/raw/A题/附件/result1.xlsx",
+      "size": 517064,
+      "sha256": "72fe1bad957f0201278640fda5415a6c11a663f0651e0ce0670c5f1d1d92e631"
+    },
+    {
+      "path": "official_materials/2024_B/raw/A题/附件/result2.xlsx",
+      "size": 15292,
+      "sha256": "54b3260cea4a799448843b464a2f42f1c32f8f4b4e2001cdf271575c39f5e094"
+    },
+    {
+      "path": "official_materials/2024_B/raw/A题/附件/result4.xlsx",
+      "size": 346204,
+      "sha256": "401aa0934f47201a8594c16f571464cc875fe2cd7c4b40c73787b641a27b1a35"
+    },
+    {
+      "path": "official_materials/2024_B/raw/B题/B题.pdf",
+      "size": 636910,
+      "sha256": "f54529dd15d729b046e248ea41033b4f66ef68333be2bee912b0c54eafd227ab"
+    },
+    {
+      "path": "official_materials/2024_B/raw/C题/C题.pdf",
+      "size": 558863,
+      "sha256": "c7b5e58bff4189b8afba5505f7bff7d4f08280fc291c51ef3f46134ebbf74f9a"
+    },
+    {
+      "path": "official_materials/2024_B/raw/C题/附件1.xlsx",
+      "size": 17147,
+      "sha256": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932"
+    },
+    {
+      "path": "official_materials/2024_B/raw/C题/附件2.xlsx",
+      "size": 21976,
+      "sha256": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce"
+    },
+    {
+      "path": "official_materials/2024_B/raw/C题/附件3/result1_1.xlsx",
+      "size": 81837,
+      "sha256": "4f2484c0d70a5c4d047163f2ee6ef486949e813330466f46def4bd7d98af06af"
+    },
+    {
+      "path": "official_materials/2024_B/raw/C题/附件3/result1_2.xlsx",
+      "size": 81836,
+      "sha256": "6166d43f5a64bf9d1657e80d4aee7f10f54bb1a5695b81a28a0ac5e657297649"
+    },
+    {
+      "path": "official_materials/2024_B/raw/C题/附件3/result2.xlsx",
+      "size": 81836,
+      "sha256": "6a1ba9fc28d14d0a4a795e5f0b7261fb6e32165517afee62bcd1931aba5bee8a"
+    },
+    {
+      "path": "official_materials/2024_B/raw/D题/D题.pdf",
+      "size": 890096,
+      "sha256": "8f30bdb312715167cd4ceaf87604dfd12e688d802e32e310322057aeb9d66cb0"
+    },
+    {
+      "path": "official_materials/2024_B/raw/E题/E题.pdf",
+      "size": 400794,
+      "sha256": "d5c9442c261a7eacc7da3b5b23047b5d8fd9b7c86bd082d782288ee1bb64c4bb"
+    },
+    {
+      "path": "official_materials/2024_B/raw/E题/附件1.xlsx",
+      "size": 10647,
+      "sha256": "2a33f6290d5f6209b259a68c5b9db7eb5c163b33e6d1082b622aeb5f215309d0"
+    },
+    {
+      "path": "official_materials/2024_B/raw/E题/附件2.csv",
+      "size": 490590626,
+      "sha256": "ef16c9b810d6b010b83ee0938a6e7b9ec09ed2ae9178bde48f748bdd00e1438c"
+    },
+    {
+      "path": "official_materials/2024_B/raw/E题/附件3.pdf",
+      "size": 409599,
+      "sha256": "ccd7b7400afa9ac9b974de124198d57cc2fc5273931d72da8ad49f1d9fe02cf7"
+    },
+    {
+      "path": "official_materials/2024_B/raw/format2024.doc",
+      "size": 69120,
+      "sha256": "ec699bbe89e25cad16ca907b305c6cc76112ec04083cfe56ca65fd7a26fbaafe"
+    }
+  ],
+  "content_digest": "b7b31070a0b5c7ea2ce79ec7cdc62f636e27469fe55d0e1d146a9890ec03926d"
+}

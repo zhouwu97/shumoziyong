@@ -1,0 +1,100 @@
+{
+  "manifest_version": "1.1.0",
+  "runtime_version": "0.2.0",
+  "generated_at": "2026-07-10T14:38:03+08:00",
+  "profile": "engineering_optimization",
+  "maturity": "verified_candidate",
+  "runtime_profile_state": {
+    "path": "runtime_profiles/engineering_optimization.json",
+    "sha256": "38ffee0decce5035fdf1a8cb3c2e9d1fd46cd4481ff23d15c40857c129f63767"
+  },
+  "patch_index": {
+    "path": "prompt_patches/patch_index.json",
+    "sha256": "ff7b2225de8cb6ea0904a42476b24d4ac2fd7a38bb7c8593e9f1aeac9f3bf361"
+  },
+  "base": {
+    "path": "prompt_base/prompt_base_v1.0.md",
+    "sha256": "1aa1423ff146164a1b4e13b04ed4450356f3bcf09db0d303f91b4b441736f283"
+  },
+  "plugins": [
+    {
+      "path": "prompt_plugins/plugin_optimization_v1.md",
+      "sha256": "e9d9966dae398e6f84a885caa380a9d0ef11085fdb178ecd461ce41654175cb1"
+    }
+  ],
+  "patches": [],
+  "checklists": [
+    {
+      "path": "checklists/gate_0_problem_diagnosis.md",
+      "sha256": "c7aec9255ef1fa56c8541a4fea8ef9ebbdcb5effd81f8afc754befd10c92aab0"
+    },
+    {
+      "path": "checklists/gate_1_before_modeling.md",
+      "sha256": "520784a5cbaa23066d8029ce7c1827e4a1486b4fc5d3d89ff8eee62edaab1ec7"
+    },
+    {
+      "path": "checklists/gate_2_before_coding.md",
+      "sha256": "eac99fe953468015c63f7969d9134e66641555048877c64d301cecbba1c94e26"
+    },
+    {
+      "path": "checklists/gate_3_before_writing.md",
+      "sha256": "03121df6c7aa99586320ff031a8dbda5540e68c3fb54e934e835e4bda037163a"
+    },
+    {
+      "path": "checklists/gate_4_final_review.md",
+      "sha256": "f0e6a9d521c6f60d274b383acce05a0e3b0438c2da41785a2fc316dd98939a49"
+    }
+  ],
+  "other_files": [
+    {
+      "path": "export/mathmodelagent_inject_prompt.md",
+      "sha256": "654125bfaf4dfbc3da093970794c6168280e41a6cc5ddacd3bed5d9e21e6b1ec"
+    },
+    {
+      "path": "runtime_profiles/engineering_optimization_runtime.md",
+      "sha256": "0fbf2df2f60658b813ffc87e6e5749616e409e835b3446f65532dc496ca697d0"
+    }
+  ],
+  "excluded_patches": [
+    {
+      "patch_id": "A092",
+      "status": "verified_candidate",
+      "reason": "显式排除（隔离实验）"
+    },
+    {
+      "patch_id": "A127",
+      "status": "verified_candidate",
+      "reason": "显式排除（隔离实验）"
+    },
+    {
+      "patch_id": "B311",
+      "status": "candidate",
+      "reason": "candidate patch 未显式指定导入"
+    },
+    {
+      "patch_id": "B477",
+      "status": "candidate",
+      "reason": "candidate patch 未显式指定导入"
+    }
+  ],
+  "candidate_experiment": {
+    "enabled": false,
+    "patch_ids": [],
+    "warning": null
+  },
+  "exclusion_experiment": {
+    "enabled": true,
+    "patch_ids": [
+      "A092",
+      "A127"
+    ]
+  },
+  "export_flags": {
+    "candidate_patches": [],
+    "excluded_patches": [
+      "A092",
+      "A127"
+    ]
+  },
+  "runtime_pack_sha256": "a3e79123e768b670e755d64ca9987c657fc4f022a4560b4f83d04fb4f9bd2b91"
+}
