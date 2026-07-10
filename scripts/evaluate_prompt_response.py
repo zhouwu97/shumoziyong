@@ -120,6 +120,11 @@ def evaluate_manifest_alignment(response: dict[str, Any], manifest: dict[str, An
             errors.append(f"patch_decisions.{patch_id}.enabled 期望 {expected_enabled}，实际 {actual_enabled}（与运行包包含情况不符）")
         if not expected_enabled and "未加载" not in decision.get("reason", ""):
             errors.append(f"patch_decisions.{patch_id}.reason 未加载的 patch 必须在理由中说明“未加载”，当前为：{decision.get('reason')}")
+    
+    missing_active = active_patch_ids - set(response.get("patch_decisions", {}))
+    if missing_active:
+        errors.append(f"缺少已加载 Patch 的决策：{sorted(list(missing_active))}")
+    
     return errors
 
 

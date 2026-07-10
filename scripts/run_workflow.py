@@ -213,10 +213,12 @@ def parse_args() -> argparse.Namespace:
         "--exclude-patch",
         action="append",
         default=[],
-        metavar="PATCH_ID",
-        dest="exclude_patch",
-        help="显式排除已批准 patch（隔离实验用），可重复传入。",
+        help="要排除的 patch_id (可多次指定)",
     )
+    parser.add_argument("--promotion-evidence", action="store_true", help="启用晋级评估模式")
+    parser.add_argument("--experiment-group-id", help="实验组 ID")
+    parser.add_argument("--experiment-role", choices=["baseline", "patch_only"], help="实验角色")
+    parser.add_argument("--target-patch", help="目标 Patch ID")
     return parser.parse_args()
 
 

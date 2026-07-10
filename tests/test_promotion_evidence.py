@@ -40,6 +40,7 @@ def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index):
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         validator.validate_patch_promotion()
         assert not validator.failures
+        assert any("A001" in item for item in validator.passes)
 
 def test_simulated_precheck_fails(validator, valid_matrix, valid_patch_index, tmp_path):
     def mock_resolve(self, raw): return Path(raw).resolve()

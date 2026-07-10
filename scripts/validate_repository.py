@@ -51,20 +51,26 @@ class RepositoryValidator:
             self.fail(f"JSON 无法读取：{relative_path}（{exc}）")
             return None
 
-    def validate_schema(self, data: Any, schema_name: str, label: str) -> None:
+    def validate_schema(self, data: Any, schema_name: str, display_name: str) -> bool:
+        """Validate JSON against schema, return True if ok."""
+        from jsonschema import Draft202012Validator, FormatChecker
         schema = self.load_json(f"schemas/{schema_name}")
         if schema is None:
-            return
+            return False
         errors = sorted(
-            Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(data),
+            Draft202012Validator(
+                schema,
+                format_checker=FormatChecker(),
+            ).iter_errors(data),
             key=lambda error: list(error.absolute_path),
         )
         if errors:
             for error in errors:
                 location = ".".join(str(part) for part in error.absolute_path) or "<root>"
-                self.fail(f"{label} Schema：{location}：{error.message}")
-        else:
-            self.pass_(f"{label} Schema")
+                self.fail(f"{display_name} Schema：{location}：{error.message}")
+            return False
+        self.pass_(f"{display_name} Schema")
+        return True
 
     def validate_all_json_syntax(self) -> None:
         broken = 0

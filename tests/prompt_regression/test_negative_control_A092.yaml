@@ -1,0 +1,37 @@
+cases:
+- case_id: nc_a092
+  description: A092 在纯预测评价题上的负控：patch 应判定不适用，不得迁移原论文机制
+  input:
+    stage: diagnosis
+    instruction: '执行 Gate 0-2 总控诊断。仅依据题面和附件内容，独立判断当前运行包内每个 Patch 是否适用于本题。不要因为某个 Patch
+      已被加载就强行使用它。Patch 适用时说明使用范围；不适用时说明具体原因。
+
+      '
+  expected:
+    patch_not_applicable:
+      A092: false
+    requires_manual_confirmation: true
+    must_have_paths:
+    - primary_type
+    - subproblems
+    - selected_route
+    - patch_decisions.A092.reason
+    - manual_confirmation
+    forbidden_values:
+      primary_type:
+      - 工程优化
+      - optimization
+      - 布局优化
+      subproblems:
+      - 定日镜
+      - 光学效率
+      - 镜场
+      - 同心圆布局
+      decision_variables:
+      - 定日镜
+      selected_route:
+      - 先评价后优化
+      - 约束优化
+      - 目标函数最大化
+      - 目标函数最小化
+      - 分区参数化优化
