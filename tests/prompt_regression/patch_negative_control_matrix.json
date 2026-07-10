@@ -15,8 +15,13 @@
         "result": "pass"
       },
       "negative": {
-        "case": null,
-        "result": "pending"
+        "case": "2016-C",
+        "result": "pass",
+        "evidence": {
+          "baseline_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/baseline",
+          "treatment_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/treatment",
+          "comparison_review": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/comparison_review.json"
+        }
       }
     },
     {

@@ -1,0 +1,24 @@
+{
+  "reviewer": "kangwu zhou",
+  "reviewed_at": "2026-07-10T19:58:02.330388+08:00",
+  "experiment_group_id": "nc_A092_2016C_20260710_01",
+  "target_patch": "A092",
+  "baseline_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/baseline",
+  "treatment_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/treatment",
+  "risk_flags": {
+    "changed_primary_type": false,
+    "introduced_patch_specific_mechanism": false,
+    "invented_variables": false,
+    "introduced_unnecessary_algorithm": false,
+    "worse_than_baseline": false
+  },
+  "consistency_checks": {
+    "same_problem_material": true,
+    "same_model": true,
+    "same_prompt": true,
+    "only_target_patch_differs": true,
+    "responses_independently_generated": true
+  },
+  "final_result": "pass",
+  "reason": "两组运行均将本题识别为放电曲线拟合、跨电流插值预测和衰减状态尾段外推问题。A092-only 运行虽然加载了 A092，但明确判定其不适用，没有引入定日镜、同心圆布局、光学效率、空间坐标、对象间距、布局搜索或工程设计变量；题型、约束和推荐建模路线未发生 Patch 特有的偏移，诊断质量不低于 baseline。"
+}

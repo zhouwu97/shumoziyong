@@ -14,11 +14,11 @@
     "A127"
   ],
   "experiment_kind": "negative_control",
-  "status": "initialized",
+  "status": "reviewed",
   "automatic_stable_update": false,
   "experiment_group_id": "nc_A092_2016C_20260710_01",
   "experiment_role": "baseline",
   "target_patch": "A092",
-  "evidence_validity": "pending",
-  "eligible_for_promotion": false
+  "evidence_validity": "real_ai_run",
+  "eligible_for_promotion": true
 }

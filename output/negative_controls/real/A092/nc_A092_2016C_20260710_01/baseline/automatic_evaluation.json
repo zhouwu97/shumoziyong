@@ -1,5 +1,11 @@
 {
-  "_note": "待生成：由 evaluate_prompt_response.py 产出",
-  "case_id": "",
-  "errors": []
+  "case_id": "nc_a092_2016C",
+  "case_file": "tests/prompt_regression/test_negative_control_A092.yaml",
+  "result": "pass",
+  "errors": [],
+  "evaluated_at": "2026-07-10T19:55:30.232850+08:00",
+  "evaluator_version": "1.2.0",
+  "response_sha256": "4867dde79f52af82eb13147eaeb93a354731b73655f33e9fb39bf90897e4301f",
+  "case_sha256": "00fae222aaca07cb29f243a980c63d690e363ecc24a342d2da8c91808f83234b",
+  "manifest_sha256": "44735f720fea771b5e0e89238633e2079ebd7a8f8197e1e1d522214b41e99005"
 }
