@@ -1,0 +1,23 @@
+{
+  "problem_id": "2016-C",
+  "material_root": "official_materials/2016_C",
+  "material_exists": true,
+  "files": [
+    {
+      "path": "official_materials/2016_C/data/CUMCM2016-C-Appendix-Chinese.xlsx",
+      "size": 135587,
+      "sha256": "062583d35b471838d3f72353c898ab87e2a2407c9ad5579291aec91a7124e0bf"
+    },
+    {
+      "path": "official_materials/2016_C/problem/CUMCM2016-Problem-C-Chinese-version.docx",
+      "size": 22502,
+      "sha256": "19cd536e12e78a4270d621f977cea37859efaf7af77526ae680bec7b6993d440"
+    },
+    {
+      "path": "official_materials/2016_C/problem/CUMCM2016-Problem-C-Chinese-version_extracted_text.txt",
+      "size": 1512,
+      "sha256": "00a4f5a92722a5358da5ffaee0fdffcb527c7ee80bc7b5ee67cf0e145d272969"
+    }
+  ],
+  "content_digest": "6f591661a96857aad93751f7d933f767ee4f4d0881a6f96ee3411403df92254c"
+}
