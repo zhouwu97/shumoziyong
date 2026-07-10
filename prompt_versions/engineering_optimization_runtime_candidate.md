@@ -1,6 +1,10 @@
-# engineering_optimization runtime stable candidate 记录
+# engineering_optimization runtime verified_candidate 记录
 
-状态：stable candidate，未 stable
+成熟度：`verified_candidate`
+
+验证级别：`cross_mechanism`
+
+正式比赛验证：否
 
 ## 依据
 
@@ -10,7 +14,7 @@
 
 2024-B 生产过程中的决策问题已完成 Gate 0-2 third-mechanism generalization pass。
 
-三道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是多波束测深的空间覆盖、几何约束和测线布设优化，2024-B 是生产过程、质量检测、工序决策和成本收益权衡。该结果说明工程优化 runtime 已进入 stable candidate 阶段，但仍不得标记为 stable。
+三道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是多波束测深的空间覆盖、几何约束和测线布设优化，2024-B 是生产过程、质量检测、工序决策和成本收益权衡。该结果支持工程优化 runtime 的 `verified_candidate` 成熟度和 `cross_mechanism` 验证级别，但仍不得标记为 `stable`。
 
 ## 已验证
 
@@ -57,7 +61,7 @@
 - 说明：Gate 5 只对测试版论文草稿做审稿式验收，未重写论文，未新增实验结果，未新增数值，未输出最终测线方案，未把粗网格搜索写成正式优化结果。
 - 2026-07-08：`2024-B Gate 0-2 third-mechanism generalization pass`。
 - 说明：2024-B 属于生产过程、质量检测、工序决策和成本收益权衡机制，明显不同于 2024-C 的农业资源配置和 2023-B 的空间覆盖几何。本次只验证 Gate 0-2，未进入代码、论文或最终方案阶段。
-- 当前结论：`engineering_optimization runtime stable candidate`。2024-C 与 2023-B 完整链路通过；2024-B 第三类机制 Gate 0-2 泛化通过。该状态不是 stable，后续仍需更多机制题和正式求解质量验证。
+- 当前结论：maturity=`verified_candidate`、validation_level=`cross_mechanism`。2024-C 与 2023-B 完整链路通过；2024-B 第三类机制 Gate 0-2 泛化通过。该状态不是 `stable`，后续仍需更多机制题和正式求解质量验证。
 
 ## 禁止
 

@@ -1,0 +1,10 @@
+cases:
+  - case_id: patch_001
+    input:
+      problem_summary: 根据多个评价指标对城市韧性进行排序，不涉及空间覆盖或路径规划。
+    expected:
+      values:
+        primary_type: evaluation
+      must_have_paths: [candidate_models, patch_decisions.B311, patch_decisions.B477]
+      must_not_contain: [multibeam_formula, contour_line_route]
+      requires_manual_confirmation: true

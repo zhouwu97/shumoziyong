@@ -1,6 +1,8 @@
 # 数模比赛运行规则包
 
 - profile：`engineering_optimization`
+- runtime version：`0.2.0`
+- maturity：`verified_candidate`
 - 用途：复制到比赛工作目录的 `rules/runtime_pack.md`，供 MathModelAgent 执行前读取。
 - 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。
 
@@ -384,12 +386,6 @@ L5：能根据失败案例迭代并迁移到新题
 4. 明确目标、变量、约束、评价指标；
 5. 给出简单方法对比；
 6. 给出敏感性分析方案。
-
-
-# ===== prompt_patches/patch_index.json 自动选择 =====
-
-- 默认只导入 `verified_candidate` 和 `stable` patch。
-
 
 
 # ===== prompt_patches/patch_A092_engineering_optimization.md =====

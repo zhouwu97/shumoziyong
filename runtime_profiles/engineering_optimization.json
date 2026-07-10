@@ -1,0 +1,24 @@
+{
+  "profile_id": "engineering_optimization",
+  "version": "0.2.0",
+  "maturity": "verified_candidate",
+  "validation_level": "cross_mechanism",
+  "competition_verified": false,
+  "base_version": "1.0.0",
+  "plugin_version": "1.0.0",
+  "verified_patches": ["A092", "A127"],
+  "validation": {
+    "gate_0_2": 3,
+    "gate_0_5": 2,
+    "negative_control": 1,
+    "mechanism_classes": ["resource_allocation", "geometric_planning", "sequential_decision"],
+    "evidence": [
+      "output/closed_loop/runtime_smoke_2024C_final_review.md",
+      "examples/2023B_gate5/reports/FINAL_REVIEW_REPORT_2023B.md",
+      "output/closed_loop/runtime_cross_2024B_gate0_2.md",
+      "output/closed_loop/闭环摘要_candidate_patch_2024B负控_2026-07-09.md"
+    ]
+  },
+  "known_failures": [],
+  "last_updated": "2026-07-10"
+}

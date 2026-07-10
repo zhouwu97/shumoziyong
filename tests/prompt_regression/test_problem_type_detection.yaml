@@ -1,0 +1,10 @@
+cases:
+  - case_id: opt_001
+    input:
+      problem_summary: 某工厂决定不同产品产量，受原料、工时和市场需求限制，目标是最大化利润。
+    expected:
+      values:
+        primary_type: optimization
+      must_have_paths: [decision_variables, objective_function, constraints]
+      must_not_contain: [neural_network, genetic_algorithm_is_required]
+      requires_manual_confirmation: true

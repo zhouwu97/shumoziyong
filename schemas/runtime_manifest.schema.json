@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/runtime_manifest.schema.json",
+  "title": "Runtime pack manifest",
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  },
+  "type": "object",
+  "required": ["manifest_version", "runtime_version", "generated_at", "profile", "maturity", "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists", "other_files", "excluded_patches", "export_flags", "runtime_pack_sha256"],
+  "properties": {
+    "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "maturity": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+    "runtime_profile_state": {"$ref": "#/$defs/file"},
+    "patch_index": {"$ref": "#/$defs/file"},
+    "base": {"oneOf": [{"$ref": "#/$defs/file"}, {"type": "null"}]},
+    "plugins": {"type": "array", "items": {"$ref": "#/$defs/file"}},
+    "patches": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "#/$defs/file"},
+          {"type": "object", "required": ["patch_id", "status"]}
+        ]
+      }
+    },
+    "checklists": {"type": "array", "items": {"$ref": "#/$defs/file"}},
+    "other_files": {"type": "array", "items": {"$ref": "#/$defs/file"}},
+    "excluded_patches": {"type": "array"},
+    "export_flags": {
+      "type": "object",
+      "required": ["include_candidate_patches"],
+      "properties": {"include_candidate_patches": {"type": "boolean"}}
+    },
+    "runtime_pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

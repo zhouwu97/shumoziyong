@@ -51,13 +51,13 @@
 
 ## 当前工程优化 runtime 状态
 
-2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-5 full smoke chain pass。2024-B 生产过程中的决策问题已完成 Gate 0-2 third-mechanism generalization pass。三道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是空间覆盖、几何约束和测线布设优化，2024-B 是生产过程、质量检测、工序决策和成本收益权衡。当前状态为 engineering_optimization runtime stable candidate；该状态不是 stable，仍需更多机制题和正式求解质量验证。
+2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-5 full smoke chain pass。2024-B 生产过程中的决策问题已完成 Gate 0-2 third-mechanism generalization pass。三道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是空间覆盖、几何约束和测线布设优化，2024-B 是生产过程、质量检测、工序决策和成本收益权衡。当前机器可读状态为 maturity=`verified_candidate`、validation_level=`cross_mechanism`；该状态不是 `stable`，仍需更多机制题和正式求解质量验证。
 
 ## 稳定版本记录
 
 | 题型 | 稳定版本 | 成熟度 | 通过旧题数量 | 最近测试日期 | 备注 |
 |---|---|---|---:|---|---|
-| 工程优化 | stable candidate，未 stable | L4 | 3 | 2026-07-08 | 2024-C 与 2023-B full smoke chain pass；2024-B Gate 0-2 第三类机制泛化通过；仍需更多机制题和正式求解质量验证 |
+| 工程优化 | verified_candidate / cross_mechanism | L4 | 3 | 2026-07-10 | 2024-C 与 2023-B full smoke chain pass；2024-B Gate 0-2 第三类机制泛化通过；仍需更多机制题和正式求解质量验证 |
 | 预测类 | 待创建 | L1 | 0 |  |  |
 | 评价类 | 待创建 | L1 | 0 |  |  |
 | 仿真类 | 待创建 | L1 | 0 |  |  |

@@ -1,0 +1,25 @@
+name: Validate repository
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Validate schemas and repository references
+        run: python scripts/validate_repository.py
+      - name: Export reproducible runtime pack
+        run: python scripts/export_runtime_pack.py
+      - name: Check runtime manifest and candidate boundary
+        run: python scripts/check_runtime_manifest.py
+      - name: Run tests
+        run: python -m pytest -q

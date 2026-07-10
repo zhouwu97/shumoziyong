@@ -1,12 +1,28 @@
 {
-  "paper_id": "YYYY_X000",
+  "paper_id": "A000",
+  "paper_title": "待填写",
   "source": {
-    "year": "",
-    "problem": "",
-    "award": "",
-    "title": ""
+    "paper_id": "A000",
+    "title": "待填写",
+    "year": 2026,
+    "page_refs": [],
+    "evidence_quotes": [],
+    "extraction_date": "2026-01-01"
   },
-  "problem_type": [],
+  "problem_types": ["待填写"],
+  "core_problem": "待填写",
+  "main_value": "待填写",
+  "problem_understanding": {},
+  "problem_decomposition": [
+    {"subproblem": "待填写"}
+  ],
+  "model_route": [
+    {"step": "待填写"}
+  ],
+  "models": [
+    {"model_name": "待填写"}
+  ],
+  "reusable_experience": ["待填写"],
   "keywords": [],
   "transferable_skills": [
     {

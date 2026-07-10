@@ -1,6 +1,14 @@
 {
   "paper_title": "基于主要目标法的测线设计问题",
-  "paper_id": "2023_B311",
+  "paper_id": "B311",
+  "source": {
+    "paper_id": "B311",
+    "title": "基于主要目标法的测线设计问题",
+    "year": 2023,
+    "page_refs": [],
+    "evidence_quotes": [],
+    "extraction_date": "2026-07-10"
+  },
   "competition_type": "2023年高教社杯全国大学生数学建模竞赛",
   "award_level": "优秀论文样本",
   "problem_types": [
@@ -212,4 +220,3 @@
   },
   "training_log_suggestion": "| 2026-07-08 | B311 论文学习 | prompt_base_v1.0 + patch_B311_spatial_coverage_optimization |  |  | 论文学习 | 否 | 已生成学习卡片、知识卡片 JSON 和 patch 草案；不进入 stable |"
 }
-

@@ -1,0 +1,10 @@
+cases:
+  - case_id: constraint_001
+    input:
+      problem_summary: 在预算不超过 100 万元且每类设备至少采购 2 台的条件下最大化总产能。
+    expected:
+      values:
+        primary_type: optimization
+      must_have_paths: [decision_variables, objective_function, constraints.budget, constraints.minimum_quantity]
+      must_not_contain: [unlimited_budget]
+      requires_manual_confirmation: true

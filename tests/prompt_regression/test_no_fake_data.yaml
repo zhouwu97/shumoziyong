@@ -1,0 +1,10 @@
+cases:
+  - case_id: data_001
+    input:
+      problem_summary: 预测未来五年需求，但当前未提供历史销量附件。
+    expected:
+      values:
+        primary_type: prediction
+      must_have_paths: [missing_data, fallback_route]
+      must_not_contain: [fabricated_data, final_forecast]
+      requires_manual_confirmation: true

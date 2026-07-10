@@ -2,49 +2,96 @@
   {
     "patch_id": "A092",
     "file": "prompt_patches/patch_A092_engineering_optimization.md",
-    "source_paper": "2023-A092 定日镜场的优化设计",
+    "source": {
+      "paper_id": "A092",
+      "title": "定日镜场的优化设计",
+      "year": 2023,
+      "knowledge_card": "papers/2023_A092_知识卡片.json",
+      "page_refs": [],
+      "evidence_quotes": []
+    },
     "problem_type": ["工程优化", "机理建模", "仿真计算", "布局优化"],
     "keywords": ["评价函数", "工程机制拆解", "约束优化", "变量降维", "敏感性分析"],
     "runtime_profiles": ["engineering_optimization"],
     "status": "verified_candidate",
+    "applicable_when": ["工程系统存在可计算评价函数", "需要在明确约束下优化布局或设计变量"],
+    "misuse_risks": ["不能照搬定日镜公式", "不能照搬同心圆布局", "不能照搬具体数值"],
     "tested_on": ["2024-C", "2023-B", "2024-B"],
-    "risk": ["不能照搬定日镜公式", "不能照搬同心圆布局", "不能照搬具体数值"],
+    "validation_records": [
+      "tests/old_problems/旧题测试_工程优化_2024C官方T3_2026-07-05.md",
+      "tests/old_problems/旧题测试_工程优化_2023B官方T3_2026-07-02.md",
+      "tests/old_problems/旧题测试_工程优化_2024B官方T4_2026-07-09.md"
+    ],
     "priority": 10
   },
   {
     "patch_id": "A127",
     "file": "prompt_patches/patch_A127_engineering_layout_optimization.md",
-    "source_paper": "2023-A127 定日镜场的输出功率优化",
+    "source": {
+      "paper_id": "A127",
+      "title": "定日镜场的输出功率优化",
+      "year": 2023,
+      "knowledge_card": "papers/2023_A127_知识卡片.json",
+      "page_refs": [],
+      "evidence_quotes": []
+    },
     "problem_type": ["工程优化", "空间布局", "阵列规划", "遮挡仿真优化"],
     "keywords": ["空间布局", "规则化降维", "粗搜索", "细搜索", "优化前后对比"],
     "runtime_profiles": ["engineering_optimization"],
     "status": "verified_candidate",
+    "applicable_when": ["大量同类对象形成高维布局变量", "结果需要给出可执行工程设计参数"],
+    "misuse_risks": ["不能照搬光热电站公式", "不能把规则化布局当成天然最优"],
     "tested_on": ["2024-C", "2023-B", "2024-B"],
-    "risk": ["不能照搬光热电站公式", "不能把规则化布局当成天然最优"],
+    "validation_records": [
+      "tests/old_problems/旧题测试_工程优化_2024C官方T3_2026-07-05.md",
+      "tests/old_problems/旧题测试_工程优化_2023B官方T3_2026-07-02.md",
+      "tests/old_problems/旧题测试_工程优化_2024B官方T4_2026-07-09.md"
+    ],
     "priority": 20
   },
   {
     "patch_id": "B311",
     "file": "prompt_patches/patch_B311_spatial_coverage_optimization.md",
-    "source_paper": "2023-B311 基于主要目标法的测线设计问题",
+    "source": {
+      "paper_id": "B311",
+      "title": "基于主要目标法的测线设计问题",
+      "year": 2023,
+      "knowledge_card": "papers/2023_B311_知识卡片.json",
+      "page_refs": [],
+      "evidence_quotes": []
+    },
     "problem_type": ["空间覆盖优化", "工程测线布设", "几何建模", "条带扫描", "多目标规划"],
     "keywords": ["覆盖单元", "重叠率", "方向选择", "边界验算", "主要目标法"],
     "runtime_profiles": ["engineering_optimization"],
     "status": "candidate",
-    "tested_on": ["2024-D gate0-2"],
-    "risk": ["不能照搬多波束测深公式", "不能把沿等深线布设迁移到所有路径题"],
+    "applicable_when": ["存在测线、扫描线或覆盖带布设", "覆盖宽度随空间位置或方向变化"],
+    "misuse_risks": ["不能照搬多波束测深公式", "不能把沿等深线布设迁移到所有路径题"],
+    "tested_on": ["2024-D gate0-2", "2024-B negative-control"],
+    "validation_records": [
+      "output/closed_loop/闭环摘要_B311patch_2024D_gate0_2_2026-07-08.md",
+      "output/closed_loop/闭环摘要_candidate_patch_2024B负控_2026-07-09.md"
+    ],
     "priority": 30
   },
   {
     "patch_id": "B477",
     "file": "prompt_patches/patch_B477_surrogate_guided_path_search.md",
-    "source_paper": "2023-B477 多波束测深合理探测方案的设计及效果分析",
+    "source": {
+      "paper_id": "B477",
+      "title": "多波束测深合理探测方案的设计及效果分析",
+      "year": 2023,
+      "knowledge_card": "papers/2023_B477_知识卡片.json",
+      "page_refs": [],
+      "evidence_quotes": []
+    },
     "problem_type": ["复杂地形覆盖", "空间扫描路径规划", "离散数据拟合", "启发式搜索", "分区优化"],
     "keywords": ["连续代理模型", "局部几何", "路径搜索", "分区优化", "边界检查"],
     "runtime_profiles": ["engineering_optimization"],
     "status": "candidate",
-    "tested_on": [],
-    "risk": ["不能默认使用随机森林", "不能把启发式结果包装成全局最优", "不能照搬测线方向结论"],
+    "applicable_when": ["离散空间数据需要连续查询", "路径优化依赖位置相关的局部几何变量"],
+    "misuse_risks": ["不能默认使用随机森林", "不能把启发式结果包装成全局最优", "不能照搬测线方向结论"],
+    "tested_on": ["2024-B negative-control"],
+    "validation_records": ["output/closed_loop/闭环摘要_candidate_patch_2024B负控_2026-07-09.md"],
     "priority": 40
   }
 ]

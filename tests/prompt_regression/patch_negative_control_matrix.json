@@ -1,0 +1,32 @@
+{
+  "advancement_rules": {
+    "verified_candidate": "至少 1 个正向通过、1 个边界通过、1 个负控不误触发",
+    "stable": "至少 2 个不同年份、3 个不同机制、1 次失败修复重测且无严重误触发"
+  },
+  "patches": [
+    {
+      "patch_id": "A092",
+      "positive": {"case": "2024-C", "result": "pass"},
+      "boundary": {"case": "2023-B", "result": "pass"},
+      "negative": {"case": null, "result": "pending"}
+    },
+    {
+      "patch_id": "A127",
+      "positive": {"case": "2023-B", "result": "pass"},
+      "boundary": {"case": "2024-C", "result": "pass"},
+      "negative": {"case": null, "result": "pending"}
+    },
+    {
+      "patch_id": "B311",
+      "positive": {"case": "2024-D", "result": "pass"},
+      "boundary": {"case": null, "result": "pending"},
+      "negative": {"case": "2024-B", "result": "pass"}
+    },
+    {
+      "patch_id": "B477",
+      "positive": {"case": null, "result": "pending"},
+      "boundary": {"case": null, "result": "pending"},
+      "negative": {"case": "2024-B", "result": "pass"}
+    }
+  ]
+}

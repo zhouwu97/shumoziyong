@@ -13,6 +13,54 @@
 -> 比赛时按闸门执行
 ```
 
+## 5 分钟快速开始
+
+### 1. 安装与校验
+
+```bash
+git clone <本仓库地址>
+cd <仓库目录>
+python -m pip install -r requirements.txt
+python scripts/validate_repository.py
+```
+
+校验结果应以 `0 项失败` 结束。若失败，先按 `[FAIL]` 修复路径、状态或 Schema，不要继续导出比赛包。
+
+### 2. 导出比赛运行包
+
+```bash
+python scripts/export_runtime_pack.py --profile engineering_optimization
+python scripts/check_runtime_manifest.py
+```
+
+命令会生成：
+
+- `export/cumcm_runtime_pack.md`：提供给执行 AI 的规则包；
+- `export/cumcm_runtime_pack.manifest.json`：记录版本、源文件、patch 选择和 SHA-256；
+- 默认包不会包含 `candidate` patch。
+
+### 3. 在 AI 中执行
+
+把新赛题 PDF 和附件放到比赛工作目录的 `problem/`，把运行包复制到 `rules/runtime_pack.md`。本项目不绑定具体 AI 客户端；只要该工具能读取本地文件、按阶段暂停并在确认后继续即可。
+
+第一轮发送：
+
+```text
+执行 docs/workflows/03_新题执行流.md，模式 standard。
+题面位于 problem/，规则位于 rules/runtime_pack.md。
+第一轮只输出总控诊断和人工确认项，不写代码、论文或最终答案。
+```
+
+成功标准：AI 输出题目理解、子问题拆解、数据需求、候选路线、图表计划和人工确认项，并停在 Gate 前。若 AI 越过 Gate，停止当前输出，重新附上禁止项；不要把越权生成的代码或结论计入正式结果。
+
+### 4. 初始化旧题回归
+
+```bash
+python scripts/run_workflow.py --workflow old_problem --problem 2024-C --profile engineering_optimization --gates 0-2
+```
+
+命令会在 `runs/` 下创建本轮 manifest、材料审查、runtime pack、执行计划、评分、失败标签和 patch 建议文件；它不会自动把任何状态升级为 `stable`。完整执行产物可参考 `examples/2023B_gate2_5/` 到 `examples/2023B_gate5/`。
+
 ## 三个入口
 
 以后只从这三个入口中选一个：
@@ -58,12 +106,24 @@ prompt_patches/
   单篇优秀论文经验补丁。
   patch_index.json 用于按题型、状态和 profile 自动筛选 patch。
 
+runtime_profiles/
+  Markdown 定义运行规则；同名 JSON 是状态唯一事实源。
+
+schemas/
+  patch、知识卡片、runtime、旧题测试和失败卡的 JSON Schema。
+
 papers/
   优秀论文学习卡片和知识卡片 JSON。
   templates/ 存放学习卡片和知识卡片模板。
 
 tests/old_problems/
   旧题测试记录。
+
+tests/prompt_regression/
+  小粒度提示词语义回归用例和 patch 负控矩阵。
+
+runs/
+  由旧题 CLI 创建的逐次运行目录。
 
 reviews/failure_cards/
   失败复盘卡。
@@ -151,6 +211,7 @@ python scripts/export_runtime_pack.py
 
 ```text
 export/cumcm_runtime_pack.md
+export/cumcm_runtime_pack.manifest.json
 ```
 
 导出器会读取 `prompt_patches/patch_index.json`，默认只导入状态为 `verified_candidate` 或 `stable` 的 patch。若要做旧题实验，可以显式加入候选 patch：
@@ -177,14 +238,16 @@ python scripts/export_runtime_pack.py --include-candidate-patches
 
 ## 当前状态
 
+状态唯一事实源是 `runtime_profiles/*.json`，README 只做展示。
+
 - 已有工程优化 base/plugin/patch。
-- 已有 A092、A127 学习卡片和知识卡片。
-- 当前工程优化 runtime 状态：stable candidate，未 stable。
+- 已有 A092、A127、B311、B477 学习卡片和知识卡片。
+- 当前工程优化 runtime：版本 `0.2.0`，成熟度 `verified_candidate`，验证级别 `cross_mechanism`，未经过正式比赛验证。
 - 依据：
   1. 2024-C 农作物种植策略完成 Gate 0-5 full smoke chain pass；
   2. 2023-B 多波束测线问题完成 Gate 0-5 full smoke chain pass；
   3. 2024-B 生产过程中的决策问题完成 Gate 0-2 third-mechanism generalization pass。
-- 边界：该状态只说明工程优化 runtime 已具备初步跨题可用性，不代表正式提交质量、完整最优化算法能力或最终 stable。
+- 边界：该状态只说明工程优化 runtime 已具备初步跨题可用性，不代表正式提交质量、完整最优化算法能力或 `stable`。
 - 建议比赛时默认使用本状态对应的 `export/cumcm_runtime_pack.md`；后续大改应另开分支，不直接在当前验证结构上重写。
 
 ## 使用原则

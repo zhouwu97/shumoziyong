@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,110 +59,167 @@ PROFILE_FILES = {
 }
 
 
-def read_rule(relative_path: str) -> str:
+def sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def read_text(relative_path: str) -> str:
     path = ROOT / relative_path
-    if not path.exists():
-        return f"\n\n<!-- 缺失文件：{relative_path} -->\n\n"
+    if not path.is_file():
+        raise FileNotFoundError(f"运行包依赖文件不存在：{relative_path}")
     return path.read_text(encoding="utf-8")
 
 
-def read_patch_index() -> list[dict]:
-    path = ROOT / "prompt_patches/patch_index.json"
-    if not path.exists():
-        return []
+def file_record(relative_path: str) -> dict[str, str]:
+    content = (ROOT / relative_path).read_bytes()
+    return {"path": relative_path, "sha256": sha256_bytes(content)}
 
+
+def read_patch_index() -> list[dict[str, Any]]:
+    path = ROOT / "prompt_patches/patch_index.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
         raise ValueError("prompt_patches/patch_index.json 必须是 JSON 数组。")
     return data
 
 
-def select_patch_files(profile: str, include_candidates: bool = False) -> list[str]:
+def select_patches(profile: str, include_candidates: bool = False) -> list[dict[str, Any]]:
     allowed_statuses = CANDIDATE_PATCH_STATUSES if include_candidates else DEFAULT_PATCH_STATUSES
-    selected: list[dict] = []
-
-    for patch in read_patch_index():
-        runtime_profiles = patch.get("runtime_profiles", [])
-        status = patch.get("status", "")
-        file = patch.get("file", "")
-        if profile in runtime_profiles and status in allowed_statuses and file:
-            selected.append(patch)
-
-    selected.sort(key=lambda item: (item.get("priority", 999), item.get("patch_id", "")))
-    return [item["file"] for item in selected]
-
-
-def render_auto_patches(profile: str, include_candidates: bool = False) -> str:
-    patch_files = select_patch_files(profile, include_candidates=include_candidates)
-    if not patch_files:
-        return "\n\n<!-- patch_index 未选中任何 patch。 -->\n\n"
-
-    parts = [
-        "\n\n# ===== prompt_patches/patch_index.json 自动选择 =====\n\n",
-        "- 默认只导入 `verified_candidate` 和 `stable` patch。\n",
+    selected = [
+        patch
+        for patch in read_patch_index()
+        if profile in patch.get("runtime_profiles", [])
+        and patch.get("status") in allowed_statuses
+        and patch.get("file")
     ]
-    if include_candidates:
-        parts.append("- 本次导出已显式包含 `candidate` patch，仅适合测试，不建议直接比赛使用。\n")
-    parts.append("\n")
-
-    for relative_path in patch_files:
-        parts.append(f"\n\n# ===== {relative_path} =====\n\n")
-        parts.append(read_rule(relative_path))
-    return "".join(parts)
+    selected.sort(key=lambda item: (item.get("priority", 999), item.get("patch_id", "")))
+    return selected
 
 
-def build_pack(profile: str, include_candidates: bool = False) -> str:
+def select_patch_files(profile: str, include_candidates: bool = False) -> list[str]:
+    return [patch["file"] for patch in select_patches(profile, include_candidates)]
+
+
+def resolve_pack_files(profile: str, include_candidates: bool = False) -> list[str]:
     if profile not in PROFILE_FILES:
         available = ", ".join(sorted(PROFILE_FILES))
         raise ValueError(f"未知 profile：{profile}。可选项：{available}")
 
+    files: list[str] = []
+    for relative_path in PROFILE_FILES[profile]:
+        if relative_path == AUTO_PATCHES_MARKER:
+            files.extend(select_patch_files(profile, include_candidates))
+        else:
+            files.append(relative_path)
+    return files
+
+
+def build_pack(profile: str, include_candidates: bool = False) -> str:
+    files = resolve_pack_files(profile, include_candidates)
+    profile_state = json.loads(read_text(f"runtime_profiles/{profile}.json"))
     parts = [
         "# 数模比赛运行规则包\n\n",
         f"- profile：`{profile}`\n",
+        f"- runtime version：`{profile_state['version']}`\n",
+        f"- maturity：`{profile_state['maturity']}`\n",
         "- 用途：复制到比赛工作目录的 `rules/runtime_pack.md`，供 MathModelAgent 执行前读取。\n",
-        "- 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。\n\n",
+        "- 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。\n",
     ]
+    if include_candidates:
+        parts.append("- 警告：本次显式包含 candidate patch，仅用于测试。\n")
+    parts.append("\n")
 
-    for relative_path in PROFILE_FILES[profile]:
-        if relative_path == AUTO_PATCHES_MARKER:
-            parts.append(render_auto_patches(profile, include_candidates=include_candidates))
-            continue
+    for relative_path in files:
         parts.append(f"\n\n# ===== {relative_path} =====\n\n")
-        parts.append(read_rule(relative_path))
-
+        parts.append(read_text(relative_path))
     return "".join(parts)
 
 
+def build_manifest(
+    profile: str,
+    pack_content: str,
+    include_candidates: bool = False,
+) -> dict[str, Any]:
+    profile_state_path = f"runtime_profiles/{profile}.json"
+    profile_state = json.loads(read_text(profile_state_path))
+    selected_patches = select_patches(profile, include_candidates)
+    selected_ids = {patch["patch_id"] for patch in selected_patches}
+    all_profile_patches = [
+        patch for patch in read_patch_index() if profile in patch.get("runtime_profiles", [])
+    ]
+    files = resolve_pack_files(profile, include_candidates)
+
+    def records(prefix: str) -> list[dict[str, str]]:
+        return [file_record(path) for path in files if path.startswith(prefix)]
+
+    base_records = records("prompt_base/")
+    return {
+        "manifest_version": "1.0.0",
+        "runtime_version": profile_state["version"],
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "profile": profile,
+        "maturity": profile_state["maturity"],
+        "runtime_profile_state": file_record(profile_state_path),
+        "patch_index": file_record("prompt_patches/patch_index.json"),
+        "base": base_records[0] if base_records else None,
+        "plugins": records("prompt_plugins/"),
+        "patches": [
+            {
+                "patch_id": patch["patch_id"],
+                "status": patch["status"],
+                **file_record(patch["file"]),
+            }
+            for patch in selected_patches
+        ],
+        "checklists": records("checklists/"),
+        "other_files": [
+            file_record(path)
+            for path in files
+            if not path.startswith(("prompt_base/", "prompt_plugins/", "prompt_patches/", "checklists/"))
+        ],
+        "excluded_patches": [
+            {
+                "patch_id": patch["patch_id"],
+                "status": patch["status"],
+                "reason": "状态未进入本次导出的允许集合",
+            }
+            for patch in all_profile_patches
+            if patch["patch_id"] not in selected_ids
+        ],
+        "export_flags": {"include_candidate_patches": include_candidates},
+        "runtime_pack_sha256": sha256_bytes(pack_content.encode("utf-8")),
+    }
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="导出 MathModelAgent 可读取的比赛运行规则包。")
-    parser.add_argument(
-        "--profile",
-        default="engineering_optimization",
-        choices=sorted(PROFILE_FILES),
-        help="选择要导出的运行配置，默认导出工程优化规则包。",
-    )
-    parser.add_argument(
-        "--output",
-        default="export/cumcm_runtime_pack.md",
-        help="输出文件路径，默认写入 export/cumcm_runtime_pack.md。",
-    )
-    parser.add_argument(
-        "--include-candidate-patches",
-        action="store_true",
-        help="测试用：额外导入 candidate patch。默认只导入 verified_candidate/stable。",
-    )
+    parser = argparse.ArgumentParser(description="导出可复现的数模比赛运行规则包和 manifest。")
+    parser.add_argument("--profile", default="engineering_optimization", choices=sorted(PROFILE_FILES))
+    parser.add_argument("--output", default="export/cumcm_runtime_pack.md")
+    parser.add_argument("--manifest-output", help="manifest 路径；默认与运行包同名并加 .manifest.json。")
+    parser.add_argument("--include-candidate-patches", action="store_true", help="测试用：额外导入 candidate patch。")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     output = ROOT / args.output
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
-        build_pack(args.profile, include_candidates=args.include_candidate_patches),
-        encoding="utf-8",
+    manifest_output = (
+        ROOT / args.manifest_output
+        if args.manifest_output
+        else output.with_suffix(".manifest.json")
     )
-    print(f"已导出：{output}")
+    pack_content = build_pack(args.profile, args.include_candidate_patches)
+    manifest = build_manifest(args.profile, pack_content, args.include_candidate_patches)
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    manifest_output.parent.mkdir(parents=True, exist_ok=True)
+    # 按 UTF-8 字节写入，避免 Windows 自动换行转换破坏 manifest 中的哈希。
+    output.write_bytes(pack_content.encode("utf-8"))
+    manifest_output.write_bytes(
+        (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    )
+    print(f"已导出运行包：{output}")
+    print(f"已导出 manifest：{manifest_output}")
 
 
 if __name__ == "__main__":

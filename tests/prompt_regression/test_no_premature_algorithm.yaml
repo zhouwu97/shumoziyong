@@ -1,0 +1,10 @@
+cases:
+  - case_id: route_001
+    input:
+      problem_summary: 为多个区域安排车辆配送路线，题面尚未给出完整距离矩阵。
+    expected:
+      values:
+        stage: diagnosis
+      must_have_paths: [missing_data, candidate_models, manual_confirmation]
+      must_not_contain: [final_solution, genetic_algorithm_is_required]
+      requires_manual_confirmation: true

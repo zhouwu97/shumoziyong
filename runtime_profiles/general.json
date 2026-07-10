@@ -1,0 +1,19 @@
+{
+  "profile_id": "general",
+  "version": "0.1.0",
+  "maturity": "candidate",
+  "validation_level": "none",
+  "competition_verified": false,
+  "base_version": "1.0.0",
+  "plugin_version": null,
+  "verified_patches": [],
+  "validation": {
+    "gate_0_2": 0,
+    "gate_0_5": 0,
+    "negative_control": 0,
+    "mechanism_classes": [],
+    "evidence": []
+  },
+  "known_failures": [],
+  "last_updated": "2026-07-10"
+}
