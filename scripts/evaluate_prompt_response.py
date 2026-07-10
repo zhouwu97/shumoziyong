@@ -124,14 +124,48 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case", required=True, help="YAML 回归用例路径。")
     parser.add_argument("--response", required=True, help="模型输出 JSON 路径。")
     parser.add_argument("--case-id")
+    parser.add_argument("--manifest", help="runtime_pack.manifest.json 路径")
+    parser.add_argument("--output", help="自动评估结果输出路径")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     case = load_case(ROOT / args.case, args.case_id)
-    response = json.loads((ROOT / args.response).read_text(encoding="utf-8"))
+    response_text = (ROOT / args.response).read_text(encoding="utf-8")
+    response = json.loads(response_text)
     errors = evaluate_case(case, response)
+
+    manifest_text = ""
+    if args.manifest:
+        manifest_text = (ROOT / args.manifest).read_text(encoding="utf-8")
+        manifest = json.loads(manifest_text)
+        active_patch_ids = {patch.get("patch_id") for patch in manifest.get("patches", [])}
+        for patch_id, decision in response.get("patch_decisions", {}).items():
+            expected_enabled = patch_id in active_patch_ids
+            actual_enabled = decision.get("enabled", False)
+            if actual_enabled != expected_enabled:
+                errors.append(f"patch_decisions.{patch_id}.enabled 期望 {expected_enabled}，实际 {actual_enabled}（与运行包包含情况不符）")
+            if not expected_enabled and "未加载" not in decision.get("reason", ""):
+                errors.append(f"patch_decisions.{patch_id}.reason 未加载的 patch 必须在理由中说明“未加载”，当前为：{decision.get('reason')}")
+
+    result = "fail" if errors else "pass"
+
+    if args.output:
+        import hashlib, datetime
+        case_text = (ROOT / args.case).read_text(encoding="utf-8")
+        out = {
+            "case_id": case["case_id"],
+            "result": result,
+            "errors": errors,
+            "evaluated_at": datetime.datetime.now().astimezone().isoformat(),
+            "evaluator_version": "1.1.0",
+            "response_sha256": hashlib.sha256(response_text.encode("utf-8")).hexdigest(),
+            "case_sha256": hashlib.sha256(case_text.encode("utf-8")).hexdigest(),
+            "manifest_sha256": hashlib.sha256(manifest_text.encode("utf-8")).hexdigest() if args.manifest else None
+        }
+        (ROOT / args.output).write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     if errors:
         for error in errors:
             print(f"[FAIL] {case['case_id']}：{error}")

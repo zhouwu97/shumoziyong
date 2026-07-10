@@ -8,13 +8,13 @@
       "patch_id": "A092",
       "positive": {"case": "2024-C", "result": "pass"},
       "boundary": {"case": "2023-B", "result": "pass"},
-      "negative": {"case": "2024-B", "result": "pass", "evidence": "output/negative_controls/A092-only/2026-07-10_2024_B_gate0-2"}
+      "negative": {"case": null, "result": "pending"}
     },
     {
       "patch_id": "A127",
       "positive": {"case": "2023-B", "result": "pass"},
       "boundary": {"case": "2024-C", "result": "pass"},
-      "negative": {"case": "2024-B", "result": "pass", "evidence": "output/negative_controls/A127-only/2026-07-10_2024_B_gate0-2"}
+      "negative": {"case": null, "result": "pending"}
     },
     {
       "patch_id": "B311",

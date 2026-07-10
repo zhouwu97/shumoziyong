@@ -1,7 +1,7 @@
 {
   "run_id": "2026-07-10_2024_B_gate0-2",
   "workflow": "old_problem",
-  "created_at": "2026-07-10T11:14:00+08:00",
+  "created_at": "2026-07-10T11:15:29+08:00",
   "problem_id": "2024-B",
   "profile": "engineering_optimization",
   "runtime_version": "0.2.0",
@@ -10,10 +10,14 @@
   "material_status": "ready",
   "candidate_patches": [],
   "excluded_patches": [
-    "A092",
-    "A127"
+    "A092"
   ],
-  "experiment_kind": "isolation",
+  "experiment_kind": "negative_control",
   "status": "initialized",
-  "automatic_stable_update": false
+  "automatic_stable_update": false,
+  "experiment_group_id": "nc_2024B_20260710_01",
+  "experiment_role": "patch_only",
+  "target_patch": "A127",
+  "evidence_validity": "simulated_precheck",
+  "eligible_for_promotion": false
 }
