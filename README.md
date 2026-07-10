@@ -214,10 +214,27 @@ export/cumcm_runtime_pack.md
 export/cumcm_runtime_pack.manifest.json
 ```
 
-导出器会读取 `prompt_patches/patch_index.json`，默认只导入状态为 `verified_candidate` 或 `stable` 的 patch。若要做旧题实验，可以显式加入候选 patch：
+导出器读取 `prompt_patches/patch_index.json` 与 `runtime_profiles/<profile>.json`。正式运行包只导入同时满足三条件的 patch：
+
+1. `patch_index` 中状态为 `verified_candidate` 或 `stable`；
+2. `patch_id` 出现在 `runtime_profiles/<profile>.json` 的 `verified_patches` 列表中；
+3. patch 的 `runtime_profiles` 包含当前 profile。
+
+`runtime_profiles/*.json` 是状态唯一事实源：`verified_patches` 决定正式批准使用哪些 patch。
+
+显式加入候选 patch 做旧题实验（可重复传入，每个必须状态为 `candidate` 且支持当前 profile）：
 
 ```bash
-python scripts/export_runtime_pack.py --include-candidate-patches
+python scripts/export_runtime_pack.py --candidate-patch B311
+```
+
+隔离实验（负控 baseline / 单 patch 对比，可重复传入排除已批准 patch）：
+
+```bash
+# baseline：排除全部已批准 patch
+python scripts/export_runtime_pack.py --exclude-patch A092 --exclude-patch A127
+# A092-only
+python scripts/export_runtime_pack.py --exclude-patch A127
 ```
 
 比赛目录建议：

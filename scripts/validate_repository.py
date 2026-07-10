@@ -129,6 +129,62 @@ class RepositoryValidator:
         else:
             self.pass_("runtime 状态文件覆盖和交叉引用")
 
+    def validate_patch_profile_consistency(self) -> None:
+        """patch → profile 方向：verified_candidate/stable 的 patch 必须进入至少一个
+        runtime profile 的 verified_patches，否则其 verified 状态是悬空的，
+        正式导出包也不会包含它（exporter 的 AND 条件）。"""
+        patches = self.load_json("prompt_patches/patch_index.json") or []
+        approved_everywhere: set[str] = set()
+        for path in sorted((ROOT / "runtime_profiles").glob("*.json")):
+            data = self.load_json(path.relative_to(ROOT).as_posix())
+            if data is None:
+                continue
+            approved_everywhere.update(data.get("verified_patches", []))
+        dangling: list[str] = []
+        for patch in patches:
+            patch_id = patch.get("patch_id", "<unknown>")
+            status = patch.get("status")
+            if status in {"verified_candidate", "stable"} and patch_id not in approved_everywhere:
+                dangling.append(patch_id)
+        if dangling:
+            for patch_id in dangling:
+                self.fail(
+                    f"{patch_id} 状态为 verified 但未进入任何 runtime profile 的 verified_patches；"
+                    "正式导出包不会包含它，请将其加入对应 profile 或降级为 candidate"
+                )
+        else:
+            self.pass_("verified patch 全部进入 runtime profile verified_patches")
+
+    def validate_patch_promotion(self) -> None:
+        """晋级规则强制校验：
+        verified_candidate / stable 必须满足 positive + boundary + negative 全 pass。
+        candidate 不强制完整三类测试。"""
+        matrix = self.load_json("tests/prompt_regression/patch_negative_control_matrix.json")
+        patch_index = self.load_json("prompt_patches/patch_index.json") or []
+        if matrix is None:
+            return
+        matrix_by_id = {item.get("patch_id"): item for item in matrix.get("patches", [])}
+        promotion_ok = True
+        for patch in patch_index:
+            patch_id = patch.get("patch_id", "<unknown>")
+            status = patch.get("status")
+            if status not in {"verified_candidate", "stable"}:
+                continue
+            entry = matrix_by_id.get(patch_id)
+            if entry is None:
+                self.fail(f"{patch_id} 标记为 {status}，但负控矩阵中没有该 patch 的记录")
+                promotion_ok = False
+                continue
+            for control in ("positive", "boundary", "negative"):
+                result = entry.get(control, {}).get("result")
+                if result != "pass":
+                    self.fail(
+                        f"{patch_id} 标记为 {status}，但 {control}-control 结果为 {result}（必须为 pass）"
+                    )
+                    promotion_ok = False
+        if promotion_ok:
+            self.pass_("patch 晋级规则（verified 需 positive+boundary+negative 全 pass）")
+
     def validate_knowledge_cards(self) -> None:
         paths = list((ROOT / "papers").glob("*_知识卡片.json"))
         paths.extend((ROOT / "papers" / "templates").glob("知识卡片模板.json"))
@@ -229,6 +285,8 @@ class RepositoryValidator:
         self.validate_all_json_syntax()
         self.validate_patch_index()
         self.validate_profiles()
+        self.validate_patch_profile_consistency()
+        self.validate_patch_promotion()
         self.validate_knowledge_cards()
         self.validate_optional_records()
         self.validate_markdown_links()

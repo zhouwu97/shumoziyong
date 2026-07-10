@@ -2,18 +2,41 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://shumo.local/schemas/runtime_manifest.schema.json",
   "title": "Runtime pack manifest",
+  "type": "object",
+  "additionalProperties": false,
   "$defs": {
     "file": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["path", "sha256"],
       "properties": {
         "path": {"type": "string", "minLength": 1},
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
+    },
+    "patch_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "patch_id", "status"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
+        "status": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]}
+      }
+    },
+    "excluded_patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patch_id", "status", "reason"],
+      "properties": {
+        "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
+        "status": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+        "reason": {"type": "string", "minLength": 1}
+      }
     }
   },
-  "type": "object",
-  "required": ["manifest_version", "runtime_version", "generated_at", "profile", "maturity", "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists", "other_files", "excluded_patches", "export_flags", "runtime_pack_sha256"],
+  "required": ["manifest_version", "runtime_version", "generated_at", "profile", "maturity", "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists", "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment", "export_flags", "runtime_pack_sha256"],
   "properties": {
     "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
@@ -24,22 +47,37 @@
     "patch_index": {"$ref": "#/$defs/file"},
     "base": {"oneOf": [{"$ref": "#/$defs/file"}, {"type": "null"}]},
     "plugins": {"type": "array", "items": {"$ref": "#/$defs/file"}},
-    "patches": {
-      "type": "array",
-      "items": {
-        "allOf": [
-          {"$ref": "#/$defs/file"},
-          {"type": "object", "required": ["patch_id", "status"]}
-        ]
-      }
-    },
+    "patches": {"type": "array", "items": {"$ref": "#/$defs/patch_ref"}},
     "checklists": {"type": "array", "items": {"$ref": "#/$defs/file"}},
     "other_files": {"type": "array", "items": {"$ref": "#/$defs/file"}},
-    "excluded_patches": {"type": "array"},
+    "excluded_patches": {"type": "array", "items": {"$ref": "#/$defs/excluded_patch"}},
+    "candidate_experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "patch_ids", "warning"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "patch_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}},
+        "warning": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]}
+      }
+    },
+    "exclusion_experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "patch_ids"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "patch_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}}
+      }
+    },
     "export_flags": {
       "type": "object",
-      "required": ["include_candidate_patches"],
-      "properties": {"include_candidate_patches": {"type": "boolean"}}
+      "additionalProperties": false,
+      "required": ["candidate_patches", "excluded_patches"],
+      "properties": {
+        "candidate_patches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}},
+        "excluded_patches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}}
+      }
     },
     "runtime_pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   }

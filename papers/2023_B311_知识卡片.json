@@ -18,7 +18,12 @@
     "多目标规划",
     "递推计算"
   ],
-  "source_pdf": "E:/AI/数模/高教社杯全国大学生数学建模竞赛优秀论文/2023年高教社杯全国大学生数学建模竞赛优秀论文/B311.pdf",
+  "source_pdf": null,
+  "source_locator": {
+    "collection": "2023年高教社杯全国大学生数学建模竞赛优秀论文",
+    "file_name": "B311.pdf",
+    "local_only": true
+  },
   "workflow": "docs/workflows/01_论文学习流.md",
   "base_reference": "prompt_base/prompt_base_v1.0.md",
   "core_problem": "围绕多波束测深系统，建立覆盖宽度和重叠率模型，并在规则坡面和实际海底地形条件下设计满足覆盖、重叠率和总长度要求的测线。",

@@ -4,7 +4,7 @@
   "title": "旧题测试记录",
   "type": "object",
   "additionalProperties": false,
-  "required": ["test_id", "date", "problem_id", "profile", "gates", "material_level", "score", "failure_labels", "result", "evidence"],
+  "required": ["test_id", "date", "problem_id", "profile", "gates", "material_level", "material_risks", "mechanism_class", "runtime_version", "active_patches", "candidate_patches", "score", "failure_labels", "result", "human_confirmed", "evidence"],
   "properties": {
     "test_id": {"type": "string", "minLength": 1},
     "date": {"type": "string", "format": "date"},
@@ -12,9 +12,24 @@
     "profile": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
     "gates": {"enum": ["0-2", "0-5"]},
     "material_level": {"enum": ["T0", "T1", "T2", "T3", "T4"]},
-    "score": {"type": "integer", "minimum": 0, "maximum": 100},
-    "failure_labels": {"type": "array", "uniqueItems": true, "items": {"pattern": "^P(?:[1-9]|10)$"}},
+    "material_risks": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^M(?:[1-9]|10)$"}},
+    "mechanism_class": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "active_patches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}},
+    "candidate_patches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}},
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "rubric_version"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0, "maximum": 100},
+        "rubric_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "items": {"type": "object"}
+      }
+    },
+    "failure_labels": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^P(?:[1-9]|10)$"}},
     "result": {"enum": ["pass", "fail"]},
+    "human_confirmed": {"type": "boolean"},
     "evidence": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
   }
 }
