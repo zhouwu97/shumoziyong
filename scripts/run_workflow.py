@@ -38,13 +38,18 @@ def build_problem_manifest(problem_id: str, material_path: Path, material_files:
     
     if material_path.is_dir():
         if material_files:
+            if len(material_files) == 0:
+                raise ValueError("材料列表不能为空")
+            if len(set(material_files)) != len(material_files):
+                raise ValueError("材料列表中包含重复文件")
             for mf in material_files:
                 p = (material_path / mf).resolve()
                 if not p.is_relative_to(material_path.resolve()):
                     raise ValueError(f"指定的文件 {mf} 逃逸了材料根目录 {material_path}")
-                if p.is_file():
-                    content = p.read_bytes()
-                    files.append({
+                if not p.is_file():
+                    raise FileNotFoundError(f"指定的材料文件不存在: {p}")
+                content = p.read_bytes()
+                files.append({
                         "path": repo_relative(p),
                         "size": len(content),
                         "sha256": sha256_bytes(content),
@@ -162,7 +167,7 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
     (run_dir / "patch_suggestions.md").write_text("# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n", encoding="utf-8")
     # 证据文件脚手架：由 AI 运行和人工审核填充
-    write_json(run_dir / "request.json", {"_note": "待填写：发送给 AI 的提示词", "prompt": "", "model": "", "runtime_version": profile_state["version"], "source": "real_ai_run", "response_reference": None})
+    write_json(run_dir / "request.json", {"_note": "待填写：发送给 AI 的提示词", "prompt": "", "model": "", "runtime_version": profile_state["version"], "source": "pending", "response_reference": None})
     (run_dir / "response.md").write_text("# AI 输出（Markdown）\n\n待填写。\n", encoding="utf-8")
     write_json(run_dir / "response.json", {"_note": "待填写：AI 结构化 JSON 输出，须符合 diagnosis_output.schema.json"})
     write_json(run_dir / "automatic_evaluation.json", {"_note": "待生成：由 evaluate_prompt_response.py 产出", "case_id": "", "errors": []})

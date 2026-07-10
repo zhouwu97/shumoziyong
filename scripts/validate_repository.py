@@ -9,7 +9,7 @@ from typing import Any
 import hashlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from evaluate_prompt_response import evaluate_case, load_case
+from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -211,7 +211,8 @@ class RepositoryValidator:
                 
                 # Check response against diagnosis schema
                 try:
-                    self.validate_schema(response, "diagnosis_output.schema.json", f"{run_dir.name} response.json")
+                    if not self.validate_schema(response, "diagnosis_output.schema.json", f"{run_dir.name} response.json"):
+                        ok = False
                 except Exception as e:
                     self.fail(f"{run_dir.name} response 不符合 diagnosis_output.schema.json ({e})")
                     ok = False
@@ -249,6 +250,7 @@ class RepositoryValidator:
                 # Re-evaluate
                 case = load_case(case_file, eval_json.get("case_id"))
                 re_errors = evaluate_case(case, response)
+                re_errors.extend(evaluate_manifest_alignment(response, json.loads(manifest_text)))
                 if re_errors:
                     self.fail(f"{run_dir.name} 现场重算发现错误: {re_errors}")
                     ok = False
@@ -287,6 +289,12 @@ class RepositoryValidator:
                     ok = False
                 
                 b_req = json.loads((b_dir / "request.json").read_text(encoding="utf-8"))
+                b_resp_text = (b_dir / "response.json").read_text(encoding="utf-8")
+                t_resp_text = (t_dir / "response.json").read_text(encoding="utf-8")
+                if hashlib.sha256(b_resp_text.encode("utf-8")).hexdigest() == hashlib.sha256(t_resp_text.encode("utf-8")).hexdigest():
+                    self.fail("baseline 和 treatment 的 response 完全相同")
+                    ok = False
+
                 t_req = json.loads((t_dir / "request.json").read_text(encoding="utf-8"))
                 if b_req.get("model") != t_req.get("model"):
                     self.fail("request.model 不同")
@@ -354,7 +362,15 @@ class RepositoryValidator:
                         
                         # Validate comparison review json
                         rev_data = json.loads(c_rev.read_text(encoding="utf-8"))
-                        self.validate_schema(rev_data, "comparison_review.schema.json", f"{patch_id} comparison_review")
+                        if not self.validate_schema(rev_data, "comparison_review.schema.json", f"{patch_id} comparison_review"):
+                            promotion_ok = False
+                        
+                        
+                        b_man = json.loads(b_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
+                        t_man = json.loads(t_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
+                        if rev_data.get("experiment_group_id") != b_man.get("experiment_group_id") or rev_data.get("experiment_group_id") != t_man.get("experiment_group_id"):
+                            self.fail(f"{patch_id} comparison_review experiment_group_id 与运行组不一致")
+                            promotion_ok = False
                         
                         if rev_data.get("baseline_run") != evidence["baseline_run"]:
                             self.fail(f"{patch_id} comparison_review baseline_run 路径不匹配")

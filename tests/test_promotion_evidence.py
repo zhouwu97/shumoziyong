@@ -42,10 +42,7 @@ def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index):
         assert not validator.failures
 
 def test_simulated_precheck_fails(validator, valid_matrix, valid_patch_index, tmp_path):
-    # We will patch resolve_repo_path to allow tmp_path
-    def mock_resolve(self, raw):
-        return Path(raw).resolve()
-        
+    def mock_resolve(self, raw): return Path(raw).resolve()
     shutil.copytree(FIXTURE_DIR, tmp_path / "fixtures")
     modify_json(tmp_path / "fixtures" / "baseline" / "run_manifest.json", {"evidence_validity": "simulated_precheck"})
     valid_matrix["patches"][0]["negative"]["evidence"]["baseline_run"] = str(tmp_path / "fixtures" / "baseline")
@@ -86,9 +83,13 @@ def test_request_prompt_empty_fails(validator, valid_matrix, valid_patch_index, 
 def test_same_response_fails(validator, valid_matrix, valid_patch_index, tmp_path):
     def mock_resolve(self, raw): return Path(raw).resolve()
     shutil.copytree(FIXTURE_DIR, tmp_path / "fixtures")
-    same_resp = {"data": "same"}
-    (tmp_path / "fixtures" / "baseline" / "response.json").write_text(json.dumps(same_resp), 'utf-8')
-    (tmp_path / "fixtures" / "treatment" / "response.json").write_text(json.dumps(same_resp), 'utf-8')
+    # To truly test "same response", we make baseline and treatment responses exactly the same and both valid
+    import hashlib
+    valid_resp = (FIXTURE_DIR / "treatment" / "response.json").read_text('utf-8')
+    (tmp_path / "fixtures" / "baseline" / "response.json").write_text(valid_resp, 'utf-8')
+    # Update hash in automatic_evaluation so schema passes, and re-evaluation isn't blocked by mismatch hashes
+    modify_json(tmp_path / "fixtures" / "baseline" / "automatic_evaluation.json", {"response_sha256": hashlib.sha256(valid_resp.encode('utf-8')).hexdigest()})
+    
     valid_matrix["patches"][0]["negative"]["evidence"]["baseline_run"] = str(tmp_path / "fixtures" / "baseline")
     valid_matrix["patches"][0]["negative"]["evidence"]["treatment_run"] = str(tmp_path / "fixtures" / "treatment")
     valid_matrix["patches"][0]["negative"]["evidence"]["comparison_review"] = str(tmp_path / "fixtures" / "comparison_review.json")
@@ -96,7 +97,7 @@ def test_same_response_fails(validator, valid_matrix, valid_patch_index, tmp_pat
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         with patch.object(RepositoryValidator, 'resolve_repo_path', new=mock_resolve):
             validator.validate_patch_promotion()
-            assert any("现场重算发现错误" in f or "符合 diagnosis_output" in f for f in validator.failures)
+            assert any("完全相同" in f for f in validator.failures)
 
 def test_path_traversal_fails(validator, valid_matrix, valid_patch_index):
     valid_matrix["patches"][0]["negative"]["evidence"]["baseline_run"] = "../escape"
@@ -152,7 +153,10 @@ def test_auto_eval_hash_mismatch(validator, valid_matrix, valid_patch_index, tmp
 def test_comparison_review_risk_flag(validator, valid_matrix, valid_patch_index, tmp_path):
     def mock_resolve(self, raw): return Path(raw).resolve()
     shutil.copytree(FIXTURE_DIR, tmp_path / "fixtures")
-    modify_json(tmp_path / "fixtures" / "comparison_review.json", {"risk_flags": {"changed_primary_type": True}})
+    data = json.loads((tmp_path / "fixtures" / "comparison_review.json").read_text("utf-8"))
+    data["risk_flags"]["changed_primary_type"] = True
+    (tmp_path / "fixtures" / "comparison_review.json").write_text(json.dumps(data), "utf-8")
+    
     valid_matrix["patches"][0]["negative"]["evidence"]["baseline_run"] = str(tmp_path / "fixtures" / "baseline")
     valid_matrix["patches"][0]["negative"]["evidence"]["treatment_run"] = str(tmp_path / "fixtures" / "treatment")
     valid_matrix["patches"][0]["negative"]["evidence"]["comparison_review"] = str(tmp_path / "fixtures" / "comparison_review.json")
@@ -160,4 +164,50 @@ def test_comparison_review_risk_flag(validator, valid_matrix, valid_patch_index,
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         with patch.object(RepositoryValidator, 'resolve_repo_path', new=mock_resolve):
             validator.validate_patch_promotion()
-            assert any("False was expected" in f or "Schema" in f for f in validator.failures)
+            assert any("Schema" in f and "False was expected" in f for f in validator.failures)
+
+def test_comparison_review_group_id_mismatch(validator, valid_matrix, valid_patch_index, tmp_path):
+    def mock_resolve(self, raw): return Path(raw).resolve()
+    shutil.copytree(FIXTURE_DIR, tmp_path / "fixtures")
+    modify_json(tmp_path / "fixtures" / "comparison_review.json", {"experiment_group_id": "WRONG_ID"})
+    valid_matrix["patches"][0]["negative"]["evidence"]["baseline_run"] = str(tmp_path / "fixtures" / "baseline")
+    valid_matrix["patches"][0]["negative"]["evidence"]["treatment_run"] = str(tmp_path / "fixtures" / "treatment")
+    valid_matrix["patches"][0]["negative"]["evidence"]["comparison_review"] = str(tmp_path / "fixtures" / "comparison_review.json")
+    
+    with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, 'resolve_repo_path', new=mock_resolve):
+            validator.validate_patch_promotion()
+            assert any("与运行组不一致" in f for f in validator.failures)
+
+def test_enabled_mismatch(validator, valid_matrix, valid_patch_index, tmp_path):
+    def mock_resolve(self, raw): return Path(raw).resolve()
+    shutil.copytree(FIXTURE_DIR, tmp_path / "fixtures")
+    # modify treatment response so enabled is wrong
+    data = json.loads((tmp_path / "fixtures" / "treatment" / "response.json").read_text("utf-8"))
+    data["patch_decisions"]["A001"]["enabled"] = True # treatment's manifest has A001, so wait, it expects it to be True?
+    # the valid response sets enabled: False for A001 while manifest has A001
+    # Oh wait! In my valid fixture, A001 is loaded, but enabled is False!
+    # Wait, the rule is expected_enabled = patch in manifest.
+    # actual_enabled = decision.enabled
+    # In treatment, A001 is in manifest, so it expects True! But in negative control, applicable is False.
+    # Ah! If applicable is False, does `evaluate_prompt_response` still require `enabled=True` because it's loaded?
+    # Yes! A patch can be enabled (meaning the decision framework allows it to be evaluated) even if applicable is False?
+    # Let's check my `test_same_response_fails`.
+    data["patch_decisions"]["A001"]["enabled"] = False # making it mismatch
+    import hashlib
+    (tmp_path / "fixtures" / "treatment" / "response.json").write_text(json.dumps(data), "utf-8")
+    modify_json(tmp_path / "fixtures" / "treatment" / "automatic_evaluation.json", {"response_sha256": hashlib.sha256(json.dumps(data).encode('utf-8')).hexdigest()})
+    
+    # We expect `evaluate_manifest_alignment` to fail.
+    # But wait, in the valid fixture, enabled is already false! Let's ensure the valid fixture has enabled=True so it passes naturally.
+    valid_data = json.loads((FIXTURE_DIR / "treatment" / "response.json").read_text("utf-8"))
+    valid_data["patch_decisions"]["A001"]["enabled"] = False
+    
+    valid_matrix["patches"][0]["negative"]["evidence"]["baseline_run"] = str(tmp_path / "fixtures" / "baseline")
+    valid_matrix["patches"][0]["negative"]["evidence"]["treatment_run"] = str(tmp_path / "fixtures" / "treatment")
+    valid_matrix["patches"][0]["negative"]["evidence"]["comparison_review"] = str(tmp_path / "fixtures" / "comparison_review.json")
+    
+    with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, 'resolve_repo_path', new=mock_resolve):
+            validator.validate_patch_promotion()
+            assert any("与运行包包含情况不符" in f for f in validator.failures)

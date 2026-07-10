@@ -109,6 +109,20 @@ def evaluate_case(case: dict[str, Any], response: dict[str, Any]) -> list[str]:
     return errors
 
 
+
+def evaluate_manifest_alignment(response: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    active_patch_ids = {patch.get("patch_id") for patch in manifest.get("patches", [])}
+    for patch_id, decision in response.get("patch_decisions", {}).items():
+        expected_enabled = patch_id in active_patch_ids
+        actual_enabled = decision.get("enabled", False)
+        if actual_enabled != expected_enabled:
+            errors.append(f"patch_decisions.{patch_id}.enabled 期望 {expected_enabled}，实际 {actual_enabled}（与运行包包含情况不符）")
+        if not expected_enabled and "未加载" not in decision.get("reason", ""):
+            errors.append(f"patch_decisions.{patch_id}.reason 未加载的 patch 必须在理由中说明“未加载”，当前为：{decision.get('reason')}")
+    return errors
+
+
 def load_case(case_file: Path, case_id: str | None = None) -> dict[str, Any]:
     data = yaml.safe_load(case_file.read_text(encoding="utf-8"))
     cases = data.get("cases", [])
@@ -152,14 +166,7 @@ def main() -> None:
     if args.manifest:
         manifest_text = (ROOT / args.manifest).read_text(encoding="utf-8")
         manifest = json.loads(manifest_text)
-        active_patch_ids = {patch.get("patch_id") for patch in manifest.get("patches", [])}
-        for patch_id, decision in response.get("patch_decisions", {}).items():
-            expected_enabled = patch_id in active_patch_ids
-            actual_enabled = decision.get("enabled", False)
-            if actual_enabled != expected_enabled:
-                errors.append(f"patch_decisions.{patch_id}.enabled 期望 {expected_enabled}，实际 {actual_enabled}（与运行包包含情况不符）")
-            if not expected_enabled and "未加载" not in decision.get("reason", ""):
-                errors.append(f"patch_decisions.{patch_id}.reason 未加载的 patch 必须在理由中说明“未加载”，当前为：{decision.get('reason')}")
+        errors.extend(evaluate_manifest_alignment(response, manifest))
 
     result = "fail" if errors else "pass"
 
