@@ -214,13 +214,18 @@ class RepositoryValidator:
 
                 response_text = (run_dir / "response.json").read_text(encoding="utf-8")
                 response = json.loads(response_text)
-                
-                # Check response against diagnosis schema
+
+                # Check response against diagnosis schema — version-aware
+                schema_version = response.get("schema_version", "1.0.0")
                 try:
-                    if not self.validate_schema(response, "diagnosis_output.schema.json", f"{run_dir.name} response.json"):
-                        ok = False
+                    if schema_version.startswith("2."):
+                        if not self.validate_schema(response, "diagnosis.schema.json", f"{run_dir.name} response.json"):
+                            ok = False
+                    else:
+                        if not self.validate_schema(response, "diagnosis_output.schema.json", f"{run_dir.name} response.json"):
+                            ok = False
                 except Exception as e:
-                    self.fail(f"{run_dir.name} response 不符合 diagnosis_output.schema.json ({e})")
+                    self.fail(f"{run_dir.name} response 不符合 diagnosis schema ({e})")
                     ok = False
 
                 eval_json = json.loads((run_dir / "automatic_evaluation.json").read_text(encoding="utf-8"))

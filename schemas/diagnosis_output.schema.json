@@ -1,26 +1,45 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://shumo.local/schemas/diagnosis_output.schema.json",
-  "title": "Gate-0 总控诊断结构化输出",
-  "description": "AI 在 Gate-0 同时输出 Markdown（人看）和 JSON（机器检查）。JSON 必须符合本 schema。patch_decisions 中每个 patch 必须显式判断是否适用，负控题上应判定为不适用。",
+  "title": "已弃用：Gate 0 诊断结构化输出兼容 Schema",
+  "description": "此 schema 已被 schemas/diagnosis.schema.json v2.0.0 取代。仅用于兼容 2026-07 之前的旧运行记录。新运行必须使用 schemas/diagnosis.schema.json。旧记录迁移时，diagnosis.json 应增加 schema_version 字段并填充新增必填字段（problem_summary、candidate_routes、known_data、forbidden_next_actions、maximum_risks 等）。",
+  "deprecated": true,
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": ["stage", "primary_type", "subproblems", "candidate_models", "selected_route", "decision_variables", "constraints", "patch_decisions", "manual_confirmation"],
   "properties": {
+    "schema_version": {"type": "string"},
     "stage": {"const": "diagnosis"},
     "primary_type": {"type": "string", "minLength": 1},
-    "subproblems": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "subproblems": {
+      "anyOf": [
+        {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        {"type": "array", "minItems": 1, "items": {"type": "object"}}
+      ]
+    },
     "candidate_models": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "selected_route": {"type": "string", "minLength": 1},
+    "candidate_routes": {"type": "array", "items": {"type": "object"}},
+    "selected_route": {
+      "anyOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "null"}
+      ]
+    },
     "decision_variables": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "constraints": {"type": "object"},
-    "missing_data": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "known_data": {"type": "array", "items": {"type": "object"}},
+    "missing_data": {
+      "anyOf": [
+        {"type": "array", "items": {"type": "string", "minLength": 1}},
+        {"type": "array", "items": {"type": "object"}}
+      ]
+    },
     "patch_decisions": {
       "type": "object",
       "propertyNames": {"pattern": "^[A-Z][0-9]{3}$"},
       "additionalProperties": {
         "type": "object",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "required": ["enabled", "applicable", "reason"],
         "properties": {
           "enabled": {"type": "boolean"},
@@ -29,6 +48,9 @@
         }
       }
     },
-    "manual_confirmation": {"type": "array", "items": {"type": "string", "minLength": 1}}
+    "manual_confirmation": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "forbidden_next_actions": {"type": "array", "items": {"type": "string"}},
+    "maximum_risks": {"type": "array", "items": {"type": "object"}},
+    "problem_summary": {"type": "string"}
   }
 }

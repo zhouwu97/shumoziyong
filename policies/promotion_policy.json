@@ -1,0 +1,48 @@
+{
+  "policy_version": "1.0.0",
+  "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。",
+  "automatic_status_update_allowed": false,
+  "status_rules": {
+    "verified_candidate": {
+      "required_controls": ["positive", "boundary", "negative"],
+      "required_result": "pass",
+      "min_distinct_cases": 1,
+      "negative_control": {
+        "requires_case": true,
+        "requires_structured_evidence": true,
+        "required_evidence_fields": ["baseline_run", "treatment_run", "comparison_review"]
+      }
+    },
+    "stable": {
+      "required_controls": ["positive", "boundary", "negative"],
+      "required_result": "pass",
+      "min_distinct_cases": 2,
+      "min_distinct_mechanisms": 3,
+      "requires_failure_fix_retest": true,
+      "negative_control": {
+        "requires_case": true,
+        "requires_structured_evidence": true,
+        "required_evidence_fields": ["baseline_run", "treatment_run", "comparison_review"]
+      }
+    }
+  },
+  "run_evidence_requirements": {
+    "eligible_for_promotion": true,
+    "evidence_validity": "real_ai_run",
+    "request_source": "real_ai_run",
+    "automatic_evaluation_result": "pass",
+    "required_run_files": [
+      "run_manifest.json",
+      "problem_manifest.json",
+      "runtime_pack.manifest.json",
+      "request.json",
+      "response.json",
+      "automatic_evaluation.json"
+    ]
+  },
+  "manual_controls": {
+    "human_review_required": true,
+    "comparison_review_schema": "schemas/comparison_review.schema.json",
+    "promotion_decision_requires_human_confirmation": true
+  }
+}

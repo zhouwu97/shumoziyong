@@ -14,8 +14,10 @@ official_materials/**
 !official_materials/README.md
 !official_materials/**/
 !official_materials/**/manifest.md
+!official_materials/**/material_manifest.json
 
 # 忽略导出器生成的运行包与 manifest（CI 每次重新生成，避免提交非确定性时间戳）。
 # 手工维护的注入提示词（mathmodelagent_inject_prompt.md 等）仍纳入版本管理。
 export/cumcm_runtime_pack.md
 export/cumcm_runtime_pack.manifest.json
+

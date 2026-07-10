@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/diagnosis.schema.json",
+  "title": "Gate 0 题目与材料诊断结构化输出",
+  "description": "AI 在 Gate 0 必须同时输出 diagnosis.md（人看）和 diagnosis.json（机器检查）。JSON 必须符合本 schema；材料完整性由 material_review.json 记录。patch_decisions 中每个 patch 必须显式判断是否适用，负控题上应判定为不适用。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "stage",
+    "problem_summary",
+    "primary_type",
+    "subproblems",
+    "candidate_routes",
+    "selected_route",
+    "decision_variables",
+    "constraints",
+    "known_data",
+    "missing_data",
+    "patch_decisions",
+    "manual_confirmation",
+    "forbidden_next_actions",
+    "maximum_risks"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "本诊断使用的 schema 版本，用于兼容旧运行记录。"
+    },
+    "stage": {
+      "const": "diagnosis"
+    },
+    "problem_summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "一段话概括题目核心矛盾与数学本质。"
+    },
+    "primary_type": {
+      "type": "string",
+      "minLength": 1,
+      "enum": ["优化", "评价", "预测", "分类", "聚类", "决策", "仿真", "机理分析", "综合建模"],
+      "description": "整道题的主要题型（取占比最高或最核心的）。"
+    },
+    "subproblems": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "surface_task", "math_task", "type", "input", "output", "depends_on", "feeds_into"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "子问题编号，如 Q1、Q2a。"
+          },
+          "surface_task": {
+            "type": "string",
+            "minLength": 1,
+            "description": "题目表面要求。"
+          },
+          "math_task": {
+            "type": "string",
+            "minLength": 1,
+            "description": "背后的数学任务。"
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "description": "子问题题型（优化/评价/预测等）。"
+          },
+          "input": {
+            "type": "string",
+            "minLength": 1,
+            "description": "本问的输入数据或前置结果。"
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "description": "本问需要产出的结果、图表或方案。"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "description": "本问依赖的前置子问题 ID 列表；首问为空数组。"
+          },
+          "feeds_into": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "description": "本问结果服务的后续子问题 ID 列表；末问为空数组。"
+          }
+        }
+      }
+    },
+    "candidate_routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["route_id", "description", "suitable_models", "data_requirements", "strengths", "limitations", "risk_level"],
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "路线编号，如 R1、R2。"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "用 1-2 句话描述建模路线。"
+          },
+          "suitable_models": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "minItems": 1,
+            "description": "本路线适用的候选模型名称。"
+          },
+          "data_requirements": {
+            "type": "string",
+            "minLength": 1,
+            "description": "本路线需要的关键数据。"
+          },
+          "strengths": {
+            "type": "string",
+            "minLength": 1,
+            "description": "本路线的优势。"
+          },
+          "limitations": {
+            "type": "string",
+            "minLength": 1,
+            "description": "本路线的局限与不适用情况。"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "本路线的实施风险等级。"
+          }
+        }
+      }
+    },
+    "selected_route": {
+      "anyOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "null"}
+      ],
+      "description": "AI 推荐的路线 ID；若需要人工抉择则为 null。"
+    },
+    "candidate_models": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "全部候选模型名称的扁平列表（兼容旧版 evaluator）。"
+    },
+    "decision_variables": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "description": "识别出的主要决策变量。"
+    },
+    "constraints": {
+      "type": "object",
+      "description": "约束条件，按类型分组（如 budget、time、physical、regulatory）。键名由诊断自行命名。",
+      "additionalProperties": {"type": "string"}
+    },
+    "known_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "source", "type"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1},
+          "type": {"type": "string", "enum": ["numeric", "categorical", "text", "geospatial", "time_series", "tabular", "image", "other"]},
+          "unit": {"type": "string"},
+          "notes": {"type": "string"}
+        }
+      },
+      "description": "题目提供或可获得的已知数据项。"
+    },
+    "missing_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "purpose", "fallback"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "purpose": {"type": "string", "minLength": 1},
+          "fallback": {"type": "string", "minLength": 1},
+          "risk": {"type": "string"}
+        }
+      },
+      "description": "缺少但可能需要的数据项及其降级方案。"
+    },
+    "patch_decisions": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[A-Z][0-9]{3}$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["enabled", "applicable", "reason"],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "该 patch 是否被加载进运行包。"
+          },
+          "applicable": {
+            "type": "boolean",
+            "description": "该 patch 的经验是否适用于本题。负控题上必须为 false。"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "适用性或不适用的具体理由。不能为空。"
+          },
+          "risks_if_applied": {
+            "type": "string",
+            "description": "如果强行应用该 patch 的具体风险（仅 applicable=false 时推荐填写）。"
+          }
+        }
+      }
+    },
+    "manual_confirmation": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1},
+      "description": "进入下一阶段前必须由人工确认的事项列表。"
+    },
+    "forbidden_next_actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["write_code", "write_paper", "select_model", "run_optimization", "generate_results", "claim_conclusion", "skip_gate"]
+      },
+      "uniqueItems": true,
+      "description": "在当前 Gate 绝对禁止的后续动作。Gate 0 至少应包含 write_code 和 write_paper。"
+    },
+    "maximum_risks": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["risk", "severity", "mitigation"],
+        "properties": {
+          "risk": {"type": "string", "minLength": 1},
+          "severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+          "affected_subproblems": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "mitigation": {"type": "string", "minLength": 1}
+        }
+      },
+      "description": "当前诊断识别出的最大跑偏或失败风险（最多 5 个）。"
+    }
+  }
+}
