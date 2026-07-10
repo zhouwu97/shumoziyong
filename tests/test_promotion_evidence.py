@@ -40,7 +40,18 @@ def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index):
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         validator.validate_patch_promotion()
         assert not validator.failures
-        assert any("A001" in item for item in validator.passes)
+        assert (
+            "patch 晋级规则（verified 需 positive+boundary+negative 全 pass）"
+            in validator.passes
+        )
+
+def test_negative_case_mismatch_fails(validator, valid_matrix, valid_patch_index):
+    valid_matrix["patches"][0]["negative"]["case"] = "WRONG-CASE"
+
+    with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        validator.validate_patch_promotion()
+        assert any("negative.case 与运行题号不一致" in failure for failure in validator.failures)
+
 
 def test_simulated_precheck_fails(validator, valid_matrix, valid_patch_index, tmp_path):
     def mock_resolve(self, raw): return Path(raw).resolve()

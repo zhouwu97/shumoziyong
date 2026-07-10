@@ -351,6 +351,12 @@ class RepositoryValidator:
                     continue
                 
                 if control == "negative":
+                    matrix_case = control_data.get("case")
+                    if not matrix_case:
+                        self.fail(f"{patch_id} negative-control 缺少 case")
+                        promotion_ok = False
+                        continue
+
                     evidence = control_data.get("evidence")
                     if not isinstance(evidence, dict) or not all(k in evidence for k in ["baseline_run", "treatment_run", "comparison_review"]):
                         self.fail(f"{patch_id} negative-control 为 pass，但缺少结构化 evidence 或必填字段")
@@ -374,6 +380,15 @@ class RepositoryValidator:
                         
                         b_man = json.loads(b_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
                         t_man = json.loads(t_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
+                        baseline_case = b_man.get("problem_id")
+                        treatment_case = t_man.get("problem_id")
+                        if matrix_case != baseline_case or matrix_case != treatment_case:
+                            self.fail(
+                                f"{patch_id} negative.case 与运行题号不一致："
+                                f"{matrix_case} / {baseline_case} / {treatment_case}"
+                            )
+                            promotion_ok = False
+
                         if rev_data.get("experiment_group_id") != b_man.get("experiment_group_id") or rev_data.get("experiment_group_id") != t_man.get("experiment_group_id"):
                             self.fail(f"{patch_id} comparison_review experiment_group_id 与运行组不一致")
                             promotion_ok = False
