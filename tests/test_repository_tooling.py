@@ -122,15 +122,20 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     (materials / "problem.pdf").write_bytes(b"fake problem pdf")
     (materials / "data.xlsx").write_bytes(b"fake xlsx")
     args = Namespace(
-        run_id="test_run",
-        output_root=str(tmp_path / "runs"),
-        problem="2024-C",
-        profile="engineering_optimization",
-        gates="0-2",
-        materials=str(materials),
-        candidate_patch=[],
-        exclude_patch=[],
-    )
+            run_id="test_run",
+            output_root=str(tmp_path / "runs"),
+            problem="2024-C",
+            profile="engineering_optimization",
+            gates="0-2",
+            materials=str(materials),
+            candidate_patch=[],
+            exclude_patch=[],
+            material_file=[],
+            promotion_evidence=False,
+            experiment_group_id=None,
+            experiment_role=None,
+            target_patch=None
+        )
     run_dir, ready = create_old_problem_run(args)
     manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     assert ready is True
@@ -155,15 +160,20 @@ def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None
     materials = tmp_path / "materials"
     materials.mkdir()
     args = Namespace(
-        run_id="test_isolation",
-        output_root=str(tmp_path / "runs"),
-        problem="2024-C",
-        profile="engineering_optimization",
-        gates="0-2",
-        materials=str(materials),
-        candidate_patch=[],
-        exclude_patch=["A127"],
-    )
+            run_id="test_isolation",
+            output_root=str(tmp_path / "runs"),
+            problem="2024-C",
+            profile="engineering_optimization",
+            gates="0-2",
+            materials=str(materials),
+            candidate_patch=[],
+            exclude_patch=["A127"],
+            material_file=[],
+            promotion_evidence=False,
+            experiment_group_id=None,
+            experiment_role=None,
+            target_patch=None
+        )
     run_dir, ready = create_old_problem_run(args)
     assert ready is True
     manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
@@ -172,3 +182,32 @@ def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None
     pack_manifest = json.loads((run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8"))
     assert pack_manifest["exclusion_experiment"]["enabled"] is True
     assert {p["patch_id"] for p in pack_manifest["patches"]} == {"A092"}
+
+def test_old_problem_cli_promotion_evidence_mode(tmp_path: Path) -> None:
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    (materials / "problem.pdf").write_bytes(b"fake problem pdf")
+    args = Namespace(
+        run_id="test_promo",
+        output_root=str(tmp_path / "runs"),
+        problem="2024-C",
+        profile="engineering_optimization",
+        gates="0-2",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=["A127"],
+        material_file=[],
+        promotion_evidence=True,
+        experiment_group_id="GRP_A127",
+        experiment_role="baseline",
+        target_patch="A127",
+        no_eval=True
+    )
+    run_dir, ready = create_old_problem_run(args)
+    manifest = json.loads((run_dir / "run_manifest.json").read_text("utf-8"))
+    assert manifest["experiment_kind"] == "negative_control"
+    assert manifest["experiment_group_id"] == "GRP_A127"
+    assert manifest["experiment_role"] == "baseline"
+    assert manifest["target_patch"] == "A127"
+    assert manifest["evidence_validity"] == "pending"
+    assert manifest["eligible_for_promotion"] is False

@@ -105,30 +105,53 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     (run_dir / "runtime_pack.md").write_bytes(pack_content.encode("utf-8"))
     write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
 
-    problem_manifest = build_problem_manifest(args.problem, material_path, args.material_file)
+    problem_manifest = build_problem_manifest(args.problem, material_path, getattr(args, "material_file", []))
     write_json(run_dir / "problem_manifest.json", problem_manifest)
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
     status = "initialized" if material_exists else "blocked"
-    write_json(
-        run_dir / "run_manifest.json",
-        {
-            "run_id": run_id,
-            "workflow": "old_problem",
-            "created_at": created_at,
-            "problem_id": args.problem,
-            "profile": args.profile,
-            "runtime_version": profile_state["version"],
-            "gates": args.gates,
-            "materials": repo_relative(material_path),
-            "material_status": "ready" if material_exists else "blocked_missing",
-            "candidate_patches": args.candidate_patch,
-            "excluded_patches": args.exclude_patch,
-            "experiment_kind": _experiment_kind(args.candidate_patch, args.exclude_patch),
-            "status": status,
-            "automatic_stable_update": False,
-        },
-    )
+    manifest_data = {
+        "run_id": run_id,
+        "workflow": "old_problem",
+        "created_at": created_at,
+        "problem_id": args.problem,
+        "profile": args.profile,
+        "runtime_version": profile_state["version"],
+        "gates": args.gates,
+        "materials": repo_relative(material_path),
+        "material_status": "ready" if material_exists else "blocked_missing",
+        "candidate_patches": args.candidate_patch,
+        "excluded_patches": args.exclude_patch,
+        "experiment_kind": _experiment_kind(args.candidate_patch, args.exclude_patch),
+        "status": status,
+        "automatic_stable_update": False,
+    }
+    
+    if getattr(args, "promotion_evidence", False):
+        if not getattr(args, "experiment_group_id", None):
+            raise ValueError("--promotion-evidence 必须提供 --experiment-group-id")
+        if not getattr(args, "experiment_role", None):
+            raise ValueError("--promotion-evidence 必须提供 --experiment-role")
+        if not getattr(args, "target_patch", None):
+            raise ValueError("--promotion-evidence 必须提供 --target-patch")
+            
+        manifest_data["experiment_kind"] = "negative_control"
+        manifest_data["experiment_group_id"] = args.experiment_group_id
+        manifest_data["experiment_role"] = args.experiment_role
+        manifest_data["target_patch"] = args.target_patch
+        manifest_data["evidence_validity"] = "pending"
+        manifest_data["eligible_for_promotion"] = False
+        
+        target = args.target_patch
+        excluded = args.exclude_patch
+        if args.experiment_role == "baseline":
+            if target not in excluded:
+                raise ValueError("baseline 必须在 excluded_patches 中排除 target_patch")
+        elif args.experiment_role == "patch_only":
+            if target in excluded:
+                raise ValueError("patch_only 不能排除 target_patch")
+
+    write_json(run_dir / "run_manifest.json", manifest_data)
     write_json(
         run_dir / "material_review.json",
         {

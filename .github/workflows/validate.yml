@@ -2,8 +2,16 @@ name: Validate Repository
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   policy-gate:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,6 +23,7 @@ jobs:
       - run: python scripts/validate_repository.py
 
   runtime-pack:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +36,7 @@ jobs:
       - run: python scripts/check_runtime_manifest.py
 
   tests:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
