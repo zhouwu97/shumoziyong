@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "负控对照实验人工审查",
+  "description": "记录 baseline vs treatment 对照实验的事实。Schema 负责记录，policies/promotion_policy.json 负责判定是否可晋级。final_result 可为 pass/fail/invalid/needs_retest，所有 risk_flags 为普通 boolean（而非 const），允许记录失败或无效实验。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reviewer",
+    "reviewed_at",
+    "experiment_group_id",
+    "target_patch",
+    "baseline_run",
+    "treatment_run",
+    "risk_flags",
+    "consistency_checks",
+    "final_result",
+    "reason"
+  ],
+  "properties": {
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "experiment_group_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_patch": {
+      "type": "string",
+      "pattern": "^[A-Z][0-9]{3}$"
+    },
+    "baseline_run": {
+      "type": "string",
+      "minLength": 1
+    },
+    "treatment_run": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changed_primary_type",
+        "introduced_patch_specific_mechanism",
+        "invented_variables",
+        "introduced_unnecessary_algorithm",
+        "worse_than_baseline"
+      ],
+      "properties": {
+        "changed_primary_type": {
+          "type": "boolean",
+          "description": "treatment 是否改变了 baseline 的题型判断。"
+        },
+        "introduced_patch_specific_mechanism": {
+          "type": "boolean",
+          "description": "treatment 是否引入了 patch 来源论文的特有机制（负控题上应避免）。"
+        },
+        "invented_variables": {
+          "type": "boolean",
+          "description": "treatment 是否凭空创造了题面不存在的数据或变量。"
+        },
+        "introduced_unnecessary_algorithm": {
+          "type": "boolean",
+          "description": "treatment 是否在不需要时引入了高级算法。"
+        },
+        "worse_than_baseline": {
+          "type": "boolean",
+          "description": "treatment 的诊断/路线质量是否差于 baseline。"
+        }
+      }
+    },
+    "consistency_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "same_problem_material",
+        "same_model",
+        "same_prompt",
+        "only_target_patch_differs",
+        "responses_independently_generated"
+      ],
+      "properties": {
+        "same_problem_material": {
+          "type": "boolean",
+          "description": "baseline 和 treatment 使用完全相同的题目材料。"
+        },
+        "same_model": {
+          "type": "boolean",
+          "description": "baseline 和 treatment 使用相同的 AI 模型。"
+        },
+        "same_prompt": {
+          "type": "boolean",
+          "description": "规范化后 prompt 相同（仅 patch 加载不同）。"
+        },
+        "only_target_patch_differs": {
+          "type": "boolean",
+          "description": "runtime pack 的差异仅为目标 patch。"
+        },
+        "responses_independently_generated": {
+          "type": "boolean",
+          "description": "两次生成完全独立，非同一输出复制。"
+        }
+      }
+    },
+    "final_result": {
+      "type": "string",
+      "enum": ["pass", "fail", "invalid", "needs_retest"],
+      "description": "对照实验的最终结论。pass=负控通过；fail=patch 误触发或退化；invalid=实验设置有问题；needs_retest=结果不确定需重跑。只有 pass 且所有 risk_flags==false 才可作为 promotion evidence。"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 20,
+      "description": "审查结论的详细理由，至少 20 字符。"
+    }
+  }
+}

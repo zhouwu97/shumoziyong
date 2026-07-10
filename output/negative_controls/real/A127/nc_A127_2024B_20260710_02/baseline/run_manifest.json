@@ -1,0 +1,24 @@
+{
+  "run_id": "baseline",
+  "workflow": "old_problem",
+  "created_at": "2026-07-10T15:18:17+08:00",
+  "problem_id": "2024-B",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "gates": "0-2",
+  "materials": "official_materials/2024_B",
+  "material_status": "ready",
+  "candidate_patches": [],
+  "excluded_patches": [
+    "A092",
+    "A127"
+  ],
+  "experiment_kind": "negative_control",
+  "status": "reviewed",
+  "automatic_stable_update": false,
+  "experiment_group_id": "nc_A127_2024B_20260710_02",
+  "experiment_role": "baseline",
+  "target_patch": "A127",
+  "evidence_validity": "real_ai_run",
+  "eligible_for_promotion": true
+}

@@ -6,6 +6,11 @@ import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+import hashlib
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
+from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -25,6 +30,14 @@ class RepositoryValidator:
         self.failures: list[str] = []
         self.passes: list[str] = []
 
+    
+    def resolve_repo_path(self, raw: str) -> Path:
+        path = (ROOT / raw).resolve()
+        root = ROOT.resolve()
+        if not path.is_relative_to(root):
+            raise ValueError(f"证据路径位于仓库外：{raw}")
+        return path
+
     def pass_(self, message: str) -> None:
         self.passes.append(message)
 
@@ -39,20 +52,26 @@ class RepositoryValidator:
             self.fail(f"JSON 无法读取：{relative_path}（{exc}）")
             return None
 
-    def validate_schema(self, data: Any, schema_name: str, label: str) -> None:
+    def validate_schema(self, data: Any, schema_name: str, display_name: str) -> bool:
+        """Validate JSON against schema, return True if ok."""
+        from jsonschema import Draft202012Validator, FormatChecker
         schema = self.load_json(f"schemas/{schema_name}")
         if schema is None:
-            return
+            return False
         errors = sorted(
-            Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(data),
+            Draft202012Validator(
+                schema,
+                format_checker=FormatChecker(),
+            ).iter_errors(data),
             key=lambda error: list(error.absolute_path),
         )
         if errors:
             for error in errors:
                 location = ".".join(str(part) for part in error.absolute_path) or "<root>"
-                self.fail(f"{label} Schema：{location}：{error.message}")
-        else:
-            self.pass_(f"{label} Schema")
+                self.fail(f"{display_name} Schema：{location}：{error.message}")
+            return False
+        self.pass_(f"{display_name} Schema")
+        return True
 
     def validate_all_json_syntax(self) -> None:
         broken = 0
@@ -128,6 +147,325 @@ class RepositoryValidator:
             self.fail(f"缺少 runtime 状态文件：{', '.join(sorted(missing))}")
         else:
             self.pass_("runtime 状态文件覆盖和交叉引用")
+
+    def validate_patch_profile_consistency(self) -> None:
+        """patch → profile 方向：verified_candidate/stable 的 patch 必须进入至少一个
+        runtime profile 的 verified_patches，否则其 verified 状态是悬空的，
+        正式导出包也不会包含它（exporter 的 AND 条件）。"""
+        patches = self.load_json("prompt_patches/patch_index.json") or []
+        approved_everywhere: set[str] = set()
+        for path in sorted((ROOT / "runtime_profiles").glob("*.json")):
+            data = self.load_json(path.relative_to(ROOT).as_posix())
+            if data is None:
+                continue
+            approved_everywhere.update(data.get("verified_patches", []))
+        dangling: list[str] = []
+        for patch in patches:
+            patch_id = patch.get("patch_id", "<unknown>")
+            status = patch.get("status")
+            if status in {"verified_candidate", "stable"} and patch_id not in approved_everywhere:
+                dangling.append(patch_id)
+        if dangling:
+            for patch_id in dangling:
+                self.fail(
+                    f"{patch_id} 状态为 verified 但未进入任何 runtime profile 的 verified_patches；"
+                    "正式导出包不会包含它，请将其加入对应 profile 或降级为 candidate"
+                )
+        else:
+            self.pass_("verified patch 全部进入 runtime profile verified_patches")
+
+    def validate_patch_promotion(self) -> None:
+        """晋级规则强制校验：委托给 promotion_engine（promotion_policy.json 的唯一事实源）。"""
+        matrix = self.load_json("tests/prompt_regression/patch_negative_control_matrix.json")
+        patch_index = self.load_json("prompt_patches/patch_index.json") or []
+        if matrix is None:
+            return
+        if not (ROOT / "policies" / "promotion_policy.json").is_file():
+            self.fail("缺少 policies/promotion_policy.json")
+            return
+        policy = pe_load_json(ROOT / "policies" / "promotion_policy.json")
+
+        matrix_by_id = {item.get("patch_id"): item for item in matrix.get("patches", [])}
+        promotion_ok = True
+
+        def normalize_prompt(text: str) -> str:
+            return "\n".join(
+                line.rstrip()
+                for line in text.replace("\r\n", "\n").replace("\r", "\n").strip().split("\n")
+            )
+
+        def _verify_real_run(run_dir: Path, target_patch: str, role: str) -> bool:
+            ok = True
+            try:
+                run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+                if not run_manifest.get("eligible_for_promotion"):
+                    self.fail(f"{run_dir.name} eligible_for_promotion 为 false")
+                    ok = False
+                if run_manifest.get("evidence_validity") != "real_ai_run":
+                    self.fail(f"{run_dir.name} evidence_validity 不是 real_ai_run")
+                    ok = False
+
+                request = json.loads((run_dir / "request.json").read_text(encoding="utf-8"))
+                if not request.get("prompt"):
+                    self.fail(f"{run_dir.name} request.prompt 为空")
+                    ok = False
+                if not request.get("model"):
+                    self.fail(f"{run_dir.name} request.model 为空")
+                    ok = False
+                if request.get("source") != "real_ai_run":
+                    self.fail(f"{run_dir.name} request.source 不是 real_ai_run")
+                    ok = False
+
+                response_text = (run_dir / "response.json").read_text(encoding="utf-8")
+                response = json.loads(response_text)
+
+                # 版本感知校验 + 晋级证据强制 v2 要求
+                schema_version = response.get("schema_version", "1.0.0")
+                try:
+                    if schema_version.startswith("2."):
+                        if not self.validate_schema(response, "diagnosis.schema.json", f"{run_dir.name} response.json"):
+                            ok = False
+                    else:
+                        if not self.validate_schema(response, "diagnosis_output.schema.json", f"{run_dir.name} response.json"):
+                            ok = False
+                except Exception as e:
+                    self.fail(f"{run_dir.name} response 不符合 diagnosis schema ({e})")
+                    ok = False
+
+                # 强制 v2 检查：新 evidence 不支持旧 v1
+                diag_req = policy.get("diagnosis_schema_requirements", {})
+                min_version = diag_req.get("minimum_schema_version", "1.0.0")
+                cutoff = diag_req.get("legacy_evidence_cutoff", "")
+                if not schema_version.startswith("2.") and min_version.startswith("2."):
+                    # 检查该证据是否为 legacy grandfathered
+                    neg_entry = matrix_by_id.get(target_patch, {}).get("negative", {})
+                    legacy = False
+                    evidence = neg_entry.get("evidence") if isinstance(neg_entry.get("evidence"), dict) else {}
+                    if evidence.get("schema_generation") == "legacy_v1_grandfathered":
+                        legacy = True
+                    # 也检查该 run 的 run_manifest 中是否在 cutoff 之前
+                    created_at = run_manifest.get("created_at", "")
+                    if cutoff and created_at and created_at < cutoff:
+                        legacy = True
+
+                    if not legacy:
+                        self.fail(
+                            f"{run_dir.name} 使用 diagnosis v1（schema_version={schema_version}），"
+                            f"但 policy 要求新晋级证据使用 v{min_version}+（cutoff={cutoff}）。"
+                            "请重新运行并使用 diagnosis.schema.json v2 生成结构化输出。"
+                        )
+                        ok = False
+
+                eval_json = json.loads((run_dir / "automatic_evaluation.json").read_text(encoding="utf-8"))
+                if not eval_json.get("case_id"):
+                    self.fail(f"{run_dir.name} automatic_evaluation.case_id 为空")
+                    ok = False
+                if eval_json.get("result") != "pass":
+                    self.fail(f"{run_dir.name} automatic_evaluation.result 不是 pass")
+                    ok = False
+                if eval_json.get("errors"):
+                    self.fail(f"{run_dir.name} automatic_evaluation.errors 非空")
+                    ok = False
+                
+                # Check Hashes
+                actual_resp_sha = hashlib.sha256(response_text.encode("utf-8")).hexdigest()
+                if eval_json.get("response_sha256") != actual_resp_sha:
+                    self.fail(f"{run_dir.name} response_sha256 不匹配")
+                    ok = False
+                    
+                manifest_text = (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+                actual_man_sha = hashlib.sha256(manifest_text.encode("utf-8")).hexdigest()
+                if eval_json.get("manifest_sha256") != actual_man_sha:
+                    self.fail(f"{run_dir.name} manifest_sha256 不匹配")
+                    ok = False
+
+                case_file = self.resolve_repo_path(eval_json.get("case_file", ""))
+                case_text = case_file.read_text(encoding="utf-8")
+                actual_case_sha = hashlib.sha256(case_text.encode("utf-8")).hexdigest()
+                if eval_json.get("case_sha256") != actual_case_sha:
+                    self.fail(f"{run_dir.name} case_sha256 不匹配")
+                    ok = False
+                
+                # Re-evaluate
+                case = load_case(case_file, eval_json.get("case_id"))
+                re_errors = evaluate_case(case, response)
+                re_errors.extend(evaluate_manifest_alignment(response, json.loads(manifest_text)))
+                if re_errors:
+                    self.fail(f"{run_dir.name} 现场重算发现错误: {re_errors}")
+                    ok = False
+
+            except Exception as e:
+                self.fail(f"读取 {run_dir} 证据时出错: {e}")
+                ok = False
+            return ok
+            
+        def verify_experiment_pair(b_dir: Path, t_dir: Path, target_patch: str) -> bool:
+            ok = True
+            try:
+                b_man = json.loads((b_dir / "run_manifest.json").read_text(encoding="utf-8"))
+                t_man = json.loads((t_dir / "run_manifest.json").read_text(encoding="utf-8"))
+                
+                if b_man.get("experiment_group_id") != t_man.get("experiment_group_id"):
+                    self.fail(f"experiment_group_id 不同: {b_man.get('experiment_group_id')} vs {t_man.get('experiment_group_id')}")
+                    ok = False
+                if b_man.get("experiment_role") != "baseline":
+                    self.fail(f"baseline role 错误: {b_man.get('experiment_role')}")
+                    ok = False
+                if t_man.get("experiment_role") != "patch_only":
+                    self.fail(f"treatment role 错误: {t_man.get('experiment_role')}")
+                    ok = False
+                if t_man.get("target_patch") != target_patch:
+                    self.fail(f"treatment target_patch 错误: {t_man.get('target_patch')}")
+                    ok = False
+                if b_man.get("problem_id") != t_man.get("problem_id"):
+                    self.fail("problem_id 不同")
+                    ok = False
+                if b_man.get("profile") != t_man.get("profile"):
+                    self.fail("profile 不同")
+                    ok = False
+                if b_man.get("runtime_version") != t_man.get("runtime_version"):
+                    self.fail("runtime_version 不同")
+                    ok = False
+                
+                b_req = json.loads((b_dir / "request.json").read_text(encoding="utf-8"))
+                b_resp_text = (b_dir / "response.json").read_text(encoding="utf-8")
+                t_resp_text = (t_dir / "response.json").read_text(encoding="utf-8")
+                if hashlib.sha256(b_resp_text.encode("utf-8")).hexdigest() == hashlib.sha256(t_resp_text.encode("utf-8")).hexdigest():
+                    self.fail("baseline 和 treatment 的 response 完全相同")
+                    ok = False
+
+                t_req = json.loads((t_dir / "request.json").read_text(encoding="utf-8"))
+                if b_req.get("model") != t_req.get("model"):
+                    self.fail("request.model 不同")
+                    ok = False
+                if normalize_prompt(b_req.get("prompt", "")) != normalize_prompt(t_req.get("prompt", "")):
+                    self.fail("规范化后的 prompt 不同")
+                    ok = False
+                    
+                b_pm = json.loads((b_dir / "problem_manifest.json").read_text(encoding="utf-8"))
+                t_pm = json.loads((t_dir / "problem_manifest.json").read_text(encoding="utf-8"))
+                if b_pm != t_pm:
+                    self.fail("problem_manifest 完全不同")
+                    ok = False
+                
+                b_rm = json.loads((b_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8"))
+                t_rm = json.loads((t_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8"))
+                b_active = {p.get("patch_id") for p in b_rm.get("patches", [])}
+                t_active = {p.get("patch_id") for p in t_rm.get("patches", [])}
+                
+                if t_active - b_active != {target_patch}:
+                    self.fail("active patches 增加的不止 target_patch")
+                    ok = False
+                if b_active - t_active != set():
+                    self.fail("active patches 减少了其他 patch")
+                    ok = False
+                    
+            except Exception as e:
+                self.fail(f"校验对照实验组时出错: {e}")
+                ok = False
+            return ok
+
+        for patch in patch_index:
+            patch_id = patch.get("patch_id", "<unknown>")
+            status = patch.get("status")
+            if status not in {"verified_candidate", "stable"}:
+                continue
+            entry = matrix_by_id.get(patch_id)
+            if entry is None:
+                self.fail(f"{patch_id} 标记为 {status}，但负控矩阵中没有该 patch 的记录")
+                promotion_ok = False
+                continue
+
+            # 委托给 promotion_engine（promotion_policy.json 唯一事实源）
+            report = evaluate_status_eligibility(
+                patch, entry, policy, status,
+                all_matrix_entries=matrix_by_id,
+            )
+            for gap in report.gaps:
+                self.fail(f"{patch_id}：{gap}")
+                promotion_ok = False
+
+            # 负控证据验证（补充：promotion_engine 检查证据字段存在性，
+            # 这里深入验证证据目录内部的真实文件、哈希、对照实验一致性）
+            for control in ("positive", "boundary", "negative"):
+                control_data = entry.get(control, {})
+                result = control_data.get("result")
+                if result != "pass":
+                    continue
+
+                if control == "negative":
+                    matrix_case = control_data.get("case")
+                    if not matrix_case:
+                        self.fail(f"{patch_id} negative-control 缺少 case")
+                        promotion_ok = False
+                        continue
+
+                    evidence = control_data.get("evidence")
+                    if not isinstance(evidence, dict) or not all(k in evidence for k in ["baseline_run", "treatment_run", "comparison_review"]):
+                        self.fail(f"{patch_id} negative-control 为 pass，但缺少结构化 evidence 或必填字段")
+                        promotion_ok = False
+                        continue
+
+                    try:
+                        b_run = self.resolve_repo_path(evidence["baseline_run"])
+                        t_run = self.resolve_repo_path(evidence["treatment_run"])
+                        c_rev = self.resolve_repo_path(evidence["comparison_review"])
+
+                        if not _verify_real_run(b_run, patch_id, "baseline"): promotion_ok = False
+                        if not _verify_real_run(t_run, patch_id, "patch_only"): promotion_ok = False
+                        if not verify_experiment_pair(b_run, t_run, patch_id): promotion_ok = False
+
+                        # Validate comparison review json（v2：允许 fail/invalid/needs_retest）
+                        rev_data = json.loads(c_rev.read_text(encoding="utf-8"))
+                        if not self.validate_schema(rev_data, "comparison_review.schema.json", f"{patch_id} comparison_review"):
+                            promotion_ok = False
+                        else:
+                            # promotion_engine 只检查存在性；这里验证 review 结论是否满足晋级要求
+                            if rev_data.get("final_result") != "pass":
+                                self.fail(
+                                    f"{patch_id} comparison_review final_result 为 {rev_data.get('final_result')}（必须为 pass 才可作为 promotion evidence）"
+                                )
+                                promotion_ok = False
+                            risk_flags = rev_data.get("risk_flags", {})
+                            for flag_name, flag_value in risk_flags.items():
+                                if flag_value is True:
+                                    self.fail(
+                                        f"{patch_id} comparison_review risk_flags.{flag_name} 为 true（负控通过要求所有 risk flags 为 false）"
+                                    )
+                                    promotion_ok = False
+
+                        b_man = json.loads(b_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
+                        t_man = json.loads(t_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
+                        baseline_case = b_man.get("problem_id")
+                        treatment_case = t_man.get("problem_id")
+                        if matrix_case != baseline_case or matrix_case != treatment_case:
+                            self.fail(
+                                f"{patch_id} negative.case 与运行题号不一致："
+                                f"{matrix_case} / {baseline_case} / {treatment_case}"
+                            )
+                            promotion_ok = False
+
+                        if rev_data.get("experiment_group_id") != b_man.get("experiment_group_id") or rev_data.get("experiment_group_id") != t_man.get("experiment_group_id"):
+                            self.fail(f"{patch_id} comparison_review experiment_group_id 与运行组不一致")
+                            promotion_ok = False
+
+                        if rev_data.get("baseline_run") != evidence["baseline_run"]:
+                            self.fail(f"{patch_id} comparison_review baseline_run 路径不匹配")
+                            promotion_ok = False
+                        if rev_data.get("treatment_run") != evidence["treatment_run"]:
+                            self.fail(f"{patch_id} comparison_review treatment_run 路径不匹配")
+                            promotion_ok = False
+                        if rev_data.get("target_patch") != patch_id:
+                            self.fail(f"{patch_id} comparison_review target_patch 错误")
+                            promotion_ok = False
+
+                    except Exception as e:
+                        self.fail(f"校验 {patch_id} 证据时出错: {e}")
+                        promotion_ok = False
+
+        if promotion_ok:
+            self.pass_("patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）")
+
 
     def validate_knowledge_cards(self) -> None:
         paths = list((ROOT / "papers").glob("*_知识卡片.json"))
@@ -229,6 +567,8 @@ class RepositoryValidator:
         self.validate_all_json_syntax()
         self.validate_patch_index()
         self.validate_profiles()
+        self.validate_patch_profile_consistency()
+        self.validate_patch_promotion()
         self.validate_knowledge_cards()
         self.validate_optional_records()
         self.validate_markdown_links()

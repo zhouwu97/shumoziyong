@@ -11,7 +11,12 @@
   },
   "competition_type": "2023年高教社杯全国大学生数学建模竞赛",
   "award_level": "优秀论文样本",
-  "source_pdf": "E:/AI/数模/高教社杯全国大学生数学建模竞赛优秀论文/2023年高教社杯全国大学生数学建模竞赛优秀论文/A127.pdf",
+  "source_pdf": null,
+  "source_locator": {
+    "collection": "2023年高教社杯全国大学生数学建模竞赛优秀论文",
+    "file_name": "A127.pdf",
+    "local_only": true
+  },
   "problem_types": [
     "机理建模",
     "仿真计算",

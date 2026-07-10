@@ -1,0 +1,4 @@
+{
+  "stage": "diagnosis",
+  "_note": "待执行；完成后须符合 schemas/diagnosis_output.schema.json"
+}

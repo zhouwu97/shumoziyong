@@ -1,0 +1,5 @@
+cases:
+  - case_id: test_case_t
+    expected:
+      patch_not_applicable:
+        A001: false

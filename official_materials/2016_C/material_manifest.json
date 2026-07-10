@@ -1,0 +1,41 @@
+{
+  "manifest_version": "1.0.0",
+  "problem_id": "2016-C",
+  "material_root": ".",
+  "source": {
+    "kind": "official",
+    "reference": "官方来源和历史说明见 manifest.md"
+  },
+  "contains_answer_or_solution": false,
+  "categories": {
+    "problem": {
+      "required": true,
+      "files": [
+        {
+          "path": "problem/CUMCM2016-Problem-C-Chinese-version.docx",
+          "sha256": "19cd536e12e78a4270d621f977cea37859efaf7af77526ae680bec7b6993d440",
+          "description": "官方题面"
+        },
+        {
+          "path": "problem/CUMCM2016-Problem-C-Chinese-version_extracted_text.txt",
+          "sha256": "00a4f5a92722a5358da5ffaee0fdffcb527c7ee80bc7b5ee67cf0e145d272969",
+          "description": "题面文本核验副本"
+        }
+      ]
+    },
+    "attachments": {
+      "required": true,
+      "files": [
+        {
+          "path": "data/CUMCM2016-C-Appendix-Chinese.xlsx",
+          "sha256": "062583d35b471838d3f72353c898ab87e2a2407c9ad5579291aec91a7124e0bf",
+          "description": "附件 1 与附件 2 数据"
+        }
+      ]
+    },
+    "templates": {
+      "required": false,
+      "files": []
+    }
+  }
+}

@@ -40,10 +40,27 @@ def check_manifest(manifest_path: Path, pack_path: Path) -> list[str]:
     elif sha256(pack_path) != manifest.get("runtime_pack_sha256"):
         errors.append("运行包哈希与 manifest 不一致")
 
-    if not manifest.get("export_flags", {}).get("include_candidate_patches", False):
+    export_flags = manifest.get("export_flags", {})
+    intended_candidate_ids = set(export_flags.get("candidate_patches", []))
+    # 默认运行包（无显式 --candidate-patch）不得包含任何 candidate patch。
+    if not intended_candidate_ids:
         candidates = [patch["patch_id"] for patch in manifest.get("patches", []) if patch["status"] == "candidate"]
         if candidates:
             errors.append(f"默认运行包错误包含 candidate patch：{', '.join(candidates)}")
+    else:
+        # 显式实验：出现的 candidate 必须都在声明的 candidate_experiment.patch_ids 中。
+        declared = set(manifest.get("candidate_experiment", {}).get("patch_ids", []))
+        if declared != intended_candidate_ids:
+            errors.append("export_flags.candidate_patches 与 candidate_experiment.patch_ids 不一致")
+        actual_candidates = {patch["patch_id"] for patch in manifest.get("patches", []) if patch["status"] == "candidate"}
+        if not actual_candidates.issubset(intended_candidate_ids):
+            errors.append(f"运行包出现未声明的 candidate patch：{', '.join(sorted(actual_candidates - intended_candidate_ids))}")
+    # candidate_experiment.patch_ids 必须真的出现在 patches 中（否则声明了却没导入）
+    if manifest.get("candidate_experiment", {}).get("enabled"):
+        actual_ids = {patch["patch_id"] for patch in manifest.get("patches", [])}
+        missing = set(manifest["candidate_experiment"]["patch_ids"]) - actual_ids
+        if missing:
+            errors.append(f"声明导入但运行包缺失的 candidate patch：{', '.join(sorted(missing))}")
     return errors
 
 

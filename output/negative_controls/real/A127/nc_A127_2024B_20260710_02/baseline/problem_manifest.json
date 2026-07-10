@@ -1,0 +1,18 @@
+{
+  "problem_id": "2024-B",
+  "material_root": "official_materials/2024_B",
+  "material_exists": true,
+  "files": [
+    {
+      "path": "official_materials/2024_B/problem/B题.pdf",
+      "size": 636910,
+      "sha256": "f54529dd15d729b046e248ea41033b4f66ef68333be2bee912b0c54eafd227ab"
+    },
+    {
+      "path": "official_materials/2024_B/problem/B题_extracted_text.txt",
+      "size": 4106,
+      "sha256": "e2fc9aa62dcd6dd23851ca4acbcf951ed5f70a5d0945983f854a0d3540257529"
+    }
+  ],
+  "content_digest": "efaf60e037a998bc212850d92fd0cca8f882dd3e6d1a058825123a71155647d3"
+}

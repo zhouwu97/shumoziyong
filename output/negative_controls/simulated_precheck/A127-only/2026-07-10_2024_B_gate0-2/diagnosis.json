@@ -1,0 +1,37 @@
+{
+  "stage": "diagnosis",
+  "primary_type": "decision",
+  "subproblems": [
+    "质量抽检方案评估",
+    "次品处理决策"
+  ],
+  "candidate_models": [
+    "决策树",
+    "期望成本分析"
+  ],
+  "selected_route": "概率统计与期望成本计算",
+  "decision_variables": [
+    "抽检样本量",
+    "是否拆解",
+    "是否退回"
+  ],
+  "constraints": {
+    "抽样成本限制": "...",
+    "置信度要求": "..."
+  },
+  "patch_decisions": {
+    "A092": {
+      "enabled": false,
+      "applicable": false,
+      "reason": "本题为离散决策树模型，不涉及任何物理光学或空间布局，不适用。"
+    },
+    "A127": {
+      "enabled": false,
+      "applicable": false,
+      "reason": "本题无连续空间覆盖或测线布设需求，不适用。"
+    }
+  },
+  "manual_confirmation": [
+    "请确认成本参数和合格率阈值提取无误"
+  ]
+}

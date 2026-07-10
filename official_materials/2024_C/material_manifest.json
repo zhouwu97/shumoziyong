@@ -1,0 +1,67 @@
+{
+  "manifest_version": "1.0.0",
+  "problem_id": "2024-C",
+  "material_root": ".",
+  "source": {
+    "kind": "official",
+    "reference": "官方来源和历史说明见 manifest.md"
+  },
+  "contains_answer_or_solution": false,
+  "categories": {
+    "problem": {
+      "required": true,
+      "files": [
+        {
+          "path": "problem/C题.pdf",
+          "sha256": "c7b5e58bff4189b8afba5505f7bff7d4f08280fc291c51ef3f46134ebbf74f9a",
+          "description": "官方题面"
+        },
+        {
+          "path": "problem/C题_extracted_text.txt",
+          "sha256": "94c0a7e2b508367b42a8139461c09e1799aa1d152fdad0c6937f6cc9f7682aa3",
+          "description": "题面文本核验副本"
+        }
+      ]
+    },
+    "attachments": {
+      "required": true,
+      "files": [
+        {
+          "path": "attachments/附件1.xlsx",
+          "sha256": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932",
+          "description": "耕地与作物基础数据"
+        },
+        {
+          "path": "attachments/附件2.xlsx",
+          "sha256": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce",
+          "description": "种植与统计数据"
+        }
+      ]
+    },
+    "templates": {
+      "required": true,
+      "files": [
+        {
+          "path": "templates/result1_1.xlsx",
+          "sha256": "4f2484c0d70a5c4d047163f2ee6ef486949e813330466f46def4bd7d98af06af",
+          "description": "问题 1 情形 1 输出模板"
+        },
+        {
+          "path": "templates/result1_2.xlsx",
+          "sha256": "6166d43f5a64bf9d1657e80d4aee7f10f54bb1a5695b81a28a0ac5e657297649",
+          "description": "问题 1 情形 2 输出模板"
+        },
+        {
+          "path": "templates/result2.xlsx",
+          "sha256": "6a1ba9fc28d14d0a4a795e5f0b7261fb6e32165517afee62bcd1931aba5bee8a",
+          "description": "问题 2 输出模板"
+        },
+        {
+          "path": "templates/format2024.doc",
+          "sha256": "ec699bbe89e25cad16ca907b305c6cc76112ec04083cfe56ca65fd7a26fbaafe",
+          "description": "论文格式模板"
+        }
+      ]
+    }
+  }
+}

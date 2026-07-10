@@ -6,6 +6,8 @@
 
 正式比赛验证：否
 
+> **Gate 编号说明**：本项目统一使用 Gate 0-5。历史记录中出现的 Gate 2.5（代码小样例）、Gate 2.6（简单优化器/方向搜索）、Gate 2.7（情景分析）是 Gate 2（代码计划）阶段内的**子任务 (task)**，不是独立 Gate。Gate 2.5 → Stage 2 / task `code_mini_run`；Gate 2.6 → Stage 2 / task `baseline_run`；Gate 2.7 → Stage 2 / task `scenario_analysis`。以下正文保留历史命名，但程序逻辑只认 Gate 0-5。
+
 ## 依据
 
 2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。

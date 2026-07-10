@@ -37,9 +37,15 @@ base 只负责所有赛题通用的总控诊断，不负责旧题闭环调度、
 4. 每个模型必须说明为什么适合；
 5. 数据不足必须说明缺什么、如何补、如何降级；
 6. 每一问必须有输入、处理、输出和与后续问题的关系；
-7. 输出最后必须包含人工确认项。
+7. 输出最后必须包含人工确认项；
+8. Gate 0 必须同时产出 `diagnosis.md`（供人审阅）和 `diagnosis.json`（供机器校验）；
+9. `diagnosis.json` 必须符合 `schemas/diagnosis.schema.json`（当前 schema_version 为 2.0.0），且不得与 Markdown 结论矛盾；
+10. `forbidden_next_actions` 必须在 Gate 0 阶段包含 `write_code` 和 `write_paper`，表示在当前阶段绝对禁止这些操作；
+11. `diagnosis.json` 的 `primary_type` 必须从诊断枚举中选择：优化、评价、预测、分类、聚类、决策、仿真、机理分析、综合建模。
 
-请按以下结构输出：
+如果当前环境不能直接写文件，分别以 `diagnosis.md` 与 `diagnosis.json` 标题输出两个独立内容块；JSON 块必须是可解析的单个 JSON 对象。
+
+请按以下结构输出 diagnosis.md：
 
 一、题目理解
 1. 用自己的话重述题目背景；
@@ -51,12 +57,12 @@ base 只负责所有赛题通用的总控诊断，不负责旧题闭环调度、
 
 二、子问题拆解
 请用表格输出：
-子问题 | 表面任务 | 数学任务 | 题型 | 输入 | 输出 | 是否依赖前一问 | 对后续问题的作用
+子问题 | 表面任务 | 数学任务 | 题型 | 输入 | 输出 | 依赖关系 | 对后续问题的作用
 
 三、题型判断
 对每一问判断题型：
-评价、预测、优化、分类、聚类、决策、仿真、机理分析、综合建模。
-必须说明判断理由。
+优化、评价、预测、分类、聚类、决策、仿真、机理分析、综合建模。
+必须说明判断理由。整道题给出一个 primary_type。
 
 四、现实问题到数学问题的转化
 1. 现实对象是什么；
@@ -65,9 +71,14 @@ base 只负责所有赛题通用的总控诊断，不负责旧题闭环调度、
 4. 约束条件来自哪里；
 5. 哪些变量需要假设或估计。
 
-五、初步建模总路线
-按步骤输出：
-第 k 步：输入是什么；处理方法是什么；输出是什么；为什么必要；服务哪个后续问题。
+五、初步建模总路线（candidate_routes）
+每一路线须包含：
+- 路线描述
+- 候选模型（至少 1 个）
+- 数据需求
+- 优势与局限
+- 风险等级（low/medium/high）
+从中选出一条推荐路线作为 selected_route，或设为 null 请求人工抉择。
 
 六、候选模型初筛
 每一问列出 2-3 个候选模型，并说明：
@@ -89,6 +100,29 @@ base 只负责所有赛题通用的总控诊断，不负责旧题闭环调度、
 4. 结果是否可解释；
 5. 时间是否够；
 6. 是否需要简化或换模型。
+
+## diagnosis.json 输出说明
+
+`diagnosis.json` 必须包含以下字段（按 schemas/diagnosis.schema.json 2.0.0）：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| schema_version | string | 固定为 "2.0.0" |
+| stage | const | 固定为 "diagnosis" |
+| problem_summary | string | 一段话概括核心矛盾 |
+| primary_type | enum | 优化/评价/预测/分类/聚类/决策/仿真/机理分析/综合建模 |
+| subproblems | array[object] | 每项含 id/surface_task/math_task/type/input/output/depends_on/feeds_into |
+| candidate_routes | array[object] | 每项含 route_id/description/suitable_models/data_requirements/strengths/limitations/risk_level |
+| selected_route | string|null | 推荐路线 ID |
+| candidate_models | array[string] | 扁平化候选模型名列表（兼容 evaluator） |
+| decision_variables | array[string] | 主要决策变量 |
+| constraints | object | 约束按类型分组，键名自定（如 budget/time/physical） |
+| known_data | array[object] | 已知数据项，每项含 name/source/type/unit/notes |
+| missing_data | array[object] | 缺失数据项，每项含 name/purpose/fallback/risk |
+| patch_decisions | object | 键为 patch ID（A092/A127 等），值为 {enabled, applicable, reason} |
+| manual_confirmation | array[string] | 人工确认事项（至少 1 条） |
+| forbidden_next_actions | array[enum] | Gate 0 时必须含 "write_code" 和 "write_paper" |
+| maximum_risks | array[object] | 最多 5 个风险，每项含 risk/severity/mitigation |
 ```
 
 ## 进入 base 的规则

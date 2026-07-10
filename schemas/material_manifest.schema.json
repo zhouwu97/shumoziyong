@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/material_manifest.schema.json",
+  "title": "旧题材料清单",
+  "description": "用于在旧题工作流启动前验证题面、附件、模板及其 SHA-256。所有路径均相对于材料目录。",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "files"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/file"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"required": {"const": true}}},
+          "then": {"properties": {"files": {"minItems": 1}}}
+        }
+      ]
+    }
+  },
+  "required": [
+    "manifest_version",
+    "problem_id",
+    "material_root",
+    "source",
+    "contains_answer_or_solution",
+    "categories"
+  ],
+  "properties": {
+    "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "material_root": {"const": "."},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reference"],
+      "properties": {
+        "kind": {"enum": ["official", "user_provided", "local_archive"]},
+        "reference": {"type": "string", "minLength": 1},
+        "retrieved_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "contains_answer_or_solution": {"type": "boolean"},
+    "categories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["problem", "attachments", "templates"],
+      "properties": {
+        "problem": {
+          "allOf": [
+            {"$ref": "#/$defs/category"},
+            {"properties": {"required": {"const": true}}}
+          ]
+        },
+        "attachments": {"$ref": "#/$defs/category"},
+        "templates": {"$ref": "#/$defs/category"}
+      }
+    }
+  }
+}

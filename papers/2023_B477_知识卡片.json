@@ -11,11 +11,16 @@
   },
   "competition_type": "2023年高教社杯全国大学生数学建模竞赛",
   "award_level": "优秀论文样本",
-  "source_pdf": "E:/AI/数模/高教社杯全国大学生数学建模竞赛优秀论文/2023年高教社杯全国大学生数学建模竞赛优秀论文/B47700.pdf",
+  "source_pdf": null,
+  "source_locator": {
+    "collection": "2023年高教社杯全国大学生数学建模竞赛优秀论文",
+    "file_name": "B47700.pdf",
+    "local_only": true
+  },
   "user_supplied_name": "B477.pdf",
   "workflow": "docs/workflows/01_论文学习流.md",
   "base_reference": "prompt_base/prompt_base_v1.0.md",
-  "extracted_text": "E:/AI/数模/tmp/B47700_extracted_clean.txt",
+  "extracted_text": null,
   "problem_types": [
     "空间覆盖优化",
     "几何建模",

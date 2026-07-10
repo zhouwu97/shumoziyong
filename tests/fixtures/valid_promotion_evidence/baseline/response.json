@@ -1,0 +1,1 @@
+{"stage": "diagnosis", "primary_type": "engineering_optimization", "subproblems": ["1"], "decision_variables": ["1"], "candidate_models": ["1"], "constraints": {"a": "b"}, "patch_decisions": {}, "selected_route": "1", "manual_confirmation": ["1"]}
