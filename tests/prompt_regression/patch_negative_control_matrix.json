@@ -8,19 +8,39 @@
       "patch_id": "A092",
       "positive": {
         "case": "2024-C",
-        "result": "pass"
+        "result": "pass",
+        "case_metadata": {
+          "year": 2024,
+          "mechanism_class": "resource_allocation",
+          "relation_to_patch": "positive_in_scope",
+          "material_level": "T3"
+        }
       },
       "boundary": {
         "case": "2023-B",
-        "result": "pass"
+        "result": "pass",
+        "case_metadata": {
+          "year": 2023,
+          "mechanism_class": "geometric_planning",
+          "relation_to_patch": "boundary_edge_scope",
+          "material_level": "T3"
+        }
       },
       "negative": {
         "case": "2016-C",
         "result": "pass",
+        "case_metadata": {
+          "year": 2016,
+          "mechanism_class": "curve_fitting",
+          "relation_to_patch": "negative_out_of_scope",
+          "material_level": "T3"
+        },
         "evidence": {
           "baseline_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/baseline",
           "treatment_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/treatment",
-          "comparison_review": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/comparison_review.json"
+          "comparison_review": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/comparison_review.json",
+          "schema_generation": "legacy_v1_grandfathered",
+          "note": "2026-07-10 生成，早于 diagnosis v2 强制执行日期；保留为历史晋级证据"
         }
       }
     },
@@ -28,19 +48,39 @@
       "patch_id": "A127",
       "positive": {
         "case": "2023-B",
-        "result": "pass"
+        "result": "pass",
+        "case_metadata": {
+          "year": 2023,
+          "mechanism_class": "geometric_planning",
+          "relation_to_patch": "positive_in_scope",
+          "material_level": "T3"
+        }
       },
       "boundary": {
         "case": "2024-C",
-        "result": "pass"
+        "result": "pass",
+        "case_metadata": {
+          "year": 2024,
+          "mechanism_class": "resource_allocation",
+          "relation_to_patch": "boundary_edge_scope",
+          "material_level": "T3"
+        }
       },
       "negative": {
         "case": "2024-B",
         "result": "pass",
+        "case_metadata": {
+          "year": 2024,
+          "mechanism_class": "production_decision",
+          "relation_to_patch": "negative_out_of_scope",
+          "material_level": "T4"
+        },
         "evidence": {
           "baseline_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/baseline",
           "treatment_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/treatment",
-          "comparison_review": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/comparison_review.json"
+          "comparison_review": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/comparison_review.json",
+          "schema_generation": "legacy_v1_grandfathered",
+          "note": "2026-07-10 生成，早于 diagnosis v2 强制执行日期；保留为历史晋级证据"
         }
       }
     },

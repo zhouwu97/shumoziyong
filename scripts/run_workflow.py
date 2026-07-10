@@ -305,41 +305,115 @@ def _init_transitions(run_dir: Path, gate_range: str, material_ready: bool) -> N
 def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, reviewer: str, decision: str) -> None:
     """记录一次闸门推进事件。
 
+    与 v1 不同，v2 不再信任调用方传入的 from_gate：
+    - 必须从 transitions.jsonl 读取真实的当前 Gate。
+    - from_gate 仅用于调用方自检（如传入错误值会触发 ValueError）。
+    - material_ready=false 时禁止进入任何 Gate。
+    - 不能超过初始化时声明的 max_gate。
+    - transitions.jsonl 必须已初始化。
+
     Args:
         run_dir: 运行目录。
-        from_gate: 当前已完成并通过的 Gate（首次进入 Gate 0 时为 None）。
+        from_gate: 调用方认为的当前 Gate（首次为 None）。必须与真实当前 Gate 一致。
         to_gate: 将要进入的 Gate。
         reviewer: 审核人标识（human 或 automated）。
         decision: approved / rejected。
 
     Raises:
-        ValueError: 如果转换不合法（跳跃、回退或前序 Gate 未确认）。
+        ValueError: 如果转换不合法（伪造跳跃、回退、材料未就绪、超出 max_gate）。
+        FileNotFoundError: 如果 transitions.jsonl 未初始化。
     """
     if to_gate not in GATE_NAMES:
         raise ValueError(f"未知 Gate：{to_gate}（允许 0-5）")
 
-    valid_next = VALID_TRANSITIONS.get(from_gate, set())
+    transitions_path = run_dir / "transitions.jsonl"
+    if not transitions_path.is_file():
+        raise FileNotFoundError(f"缺少 transitions.jsonl：{transitions_path}（请先通过 _init_transitions 初始化）")
+
+    # 读取初始化和当前状态
+    init_data: dict[str, Any] = {}
+    real_current: int | None = None
+    for line in transitions_path.read_text(encoding="utf-8").strip().splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if entry.get("state") == "initialized":
+            init_data = entry
+        to_g = entry.get("to")
+        if to_g is not None and entry.get("decision") == "approved":
+            real_current = to_g
+
+    # 1) 材料未就绪时禁止进入任何 Gate
+    if init_data.get("material_ready") is not True:
+        raise ValueError(
+            f"材料校验未通过（material_ready={init_data.get('material_ready')}），"
+            "禁止进入任何 Gate。请先修复材料问题。"
+        )
+
+    # 2) 不能超过 max_gate
+    max_gate = init_data.get("max_gate", 5)
+    if to_gate > max_gate:
+        raise ValueError(
+            f"不能进入 Gate {to_gate}，初始化声明的最大 Gate 为 {max_gate}。"
+        )
+
+    # 3) 验证调用方传入的 from_gate 与真实当前 Gate 一致
+    if from_gate != real_current:
+        raise ValueError(
+            f"from_gate 不匹配：调用方声称当前为 {from_gate}，"
+            f"但 transitions.jsonl 记录的实际当前 Gate 为 {real_current}。"
+            "禁止伪造跳跃。"
+        )
+
+    # 4) 验证转换合法性
+    valid_next = VALID_TRANSITIONS.get(real_current, set())
     if to_gate not in valid_next:
         expected = f"{{{', '.join(str(g) for g in sorted(valid_next))}}}" if valid_next else "（终点）"
         raise ValueError(
-            f"Gate 转换非法：不能从 {from_gate} 进入 Gate {to_gate}。"
+            f"Gate 转换非法：不能从 {real_current} 进入 Gate {to_gate}。"
             f"允许的下一 Gate：{expected}。"
         )
 
     if decision not in ("approved", "rejected"):
         raise ValueError(f"decision 必须为 approved 或 rejected，实际为 {decision!r}")
 
-    transitions_path = run_dir / "transitions.jsonl"
     entry = {
-        "from": from_gate,
+        "from": real_current,
         "to": to_gate,
-        "state": f"entering_gate_{to_gate}",
+        "state": f"entering_gate_{to_gate}" if decision == "approved" else f"rejected_gate_{to_gate}",
         "gate_name": GATE_NAMES[to_gate],
         "reviewer": reviewer,
         "decision": decision,
     }
     with open(transitions_path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def is_gate_complete(run_dir: Path, gate: int) -> bool:
+    """检查指定 Gate 是否已完成并通过。
+
+    Gate 5 完成后（进入 completed 状态）视为 Gate 5 完成。
+    """
+    transitions_path = run_dir / "transitions.jsonl"
+    if not transitions_path.is_file():
+        return False
+    current: int | None = None
+    completed = False
+    for line in transitions_path.read_text(encoding="utf-8").strip().splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if entry.get("state") == "completed":
+            completed = True
+            break
+        to_g = entry.get("to")
+        if to_g is not None and entry.get("decision") == "approved":
+            current = to_g
+    if completed:
+        return gate <= 5
+    if current is not None and current > gate:
+        return True
+    return False
 
 
 def get_current_gate(run_dir: Path) -> int | None:
@@ -352,16 +426,27 @@ def get_current_gate(run_dir: Path) -> int | None:
         if not line.strip():
             continue
         entry = json.loads(line)
+        if entry.get("state") == "completed":
+            return None  # 已完成运行，没有"当前"Gate
         to_gate = entry.get("to")
         if to_gate is not None and entry.get("decision") == "approved":
             current = to_gate
     return current
 
 
-def is_gate_complete(run_dir: Path, gate: int) -> bool:
-    """检查指定 Gate 是否已完成并通过（即已推进到下一 Gate）。"""
-    current = get_current_gate(run_dir)
-    return current is not None and current > gate
+def mark_run_completed(run_dir: Path) -> None:
+    """将运行标记为 completed 终态（Gate 5 通过后调用）。"""
+    transitions_path = run_dir / "transitions.jsonl"
+    if not transitions_path.is_file():
+        raise FileNotFoundError(f"缺少 transitions.jsonl：{transitions_path}")
+    entry = {
+        "from": 5,
+        "to": None,
+        "state": "completed",
+        "note": "Gate 5 通过，运行完成。",
+    }
+    with open(transitions_path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def parse_args() -> argparse.Namespace:

@@ -41,7 +41,7 @@ def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index):
         validator.validate_patch_promotion()
         assert not validator.failures
         assert (
-            "patch 晋级规则（verified 需 positive+boundary+negative 全 pass）"
+            "patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）"
             in validator.passes
         )
 
@@ -176,7 +176,9 @@ def test_comparison_review_risk_flag(validator, valid_matrix, valid_patch_index,
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         with patch.object(RepositoryValidator, 'resolve_repo_path', new=mock_resolve):
             validator.validate_patch_promotion()
-            assert any("Schema" in f and "False was expected" in f for f in validator.failures)
+            # v2 comparison review: risk flags are plain boolean, not const false.
+            # The failure should come from the risk flag check (not Schema).
+            assert any("risk_flags" in f and "true" in f for f in validator.failures)
 
 def test_comparison_review_group_id_mismatch(validator, valid_matrix, valid_patch_index, tmp_path):
     def mock_resolve(self, raw): return Path(raw).resolve()

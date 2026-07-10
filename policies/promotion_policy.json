@@ -1,28 +1,76 @@
 {
-  "policy_version": "1.0.0",
-  "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。",
+  "policy_version": "1.1.0",
+  "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。Schema 记录事实，policy 负责判定——两者不混。",
   "automatic_status_update_allowed": false,
+  "diagnosis_schema_requirements": {
+    "minimum_schema_version": "2.0.0",
+    "legacy_evidence_cutoff": "2026-07-10T18:00:00+08:00",
+    "note": "cutoff 之后新生成的晋级证据必须使用 diagnosis v2+。现有 A092/A127 旧证据标记为 legacy_v1_grandfathered。"
+  },
   "status_rules": {
+    "candidate": {
+      "description": "单篇论文经验化为 patch，未经旧题闭环验证",
+      "required_controls": [],
+      "required_result": "any",
+      "min_distinct_cases": 0,
+      "min_distinct_years": 0,
+      "mechanism_scope": "patch",
+      "min_distinct_mechanisms": 0,
+      "forbidden_failure_labels": ["P3", "P4", "P5"],
+      "forbidden_material_risks": ["M1", "M2", "M3", "M5"],
+      "negative_control": {
+        "requires_case": false,
+        "requires_structured_evidence": false,
+        "required_evidence_fields": []
+      }
+    },
     "verified_candidate": {
+      "description": "至少正向+边界+负控各一次通过，且三道独立考题",
       "required_controls": ["positive", "boundary", "negative"],
       "required_result": "pass",
-      "min_distinct_cases": 1,
+      "min_distinct_cases": 3,
+      "min_distinct_years": 2,
+      "positive_negative_must_differ": true,
+      "positive_boundary_must_differ": true,
+      "negative_must_be_out_of_scope": true,
+      "mechanism_scope": "patch",
+      "min_distinct_mechanisms": 2,
+      "forbidden_failure_labels": ["P3", "P4", "P5"],
+      "forbidden_material_risks": ["M1", "M2", "M3", "M5"],
       "negative_control": {
         "requires_case": true,
         "requires_structured_evidence": true,
         "required_evidence_fields": ["baseline_run", "treatment_run", "comparison_review"]
+      },
+      "repetition": {
+        "min_negative_control_runs": 1,
+        "note": "当前最低要求 1 次；建议至少 baseline×2 + treatment×3 以评估随机波动"
       }
     },
     "stable": {
+      "description": "多年份、多机制、失败修复重测且比赛验证通过，人工最终确认",
       "required_controls": ["positive", "boundary", "negative"],
       "required_result": "pass",
-      "min_distinct_cases": 2,
+      "min_distinct_cases": 3,
+      "min_distinct_years": 2,
+      "positive_negative_must_differ": true,
+      "positive_boundary_must_differ": true,
+      "negative_must_be_out_of_scope": true,
+      "mechanism_scope": "patch",
       "min_distinct_mechanisms": 3,
       "requires_failure_fix_retest": true,
+      "requires_competition_verified": true,
+      "requires_human_approval": true,
+      "forbidden_failure_labels": ["P3", "P4", "P5"],
+      "forbidden_material_risks": ["M1", "M2", "M3", "M5"],
       "negative_control": {
         "requires_case": true,
         "requires_structured_evidence": true,
         "required_evidence_fields": ["baseline_run", "treatment_run", "comparison_review"]
+      },
+      "repetition": {
+        "min_negative_control_runs": 2,
+        "note": "stable 要求至少 2 次独立负控运行以降低随机性误判"
       }
     }
   },
@@ -43,6 +91,12 @@
   "manual_controls": {
     "human_review_required": true,
     "comparison_review_schema": "schemas/comparison_review.schema.json",
-    "promotion_decision_requires_human_confirmation": true
+    "promotion_decision_requires_human_confirmation": true,
+    "note": "comparison_review 记录事实（final_result 可为 pass/fail/invalid/needs_retest）；晋级由本 policy 判定（仅 final_result==pass 且所有 risk_flags==false 且 consistency_checks 满足）"
+  },
+  "case_metadata": {
+    "description": "矩阵中每个 case 应附带结构化元数据，不再从题号字符串推断。",
+    "required_fields": ["problem_id", "year", "mechanism_class", "relation_to_patch", "material_level"],
+    "relation_to_patch_values": ["positive_in_scope", "boundary_edge_scope", "negative_out_of_scope"]
   }
 }

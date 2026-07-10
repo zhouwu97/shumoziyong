@@ -23,6 +23,7 @@ from run_workflow import (  # noqa: E402
     create_old_problem_run,
     get_current_gate,
     is_gate_complete,
+    mark_run_completed,
     record_transition,
 )
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
@@ -519,16 +520,21 @@ def test_verify_materials_to_dict_serializable(tmp_path: Path) -> None:
 def test_check_promotion_eligibility_produces_report() -> None:
     """Real policy + matrix + patch_index produce a valid report."""
     report, gaps = check_promotion_eligibility()
-    assert report["policy_version"] == "1.0.0"
+    assert report["policy_version"] == "1.1.0"
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
-    # A092 and A127 should have 0 gaps for verified_candidate
+    # A092 and A127 have all 3 controls passing and satisfy verified_candidate rules
     a092 = next(p for p in report["per_patch"] if p["patch_id"] == "A092")
     assert a092["positive"] == "pass"
     assert a092["boundary"] == "pass"
     assert a092["negative"] == "pass"
-    assert a092["gaps_for_current_status"] == 0
+    # With the stricter v1.1.0 policy (min_distinct_cases=3, min_distinct_years=2),
+    # A092 still passes (2016-C/2023-B/2024-C = 3 cases, 2016+2023+2024 = 3 years)
+    assert a092["current_status_valid"] is True
+    # Check that per_patch format uses new fields
+    assert "current_gaps" in a092
+    assert "gaps_to_next_status" in a092
 
 
 def test_check_promotion_eligibility_gaps_is_list() -> None:
@@ -593,7 +599,58 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
 
     assert is_gate_complete(run_dir, 0) is True
     assert is_gate_complete(run_dir, 3) is True
-    assert is_gate_complete(run_dir, 5) is False  # Gate 5 is terminal
+    # Gate 5 is terminal; not complete until mark_run_completed
+    assert is_gate_complete(run_dir, 5) is False
+
+    # Mark completed → Gate 5 should now be complete
+    mark_run_completed(run_dir)
+    assert is_gate_complete(run_dir, 5) is True
+
+
+def test_forged_from_gate_rejected(tmp_path: Path) -> None:
+    """Caller claims from_gate=1 when real current is 0 → ValueError."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5, "note": "ok"}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    record_transition(run_dir, None, 0, "human", "approved")
+
+    import pytest as pt
+    with pt.raises(ValueError, match="from_gate 不匹配"):
+        record_transition(run_dir, 1, 2, "human", "approved")
+
+
+def test_material_not_ready_blocks_gate_entry(tmp_path: Path) -> None:
+    """material_ready=false → ValueError on any gate entry."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": False, "max_gate": 5, "note": "blocked"}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    import pytest as pt
+    with pt.raises(ValueError, match="材料校验未通过"):
+        record_transition(run_dir, None, 0, "human", "approved")
+
+
+def test_exceeds_max_gate_rejected(tmp_path: Path) -> None:
+    """max_gate=2 run cannot enter Gate 3."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 2, "note": "ok"}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    record_transition(run_dir, None, 0, "human", "approved")
+    record_transition(run_dir, 0, 1, "human", "approved")
+    record_transition(run_dir, 1, 2, "human", "approved")
+
+    import pytest as pt
+    with pt.raises(ValueError, match="不能进入 Gate 3"):
+        record_transition(run_dir, 2, 3, "human", "approved")
 
 
 def test_invalid_skip_gate(tmp_path: Path) -> None:
@@ -628,18 +685,13 @@ def test_invalid_backward_transition(tmp_path: Path) -> None:
 
 
 def test_entry_before_initialization(tmp_path: Path) -> None:
-    """Entering a gate without initialized transitions is allowed (creates new file)."""
+    """Entering a gate without initialized transitions → FileNotFoundError (v2 hardened)."""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
-    # No transitions.jsonl — record_transition appends, creating the file
-    # Gate state machine permits first entry as long as from_gate is None
-    record_transition(run_dir, None, 0, "human", "approved")
-    # Validate it was written
-    lines = (run_dir / "transitions.jsonl").read_text(encoding="utf-8").strip().splitlines()
-    assert len(lines) == 1
-    entry = json.loads(lines[0])
-    assert entry["to"] == 0
-    assert entry["decision"] == "approved"
+    # No transitions.jsonl — v2 now raises FileNotFoundError
+    import pytest as pt
+    with pt.raises(FileNotFoundError, match="缺少 transitions.jsonl"):
+        record_transition(run_dir, None, 0, "human", "approved")
 
 
 def test_rejected_transition_not_advances(tmp_path: Path) -> None:

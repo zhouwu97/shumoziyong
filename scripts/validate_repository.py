@@ -10,6 +10,7 @@ import hashlib
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
+from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -174,13 +175,16 @@ class RepositoryValidator:
             self.pass_("verified patch 全部进入 runtime profile verified_patches")
 
     def validate_patch_promotion(self) -> None:
-        """晋级规则强制校验：
-        verified_candidate / stable 必须满足 positive + boundary + negative 全 pass。
-        candidate 不强制完整三类测试。"""
+        """晋级规则强制校验：委托给 promotion_engine（promotion_policy.json 的唯一事实源）。"""
         matrix = self.load_json("tests/prompt_regression/patch_negative_control_matrix.json")
         patch_index = self.load_json("prompt_patches/patch_index.json") or []
         if matrix is None:
             return
+        if not (ROOT / "policies" / "promotion_policy.json").is_file():
+            self.fail("缺少 policies/promotion_policy.json")
+            return
+        policy = pe_load_json(ROOT / "policies" / "promotion_policy.json")
+
         matrix_by_id = {item.get("patch_id"): item for item in matrix.get("patches", [])}
         promotion_ok = True
 
@@ -215,7 +219,7 @@ class RepositoryValidator:
                 response_text = (run_dir / "response.json").read_text(encoding="utf-8")
                 response = json.loads(response_text)
 
-                # Check response against diagnosis schema — version-aware
+                # 版本感知校验 + 晋级证据强制 v2 要求
                 schema_version = response.get("schema_version", "1.0.0")
                 try:
                     if schema_version.startswith("2."):
@@ -227,6 +231,30 @@ class RepositoryValidator:
                 except Exception as e:
                     self.fail(f"{run_dir.name} response 不符合 diagnosis schema ({e})")
                     ok = False
+
+                # 强制 v2 检查：新 evidence 不支持旧 v1
+                diag_req = policy.get("diagnosis_schema_requirements", {})
+                min_version = diag_req.get("minimum_schema_version", "1.0.0")
+                cutoff = diag_req.get("legacy_evidence_cutoff", "")
+                if not schema_version.startswith("2.") and min_version.startswith("2."):
+                    # 检查该证据是否为 legacy grandfathered
+                    neg_entry = matrix_by_id.get(target_patch, {}).get("negative", {})
+                    legacy = False
+                    evidence = neg_entry.get("evidence") if isinstance(neg_entry.get("evidence"), dict) else {}
+                    if evidence.get("schema_generation") == "legacy_v1_grandfathered":
+                        legacy = True
+                    # 也检查该 run 的 run_manifest 中是否在 cutoff 之前
+                    created_at = run_manifest.get("created_at", "")
+                    if cutoff and created_at and created_at < cutoff:
+                        legacy = True
+
+                    if not legacy:
+                        self.fail(
+                            f"{run_dir.name} 使用 diagnosis v1（schema_version={schema_version}），"
+                            f"但 policy 要求新晋级证据使用 v{min_version}+（cutoff={cutoff}）。"
+                            "请重新运行并使用 diagnosis.schema.json v2 生成结构化输出。"
+                        )
+                        ok = False
 
                 eval_json = json.loads((run_dir / "automatic_evaluation.json").read_text(encoding="utf-8"))
                 if not eval_json.get("case_id"):
@@ -347,14 +375,24 @@ class RepositoryValidator:
                 self.fail(f"{patch_id} 标记为 {status}，但负控矩阵中没有该 patch 的记录")
                 promotion_ok = False
                 continue
+
+            # 委托给 promotion_engine（promotion_policy.json 唯一事实源）
+            report = evaluate_status_eligibility(
+                patch, entry, policy, status,
+                all_matrix_entries=matrix_by_id,
+            )
+            for gap in report.gaps:
+                self.fail(f"{patch_id}：{gap}")
+                promotion_ok = False
+
+            # 负控证据验证（补充：promotion_engine 检查证据字段存在性，
+            # 这里深入验证证据目录内部的真实文件、哈希、对照实验一致性）
             for control in ("positive", "boundary", "negative"):
                 control_data = entry.get(control, {})
                 result = control_data.get("result")
                 if result != "pass":
-                    self.fail(f"{patch_id} 标记为 {status}，但 {control}-control 结果为 {result}（必须为 pass）")
-                    promotion_ok = False
                     continue
-                
+
                 if control == "negative":
                     matrix_case = control_data.get("case")
                     if not matrix_case:
@@ -367,22 +405,35 @@ class RepositoryValidator:
                         self.fail(f"{patch_id} negative-control 为 pass，但缺少结构化 evidence 或必填字段")
                         promotion_ok = False
                         continue
-                        
+
                     try:
                         b_run = self.resolve_repo_path(evidence["baseline_run"])
                         t_run = self.resolve_repo_path(evidence["treatment_run"])
                         c_rev = self.resolve_repo_path(evidence["comparison_review"])
-                        
+
                         if not _verify_real_run(b_run, patch_id, "baseline"): promotion_ok = False
                         if not _verify_real_run(t_run, patch_id, "patch_only"): promotion_ok = False
                         if not verify_experiment_pair(b_run, t_run, patch_id): promotion_ok = False
-                        
-                        # Validate comparison review json
+
+                        # Validate comparison review json（v2：允许 fail/invalid/needs_retest）
                         rev_data = json.loads(c_rev.read_text(encoding="utf-8"))
                         if not self.validate_schema(rev_data, "comparison_review.schema.json", f"{patch_id} comparison_review"):
                             promotion_ok = False
-                        
-                        
+                        else:
+                            # promotion_engine 只检查存在性；这里验证 review 结论是否满足晋级要求
+                            if rev_data.get("final_result") != "pass":
+                                self.fail(
+                                    f"{patch_id} comparison_review final_result 为 {rev_data.get('final_result')}（必须为 pass 才可作为 promotion evidence）"
+                                )
+                                promotion_ok = False
+                            risk_flags = rev_data.get("risk_flags", {})
+                            for flag_name, flag_value in risk_flags.items():
+                                if flag_value is True:
+                                    self.fail(
+                                        f"{patch_id} comparison_review risk_flags.{flag_name} 为 true（负控通过要求所有 risk flags 为 false）"
+                                    )
+                                    promotion_ok = False
+
                         b_man = json.loads(b_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
                         t_man = json.loads(t_run.joinpath("run_manifest.json").read_text(encoding="utf-8"))
                         baseline_case = b_man.get("problem_id")
@@ -397,7 +448,7 @@ class RepositoryValidator:
                         if rev_data.get("experiment_group_id") != b_man.get("experiment_group_id") or rev_data.get("experiment_group_id") != t_man.get("experiment_group_id"):
                             self.fail(f"{patch_id} comparison_review experiment_group_id 与运行组不一致")
                             promotion_ok = False
-                        
+
                         if rev_data.get("baseline_run") != evidence["baseline_run"]:
                             self.fail(f"{patch_id} comparison_review baseline_run 路径不匹配")
                             promotion_ok = False
@@ -407,13 +458,13 @@ class RepositoryValidator:
                         if rev_data.get("target_patch") != patch_id:
                             self.fail(f"{patch_id} comparison_review target_patch 错误")
                             promotion_ok = False
-                            
+
                     except Exception as e:
                         self.fail(f"校验 {patch_id} 证据时出错: {e}")
                         promotion_ok = False
 
         if promotion_ok:
-            self.pass_("patch 晋级规则（verified 需 positive+boundary+negative 全 pass）")
+            self.pass_("patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）")
 
 
     def validate_knowledge_cards(self) -> None:
