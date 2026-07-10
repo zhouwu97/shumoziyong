@@ -9,6 +9,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+EVALUATOR_VERSION = "1.2.0"
 
 
 def get_path(data: dict[str, Any], dotted_path: str) -> tuple[bool, Any]:
@@ -110,21 +111,48 @@ def evaluate_case(case: dict[str, Any], response: dict[str, Any]) -> list[str]:
 
 
 
-def evaluate_manifest_alignment(response: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
+def evaluate_manifest_alignment(
+    response: dict[str, Any],
+    manifest: dict[str, Any],
+) -> list[str]:
     errors: list[str] = []
-    active_patch_ids = {patch.get("patch_id") for patch in manifest.get("patches", [])}
-    for patch_id, decision in response.get("patch_decisions", {}).items():
+
+    active_patch_ids = {
+        patch.get("patch_id")
+        for patch in manifest.get("patches", [])
+        if patch.get("patch_id")
+    }
+
+    decisions = response.get("patch_decisions", {})
+    if not isinstance(decisions, dict):
+        return ["patch_decisions 必须是对象"]
+
+    for patch_id, decision in decisions.items():
+        if not isinstance(decision, dict):
+            errors.append(f"patch_decisions.{patch_id} 必须是对象")
+            continue
+
         expected_enabled = patch_id in active_patch_ids
-        actual_enabled = decision.get("enabled", False)
+        actual_enabled = decision.get("enabled")
+
         if actual_enabled != expected_enabled:
-            errors.append(f"patch_decisions.{patch_id}.enabled 期望 {expected_enabled}，实际 {actual_enabled}（与运行包包含情况不符）")
-        if not expected_enabled and "未加载" not in decision.get("reason", ""):
-            errors.append(f"patch_decisions.{patch_id}.reason 未加载的 patch 必须在理由中说明“未加载”，当前为：{decision.get('reason')}")
-    
-    missing_active = active_patch_ids - set(response.get("patch_decisions", {}))
+            errors.append(
+                f"patch_decisions.{patch_id}.enabled "
+                f"期望 {expected_enabled}，实际 {actual_enabled}"
+                "（与运行包包含情况不符）"
+            )
+
+        reason = decision.get("reason", "")
+        if not isinstance(reason, str) or not reason.strip():
+            errors.append(
+                f"patch_decisions.{patch_id}.reason 不能为空；"
+                "必须说明 Patch 的加载状态或适用性判断理由"
+            )
+
+    missing_active = active_patch_ids - set(decisions)
     if missing_active:
-        errors.append(f"缺少已加载 Patch 的决策：{sorted(list(missing_active))}")
-    
+        errors.append(f"缺少已加载 Patch 的决策：{sorted(missing_active)}")
+
     return errors
 
 
@@ -184,7 +212,7 @@ def main() -> None:
             "result": result,
             "errors": errors,
             "evaluated_at": datetime.datetime.now().astimezone().isoformat(),
-            "evaluator_version": "1.1.0",
+            "evaluator_version": EVALUATOR_VERSION,
             "response_sha256": hashlib.sha256(response_text.encode("utf-8")).hexdigest(),
             "case_sha256": hashlib.sha256(case_text.encode("utf-8")).hexdigest(),
             "manifest_sha256": hashlib.sha256(manifest_text.encode("utf-8")).hexdigest() if args.manifest else None
