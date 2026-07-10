@@ -32,23 +32,45 @@ def repo_relative(path: Path) -> str:
         return path.as_posix()
 
 
-def build_problem_manifest(problem_id: str, material_path: Path) -> dict:
-    """记录题面与附件的相对路径、文件大小和 SHA-256，保证旧运行可复现。"""
+def build_problem_manifest(problem_id: str, material_path: Path, material_files: list[str]) -> dict:
+    """记录题面与附件的相对路径、文件大小和 SHA-256，计算 content_digest。"""
     files: list[dict[str, object]] = []
+    
     if material_path.is_dir():
-        for path in sorted(material_path.rglob("*")):
-            if path.is_file():
-                content = path.read_bytes()
-                files.append({
-                    "path": repo_relative(path),
-                    "size": len(content),
-                    "sha256": sha256_bytes(content),
-                })
+        if material_files:
+            for mf in material_files:
+                p = (material_path / mf).resolve()
+                if not p.is_relative_to(material_path.resolve()):
+                    raise ValueError(f"指定的文件 {mf} 逃逸了材料根目录 {material_path}")
+                if p.is_file():
+                    content = p.read_bytes()
+                    files.append({
+                        "path": repo_relative(p),
+                        "size": len(content),
+                        "sha256": sha256_bytes(content),
+                    })
+        else:
+            for p in sorted(material_path.rglob("*")):
+                if p.is_file():
+                    content = p.read_bytes()
+                    files.append({
+                        "path": repo_relative(p),
+                        "size": len(content),
+                        "sha256": sha256_bytes(content),
+                    })
+    
+    # Sort files by path for stable digest
+    files.sort(key=lambda x: x["path"])
+    
+    digest_input = "".join(f"{f['path']}:{f['size']}:{f['sha256']}" for f in files)
+    content_digest = sha256_bytes(digest_input.encode("utf-8")) if files else None
+
     return {
         "problem_id": problem_id,
         "material_root": repo_relative(material_path),
         "material_exists": material_path.is_dir(),
         "files": files,
+        "content_digest": content_digest
     }
 
 
@@ -78,7 +100,7 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     (run_dir / "runtime_pack.md").write_bytes(pack_content.encode("utf-8"))
     write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
 
-    problem_manifest = build_problem_manifest(args.problem, material_path)
+    problem_manifest = build_problem_manifest(args.problem, material_path, args.material_file)
     write_json(run_dir / "problem_manifest.json", problem_manifest)
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -140,7 +162,7 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
     (run_dir / "patch_suggestions.md").write_text("# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n", encoding="utf-8")
     # 证据文件脚手架：由 AI 运行和人工审核填充
-    write_json(run_dir / "request.json", {"_note": "待填写：发送给 AI 的提示词", "prompt": "", "model": "", "runtime_version": profile_state["version"]})
+    write_json(run_dir / "request.json", {"_note": "待填写：发送给 AI 的提示词", "prompt": "", "model": "", "runtime_version": profile_state["version"], "source": "real_ai_run", "response_reference": None})
     (run_dir / "response.md").write_text("# AI 输出（Markdown）\n\n待填写。\n", encoding="utf-8")
     write_json(run_dir / "response.json", {"_note": "待填写：AI 结构化 JSON 输出，须符合 diagnosis_output.schema.json"})
     write_json(run_dir / "automatic_evaluation.json", {"_note": "待生成：由 evaluate_prompt_response.py 产出", "case_id": "", "errors": []})
@@ -170,7 +192,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--problem", required=True, help="旧题编号，例如 2024-C。")
     parser.add_argument("--profile", default="engineering_optimization")
     parser.add_argument("--gates", default="0-2", choices=["0-2", "0-5"])
-    parser.add_argument("--materials", help="题面/附件目录；默认从 official_materials/<题号> 推导。")
+    parser.add_argument("--materials", help="题面/附件根目录；默认从 official_materials/<题号> 推导。")
+    parser.add_argument("--material-file", action="append", default=[], help="限定仅打包的材料相对路径。如果指定，必须位于 materials 根目录下。")
     parser.add_argument("--output-root", default="runs")
     parser.add_argument("--run-id", help="显式运行 ID，便于自动化测试或重跑隔离。")
     parser.add_argument(

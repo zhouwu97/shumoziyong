@@ -119,6 +119,13 @@ def load_case(case_file: Path, case_id: str | None = None) -> dict[str, Any]:
     return cases[0]
 
 
+def repo_relative(path: Path) -> str:
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="按语义字段和禁止项评估模型结构化输出。")
     parser.add_argument("--case", required=True, help="YAML 回归用例路径。")
@@ -126,7 +133,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--case-id")
     parser.add_argument("--manifest", help="runtime_pack.manifest.json 路径")
     parser.add_argument("--output", help="自动评估结果输出路径")
-    return parser.parse_args()
+    parser.add_argument("--promotion-evidence", action="store_true", help="启用晋级评估模式，强制校验 manifest 和生成 output")
+    args = parser.parse_args()
+    if args.promotion_evidence:
+        if not args.manifest or not args.output:
+            parser.error("--promotion-evidence 模式下必须提供 --manifest 和 --output。")
+    return args
 
 
 def main() -> None:
@@ -156,6 +168,7 @@ def main() -> None:
         case_text = (ROOT / args.case).read_text(encoding="utf-8")
         out = {
             "case_id": case["case_id"],
+            "case_file": repo_relative(ROOT / args.case) if "repo_relative" in globals() else str(args.case),
             "result": result,
             "errors": errors,
             "evaluated_at": datetime.datetime.now().astimezone().isoformat(),

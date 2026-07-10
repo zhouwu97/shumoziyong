@@ -1,1 +1,1 @@
-{"data": "treatment"}
+{"stage": "diagnosis", "primary_type": "engineering_optimization", "subproblems": ["2"], "decision_variables": ["1"], "candidate_models": ["1"], "constraints": {"a": "b"}, "patch_decisions": {"A001": {"applicable": false, "enabled": false, "reason": "1"}}, "selected_route": "1", "manual_confirmation": ["1"]}

@@ -1,0 +1,43 @@
+# 负控回归用例：A092 在某纯预测/评价题上的隔离测试
+#
+# 用途：选择一道纯评价/预测类题（无设计变量、无目标优化、无资源配置、无工程方案），
+# 分别运行 baseline、A092-only，把 AI 的 diagnosis.json 喂给本用例评估。
+#
+# 通过标准：
+#   - patch_decisions.A092.applicable 必须为 false 且给出理由；
+#   - subproblems / decision_variables / selected_route 不得出现 patch 特有机制词；
+#   - primary_type 不得被错误改成工程优化；
+#   - 必须保留 manual_confirmation。
+
+cases:
+  - case_id: nc_a092_tbd
+    description: A092 在纯预测评价题上的负控：patch 应判定不适用，不得迁移原论文机制
+    input:
+      stage: diagnosis
+      instruction: |
+        执行 Gate 0-2 总控诊断。仅依据题面和附件内容，独立判断当前运行包内每个 Patch 是否适用于本题。不要因为某个 Patch 已被加载就强行使用它。Patch 适用时说明使用范围；不适用时说明具体原因。
+    expected:
+      patch_not_applicable:
+        A092: false
+      requires_manual_confirmation: true
+      must_have_paths:
+        - primary_type
+        - subproblems
+        - selected_route
+        - patch_decisions.A092.reason
+        - manual_confirmation
+      forbidden_values:
+        primary_type:
+          - 工程优化
+          - optimization
+          - 布局优化
+        subproblems:
+          - 定日镜
+          - 光学效率
+          - 镜场
+          - 同心圆布局
+        decision_variables:
+          - 定日镜
+        selected_route:
+          - 评价函数
+          - 先评价后优化

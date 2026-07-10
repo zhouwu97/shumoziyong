@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "负控对照实验人工审查",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reviewer",
+    "reviewed_at",
+    "experiment_group_id",
+    "target_patch",
+    "baseline_run",
+    "treatment_run",
+    "risk_flags",
+    "consistency_checks",
+    "final_result",
+    "reason"
+  ],
+  "properties": {
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "experiment_group_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_patch": {
+      "type": "string",
+      "pattern": "^[A-Z][0-9]{3}$"
+    },
+    "baseline_run": {
+      "type": "string",
+      "minLength": 1
+    },
+    "treatment_run": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changed_primary_type",
+        "introduced_patch_specific_mechanism",
+        "invented_variables",
+        "introduced_unnecessary_algorithm",
+        "worse_than_baseline"
+      ],
+      "properties": {
+        "changed_primary_type": {"const": false},
+        "introduced_patch_specific_mechanism": {"const": false},
+        "invented_variables": {"const": false},
+        "introduced_unnecessary_algorithm": {"const": false},
+        "worse_than_baseline": {"const": false}
+      }
+    },
+    "consistency_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "same_problem_material",
+        "same_model",
+        "same_prompt",
+        "only_target_patch_differs",
+        "responses_independently_generated"
+      ],
+      "properties": {
+        "same_problem_material": {"const": true},
+        "same_model": {"const": true},
+        "same_prompt": {"const": true},
+        "only_target_patch_differs": {"const": true},
+        "responses_independently_generated": {"const": true}
+      }
+    },
+    "final_result": {
+      "const": "pass"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 20
+    }
+  }
+}
