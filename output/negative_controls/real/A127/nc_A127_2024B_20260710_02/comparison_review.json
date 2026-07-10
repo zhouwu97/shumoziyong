@@ -1,0 +1,24 @@
+{
+  "reviewer": "zhouwu97",
+  "reviewed_at": "2026-07-10T17:07:11.8655374+08:00",
+  "experiment_group_id": "nc_A127_2024B_20260710_02",
+  "target_patch": "A127",
+  "baseline_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/baseline",
+  "treatment_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/treatment",
+  "risk_flags": {
+    "changed_primary_type": false,
+    "introduced_patch_specific_mechanism": false,
+    "invented_variables": false,
+    "introduced_unnecessary_algorithm": false,
+    "worse_than_baseline": false
+  },
+  "consistency_checks": {
+    "same_problem_material": true,
+    "same_model": true,
+    "same_prompt": true,
+    "only_target_patch_differs": true,
+    "responses_independently_generated": true
+  },
+  "final_result": "pass",
+  "reason": "两组运行均将本题识别为质量控制下的随机离散决策问题。A127-only 运行虽然加载了 A127，但明确判定其不适用于固定装配拓扑，没有引入空间坐标、尺寸、间距、姿态、阵列、遮挡、覆盖或布局搜索机制，题型和主要建模路线未发生偏移，诊断质量不低于 baseline。"
+}

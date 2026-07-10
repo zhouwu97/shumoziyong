@@ -1,8 +1,8 @@
 {
-  "_note": "待填写：发送给 AI 的提示词",
-  "prompt": "",
-  "model": "",
+  "_note": "真实 Codex 请求记录",
+  "prompt": "当前项目目录是一次数学建模负控实验的独立运行目录，仓库根目录为 `E:\\AI\\数模`。\r\n\r\n请执行当前运行目录中的 Gate 0-2 总控诊断。\r\n\r\n允许读取：\r\n\r\n1. 当前运行目录的 `run_manifest.json`\r\n2. 当前运行目录的 `runtime_pack.md`\r\n3. 当前运行目录的 `runtime_pack.manifest.json`\r\n4. 当前运行目录的 `problem_manifest.json`\r\n5. `problem_manifest.json` 中列出的题面和附件\r\n6. 仓库根目录下的 `schemas/diagnosis_output.schema.json`\r\n\r\n禁止读取：\r\n\r\n1. 其他负控实验运行目录\r\n2. baseline 或 treatment 的另一组目录和输出\r\n3. `tests/prompt_regression`\r\n4. `patch_negative_control_matrix.json`\r\n5. `output/negative_controls/simulated_precheck`\r\n6. 任何已有的负控结论或参考答案\r\n\r\n本轮只执行 Gate 0-2，不编写完整论文，不生成求解代码，不计算最终比赛答案。\r\n\r\n请独立完成以下内容：\r\n\r\n1. 判断题目的主要类型。\r\n2. 拆分题目的各个子问题。\r\n3. 识别题目的输入、输出、目标、约束和需要人工确认的参数。\r\n4. 给出合理的候选模型。\r\n5. 选择推荐的建模路线并说明理由。\r\n6. 检查当前 `runtime_pack.manifest.json` 中实际加载的每个 Patch，独立判断其是否适用于本题。\r\n\r\nPatch 判断规则：\r\n\r\n* Patch 出现在 `runtime_pack.manifest.json` 的 `patches` 中时，`enabled` 必须为 `true`。\r\n* Patch 未出现在运行包中时，`enabled` 必须为 `false`。\r\n* `enabled=true` 仅表示 Patch 已加载，不代表 Patch 一定适用。\r\n* Patch 已加载但不适用时，应填写 `applicable=false`，并根据题面给出明确理由。\r\n* 不得因为 Patch 被加载就强行使用它。\r\n* 不得因为这是负控实验就预设 Patch 一定不适用。\r\n* `run_manifest.json` 中的 `target_patch` 必须出现在 `patch_decisions` 中。\r\n\r\n请生成并覆盖以下两个文件：\r\n\r\n1. `response.md`\r\n\r\n   * 写入完整、可读的 Gate 0-2 诊断过程和结论。\r\n\r\n2. `response.json`\r\n\r\n   * 必须是合法 JSON。\r\n   * 必须符合仓库根目录下的 `schemas/diagnosis_output.schema.json`。\r\n   * 不要使用 Markdown 代码块包裹 JSON。\r\n   * `patch_decisions` 中必须记录目标 Patch 的 `enabled`、`applicable` 和具体 `reason`。\r\n   * `manual_confirmation` 必须至少包含一项需要人工核对的内容。\r\n\r\n不要修改以下文件：\r\n\r\n* `run_manifest.json`\r\n* `runtime_pack.md`\r\n* `runtime_pack.manifest.json`\r\n* `problem_manifest.json`\r\n* `request.json`\r\n* `automatic_evaluation.json`\r\n\r\n完成后，请自行重新读取 `response.json`，检查 JSON 是否可以解析，并确认其符合 `diagnosis_output.schema.json`。\r\n\n",
+  "model": "gpt-5.6-sol",
   "runtime_version": "0.2.0",
-  "source": "pending",
+  "source": "real_ai_run",
   "response_reference": null
 }

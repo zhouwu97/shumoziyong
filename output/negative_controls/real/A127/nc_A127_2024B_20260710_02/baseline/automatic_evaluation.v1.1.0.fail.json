@@ -1,0 +1,13 @@
+{
+  "case_id": "nc_a127_2024B",
+  "case_file": "tests/prompt_regression/test_negative_control_A127_2024B.yaml",
+  "result": "fail",
+  "errors": [
+    "patch_decisions.A127.reason 未加载的 patch 必须在理由中说明“未加载”，当前为：runtime_pack.manifest.json的patches数组为空且A127被显式排除，因此enabled必须为false。运行包将A127标识为工程布局优化Patch，而本题变量是抽样接收、生产节点检测、拆解回流与次品率不确定性，题面没有坐标、距离、覆盖、场地或空间布局决策，所以布局优化经验不适用于本题；该判断依据题面任务和变量结构，而非依据负控实验标签。"
+  ],
+  "evaluated_at": "2026-07-10T16:57:53.025593+08:00",
+  "evaluator_version": "1.1.0",
+  "response_sha256": "9eaad8306c551925defc687183acfc62f427cd2e3070ee0fd3c76ce3fff06de8",
+  "case_sha256": "d846e7082f037789113234c5f00d6e277c382a41835ba3a291f372908d0ec56f",
+  "manifest_sha256": "7ea99a0a9e110594456647658b7f9eadbd807cc93618a3b320eb7688246d70f4"
+}

@@ -6,27 +6,68 @@
   "patches": [
     {
       "patch_id": "A092",
-      "positive": {"case": "2024-C", "result": "pass"},
-      "boundary": {"case": "2023-B", "result": "pass"},
-      "negative": {"case": null, "result": "pending"}
+      "positive": {
+        "case": "2024-C",
+        "result": "pass"
+      },
+      "boundary": {
+        "case": "2023-B",
+        "result": "pass"
+      },
+      "negative": {
+        "case": null,
+        "result": "pending"
+      }
     },
     {
       "patch_id": "A127",
-      "positive": {"case": "2023-B", "result": "pass"},
-      "boundary": {"case": "2024-C", "result": "pass"},
-      "negative": {"case": null, "result": "pending"}
+      "positive": {
+        "case": "2023-B",
+        "result": "pass"
+      },
+      "boundary": {
+        "case": "2024-C",
+        "result": "pass"
+      },
+      "negative": {
+        "case": "2024-B",
+        "result": "pass",
+        "evidence": {
+          "baseline_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/baseline",
+          "treatment_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/treatment",
+          "comparison_review": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/comparison_review.json"
+        }
+      }
     },
     {
       "patch_id": "B311",
-      "positive": {"case": "2024-D", "result": "pass"},
-      "boundary": {"case": null, "result": "pending"},
-      "negative": {"case": "2024-B", "result": "pass"}
+      "positive": {
+        "case": "2024-D",
+        "result": "pass"
+      },
+      "boundary": {
+        "case": null,
+        "result": "pending"
+      },
+      "negative": {
+        "case": "2024-B",
+        "result": "pass"
+      }
     },
     {
       "patch_id": "B477",
-      "positive": {"case": null, "result": "pending"},
-      "boundary": {"case": null, "result": "pending"},
-      "negative": {"case": "2024-B", "result": "pass"}
+      "positive": {
+        "case": null,
+        "result": "pending"
+      },
+      "boundary": {
+        "case": null,
+        "result": "pending"
+      },
+      "negative": {
+        "case": "2024-B",
+        "result": "pass"
+      }
     }
   ]
 }
