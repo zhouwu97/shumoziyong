@@ -255,6 +255,29 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "- 判断理由\n",
         encoding="utf-8",
     )
+    # AI 运行元数据脚手架：状态 pending，不含伪造时间戳或模型名
+    write_json(
+        run_dir / "ai_run_metadata.json",
+        {
+            "metadata_version": "1.0.0",
+            "_note": "待填写：AI 模型调用的完整元数据。所有字段必须如实记录，不得伪造。",
+            "provider": "",
+            "model": "",
+            "model_snapshot": None,
+            "client": "",
+            "client_version": None,
+            "reasoning_effort": "none",
+            "temperature": None,
+            "seed": None,
+            "started_at": "",
+            "completed_at": None,
+            "prompt_sha256": "",
+            "runtime_pack_sha256": "",
+            "problem_material_digest": "",
+            "tool_permissions": [],
+            "working_directory_mode": "unknown",
+        },
+    )
     # 闸门转换日志：记录每次阶段推进
     _init_transitions(run_dir, args.gates, material_verification.ready)
     return run_dir, material_verification.ready

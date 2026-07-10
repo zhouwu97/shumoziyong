@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/ai_run_metadata.schema.json",
+  "title": "AI 运行元数据",
+  "description": "一次 AI 模型调用的完整机器可读元数据。用于晋级证据的可复现性验证。所有哈希字段均使用小写十六进制 SHA-256。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata_version",
+    "provider",
+    "model",
+    "client",
+    "reasoning_effort",
+    "started_at",
+    "prompt_sha256",
+    "runtime_pack_sha256",
+    "problem_material_digest"
+  ],
+  "properties": {
+    "metadata_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "本元数据结构的版本。当前为 1.0.0。"
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1,
+      "description": "模型提供商，如 openai、anthropic、google、deepseek。不使用模糊别名。"
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "精确模型标识符，如 gpt-5.6-sol、claude-opus-4-8。禁止仅写版本号。"
+    },
+    "model_snapshot": {
+      "type": ["string", "null"],
+      "description": "提供商的模型快照或部署 ID（如可用）。无可为 null。"
+    },
+    "client": {
+      "type": "string",
+      "minLength": 1,
+      "description": "调用客户端标识，如 codex、claude-code、openai-api、anthropic-api。"
+    },
+    "client_version": {
+      "type": ["string", "null"],
+      "description": "客户端版本号（如 CLI 版本或 SDK 版本）。无可为 null。"
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high", "xhigh", "max"],
+      "description": "推理努力程度。不支持 reasoning 的模型使用 none。"
+    },
+    "temperature": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 2,
+      "description": "采样温度。使用默认值或确定性输出时为 null。"
+    },
+    "seed": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "随机种子。未设置时为 null。"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "模型调用开始的 ISO 8601 时间戳（含时区）。"
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "模型调用完成的 ISO 8601 时间戳（含时区）。运行中或未记录时为 null。"
+    },
+    "prompt_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "发送给模型的规范化提示词的 SHA-256。用于验证 prompt 未被篡改。"
+    },
+    "runtime_pack_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "runtime_pack.md 内容的 SHA-256。用于验证运行时规则包版本。"
+    },
+    "problem_material_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "problem_manifest.json 中 content_digest 的值。用于验证题目材料未被替换。"
+    },
+    "tool_permissions": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true,
+      "description": "本次运行授予模型的工具权限列表。空数组表示只读模式。"
+    },
+    "working_directory_mode": {
+      "type": "string",
+      "enum": ["isolated", "shared", "unknown"],
+      "description": "工作目录隔离模式。isolated=独立临时目录；shared=仓库目录；unknown=未记录。"
+    },
+    "note": {
+      "type": "string",
+      "description": "人工备注（如实验目的、特殊配置）。可选。"
+    }
+  }
+}

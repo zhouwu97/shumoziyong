@@ -85,8 +85,22 @@
       "runtime_pack.manifest.json",
       "request.json",
       "response.json",
-      "automatic_evaluation.json"
-    ]
+      "automatic_evaluation.json",
+      "ai_run_metadata.json"
+    ],
+    "ai_run_metadata_checks": {
+      "schema": "schemas/ai_run_metadata.schema.json",
+      "metadata_version_minimum": "1.0.0",
+      "require_non_empty_model": true,
+      "require_non_empty_provider": true,
+      "require_started_at_iso8601": true,
+      "require_prompt_sha256_match": true,
+      "require_runtime_pack_sha256_match": true,
+      "require_problem_material_digest_match": true,
+      "reject_completed_before_started": true,
+      "reject_absolute_paths_in_note": true,
+      "baseline_treatment_must_match": ["provider", "model", "model_snapshot", "reasoning_effort", "client"]
+    }
   },
   "manual_controls": {
     "human_review_required": true,

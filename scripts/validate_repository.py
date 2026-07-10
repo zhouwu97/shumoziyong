@@ -294,9 +294,115 @@ class RepositoryValidator:
                     self.fail(f"{run_dir.name} 现场重算发现错误: {re_errors}")
                     ok = False
 
+                # ===== AI 运行元数据校验 =====
+                ok = _verify_ai_run_metadata(run_dir, policy, target_patch, role) and ok
+
             except Exception as e:
                 self.fail(f"读取 {run_dir} 证据时出错: {e}")
                 ok = False
+            return ok
+
+        def _verify_ai_run_metadata(run_dir: Path, policy: dict[str, Any], target_patch: str, role: str) -> bool:
+            """校验 ai_run_metadata.json：Schema、哈希一致性、合法性。"""
+            ok = True
+            meta_path = run_dir / "ai_run_metadata.json"
+            reqs = policy.get("run_evidence_requirements", {}).get("ai_run_metadata_checks", {})
+
+            # 检查是否为 legacy grandfathered
+            neg_entry = matrix_by_id.get(target_patch, {}).get("negative", {})
+            evidence = neg_entry.get("evidence") if isinstance(neg_entry.get("evidence"), dict) else {}
+            legacy = evidence.get("schema_generation") == "legacy_v1_grandfathered"
+
+            if not meta_path.is_file():
+                if legacy:
+                    return True  # grandfathered 旧证据不要求 ai_run_metadata
+                self.fail(f"{run_dir.name} 缺少 ai_run_metadata.json（非 legacy 证据必须提供）")
+                return False
+
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as e:
+                self.fail(f"{run_dir.name} ai_run_metadata.json 无法解析: {e}")
+                return False
+
+            # Schema
+            if not self.validate_schema(meta, "ai_run_metadata.schema.json", f"{run_dir.name} ai_run_metadata"):
+                ok = False
+
+            # 非空 provider/model
+            if reqs.get("require_non_empty_provider") and not meta.get("provider"):
+                self.fail(f"{run_dir.name} ai_run_metadata.provider 为空")
+                ok = False
+            if reqs.get("require_non_empty_model") and not meta.get("model"):
+                self.fail(f"{run_dir.name} ai_run_metadata.model 为空")
+                ok = False
+
+            # started_at 必须存在且为 ISO 8601
+            if reqs.get("require_started_at_iso8601") and not meta.get("started_at"):
+                self.fail(f"{run_dir.name} ai_run_metadata.started_at 为空")
+                ok = False
+
+            # completed_at < started_at 检查
+            if reqs.get("reject_completed_before_started"):
+                started = meta.get("started_at", "")
+                completed = meta.get("completed_at")
+                if isinstance(completed, str) and completed and isinstance(started, str) and started:
+                    if completed < started:
+                        self.fail(f"{run_dir.name} ai_run_metadata.completed_at ({completed}) 早于 started_at ({started})")
+                        ok = False
+
+            # prompt_sha256 匹配
+            if reqs.get("require_prompt_sha256_match"):
+                expected = meta.get("prompt_sha256", "")
+                if expected:
+                    try:
+                        req = json.loads((run_dir / "request.json").read_text(encoding="utf-8"))
+                        prompt_text = req.get("prompt", "")
+                        normalized = "\n".join(
+                            line.rstrip() for line in prompt_text.replace("\r\n", "\n").replace("\r", "\n").strip().split("\n")
+                        )
+                        actual_sha = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+                        if actual_sha != expected:
+                            self.fail(f"{run_dir.name} ai_run_metadata.prompt_sha256 不匹配（期望 {expected}，实际 {actual_sha}）")
+                            ok = False
+                    except (OSError, json.JSONDecodeError):
+                        pass
+
+            # runtime_pack_sha256 匹配
+            if reqs.get("require_runtime_pack_sha256_match"):
+                expected = meta.get("runtime_pack_sha256", "")
+                if expected:
+                    rp_path = run_dir / "runtime_pack.manifest.json"
+                    if rp_path.is_file():
+                        actual_sha = hashlib.sha256(rp_path.read_bytes()).hexdigest()
+                        if actual_sha != expected:
+                            self.fail(f"{run_dir.name} ai_run_metadata.runtime_pack_sha256 不匹配（期望 {expected}，实际 {actual_sha}）")
+                            ok = False
+
+            # problem_material_digest 匹配
+            if reqs.get("require_problem_material_digest_match"):
+                expected = meta.get("problem_material_digest", "")
+                if expected:
+                    pm_path = run_dir / "problem_manifest.json"
+                    if pm_path.is_file():
+                        try:
+                            pm = json.loads(pm_path.read_text(encoding="utf-8"))
+                            actual = pm.get("content_digest", "")
+                            if actual and actual != expected:
+                                self.fail(f"{run_dir.name} ai_run_metadata.problem_material_digest 不匹配（期望 {expected}，实际 {actual}）")
+                                ok = False
+                        except (OSError, json.JSONDecodeError):
+                            pass
+
+            # 绝对路径拒绝
+            if reqs.get("reject_absolute_paths_in_note"):
+                note = meta.get("note", "")
+                if isinstance(note, str) and note:
+                    import re as _re
+                    if _re.search(r"[A-Za-z]:[/\\]", note):
+                        self.fail(f"{run_dir.name} ai_run_metadata.note 包含可能的本机绝对路径")
+                        ok = False
+
             return ok
             
         def verify_experiment_pair(b_dir: Path, t_dir: Path, target_patch: str) -> bool:
@@ -359,10 +465,43 @@ class RepositoryValidator:
                 if b_active - t_active != set():
                     self.fail("active patches 减少了其他 patch")
                     ok = False
-                    
+
+                # baseline/treatment AI 运行元数据一致性
+                ok = _verify_metadata_pair(b_dir, t_dir, policy) and ok
+
             except Exception as e:
                 self.fail(f"校验对照实验组时出错: {e}")
                 ok = False
+            return ok
+
+        def _verify_metadata_pair(b_dir: Path, t_dir: Path, policy: dict[str, Any]) -> bool:
+            """验证 baseline 和 treatment 的 ai_run_metadata 一致性。"""
+            ok = True
+            b_meta_path = b_dir / "ai_run_metadata.json"
+            t_meta_path = t_dir / "ai_run_metadata.json"
+
+            reqs = policy.get("run_evidence_requirements", {}).get("ai_run_metadata_checks", {})
+            match_fields = reqs.get("baseline_treatment_must_match", [])
+
+            if not b_meta_path.is_file() or not t_meta_path.is_file():
+                return ok  # 缺少的已在 _verify_real_run 中报告
+
+            try:
+                b_meta = json.loads(b_meta_path.read_text(encoding="utf-8"))
+                t_meta = json.loads(t_meta_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return ok
+
+            for field in match_fields:
+                b_val = b_meta.get(field)
+                t_val = t_meta.get(field)
+                if b_val != t_val:
+                    self.fail(
+                        f"baseline/treatment ai_run_metadata.{field} 不一致："
+                        f"{b_val!r} vs {t_val!r}"
+                    )
+                    ok = False
+
             return ok
 
         for patch in patch_index:
