@@ -1,117 +1,127 @@
 {
-  "advancement_rules": {
-    "verified_candidate": "至少 1 个正向通过、1 个边界通过、1 个负控不误触发",
-    "stable": "至少 2 个不同年份、3 个不同机制、1 次失败修复重测且无严重误触发"
-  },
+  "matrix_version": "2.0.0",
   "patches": [
     {
       "patch_id": "A092",
       "positive": {
         "case": "2024-C",
-        "result": "pass",
         "case_metadata": {
+          "problem_id": "2024-C",
           "year": 2024,
           "mechanism_class": "resource_allocation",
           "relation_to_patch": "positive_in_scope",
           "material_level": "T3"
-        }
+        },
+        "expected_behavior": "The treatment should improve an in-scope engineering optimization route without changing the task.",
+        "evidence": null
       },
       "boundary": {
         "case": "2023-B",
-        "result": "pass",
         "case_metadata": {
+          "problem_id": "2023-B",
           "year": 2023,
           "mechanism_class": "geometric_planning",
           "relation_to_patch": "boundary_edge_scope",
           "material_level": "T3"
-        }
+        },
+        "expected_behavior": "The treatment may reuse general optimization structure but must avoid heliostat-specific formulas.",
+        "evidence": null
       },
       "negative": {
         "case": "2016-C",
-        "result": "pass",
         "case_metadata": {
+          "problem_id": "2016-C",
           "year": 2016,
           "mechanism_class": "curve_fitting",
           "relation_to_patch": "negative_out_of_scope",
           "material_level": "T3"
         },
-        "evidence": {
-          "baseline_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/baseline",
-          "treatment_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/treatment",
-          "comparison_review": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/comparison_review.json",
-          "schema_generation": "legacy_v1_grandfathered",
-          "note": "2026-07-10 生成，早于 diagnosis v2 强制执行日期；保留为历史晋级证据"
-        }
+        "expected_behavior": "The treatment must reject the engineering optimization patch for the prediction-only task.",
+        "evidence": null
       }
     },
     {
       "patch_id": "A127",
       "positive": {
         "case": "2023-B",
-        "result": "pass",
         "case_metadata": {
+          "problem_id": "2023-B",
           "year": 2023,
           "mechanism_class": "geometric_planning",
           "relation_to_patch": "positive_in_scope",
           "material_level": "T3"
-        }
+        },
+        "expected_behavior": "The treatment should improve an in-scope spatial layout route with explicit constraints.",
+        "evidence": null
       },
       "boundary": {
         "case": "2024-C",
-        "result": "pass",
         "case_metadata": {
+          "problem_id": "2024-C",
           "year": 2024,
           "mechanism_class": "resource_allocation",
           "relation_to_patch": "boundary_edge_scope",
           "material_level": "T3"
-        }
+        },
+        "expected_behavior": "The treatment may use layout abstractions only where the actual decision variables support them.",
+        "evidence": null
       },
       "negative": {
         "case": "2024-B",
-        "result": "pass",
         "case_metadata": {
+          "problem_id": "2024-B",
           "year": 2024,
           "mechanism_class": "production_decision",
           "relation_to_patch": "negative_out_of_scope",
           "material_level": "T4"
         },
-        "evidence": {
-          "baseline_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/baseline",
-          "treatment_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/treatment",
-          "comparison_review": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/comparison_review.json",
-          "schema_generation": "legacy_v1_grandfathered",
-          "note": "2026-07-10 生成，早于 diagnosis v2 强制执行日期；保留为历史晋级证据"
-        }
+        "expected_behavior": "The treatment must not introduce spatial layout mechanisms into a production decision task.",
+        "evidence": null
       }
     },
     {
       "patch_id": "B311",
       "positive": {
         "case": "2024-D",
-        "result": "pass"
+        "case_metadata": {
+          "problem_id": "2024-D",
+          "year": 2024,
+          "mechanism_class": "coverage_planning",
+          "relation_to_patch": "positive_in_scope",
+          "material_level": "T2"
+        },
+        "expected_behavior": "The treatment should activate coverage-specific geometry only when complete materials support it.",
+        "evidence": null
       },
-      "boundary": {
-        "case": null,
-        "result": "pending"
-      },
+      "boundary": {"case": null, "case_metadata": null, "expected_behavior": null, "evidence": null},
       "negative": {
         "case": "2024-B",
-        "result": "pass"
+        "case_metadata": {
+          "problem_id": "2024-B",
+          "year": 2024,
+          "mechanism_class": "production_decision",
+          "relation_to_patch": "negative_out_of_scope",
+          "material_level": "T4"
+        },
+        "expected_behavior": "The treatment must reject coverage planning mechanisms for a production decision task.",
+        "evidence": null
       }
     },
     {
       "patch_id": "B477",
-      "positive": {
-        "case": null,
-        "result": "pending"
-      },
-      "boundary": {
-        "case": null,
-        "result": "pending"
-      },
+      "positive": {"case": null, "case_metadata": null, "expected_behavior": null, "evidence": null},
+      "boundary": {"case": null, "case_metadata": null, "expected_behavior": null, "evidence": null},
       "negative": {
         "case": "2024-B",
-        "result": "pass"
+        "case_metadata": {
+          "problem_id": "2024-B",
+          "year": 2024,
+          "mechanism_class": "production_decision",
+          "relation_to_patch": "negative_out_of_scope",
+          "material_level": "T4"
+        },
+        "expected_behavior": "The treatment must reject surrogate path search for a production decision task.",
+        "evidence": null
       }
     }
   ]

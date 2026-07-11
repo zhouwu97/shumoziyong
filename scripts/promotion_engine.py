@@ -36,7 +36,7 @@ def stable_evidence_digest(
     import json
     data = {
         "digest_schema_version": "2.0.0",
-        "target_status": "stable",
+        "target_status": "competition_evidenced",
         "policy_version": policy_version,
         "patch_id": patch.get("patch_id"),
         "patch_sha256": patch_sha256,
@@ -98,7 +98,7 @@ class FullEligibilityReport:
     details: dict[str, Any]
 
 
-STATUS_ORDER = ["draft", "candidate", "verified_candidate", "stable"]
+STATUS_ORDER = ["draft", "review_ready", "regression_verified", "competition_evidenced"]
 
 
 def _next_status(current: str) -> str | None:
@@ -358,7 +358,7 @@ def evaluate_status_eligibility(
     gaps.extend(forbidden_gaps)
 
     # 9) stable 专属：stable 必须 fail-closed，policy 配错不能静默跳过门禁。
-    if target_status == "stable":
+    if target_status == "competition_evidenced":
         stable_reqs = rules.get("stable_evidence")
         if not isinstance(stable_reqs, dict):
             gaps.append("promotion policy 缺少 stable_evidence 配置")
@@ -410,7 +410,7 @@ def evaluate_status_eligibility(
                 reviewer = approval.get("reviewer", approval.get("approved_by", ""))
                 if approval.get("patch_id") not in (None, pid):
                     gaps.append("人工批准记录 patch_id 与当前 Patch 不一致")
-                if approval.get("target_status") not in (None, "stable"):
+                if approval.get("target_status") not in (None, "competition_evidenced"):
                     gaps.append("人工批准记录 target_status 必须为 stable")
                 if approval.get("policy_version") != policy_version:
                     gaps.append(

@@ -726,20 +726,20 @@ def test_evaluate_status_eligibility_stable_fail_closed():
     from promotion_engine import evaluate_status_eligibility
     
     # 1. Missing stable_evidence config in policy
-    policy_missing = {"status_rules": {"stable": {}}}
-    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_missing, "stable")
+    policy_missing = {"status_rules": {"competition_evidenced": {}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_missing, "competition_evidenced")
     assert not report.eligible
     assert any("缺少 stable_evidence 配置" in gap for gap in report.gaps)
     
     # 2. stable_evidence config required is False
-    policy_not_required = {"status_rules": {"stable": {"stable_evidence": {"required": False}}}}
-    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_not_required, "stable")
+    policy_not_required = {"status_rules": {"competition_evidenced": {"stable_evidence": {"required": False}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_not_required, "competition_evidenced")
     assert not report.eligible
     assert any("未启用 stable_evidence.required" in gap for gap in report.gaps)
     
     # 3. Patch missing stable_evidence
-    policy_valid = {"status_rules": {"stable": {"stable_evidence": {"required": True}}}}
-    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "stable")
+    policy_valid = {"status_rules": {"competition_evidenced": {"stable_evidence": {"required": True}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "competition_evidenced")
     assert not report.eligible
     assert any("必须提供 stable_evidence 对象" in gap for gap in report.gaps)
 
@@ -756,9 +756,9 @@ def test_forbidden_material_risk_blocks_promotion(tmp_path, risk):
         encoding="utf-8",
     )
     report = evaluate_status_eligibility(
-        {"patch_id": "A001", "status": "candidate", "validation_records": [str(record_path)]},
+        {"patch_id": "A001", "status": "review_ready", "validation_records": [str(record_path)]},
         {},
-        {"status_rules": {"candidate": {"forbidden_material_risks": [risk]}}},
-        "candidate",
+        {"status_rules": {"review_ready": {"forbidden_material_risks": [risk]}}},
+        "review_ready",
     )
     assert any(f"禁止材料风险：{risk}" in gap for gap in report.gaps)

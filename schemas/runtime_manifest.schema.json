@@ -22,7 +22,7 @@
         "path": {"type": "string", "minLength": 1},
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
-        "status": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]}
+        "status": {"enum": ["draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"]}
       }
     },
     "excluded_patch": {
@@ -31,7 +31,7 @@
       "required": ["patch_id", "status", "reason"],
       "properties": {
         "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
-        "status": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+        "status": {"enum": ["draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"]},
         "reason": {"type": "string", "minLength": 1}
       }
     }
@@ -42,7 +42,7 @@
     "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "generated_at": {"type": "string", "format": "date-time"},
     "profile": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
-    "maturity": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+    "maturity": {"enum": ["draft", "assembled", "regression_verified", "competition_evidenced", "deprecated"]},
     "runtime_profile_state": {"$ref": "#/$defs/file"},
     "patch_index": {"$ref": "#/$defs/file"},
     "base": {"oneOf": [{"$ref": "#/$defs/file"}, {"type": "null"}]},

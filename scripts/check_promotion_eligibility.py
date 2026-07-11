@@ -41,7 +41,7 @@ def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
     """返回 (report, gaps)。gaps 来自 promotion_engine 的统一评估。
 
     与上一版的关键区别：
-      - candidate patch 现在会报告"到 verified_candidate 还差什么"。
+      - candidate patch 现在会报告"到 regression_verified 还差什么"。
       - 机制计数为 patch 级别，不从 profile 继承。
       - 真正检查 failure_labels.json 中的 P/M 标签。
     """
@@ -67,7 +67,7 @@ def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
         for g in full.current_gaps:
             all_gaps.append(PromotionGap(pid, current_status, g))
 
-        # 收集下一级状态的 gaps（candidate → verified_candidate 等）
+        # 收集下一级状态的 gaps（candidate → regression_verified 等）
         for g in full.gaps_to_next_status:
             next_s = full.next_status or "?"
             all_gaps.append(PromotionGap(pid, next_s, g))

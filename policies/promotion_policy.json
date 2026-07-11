@@ -39,7 +39,7 @@
     "note": "仅 allowlist 中、截止时间前生成且路径未变的历史 A092/A127 证据可标记为 legacy_v1_grandfathered；其他晋级证据必须使用 diagnosis v2+ 并提供完整 AI 元数据与证据清单。"
   },
   "status_rules": {
-    "candidate": {
+    "review_ready": {
       "description": "单篇论文经验化为 patch，未经旧题闭环验证",
       "required_controls": [],
       "required_result": "any",
@@ -64,7 +64,7 @@
         "required_evidence_fields": []
       }
     },
-    "verified_candidate": {
+    "regression_verified": {
       "description": "至少正向+边界+负控各一次通过，且三道独立考题",
       "required_controls": [
         "positive",
@@ -104,7 +104,7 @@
         "note": "当前最低要求 1 次；建议至少 baseline×2 + treatment×3 以评估随机波动"
       }
     },
-    "stable": {
+    "competition_evidenced": {
       "description": "多年份、多机制、失败修复重测且比赛验证通过，人工最终确认",
       "required_controls": [
         "positive",

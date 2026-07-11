@@ -12,6 +12,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
 from control_evidence import derive_control_result
+from profile_derivation import derive_profile_report
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
 from run_workflow import OPTIONAL_GATE_EVIDENCE_SPECS, replay_transition_log
 
@@ -25,7 +26,7 @@ except ImportError as exc:  # pragma: no cover - 只在依赖缺失时触发
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
-MATURITIES = {"draft", "candidate", "verified_candidate", "stable", "deprecated"}
+MATURITIES = {"draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"}
 PROFILE_IDS = {"general", "engineering_optimization", "prediction", "evaluation", "simulation"}
 
 
@@ -124,17 +125,51 @@ class RepositoryValidator:
             for record in records:
                 if not (ROOT / record).is_file():
                     self.fail(f"{patch_id} 的验证证据不存在：{record}")
-            if patch.get("status") in {"verified_candidate", "stable"} and not records:
+            if patch.get("status") in {"regression_verified", "competition_evidenced"} and not records:
                 self.fail(f"{patch_id} 为 {patch.get('status')}，但没有 validation_records")
         if not any("的" in failure and "不存在" in failure for failure in self.failures):
             self.pass_("patch 文件、知识卡片和验证证据路径")
 
     def validate_profiles(self) -> None:
+        """验证 Profile 只保存证据引用，并由现场证据重算状态和只读报告。"""
+        patches = self.load_json("prompt_patches/patch_index.json") or []
+        found_profiles: set[str] = set()
+        for path in sorted((ROOT / "runtime_profiles").glob("*.json")):
+            data = self.load_json(path.relative_to(ROOT).as_posix())
+            if not isinstance(data, dict):
+                continue
+            profile_id = data.get("profile_id", path.stem)
+            found_profiles.add(profile_id)
+            self.validate_schema(
+                data, "runtime_profile.schema.json", f"runtime profile {profile_id}"
+            )
+            if path.stem != profile_id:
+                self.fail(
+                    f"runtime profile 文件名与 profile_id 不一致：{path.name} / {profile_id}"
+                )
+            report = derive_profile_report(data, patches, root=ROOT)
+            if report["invalid_records"]:
+                self.fail(
+                    f"runtime profile {profile_id} 存在无效 validation_records："
+                    f"{report['invalid_records']}"
+                )
+            if data.get("maturity") != report["computed_maturity"]:
+                self.fail(
+                    f"runtime profile {profile_id}.maturity 不能由证据重算："
+                    f"记录为 {data.get('maturity')}，现场派生为 {report['computed_maturity']}"
+                )
+        missing = PROFILE_IDS - found_profiles
+        if missing:
+            self.fail(f"缺少 runtime 状态文件：{', '.join(sorted(missing))}")
+        else:
+            self.pass_("runtime 状态文件覆盖、证据引用和派生状态")
+        return
+
         patches = self.load_json("prompt_patches/patch_index.json") or []
         patch_by_id = {patch.get("patch_id"): patch for patch in patches}
         policy = self.load_json("policies/promotion_policy.json") or {}
         stable_policy = policy.get("runtime_profile_stable_requirements", {})
-        stable_rules = policy.get("status_rules", {}).get("stable", {})
+        stable_rules = policy.get("status_rules", {}).get("competition_evidenced", {})
         found_profiles: set[str] = set()
 
         def _load_record(path: Path, label: str, profile_id: str) -> dict[str, Any] | None:
@@ -242,7 +277,7 @@ class RepositoryValidator:
                     self.fail(f"runtime profile {profile_id} 比赛 manifest.profile 不一致")
                 if manifest.get("runtime_version") != data.get("version"):
                     self.fail(f"runtime profile {profile_id} 比赛 manifest.runtime_version 不一致")
-                if manifest.get("maturity") != "stable":
+                if manifest.get("maturity") != "competition_evidenced":
                     self.fail(f"runtime profile {profile_id} 比赛 manifest.maturity 必须为 stable")
                 if result.get("result", result.get("final_result")) != "pass":
                     self.fail(f"runtime profile {profile_id} 比赛 result_record 必须为 pass")
@@ -300,7 +335,7 @@ class RepositoryValidator:
                     )
 
                 for manifest_patch_id, patch_entry in manifest_patch_by_id.items():
-                    if patch_entry.get("status") != "stable":
+                    if patch_entry.get("status") != "competition_evidenced":
                         self.fail(
                             f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
                             "status 必须为 stable"
@@ -343,9 +378,9 @@ class RepositoryValidator:
                 patch = patch_by_id.get(patch_id)
                 if not patch:
                     self.fail(f"runtime profile {profile_id} 引用了未知 patch：{patch_id}")
-                elif patch.get("status") not in {"verified_candidate", "stable"}:
+                elif patch.get("status") not in {"regression_verified", "competition_evidenced"}:
                     self.fail(f"runtime profile {profile_id} 错误导入未验证 patch：{patch_id}")
-                elif data.get("maturity") == "stable" and patch.get("status") != "stable":
+                elif data.get("maturity") == "competition_evidenced" and patch.get("status") != "competition_evidenced":
                     self.fail(
                         f"runtime profile {profile_id} 为 stable，"
                         f"但 stable profile 只能导入 stable patch：{patch_id}"
@@ -355,7 +390,7 @@ class RepositoryValidator:
                     self.fail(f"runtime profile {profile_id} 的证据不存在：{evidence}")
             if data.get("competition_verified") and data.get("validation_level") != "competition_verified":
                 self.fail(f"runtime profile {profile_id} 的 competition_verified 与 validation_level 冲突")
-            if data.get("maturity") == "stable":
+            if data.get("maturity") == "competition_evidenced":
                 if data.get("competition_verified") is not True:
                     self.fail(f"runtime profile {profile_id} 为 stable 时 competition_verified 必须为 true")
                 if data.get("validation_level") != "competition_verified":
@@ -368,7 +403,28 @@ class RepositoryValidator:
             self.pass_("runtime 状态文件覆盖和交叉引用")
 
     def validate_patch_profile_consistency(self) -> None:
-        """patch → profile 方向：verified_candidate/stable 的 patch 必须进入至少一个
+        """已验证 Patch 必须引用存在的 Profile；正式选择不再依赖人工缓存列表。"""
+        patches = self.load_json("prompt_patches/patch_index.json") or []
+        existing_profiles = {
+            path.stem for path in (ROOT / "runtime_profiles").glob("*.json")
+        }
+        invalid_refs: list[str] = []
+        for patch in patches:
+            if patch.get("status") not in {
+                "regression_verified",
+                "competition_evidenced",
+            }:
+                continue
+            for profile_id in patch.get("runtime_profiles", []):
+                if profile_id not in existing_profiles:
+                    invalid_refs.append(f"{patch.get('patch_id')}->{profile_id}")
+        if invalid_refs:
+            self.fail(f"已验证 Patch 引用了不存在的 Profile：{', '.join(invalid_refs)}")
+        else:
+            self.pass_("正式 Patch 状态与 Profile 归属可现场派生")
+        return
+
+        """patch → profile 方向：regression_verified/stable 的 patch 必须进入至少一个
         runtime profile 的 verified_patches，否则其 verified 状态是悬空的，
         正式导出包也不会包含它（exporter 的 AND 条件）。"""
         patches = self.load_json("prompt_patches/patch_index.json") or []
@@ -382,7 +438,7 @@ class RepositoryValidator:
         for patch in patches:
             patch_id = patch.get("patch_id", "<unknown>")
             status = patch.get("status")
-            if status in {"verified_candidate", "stable"} and patch_id not in approved_everywhere:
+            if status in {"regression_verified", "competition_evidenced"} and patch_id not in approved_everywhere:
                 dangling.append(patch_id)
         if dangling:
             for patch_id in dangling:
@@ -1169,7 +1225,7 @@ class RepositoryValidator:
         for patch in patch_index:
             patch_id = patch.get("patch_id", "<unknown>")
             status = patch.get("status")
-            if status not in {"verified_candidate", "stable"}:
+            if status not in {"regression_verified", "competition_evidenced"}:
                 continue
             entry = matrix_by_id.get(patch_id)
             if entry is None:
@@ -1180,7 +1236,7 @@ class RepositoryValidator:
             patch_file = self.resolve_repo_path(str(patch.get("file", "")))
             if patch_file.is_file():
                 patch["_resolved_patch_sha256"] = hashlib.sha256(patch_file.read_bytes()).hexdigest()
-            if status == "stable":
+            if status == "competition_evidenced":
                 patch["_resolved_inner_sha256s"] = _collect_stable_inner_hashes(patch)
 
             if matrix_is_v2:
@@ -1593,7 +1649,7 @@ class RepositoryValidator:
             return ok
 
         for patch in patch_index:
-            if patch.get("status") == "stable":
+            if patch.get("status") == "competition_evidenced":
                 if not _verify_stable_evidence(patch):
                     promotion_ok = False
 

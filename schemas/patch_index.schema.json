@@ -105,9 +105,9 @@
       "status": {
         "enum": [
           "draft",
-          "candidate",
-          "verified_candidate",
-          "stable",
+          "review_ready",
+          "regression_verified",
+          "competition_evidenced",
           "deprecated"
         ]
       },
@@ -271,7 +271,7 @@
                 "pattern": "^[A-Z][0-9]{3}$"
               },
               "target_status": {
-                "const": "stable"
+                "const": "competition_evidenced"
               },
               "schema_version": {
                 "const": "1.0.0"
@@ -297,7 +297,7 @@
         "if": {
           "properties": {
             "status": {
-              "const": "stable"
+              "const": "competition_evidenced"
             }
           },
           "required": [

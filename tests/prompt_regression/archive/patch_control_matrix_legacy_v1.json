@@ -1,0 +1,10 @@
+{
+  "archive_version": "1.0.0",
+  "archived_at": "2026-07-11",
+  "active_promotion": false,
+  "reason": "Legacy v1 stored manual result fields and lacks unified Gate 0-5 Evidence Manifests for all controls.",
+  "source_groups": [
+    "nc_A092_2016C_20260710_01",
+    "nc_A127_2024B_20260710_02"
+  ]
+}

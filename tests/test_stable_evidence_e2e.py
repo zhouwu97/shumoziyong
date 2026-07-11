@@ -137,6 +137,22 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
 
     pack = build_pack("engineering_optimization")
     competition_manifest = build_manifest("engineering_optimization", pack)
+    source_patch = next(
+        item
+        for item in json.loads(
+            (ROOT / "prompt_patches" / "patch_index.json").read_text("utf-8")
+        )
+        if item["patch_id"] == "A092"
+    )
+    competition_manifest["maturity"] = "competition_evidenced"
+    competition_manifest["patches"] = [
+        {
+            "patch_id": "A092",
+            "status": "competition_evidenced",
+            "path": source_patch["file"],
+            "sha256": _sha256(ROOT / source_patch["file"]),
+        }
+    ]
     competition_manifest_path = fix_dir / "comp_manifest.json"
     competition_manifest_path.write_text(json.dumps(competition_manifest), "utf-8")
     competition_result_path = fix_dir / "comp_result.json"
@@ -152,7 +168,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
     source_index = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text("utf-8"))
     policy_version = json.loads((ROOT / "policies" / "promotion_policy.json").read_text("utf-8"))["policy_version"]
     stable_patch = copy.deepcopy(next(item for item in source_index if item["patch_id"] == "A092"))
-    stable_patch["status"] = "stable"
+    stable_patch["status"] = "competition_evidenced"
     original_evidence = json.loads((fix_dir / "patch_index.json").read_text("utf-8"))[0]["stable_evidence"]
     for negative_run in original_evidence["negative_control_runs"]:
         negative_run["case"] = "2016-C"

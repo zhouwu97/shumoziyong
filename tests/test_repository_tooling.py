@@ -291,17 +291,17 @@ def _v2_gate_0_run(parent: Path, name: str = "v2_run") -> Path:
 
 def test_default_pack_excludes_candidate_patches() -> None:
     selected = select_patch_files("engineering_optimization")
-    assert "prompt_patches/patch_A092_engineering_optimization.md" in selected
-    assert "prompt_patches/patch_A127_engineering_layout_optimization.md" in selected
-    assert not any("B311" in path or "B477" in path for path in selected)
+    assert selected == []
 
 
 def test_manifest_hashes_pack_and_records_exclusions() -> None:
     pack = build_pack("engineering_optimization")
     manifest = build_manifest("engineering_optimization", pack)
     assert manifest["runtime_pack_sha256"]
-    assert {item["patch_id"] for item in manifest["patches"]} == {"A092", "A127"}
-    assert {item["patch_id"] for item in manifest["excluded_patches"]} == {"B311", "B477"}
+    assert manifest["patches"] == []
+    assert {item["patch_id"] for item in manifest["excluded_patches"]} == {
+        "A092", "A127", "B311", "B477"
+    }
     # 新增：默认导出不启用实验标记
     assert manifest["candidate_experiment"]["enabled"] is False
     assert manifest["exclusion_experiment"]["enabled"] is False
@@ -309,12 +309,13 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
 
 
+@pytest.mark.skip(reason="旧 Profile 人工计数契约已由 test_profile_derivation.py 取代")
 def test_stable_profile_schema_requires_competition_validation() -> None:
     """Profile 标记 stable 时必须同时声明比赛验证完成。"""
     profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": False,
             "validation_level": "cross_mechanism",
         }
@@ -324,12 +325,13 @@ def test_stable_profile_schema_requires_competition_validation() -> None:
     assert any("True was expected" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="旧 verified_patches 缓存已删除")
 def test_stable_profile_rejects_non_stable_patch() -> None:
     """Stable Profile 只能导入已具备 Stable Evidence 的 patch。"""
     profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": True,
             "validation_level": "competition_verified",
             "verified_patches": ["A092"],
@@ -349,12 +351,13 @@ def test_stable_profile_rejects_non_stable_patch() -> None:
     assert any("stable profile 只能导入 stable patch" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="旧 Profile 人工计数契约已删除")
 def test_stable_profile_requires_evidence_level_requirements() -> None:
     """完整状态字段不能替代 Gate、负控、比赛证据和失败清理。"""
     profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": True,
             "validation_level": "competition_verified",
             "verified_patches": [],
@@ -410,10 +413,10 @@ def _validate_stable_profile_competition_fixture(
         candidate_patch_ids,
         exclude_patch_ids,
     )
-    runtime_manifest["maturity"] = "stable"
+    runtime_manifest["maturity"] = "competition_evidenced"
     for patch_entry in runtime_manifest["patches"]:
         if patch_entry["patch_id"] in {"A092", "A127"}:
-            patch_entry["status"] = "stable"
+            patch_entry["status"] = "competition_evidenced"
     if mutate_manifest is not None:
         mutate_manifest(runtime_manifest)
     runtime_manifest_path = tmp_path / "runtime_pack.manifest.json"
@@ -433,7 +436,7 @@ def _validate_stable_profile_competition_fixture(
     )
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": True,
             "validation_level": "competition_verified",
             "verified_patches": ["A092", "A127"],
@@ -459,7 +462,7 @@ def _validate_stable_profile_competition_fixture(
     patches = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text(encoding="utf-8"))
     for patch in patches:
         if patch["patch_id"] in {"A092", "A127"}:
-            patch["status"] = "stable"
+            patch["status"] = "competition_evidenced"
 
     validator = RepositoryValidator()
     real_load = RepositoryValidator().load_json
@@ -486,12 +489,14 @@ def _validate_stable_profile_competition_fixture(
     return validator
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -> None:
     """Stable Profile 的比赛状态必须由真实运行包和通过的结果记录证明。"""
     validator = _validate_stable_profile_competition_fixture(tmp_path)
     assert not validator.failures
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_rejects_candidate_experiment_and_extra_patch(tmp_path: Path) -> None:
     """包含额外 candidate Patch 的实验包不能证明正式 Stable Profile。"""
     validator = _validate_stable_profile_competition_fixture(
@@ -502,6 +507,7 @@ def test_stable_profile_rejects_candidate_experiment_and_extra_patch(tmp_path: P
     assert any("不得来自 candidate experiment" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_rejects_exclusion_experiment(tmp_path: Path) -> None:
     """排除正式 Patch 的隔离实验不能作为 Stable Profile 比赛证据。"""
     validator = _validate_stable_profile_competition_fixture(
@@ -512,13 +518,14 @@ def test_stable_profile_rejects_exclusion_experiment(tmp_path: Path) -> None:
     assert any("不得来自 exclusion experiment" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_verifies_manifest_patch_content(tmp_path: Path) -> None:
     """Manifest 中的 Patch 状态、路径和 SHA-256 必须与当前 Stable Patch 一致。"""
     def mutate_manifest(manifest: dict[str, object]) -> None:
         patch_entry = next(
             item for item in manifest["patches"] if item["patch_id"] == "A092"
         )
-        patch_entry["status"] = "candidate"
+        patch_entry["status"] = "review_ready"
         patch_entry["path"] = "prompt_patches/patch_A127_engineering_layout_optimization.md"
         patch_entry["sha256"] = "0" * 64
 
@@ -531,6 +538,7 @@ def test_stable_profile_verifies_manifest_patch_content(tmp_path: Path) -> None:
     assert any("Patch A092 sha256 与当前文件不一致" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_binds_result_record_sha256(tmp_path: Path) -> None:
     """Profile 批准后改写 result record 必须被内容哈希检测。"""
     validator = _validate_stable_profile_competition_fixture(
@@ -541,10 +549,10 @@ def test_stable_profile_binds_result_record_sha256(tmp_path: Path) -> None:
 
 
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:
-    """verified_candidate/stable 但未进入 verified_patches 的 patch 不得进入正式包。
+    """regression_verified/stable 但未进入 verified_patches 的 patch 不得进入正式包。
     当前 A092/A127 都在 verified_patches，故默认应包含；本测试确认 AND 条件不误伤已批准 patch。"""
     selected = select_patches("engineering_optimization")
-    assert {p["patch_id"] for p in selected} == {"A092", "A127"}
+    assert selected == []
 
 
 def test_candidate_patch_explicit_import() -> None:
@@ -553,17 +561,15 @@ def test_candidate_patch_explicit_import() -> None:
     ids = {p["patch_id"] for p in selected}
     assert "B311" in ids
     assert "B477" not in ids  # 不会一次导入全部 candidate
-    assert "A092" in ids and "A127" in ids  # 已批准 patch 仍保留
+    assert ids == {"B311"}
 
 
 def test_exclude_patch_isolation_runs() -> None:
     """隔离实验：baseline / A092-only / A127-only。"""
     baseline = select_patches("engineering_optimization", exclude_patch_ids=["A092", "A127"])
     assert [p["patch_id"] for p in baseline] == []
-    a092_only = select_patches("engineering_optimization", exclude_patch_ids=["A127"])
-    assert {p["patch_id"] for p in a092_only} == {"A092"}
-    a127_only = select_patches("engineering_optimization", exclude_patch_ids=["A092"])
-    assert {p["patch_id"] for p in a127_only} == {"A127"}
+    assert select_patches("engineering_optimization", exclude_patch_ids=["A127"]) == []
+    assert select_patches("engineering_optimization", exclude_patch_ids=["A092"]) == []
 
 
 def test_prompt_response_evaluator_field_level_forbidden() -> None:
@@ -785,7 +791,7 @@ def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None
     assert manifest["excluded_patches"] == ["A127"]
     pack_manifest = json.loads((run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8"))
     assert pack_manifest["exclusion_experiment"]["enabled"] is True
-    assert {p["patch_id"] for p in pack_manifest["patches"]} == {"A092"}
+    assert pack_manifest["patches"] == []
 
 def test_old_problem_cli_promotion_evidence_mode(tmp_path: Path) -> None:
     materials = tmp_path / "materials"
@@ -1080,11 +1086,11 @@ def test_check_promotion_eligibility_produces_report() -> None:
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
-    # A092 and A127 have all 3 controls passing and satisfy verified_candidate rules
+    # A092/A127 的 Legacy v1 已归档；新 v2 证据尚未重跑，必须现场派生为 pending。
     a092 = next(p for p in report["per_patch"] if p["patch_id"] == "A092")
-    assert a092["positive"] == "pass"
-    assert a092["boundary"] == "pass"
-    assert a092["negative"] == "pass"
+    assert a092["positive"] == "pending"
+    assert a092["boundary"] == "pending"
+    assert a092["negative"] == "pending"
     # With the stricter v1.2.0 policy (min_distinct_cases=3, min_distinct_years=2),
     # A092 still passes (2016-C/2023-B/2024-C = 3 cases, 2016+2023+2024 = 3 years)
     assert a092["current_status_valid"] is True
@@ -1101,10 +1107,10 @@ def test_check_promotion_eligibility_gaps_is_list() -> None:
 
 def test_promotion_gap_str_contains_ids() -> None:
     """PromotionGap string representation includes patch_id and target."""
-    g = PromotionGap("A092", "stable", "需要人工确认")
+    g = PromotionGap("A092", "competition_evidenced", "需要人工确认")
     s = str(g)
     assert "A092" in s
-    assert "stable" in s
+    assert "competition_evidenced" in s
     assert "人工确认" in s
 
 

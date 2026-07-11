@@ -10,10 +10,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTO_PATCHES_MARKER = "__AUTO_PATCHES__"
-# 正式运行包只允许已批准的 patch：状态为 verified_candidate/stable
-# AND patch_id 必须出现在对应 runtime profile 的 verified_patches 列表中。
-VERIFIED_STATUSES = {"verified_candidate", "stable"}
-CANDIDATE_STATUS = "candidate"
+# 正式运行包只允许现场状态为 regression_verified/competition_evidenced 的 Patch。
+VERIFIED_STATUSES = {"regression_verified", "competition_evidenced"}
+CANDIDATE_STATUS = "review_ready"
 CANDIDATE_WARNING = "仅供旧题验证，不得直接比赛使用"
 
 PROFILE_FILES = {
@@ -102,18 +101,13 @@ def select_patches(
 ) -> list[dict[str, Any]]:
     """选择进入运行包的 patch。
 
-    正式 patch 必须同时满足三条件：
-      1. patch_index 中 status 属于 {verified_candidate, stable}；
-      2. patch_id 在 runtime_profiles/<profile>.json 的 verified_patches 中；
-      3. patch 的 runtime_profiles 包含当前 profile。
+    正式 Patch 必须同时满足两个条件：状态已通过回归或比赛证据验证，且声明支持当前 Profile。
 
     candidate patch 必须显式按 ID 传入，且每个都必须：
       存在于 patch_index；状态为 candidate；runtime_profiles 包含当前 profile。
 
     exclude_patch_ids 用于隔离实验：从已批准集合中移除指定 patch（如负控 baseline）。
     """
-    state = read_profile_state(profile)
-    approved_ids = set(state.get("verified_patches", []))
     candidate_patch_ids = list(candidate_patch_ids or [])
     exclude_set = set(exclude_patch_ids or [])
 
@@ -140,12 +134,11 @@ def select_patches(
         if profile not in patch.get("runtime_profiles", []):
             raise ValueError(f"--exclude-patch {eid} 不支持 profile {profile}")
 
-    # 正式 patch：三条件 AND
+    # 正式 Patch：状态与 Profile 归属均从事实源现场判断。
     verified_selected = [
         patch
         for patch in read_patch_index()
-        if patch.get("patch_id") in approved_ids
-        and profile in patch.get("runtime_profiles", [])
+        if profile in patch.get("runtime_profiles", [])
         and patch.get("status") in VERIFIED_STATUSES
         and patch.get("file")
     ]
@@ -213,22 +206,18 @@ def build_pack(
     return "".join(parts)
 
 
-def _exclusion_reason(patch: dict[str, Any], profile: str, approved_ids: set[str],
-                      candidate_ids: list[str], exclude_set: set[str]) -> str:
+def _exclusion_reason(
+    patch: dict[str, Any], candidate_ids: list[str], exclude_set: set[str]
+) -> str:
     pid = patch.get("patch_id", "<unknown>")
     status = patch.get("status")
     reasons: list[str] = []
     if pid in exclude_set:
         reasons.append("显式排除（隔离实验）")
-    if status in VERIFIED_STATUSES and pid not in approved_ids:
-        reasons.append("状态为 verified 但未进入 profile.verified_patches")
     if status == CANDIDATE_STATUS and pid not in candidate_ids:
         reasons.append("candidate patch 未显式指定导入")
     if status not in VERIFIED_STATUSES and status != CANDIDATE_STATUS:
         reasons.append(f"状态 {status} 不允许导出")
-    if not approved_ids and status in VERIFIED_STATUSES and pid in approved_ids:
-        # approved_ids empty branch safety (shouldn't reach)
-        pass
     return "；".join(reasons) if reasons else "状态未进入本次导出的允许集合"
 
 
@@ -244,8 +233,6 @@ def build_manifest(
 
     profile_state_path = f"runtime_profiles/{profile}.json"
     profile_state = json.loads(read_text(profile_state_path))
-    approved_ids = set(profile_state.get("verified_patches", []))
-
     selected_patches = select_patches(profile, candidate_patch_ids, exclude_patch_ids)
     selected_ids = {patch["patch_id"] for patch in selected_patches}
     all_profile_patches = [
@@ -286,7 +273,7 @@ def build_manifest(
                 "patch_id": patch["patch_id"],
                 "status": patch["status"],
                 "reason": _exclusion_reason(
-                    patch, profile, approved_ids, candidate_patch_ids, exclude_set
+                    patch, candidate_patch_ids, exclude_set
                 ),
             }
             for patch in all_profile_patches

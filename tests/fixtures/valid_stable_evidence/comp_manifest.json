@@ -6,7 +6,7 @@
     {
       "patch_id": "A001",
       "path": "tests/fixtures/valid_stable_evidence/test.patch",
-      "status": "verified_candidate",
+      "status": "regression_verified",
       "sha256": "418dcf3de387d9a9153d9250193fc5fc54be4b9fb699ecb2856421ffc2ba96f0"
     }
   ],
