@@ -1204,6 +1204,36 @@ def _forkable_general_run(tmp_path: Path) -> Path:
     return parent
 
 
+def _interrupt_fork_after_child_move(
+    parent: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    transaction_id: str,
+) -> tuple[Path, dict[str, object], Path]:
+    """制造子目录已发布但事务状态仍为 prepared 的可恢复现场。"""
+    original_write = run_workflow_module._write_fork_transaction
+
+    def interrupt_after_child_move(path, transaction):
+        if transaction.get("status") == "child_published":
+            raise OSError("模拟子目录发布后的进程中断")
+        original_write(path, transaction)
+
+    monkeypatch.setattr(run_workflow_module, "_write_fork_transaction", interrupt_after_child_move)
+    with pytest.raises(OSError, match="进程中断"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id=transaction_id,
+        )
+    monkeypatch.setattr(run_workflow_module, "_write_fork_transaction", original_write)
+
+    transaction_path = parent.parent / ".transactions" / "fork-profile" / f"{transaction_id}.json"
+    transaction = json.loads(transaction_path.read_text("utf-8"))
+    child = parent.parent / str(transaction["child_run_id"])
+    return transaction_path, transaction, child
+
+
 def test_fork_profile_commits_cross_bound_lineage_and_supersedes_parent(tmp_path: Path) -> None:
     """Fork 成功后父 Run 停止推进，子 Run 仅在 committed 谱系下可继续。"""
     parent = _forkable_general_run(tmp_path)
@@ -1276,30 +1306,12 @@ def test_fork_profile_resumes_when_child_move_precedes_transaction_update(
 ) -> None:
     """子目录已原子发布但状态未落盘时，--resume 必须识别并继续同一事务。"""
     parent = _forkable_general_run(tmp_path)
-    original_write = run_workflow_module._write_fork_transaction
-
-    def interrupt_after_child_move(path, transaction):
-        if transaction.get("status") == "child_published":
-            raise OSError("模拟子目录发布后的进程中断")
-        original_write(path, transaction)
-
-    monkeypatch.setattr(run_workflow_module, "_write_fork_transaction", interrupt_after_child_move)
-    with pytest.raises(OSError, match="进程中断"):
-        fork_profile(
-            parent,
-            profile="engineering_optimization",
-            reviewer="reviewer",
-            reason="Gate 0 确认需要工程优化专项 Profile。",
-            transaction_id="forktxn03",
-        )
-
-    transaction_path = parent.parent / ".transactions" / "fork-profile" / "forktxn03.json"
-    interrupted_transaction = json.loads(transaction_path.read_text("utf-8"))
-    child = parent.parent / interrupted_transaction["child_run_id"]
+    _transaction_path, interrupted_transaction, child = _interrupt_fork_after_child_move(
+        parent, monkeypatch, "forktxn03"
+    )
     assert interrupted_transaction["status"] == "prepared"
     assert child.is_dir()
 
-    monkeypatch.setattr(run_workflow_module, "_write_fork_transaction", original_write)
     resumed = fork_profile(
         parent,
         profile="engineering_optimization",
@@ -1310,6 +1322,110 @@ def test_fork_profile_resumes_when_child_move_precedes_transaction_update(
     )
     assert Path(resumed["child_run"]) == child
     assert resumed["status"] == "committed"
+
+
+def test_fork_profile_resume_rejects_tampered_published_child_diagnosis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """已发布子 Run 的 Gate 0 诊断被修改后，恢复必须闭锁失败。"""
+    parent = _forkable_general_run(tmp_path)
+    transaction_path, _transaction, child = _interrupt_fork_after_child_move(
+        parent, monkeypatch, "forktxn05"
+    )
+    diagnosis_path = child / "diagnosis.json"
+    diagnosis = json.loads(diagnosis_path.read_text("utf-8"))
+    diagnosis["problem_summary"] = "tampered after publish"
+    diagnosis_path.write_text(json.dumps(diagnosis), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="diagnosis.json"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn05",
+            resume=True,
+        )
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "prepared"
+
+
+def test_fork_profile_resume_rejects_tampered_published_child_run_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """已发布子 Run 的身份被修改后，恢复不得提交父子谱系。"""
+    parent = _forkable_general_run(tmp_path)
+    transaction_path, _transaction, child = _interrupt_fork_after_child_move(
+        parent, monkeypatch, "forktxn06"
+    )
+    manifest_path = child / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text("utf-8"))
+    manifest["profile"] = "general"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="run_manifest.json.profile"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn06",
+            resume=True,
+        )
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "prepared"
+
+
+def test_fork_profile_resume_rejects_tampered_published_child_material_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """已发布子 Run 的材料摘要或证据哈希变化后，恢复必须闭锁失败。"""
+    parent = _forkable_general_run(tmp_path)
+    transaction_path, _transaction, child = _interrupt_fork_after_child_move(
+        parent, monkeypatch, "forktxn07"
+    )
+    problem_manifest_path = child / "problem_manifest.json"
+    problem_manifest = json.loads(problem_manifest_path.read_text("utf-8"))
+    problem_manifest["content_digest"] = "0" * 64
+    problem_manifest_path.write_text(json.dumps(problem_manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="problem_manifest|证据清单"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn07",
+            resume=True,
+        )
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "prepared"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows junction 攻击矩阵不属于本轮 CR")
+def test_fork_profile_resume_rejects_published_child_directory_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """POSIX 上正式子目录被符号链接替换后，恢复必须闭锁失败。"""
+    parent = _forkable_general_run(tmp_path)
+    transaction_path, _transaction, child = _interrupt_fork_after_child_move(
+        parent, monkeypatch, "forktxn08"
+    )
+    moved_child = parent.parent / f"{child.name}-moved"
+    child.rename(moved_child)
+    child.symlink_to(moved_child, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="非符号链接目录"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn08",
+            resume=True,
+        )
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "prepared"
 
 
 def test_fork_profile_resumes_when_parent_event_precedes_transaction_update(
