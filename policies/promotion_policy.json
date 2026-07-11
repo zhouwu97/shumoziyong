@@ -104,6 +104,7 @@
       "response.json",
       "automatic_evaluation.json",
       "ai_run_metadata.json",
+      "human_review.md",
       "run_evidence_manifest.json"
     ],
     "ai_run_metadata_checks": {
@@ -119,7 +120,17 @@
       "reject_absolute_paths_in_note": true,
       "baseline_treatment_must_match": ["provider", "model", "model_snapshot", "reasoning_effort", "client", "client_version", "temperature", "seed", "tool_permissions", "working_directory_mode"],
       "run_evidence_manifest_schema": "schemas/run_evidence_manifest.schema.json",
-      "required_artifact_roles": ["request", "model_response", "runtime_pack", "runtime_pack_manifest", "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review"]
+      "required_artifacts": {
+        "run_manifest": "run_manifest.json",
+        "request": "request.json",
+        "model_response": "response.json",
+        "runtime_pack": "runtime_pack.md",
+        "runtime_pack_manifest": "runtime_pack.manifest.json",
+        "problem_manifest": "problem_manifest.json",
+        "automatic_evaluation": "automatic_evaluation.json",
+        "ai_run_metadata": "ai_run_metadata.json",
+        "human_review": "human_review.md"
+      }
     }
   },
   "manual_controls": {

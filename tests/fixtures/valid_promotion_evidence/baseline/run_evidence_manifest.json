@@ -1,1 +1,69 @@
-{"evidence_manifest_version":"1.0.0","run_id":"baseline","artifacts":[{"path":"request.json","sha256":"0c82c423cf92561612b9b4b9dfe0694f9e01cb948d16572444d44255dc3d1f36","media_type":"application/json","size_bytes":108,"role":"request","generated_by":"run_workflow.py"},{"path":"response.json","sha256":"d206f39efa4acb58b6ff254fbc0b5ed8b9a4b60975c98868fd603a33fb97cc52","media_type":"application/json","size_bytes":860,"role":"model_response","generated_by":"run_workflow.py"},{"path":"runtime_pack.md","sha256":"46dd6fe15de28ddb3ee4fdc11b0cdf187f705fc5dbff427c353efc098a14b137","media_type":"text/markdown","size_bytes":69,"role":"runtime_pack","generated_by":"run_workflow.py"},{"path":"runtime_pack.manifest.json","sha256":"1136d24ed4db7c12fbb8d8763f78e552331d0b7085ce065523687924ccb1eb13","media_type":"application/json","size_bytes":107,"role":"runtime_pack_manifest","generated_by":"run_workflow.py"},{"path":"problem_manifest.json","sha256":"4ce3165febd2a0286b6d81c457d0af129e3eee2b64f99c274d888316fd2a18f8","media_type":"application/json","size_bytes":178,"role":"problem_manifest","generated_by":"run_workflow.py"},{"path":"automatic_evaluation.json","sha256":"75a43cc4ca609299d832feafec97968cbfeabdbff5f0b23703d8d689e4123c5b","media_type":"application/json","size_bytes":371,"role":"automatic_evaluation","generated_by":"run_workflow.py"},{"path":"ai_run_metadata.json","sha256":"649398bc4f2f1a1bf28f7e1ca61824577465e0fb9159e4cd0996849ac95a3891","media_type":"application/json","size_bytes":679,"role":"ai_run_metadata","generated_by":"run_workflow.py"},{"path":"human_review.md","sha256":"1dba26d53f586989408cdebab235a7d3098a18d3e156862b8d5b75566c31551b","media_type":"text/markdown","size_bytes":72,"role":"human_review","generated_by":"run_workflow.py"}]}
+{
+  "evidence_manifest_version": "1.0.0",
+  "run_id": "baseline",
+  "artifacts": [
+    {
+      "path": "run_manifest.json",
+      "sha256": "c0194ee9d36c07f56eb6f64bd3c855457e529694a8f993384d4a9878d52d70e8",
+      "media_type": "application/json",
+      "size_bytes": 231,
+      "role": "run_manifest"
+    },
+    {
+      "path": "request.json",
+      "sha256": "d38e77c46fdaf30f7b9ac0a4ca795856f3f5d7138f8ada5aa66745a22640066c",
+      "media_type": "application/json",
+      "size_bytes": 137,
+      "role": "request"
+    },
+    {
+      "path": "response.json",
+      "sha256": "d206f39efa4acb58b6ff254fbc0b5ed8b9a4b60975c98868fd603a33fb97cc52",
+      "media_type": "application/json",
+      "size_bytes": 860,
+      "role": "model_response"
+    },
+    {
+      "path": "runtime_pack.md",
+      "sha256": "46dd6fe15de28ddb3ee4fdc11b0cdf187f705fc5dbff427c353efc098a14b137",
+      "media_type": "text/markdown",
+      "size_bytes": 69,
+      "role": "runtime_pack"
+    },
+    {
+      "path": "runtime_pack.manifest.json",
+      "sha256": "1136d24ed4db7c12fbb8d8763f78e552331d0b7085ce065523687924ccb1eb13",
+      "media_type": "application/json",
+      "size_bytes": 107,
+      "role": "runtime_pack_manifest"
+    },
+    {
+      "path": "problem_manifest.json",
+      "sha256": "4ce3165febd2a0286b6d81c457d0af129e3eee2b64f99c274d888316fd2a18f8",
+      "media_type": "application/json",
+      "size_bytes": 178,
+      "role": "problem_manifest"
+    },
+    {
+      "path": "automatic_evaluation.json",
+      "sha256": "75a43cc4ca609299d832feafec97968cbfeabdbff5f0b23703d8d689e4123c5b",
+      "media_type": "application/json",
+      "size_bytes": 371,
+      "role": "automatic_evaluation"
+    },
+    {
+      "path": "ai_run_metadata.json",
+      "sha256": "649398bc4f2f1a1bf28f7e1ca61824577465e0fb9159e4cd0996849ac95a3891",
+      "media_type": "application/json",
+      "size_bytes": 679,
+      "role": "ai_run_metadata"
+    },
+    {
+      "path": "human_review.md",
+      "sha256": "1dba26d53f586989408cdebab235a7d3098a18d3e156862b8d5b75566c31551b",
+      "media_type": "text/markdown",
+      "size_bytes": 72,
+      "role": "human_review"
+    }
+  ]
+}

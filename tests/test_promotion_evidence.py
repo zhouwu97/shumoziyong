@@ -1,4 +1,5 @@
 import pytest
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -564,6 +565,30 @@ def test_ai_metadata_legacy_grandfathered_passes_without_file(validator, valid_m
                 assert not validator.failures
 
 
+@pytest.mark.parametrize("path_key", ["baseline_run", "treatment_run"])
+def test_legacy_evidence_path_must_match_its_fixed_role(
+    validator, valid_matrix, valid_patch_index, tmp_path, path_key
+):
+    """历史 baseline/treatment 路径都必须逐一匹配政策登记值。"""
+    fix_dir = _copy_fixture(tmp_path)
+    (fix_dir / "baseline" / "ai_run_metadata.json").unlink()
+    (fix_dir / "treatment" / "ai_run_metadata.json").unlink()
+    valid_matrix["patches"][0]["negative"]["evidence"]["schema_generation"] = "legacy_v1_grandfathered"
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    modify_json(fix_dir / "baseline" / "run_manifest.json", {"created_at": "2026-07-10T17:00:00+08:00"})
+    modify_json(fix_dir / "treatment" / "run_manifest.json", {"created_at": "2026-07-10T17:00:00+08:00"})
+    legacy_policy = _fixture_legacy_policy(fix_dir)
+    legacy_policy["diagnosis_schema_requirements"]["legacy_evidence_paths"]["GRP-01"][path_key] = str(
+        fix_dir / "not_registered"
+    )
+
+    with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
+            with patch("validate_repository.pe_load_json", return_value=legacy_policy):
+                validator.validate_patch_promotion()
+                assert any(f"legacy {path_key}" in failure for failure in validator.failures)
+
+
 def test_forged_legacy_marker_cannot_bypass_metadata_gate(validator, valid_matrix, valid_patch_index, tmp_path):
     """仅追加 legacy 标记、未进入 allowlist 的新证据必须仍被拒绝。"""
     fix_dir = _copy_fixture(tmp_path)
@@ -593,3 +618,37 @@ def test_evidence_manifest_path_hash_and_role_are_verified(validator, valid_matr
         with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
             validator.validate_patch_promotion()
             assert any("run_evidence_manifest" in f and ("路径" in f or "sha256" in f or "角色" in f) for f in validator.failures)
+
+
+def test_evidence_manifest_role_must_reference_its_fixed_file(validator, valid_matrix, valid_patch_index, tmp_path):
+    """每个证据角色只能引用政策登记的固定文件。"""
+    fix_dir = _copy_fixture(tmp_path)
+    evidence_path = fix_dir / "baseline" / "run_evidence_manifest.json"
+    evidence = json.loads(evidence_path.read_text("utf-8"))
+    response = next(item for item in evidence["artifacts"] if item["role"] == "model_response")
+    human_review = fix_dir / "baseline" / "human_review.md"
+    response["path"] = "human_review.md"
+    response["size_bytes"] = human_review.stat().st_size
+    response["sha256"] = hashlib.sha256(human_review.read_bytes()).hexdigest()
+    evidence_path.write_text(json.dumps(evidence), "utf-8")
+    _setup_fixture_paths(fix_dir, valid_matrix)
+
+    with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
+            validator.validate_patch_promotion()
+            assert any("角色 model_response 必须对应固定文件" in failure for failure in validator.failures)
+
+
+def test_request_model_and_runtime_version_must_match_run_metadata_and_manifest(
+    validator, valid_matrix, valid_patch_index, tmp_path
+):
+    """同一运行的请求模型与 runtime 版本不能同内部事实冲突。"""
+    fix_dir = _copy_fixture(tmp_path)
+    modify_json(fix_dir / "baseline" / "request.json", {"model": "WrongModel", "runtime_version": "9.9.9"})
+    _setup_fixture_paths(fix_dir, valid_matrix)
+
+    with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
+            validator.validate_patch_promotion()
+            assert any("request.model 与 ai_run_metadata.model 不一致" in failure for failure in validator.failures)
+            assert any("request.runtime_version 与 run_manifest.runtime_version 不一致" in failure for failure in validator.failures)

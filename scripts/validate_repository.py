@@ -231,8 +231,16 @@ class RepositoryValidator:
             if group_id not in allowlist:
                 self.fail(f"{run_dir.name} legacy 证据组不在 allowlist：{group_id!r}")
                 valid = False
-            if evidence.get(f"{role}_run") != expected_paths.get(f"{role}_run"):
-                self.fail(f"{run_dir.name} legacy 证据路径不是政策登记的历史路径")
+            role_path_keys = {
+                "baseline": "baseline_run",
+                "patch_only": "treatment_run",
+            }
+            path_key = role_path_keys.get(role)
+            if path_key is None:
+                self.fail(f"未知实验角色：{role}")
+                return False
+            if evidence.get(path_key) != expected_paths.get(path_key):
+                self.fail(f"{run_dir.name} legacy {path_key} 不是政策登记路径")
                 valid = False
             if evidence.get("comparison_review") != expected_paths.get("comparison_review"):
                 self.fail(f"{run_dir.name} legacy comparison_review 路径不是政策登记的历史路径")
@@ -274,8 +282,13 @@ class RepositoryValidator:
                 self.fail(f"{run_dir.name} run_evidence_manifest.run_id 与 run_manifest 不一致")
                 ok = False
 
-            required_roles = set(reqs.get("required_artifact_roles", []))
+            required_artifacts = reqs.get("required_artifacts", {})
+            if not isinstance(required_artifacts, dict):
+                self.fail("promotion policy required_artifacts 必须是角色到文件路径的对象")
+                return False
+            required_roles = set(required_artifacts)
             seen_roles: set[str] = set()
+            seen_paths: set[str] = set()
             run_root = run_dir.resolve()
             for artifact in evidence_manifest.get("artifacts", []):
                 if not isinstance(artifact, dict):
@@ -289,6 +302,19 @@ class RepositoryValidator:
                 raw_path = artifact.get("path")
                 if not isinstance(raw_path, str):
                     continue
+                if raw_path in seen_paths:
+                    self.fail(f"{run_dir.name} run_evidence_manifest.path 重复：{raw_path}")
+                    ok = False
+                seen_paths.add(raw_path)
+                expected_path = required_artifacts.get(role_name)
+                if expected_path is None:
+                    self.fail(f"{run_dir.name} run_evidence_manifest 包含未知证据角色：{role_name}")
+                    ok = False
+                elif raw_path != expected_path:
+                    self.fail(
+                        f"{run_dir.name} run_evidence_manifest 角色 {role_name} 必须对应固定文件：{expected_path}"
+                    )
+                    ok = False
                 artifact_path = (run_dir / raw_path).resolve()
                 if not artifact_path.is_relative_to(run_root):
                     self.fail(f"{run_dir.name} run_evidence_manifest 路径位于运行目录外：{raw_path}")
@@ -310,6 +336,10 @@ class RepositoryValidator:
             missing_roles = required_roles - seen_roles
             if missing_roles:
                 self.fail(f"{run_dir.name} run_evidence_manifest 缺少证据角色：{', '.join(sorted(missing_roles))}")
+                ok = False
+            missing_paths = set(required_artifacts.values()) - seen_paths
+            if missing_paths:
+                self.fail(f"{run_dir.name} run_evidence_manifest 缺少固定证据文件：{', '.join(sorted(missing_paths))}")
                 ok = False
             return ok
 
@@ -334,6 +364,9 @@ class RepositoryValidator:
                     ok = False
                 if request.get("source") != "real_ai_run":
                     self.fail(f"{run_dir.name} request.source 不是 real_ai_run")
+                    ok = False
+                if request.get("runtime_version") != run_manifest.get("runtime_version"):
+                    self.fail(f"{run_dir.name} request.runtime_version 与 run_manifest.runtime_version 不一致")
                     ok = False
 
                 response_text = (run_dir / "response.json").read_text(encoding="utf-8")
@@ -473,6 +506,14 @@ class RepositoryValidator:
             if reqs.get("require_non_empty_model") and not meta.get("model"):
                 self.fail(f"{run_dir.name} ai_run_metadata.model 为空")
                 ok = False
+            try:
+                request = json.loads((run_dir / "request.json").read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                pass
+            else:
+                if request.get("model") != meta.get("model"):
+                    self.fail(f"{run_dir.name} request.model 与 ai_run_metadata.model 不一致")
+                    ok = False
 
             # started_at 必须存在且为 ISO 8601
             if reqs.get("require_started_at_iso8601") and not meta.get("started_at"):

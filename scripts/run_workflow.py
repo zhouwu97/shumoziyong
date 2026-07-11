@@ -6,7 +6,7 @@ import json
 import re
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from export_runtime_pack import build_manifest, build_pack
 from verify_materials import MaterialVerificationResult, verify_materials
@@ -30,22 +30,32 @@ def sha256_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def build_run_evidence_manifest(run_dir: Path, run_id: str) -> dict[str, Any]:
+EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("run_manifest.json", "run_manifest", "application/json"),
+    ("request.json", "request", "application/json"),
+    ("response.json", "model_response", "application/json"),
+    ("runtime_pack.md", "runtime_pack", "text/markdown"),
+    ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
+    ("problem_manifest.json", "problem_manifest", "application/json"),
+    ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
+    ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
+    ("human_review.md", "human_review", "text/markdown"),
+)
+
+
+def build_run_evidence_manifest(
+    run_dir: Path,
+    run_id: str,
+    content_overrides: Mapping[str, bytes] | None = None,
+) -> dict[str, Any]:
     """为运行目录中的晋级证据生成可验证的路径、大小和内容哈希清单。"""
-    artifact_specs = [
-        ("request.json", "request", "application/json"),
-        ("response.json", "model_response", "application/json"),
-        ("runtime_pack.md", "runtime_pack", "text/markdown"),
-        ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
-        ("problem_manifest.json", "problem_manifest", "application/json"),
-        ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
-        ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
-        ("human_review.md", "human_review", "text/markdown"),
-    ]
     artifacts: list[dict[str, Any]] = []
-    for filename, role, media_type in artifact_specs:
+    for filename, role, media_type in EVIDENCE_ARTIFACT_SPECS:
         path = run_dir / filename
-        content = path.read_bytes()
+        if content_overrides and filename in content_overrides:
+            content = content_overrides[filename]
+        else:
+            content = path.read_bytes()
         artifacts.append(
             {
                 "path": filename,
@@ -53,7 +63,6 @@ def build_run_evidence_manifest(run_dir: Path, run_id: str) -> dict[str, Any]:
                 "media_type": media_type,
                 "size_bytes": len(content),
                 "role": role,
-                "generated_by": "run_workflow.py",
             }
         )
     return {
