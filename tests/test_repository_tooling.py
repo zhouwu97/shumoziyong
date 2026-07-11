@@ -27,6 +27,7 @@ from run_workflow import (  # noqa: E402
     is_gate_complete,
     mark_run_completed,
     record_transition,
+    replay_transition_log,
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
@@ -76,6 +77,46 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     assert manifest["exclusion_experiment"]["enabled"] is False
     validator = RepositoryValidator()
     assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
+
+
+def test_stable_profile_schema_requires_competition_validation() -> None:
+    """Profile 标记 stable 时必须同时声明比赛验证完成。"""
+    profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": False,
+            "validation_level": "cross_mechanism",
+        }
+    )
+    validator = RepositoryValidator()
+    assert not validator.validate_schema(profile, "runtime_profile.schema.json", "伪造 stable profile")
+    assert any("True was expected" in failure for failure in validator.failures)
+
+
+def test_stable_profile_rejects_non_stable_patch() -> None:
+    """Stable Profile 只能导入已具备 Stable Evidence 的 patch。"""
+    profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": True,
+            "validation_level": "competition_verified",
+            "verified_patches": ["A092"],
+        }
+    )
+    validator = RepositoryValidator()
+    real_load = RepositoryValidator().load_json
+
+    def load_json(path: str):
+        if str(path).replace("\\", "/") == "runtime_profiles/general.json":
+            return profile
+        return real_load(path)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(validator, "load_json", load_json)
+        validator.validate_profiles()
+    assert any("stable profile 只能导入 stable patch" in failure for failure in validator.failures)
 
 
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:
@@ -730,6 +771,94 @@ def test_gate_5_review_schema_requires_target_gate(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="target_gate"):
         mark_run_completed(run_dir, "human")
+
+
+def _write_manual_completed_transition_log(
+    run_dir: Path,
+    review: dict[str, object],
+    *,
+    material_ready: bool,
+) -> None:
+    """构造绕过 API 的历史日志，验证 replay 本身仍会 fail-closed。"""
+    review_path = run_dir / "gate_5_review.json"
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    entries: list[dict[str, object]] = [
+        {
+            "from": None,
+            "to": None,
+            "state": "initialized",
+            "material_ready": material_ready,
+            "max_gate": 5,
+        }
+    ]
+    current: int | None = None
+    for gate in range(6):
+        entries.append(
+            {
+                "from": current,
+                "to": gate,
+                "state": f"entering_gate_{gate}",
+                "reviewer": "manual",
+                "decision": "approved",
+            }
+        )
+        current = gate
+    entries.append(
+        {
+            "from": 5,
+            "to": None,
+            "state": "completed",
+            "reviewer": review["reviewer"],
+            "decision": "approved",
+            "review_record": "gate_5_review.json",
+            "review_record_sha256": hashlib.sha256(review_path.read_bytes()).hexdigest(),
+            "reviewed_at": review["reviewed_at"],
+        }
+    )
+    (run_dir / "transitions.jsonl").write_text(
+        "".join(json.dumps(entry) + "\n" for entry in entries),
+        encoding="utf-8",
+    )
+
+
+def test_replay_rejects_forged_rejected_gate_5_review(tmp_path: Path) -> None:
+    """匹配 SHA-256 不能使被拒绝的 Gate 5 review 伪装成完成。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    _write_manual_completed_transition_log(
+        run_dir,
+        {
+            "target_gate": 5,
+            "reviewer": "manual",
+            "reviewed_at": "2026-07-11T00:00:00Z",
+            "decision": "rejected",
+            "final_acceptance": False,
+            "reason": "The final review explicitly rejected this run.",
+        },
+        material_ready=True,
+    )
+    with pytest.raises(ValueError, match="gate_5_review"):
+        replay_transition_log(run_dir)
+
+
+def test_replay_rejects_gate_entries_when_materials_are_not_ready(tmp_path: Path) -> None:
+    """直接篡改 JSONL 也不能绕过材料就绪门禁。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    _write_manual_completed_transition_log(
+        run_dir,
+        {
+            "target_gate": 5,
+            "reviewer": "manual",
+            "reviewed_at": "2026-07-11T00:00:00Z",
+            "decision": "approved",
+            "final_acceptance": True,
+            "reason": "The final review approved this complete run.",
+        },
+        material_ready=False,
+    )
+    with pytest.raises(ValueError, match="material_ready"):
+        replay_transition_log(run_dir)
 
 
 def test_forged_from_gate_rejected(tmp_path: Path) -> None:

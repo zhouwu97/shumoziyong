@@ -429,6 +429,8 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
         raise ValueError("initialized 记录的 from/to 必须为 null")
     if not isinstance(init_data.get("max_gate"), int) or init_data.get("max_gate") < 0 or init_data.get("max_gate") > 5:
         raise ValueError("initialized.max_gate 必须是 0-5 的整数")
+    if init_data.get("material_ready") is not True and len(entries) > 1:
+        raise ValueError("initialized.material_ready 不为 true，日志中不得出现 Gate 转换")
 
     current: int | None = None
     completed = False
@@ -453,8 +455,14 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
                 raise ValueError("completed 记录必须绑定 gate_5_review.json")
             if not isinstance(review_sha, str) or not re.fullmatch(r"[a-f0-9]{64}", review_sha):
                 raise ValueError("completed 记录缺少合法 review_record_sha256")
-            review_path = run_dir / "gate_5_review.json"
-            if not review_path.is_file() or sha256_bytes(review_path.read_bytes()) != review_sha:
+            try:
+                _, actual_review_sha = _load_and_validate_gate_5_review(
+                    run_dir,
+                    str(entry["reviewer"]),
+                )
+            except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError(f"completed 记录绑定的 gate_5_review.json 无效：{exc}") from exc
+            if actual_review_sha != review_sha:
                 raise ValueError("completed 记录绑定的 gate_5_review.json SHA-256 不匹配")
             completed = True
             completed_entry = entry

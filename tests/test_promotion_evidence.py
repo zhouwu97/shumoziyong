@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_repository import RepositoryValidator
 from finalize_run_evidence import finalize_run_evidence
 from run_workflow import mark_run_completed, record_transition
+from promotion_engine import evaluate_status_eligibility
 
 FIXTURE_DIR = ROOT / "tests/fixtures/valid_promotion_evidence"
 
@@ -732,3 +733,23 @@ def test_evaluate_status_eligibility_stable_fail_closed():
     report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "stable")
     assert not report.eligible
     assert any("必须提供 stable_evidence 对象" in gap for gap in report.gaps)
+
+
+@pytest.mark.parametrize("risk", ["M1", "M2", "M3", "M5"])
+def test_forbidden_material_risk_blocks_promotion(tmp_path, risk):
+    """failure_labels.json 中的禁止材料风险必须阻断晋级。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    record_path = run_dir / "validation.md"
+    record_path.write_text("validation record", encoding="utf-8")
+    (run_dir / "failure_labels.json").write_text(
+        json.dumps({"labels": [], "material_risks": [risk]}),
+        encoding="utf-8",
+    )
+    report = evaluate_status_eligibility(
+        {"patch_id": "A001", "status": "candidate", "validation_records": [str(record_path)]},
+        {},
+        {"status_rules": {"candidate": {"forbidden_material_risks": [risk]}}},
+        "candidate",
+    )
+    assert any(f"禁止材料风险：{risk}" in gap for gap in report.gaps)

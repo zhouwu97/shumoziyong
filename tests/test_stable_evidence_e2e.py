@@ -141,6 +141,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
     competition_result_path.write_text(json.dumps(competition_result), "utf-8")
 
     source_index = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text("utf-8"))
+    policy_version = json.loads((ROOT / "policies" / "promotion_policy.json").read_text("utf-8"))["policy_version"]
     stable_patch = copy.deepcopy(next(item for item in source_index if item["patch_id"] == "A092"))
     stable_patch["status"] = "stable"
     original_evidence = json.loads((fix_dir / "patch_index.json").read_text("utf-8"))[0]["stable_evidence"]
@@ -148,6 +149,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
         negative_run["case"] = "2016-C"
     original_evidence["competition_validation_records"][0]["runtime_pack_manifest_sha256"] = _sha256(competition_manifest_path)
     original_evidence["human_approval_record"]["patch_id"] = "A092"
+    original_evidence["human_approval_record"]["policy_version"] = policy_version
     stable_patch["stable_evidence"] = original_evidence
     patch_index = [stable_patch]
 
@@ -177,6 +179,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
         stable_patch["stable_evidence"],
         patch_sha256=_sha256(ROOT / stable_patch["file"]),
         inner_component_sha256s=inner_hashes,
+        policy_version=policy_version,
     )
 
     def mock_resolve(self, raw):
@@ -192,6 +195,14 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
             assert validator.validate_schema(patch_index, "patch_index.schema.json", "stable fixture patch_index")
             validator.validate_patch_promotion()
             assert not validator.failures
+
+    stable_patch["stable_evidence"]["human_approval_record"]["policy_version"] = "0.0.0"
+    version_validator = RepositoryValidator()
+    with patch.object(RepositoryValidator, "resolve_repo_path", new=mock_resolve):
+        with patch.object(version_validator, "load_json", side_effect=mock_load_json(matrix, patch_index)):
+            version_validator.validate_patch_promotion()
+            assert any("policy_version" in failure for failure in version_validator.failures)
+    stable_patch["stable_evidence"]["human_approval_record"]["policy_version"] = policy_version
 
     (fix_dir / "fix_record.json").write_text('{"patch_id": "A092", "fix_description": "Tampered."}', "utf-8")
     tamper_validator = RepositoryValidator()

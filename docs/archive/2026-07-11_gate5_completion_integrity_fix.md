@@ -23,3 +23,13 @@
 - `python -m pytest -q`：96 passed。
 - `python scripts/validate_repository.py`：30 项通过，0 项失败。
 - Stable E2E 使用完整 patch schema、真实 `build_manifest()` 输出和正式 Gate API 构造的转换日志；同时验证内部证据被篡改后人工批准摘要失效。
+
+## 后续复核修复
+
+- 修正 `failure_labels.json` 材料风险的交集逻辑。`M1`、`M2`、`M3`、`M5` 现在分别与 policy 的禁止材料风险集合比对，任一命中都会阻断晋级。
+- `replay_transition_log()` 在读取 completed 事件时重新调用 Gate 5 审核验证，检查 Schema、审核决定、最终验收、审核人一致性和 SHA-256；不再仅相信手工写入的哈希。
+- 回放拒绝 `material_ready != true` 的日志中出现任何 Gate 转换，防止直接修改 JSONL 绕过 `record_transition()`。
+- Stable Evidence 摘要不再使用硬编码 policy version。调用方必须显式传入当前 policy version，人工批准记录的版本也必须与当前 policy 完全一致。
+- Runtime Profile 的 `stable` 状态要求 `competition_verified=true`、`validation_level=competition_verified`，且只能导入状态同为 `stable` 的 patch；后者仍会由晋级验证器检查其 Stable Evidence。
+
+本轮回归结果：`python -m pytest -q` 为 104 passed；`python scripts/validate_repository.py` 为 30 项通过、0 项失败。

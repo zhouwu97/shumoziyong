@@ -43,5 +43,19 @@
     },
     "known_failures": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "last_updated": {"type": "string", "format": "date"}
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"maturity": {"const": "stable"}},
+        "required": ["maturity"]
+      },
+      "then": {
+        "properties": {
+          "competition_verified": {"const": true},
+          "validation_level": {"const": "competition_verified"}
+        }
+      }
+    }
+  ]
 }

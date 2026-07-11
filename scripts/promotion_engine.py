@@ -27,9 +27,12 @@ def stable_evidence_digest(
     evidence: dict[str, Any],
     patch_sha256: str = "",
     inner_component_sha256s: dict[str, str] | None = None,
-    policy_version: str = "1.3.0"
+    *,
+    policy_version: str,
 ) -> str:
     """计算稳定证据的摘要，供人工批准记录绑定。"""
+    if not isinstance(policy_version, str) or not policy_version.strip():
+        raise ValueError("stable evidence digest 必须显式提供非空 policy_version")
     import json
     data = {
         "digest_schema_version": "2.0.0",
@@ -201,8 +204,9 @@ def _check_forbidden_labels(
             try:
                 data = json.loads(labels_file.read_text(encoding="utf-8"))
                 labels = set(data.get("labels", []))
+                material_risks = set(data.get("material_risks", []))
                 hits_p = labels & forbidden_p
-                hits_m = labels & set(data.get("material_risks", []))
+                hits_m = material_risks & forbidden_m
                 for label in sorted(hits_p):
                     gaps.append(f"validation_record 中出现禁止标签：{label}（禁止 {sorted(forbidden_p)}）")
                 for label in sorted(hits_m):
@@ -391,17 +395,26 @@ def evaluate_status_eligibility(
             if not isinstance(approval, dict):
                 gaps.append("需要与证据摘要绑定的 human_approval_record 人工批准记录")
             else:
+                policy_version = policy.get("policy_version")
+                if not isinstance(policy_version, str) or not policy_version.strip():
+                    gaps.append("promotion policy 缺少用于 stable evidence 的 policy_version")
+                    policy_version = "<missing>"
                 expected_digest = stable_evidence_digest(
-                    patch, 
+                    patch,
                     evidence,
                     patch.get("_resolved_patch_sha256", ""),
-                    patch.get("_resolved_inner_sha256s", {})
+                    patch.get("_resolved_inner_sha256s", {}),
+                    policy_version=policy_version,
                 )
                 reviewer = approval.get("reviewer", approval.get("approved_by", ""))
                 if approval.get("patch_id") not in (None, pid):
                     gaps.append("人工批准记录 patch_id 与当前 Patch 不一致")
                 if approval.get("target_status") not in (None, "stable"):
                     gaps.append("人工批准记录 target_status 必须为 stable")
+                if approval.get("policy_version") != policy_version:
+                    gaps.append(
+                        f"人工批准记录 policy_version 必须与当前策略一致（当前为 {policy_version}）"
+                    )
                 if approval.get("decision") not in (None, "approved"):
                     gaps.append("人工批准记录 decision 必须为 approved")
                 if not isinstance(reviewer, str) or not reviewer.strip():

@@ -147,11 +147,21 @@ class RepositoryValidator:
                     self.fail(f"runtime profile {profile_id} 引用了未知 patch：{patch_id}")
                 elif patch.get("status") not in {"verified_candidate", "stable"}:
                     self.fail(f"runtime profile {profile_id} 错误导入未验证 patch：{patch_id}")
+                elif data.get("maturity") == "stable" and patch.get("status") != "stable":
+                    self.fail(
+                        f"runtime profile {profile_id} 为 stable，"
+                        f"但 stable profile 只能导入 stable patch：{patch_id}"
+                    )
             for evidence in data.get("validation", {}).get("evidence", []):
                 if not (ROOT / evidence).is_file():
                     self.fail(f"runtime profile {profile_id} 的证据不存在：{evidence}")
             if data.get("competition_verified") and data.get("validation_level") != "competition_verified":
                 self.fail(f"runtime profile {profile_id} 的 competition_verified 与 validation_level 冲突")
+            if data.get("maturity") == "stable":
+                if data.get("competition_verified") is not True:
+                    self.fail(f"runtime profile {profile_id} 为 stable 时 competition_verified 必须为 true")
+                if data.get("validation_level") != "competition_verified":
+                    self.fail(f"runtime profile {profile_id} 为 stable 时 validation_level 必须为 competition_verified")
         missing = PROFILE_IDS - found_profiles
         if missing:
             self.fail(f"缺少 runtime 状态文件：{', '.join(sorted(missing))}")
@@ -942,6 +952,10 @@ class RepositoryValidator:
                 return False
 
             ok = True
+            policy_version = policy.get("policy_version")
+            if not isinstance(policy_version, str) or not policy_version.strip():
+                self.fail(f"{patch_id} promotion policy 缺少合法 policy_version")
+                return False
 
             def _read_json_file(path: Path, label: str) -> dict[str, Any] | None:
                 try:
@@ -1217,13 +1231,17 @@ class RepositoryValidator:
                 patch, 
                 evidence, 
                 patch_sha256=patch.get("_resolved_patch_sha256", ""),
-                inner_component_sha256s=patch.get("_resolved_inner_sha256s", {})
+                inner_component_sha256s=patch.get("_resolved_inner_sha256s", {}),
+                policy_version=policy_version,
             )
             if approval.get("evidence_digest") != expected_digest:
                 self.fail(f"{patch_id} stable_evidence 人工批准 evidence_digest 与当前证据不匹配")
                 ok = False
             if approval.get("decision") not in (None, "approved"):
                 self.fail(f"{patch_id} stable_evidence 人工批准 decision 必须为 approved")
+                ok = False
+            if approval.get("policy_version") != policy_version:
+                self.fail(f"{patch_id} stable_evidence 人工批准 policy_version 与当前策略不一致")
                 ok = False
             reviewer = approval.get("reviewer", approval.get("approved_by", ""))
             if not isinstance(reviewer, str) or not reviewer.strip():
