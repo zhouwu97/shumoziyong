@@ -288,6 +288,14 @@ def _experiment_kind(candidate_patches: list[str], excluded_patches: list[str]) 
 
 
 RUN_ID_MAX_ATTEMPTS = 8
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
 
 
 def _run_id_clock() -> datetime:
@@ -314,6 +322,15 @@ def build_automatic_run_id(problem: str, workflow: str, profile: str) -> str:
         f"{_run_id_clock().strftime('%Y%m%d_%H%M%S')}_"
         f"{_normalize_run_id_problem(problem)}_{workflow}_{profile}_{token}"
     )
+
+
+def validate_explicit_run_id(run_id: str) -> str:
+    """限制显式 Run ID 为跨平台安全的单段目录名。"""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,159}", run_id):
+        raise ValueError("显式 Run ID 必须为 1-160 位安全字母数字、下划线或连字符")
+    if run_id.upper() in WINDOWS_RESERVED_NAMES:
+        raise ValueError("显式 Run ID 不能使用 Windows 保留设备名")
+    return run_id
 
 
 def resolve_profile_for_workflow(args: argparse.Namespace, workflow: str) -> str:
@@ -343,7 +360,7 @@ def _resolve_run_directory(
         output_root = ROOT / output_root
     explicit_run_id = getattr(args, "run_id", None)
     if explicit_run_id:
-        run_id = str(explicit_run_id)
+        run_id = validate_explicit_run_id(str(explicit_run_id))
         run_dir = output_root / run_id
         if run_dir.exists():
             raise FileExistsError(f"运行目录已存在：{run_dir}")
@@ -1803,7 +1820,23 @@ def _prepare_fork_child(
 
 def _append_profile_fork_event(parent_run: Path, transaction: Mapping[str, Any]) -> None:
     """在父 Run 链尾追加 superseded 生命周期事件。"""
-    if _transaction_head_sha256(parent_run) != transaction["parent_transition_head_sha256"]:
+    expected_parent_head = transaction["parent_transition_head_sha256"]
+    if _transaction_head_sha256(parent_run) != expected_parent_head:
+        entries = _read_transition_entries(parent_run / "transitions.jsonl")
+        existing = entries[-1]
+        expected_fields = {
+            "previous_event_sha256": expected_parent_head,
+            "event_type": "profile_forked",
+            "state": "profile_forked",
+            "fork_transaction_id": transaction["fork_transaction_id"],
+            "child_run_id": transaction["child_run_id"],
+            "selected_profile": transaction["selected_profile"],
+            "reviewer": transaction["reviewer"],
+            "reason": transaction["reason"],
+            "lifecycle_status": "superseded",
+        }
+        if all(existing.get(field) == value for field, value in expected_fields.items()):
+            return
         raise ValueError("父 Run transition head 已变化，禁止覆盖新状态")
     state = replay_transition_log(parent_run)
     if state.get("current_gate") != 0 or state.get("lifecycle_status") != "active":
@@ -1911,11 +1944,24 @@ def _staged_child_path(run_root: Path, transaction: Mapping[str, Any]) -> Path:
 def _publish_staged_child(run_root: Path, transaction: Mapping[str, Any]) -> Path:
     """原子发布已完整验证的临时子 Run。"""
     staged_child = _staged_child_path(run_root, transaction)
-    if not staged_child.is_dir():
-        raise ValueError("prepared 事务缺少可恢复的临时子 Run")
     final_child = run_root / str(transaction["child_run_id"])
     if final_child.exists():
-        raise FileExistsError("正式子 Run 目录已存在，拒绝覆盖")
+        if staged_child.exists():
+            raise FileExistsError("临时子 Run 与正式子 Run 同时存在，拒绝推断事务状态")
+        record = _load_json_object(_fork_record_path(final_child), "published child fork_record.json")
+        for field, expected in {
+            "fork_transaction_id": transaction["fork_transaction_id"],
+            "parent_run_id": transaction["parent_run_id"],
+            "child_run_id": transaction["child_run_id"],
+            "selected_profile": transaction["selected_profile"],
+        }.items():
+            if record.get(field) != expected:
+                raise ValueError(f"已发布子 Run 的 fork_record.{field} 与事务不一致")
+        if record.get("status") not in {"prepared", "committed"}:
+            raise ValueError("已发布子 Run 的 fork_record.status 非法")
+        return final_child
+    if not staged_child.is_dir():
+        raise ValueError("prepared 事务缺少可恢复的临时子 Run")
     staged_child.replace(final_child)
     try:
         staged_child.parent.rmdir()

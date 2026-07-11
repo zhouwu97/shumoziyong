@@ -42,8 +42,14 @@ def _sha(content: bytes) -> str:
 
 
 def _canonical_bytes(data: Mapping[str, Any]) -> bytes:
-    """生成不含自引用摘要字段的稳定 JSON 字节。"""
+    """生成稳定的扫描事实字节；人工确认分类不改变 plan 身份。"""
     payload = {key: value for key, value in data.items() if key != "plan_digest"}
+    files = payload.get("files")
+    if isinstance(files, list):
+        payload["files"] = [
+            {**item, "confirmed_category": None} if isinstance(item, Mapping) else item
+            for item in files
+        ]
     return json.dumps(
         payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")

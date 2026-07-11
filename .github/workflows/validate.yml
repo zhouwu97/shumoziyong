@@ -45,6 +45,6 @@ jobs:
         env:
           SOURCE_DATE_EPOCH: "1783699200"
         run: |
-          python scripts/export_runtime_pack.py --output first.md --manifest-output first.json
-          python scripts/export_runtime_pack.py --output second.md --manifest-output second.json
+          python scripts/export_runtime_pack.py --context new_problem --profile general --output first.md --manifest-output first.json
+          python scripts/export_runtime_pack.py --context new_problem --profile general --output second.md --manifest-output second.json
           python -c "import json; a=json.load(open('first.json',encoding='utf-8')); b=json.load(open('second.json',encoding='utf-8')); assert a==b; assert open('first.md','rb').read()==open('second.md','rb').read()"

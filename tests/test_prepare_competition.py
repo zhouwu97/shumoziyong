@@ -26,11 +26,10 @@ def _materials(tmp_path: Path) -> Path:
 
 
 def _confirm_all(plan_path: Path) -> dict[str, object]:
-    """模拟人工逐项确认分类，并重算计划身份摘要。"""
+    """模拟人工只填写逐项分类，不调用内部函数重算扫描摘要。"""
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     for item in plan["files"]:
         item["confirmed_category"] = item["suggested_category"]
-    plan["plan_digest"] = preparation._plan_digest(plan)
     plan_path.write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
     return plan
 
