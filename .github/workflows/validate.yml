@@ -28,6 +28,13 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.lock
       - run: python -m pip install --require-hashes -r requirements.lock
+      - name: Check evaluation case registry
+        run: python scripts/check_evaluation_case_registry.py
+      - name: Verify evaluation registry is generated
+        shell: bash
+        run: |
+          python scripts/update_evaluation_case_registry.py
+          git diff --exit-code -- tests/prompt_regression/evaluation_case_registry.json
       - run: python -m ruff check scripts tests
       - run: python -m pyright
       - run: python scripts/validate_repository.py

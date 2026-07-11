@@ -13,7 +13,7 @@
     {
       "case_id": "test_case_t",
       "case_file": "tests/fixtures/valid_promotion_evidence/test_t.yaml",
-      "case_sha256": "5e223c5b2c87eff22a1dfa0d34edaf170c9cb2457805a8223fa4b5358fd66319",
+      "case_sha256": "6ca5138bffe0f623ccc16a3bba19fe1dd592ed82c5c1d3c48ab152abe05440b3",
       "control_type": "treatment",
       "target_patch": "A001",
       "minimum_assertion_count": 1

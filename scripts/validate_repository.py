@@ -10,13 +10,8 @@ import hashlib
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from evaluate_prompt_response import (
-    EVALUATOR_VERSION,
-    evaluate_case,
-    load_case,
-    evaluate_manifest_alignment,
-)
-from evaluation_case_registry import substantive_assertion_count
+from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
+from evaluation_case_registry import validate_registry
 from evidence_validation import derive_v2_matrix_results
 from profile_derivation import derive_profile_report
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
@@ -1418,76 +1413,17 @@ class RepositoryValidator:
                 self.pass_("patch 负控矩阵覆盖全部已注册 patch")
 
     def validate_evaluation_case_registry(self) -> None:
-        """验证晋级自动评估用例的授权范围和最低断言强度。"""
+        """复用共享注册表检查，避免 CI 与本地总校验规则漂移。"""
         registry_path = "tests/prompt_regression/evaluation_case_registry.json"
         registry = self.load_json(registry_path)
         if not isinstance(registry, dict):
             return
-        if not self.validate_schema(
-            registry,
-            "evaluation_case_registry.schema.json",
-            "晋级自动评估用例注册表",
-        ):
-            return
-        if registry.get("evaluator_version") != EVALUATOR_VERSION:
-            self.fail("晋级自动评估用例注册表 evaluator_version 与当前评估器不一致")
-            return
-
-        seen: set[tuple[Any, Any, Any]] = set()
-        valid = True
-        for item in registry.get("cases", []):
-            if not isinstance(item, dict):
-                valid = False
-                continue
-            identity = (
-                item.get("case_id"),
-                item.get("case_file"),
-                item.get("case_sha256"),
-            )
-            if identity in seen:
-                self.fail(f"晋级自动评估用例注册表存在重复授权：{identity}")
-                valid = False
-                continue
-            seen.add(identity)
-            try:
-                case_path = self.resolve_repo_path(str(item.get("case_file", "")))
-                actual_sha = hashlib.sha256(case_path.read_bytes()).hexdigest()
-                if actual_sha != item.get("case_sha256"):
-                    self.fail(
-                        f"晋级自动评估用例内容哈希不一致：{item.get('case_file')}"
-                    )
-                    valid = False
-                    continue
-                case = load_case(case_path, str(item.get("case_id", "")))
-            except (OSError, ValueError) as exc:
-                self.fail(f"晋级自动评估用例无法读取：{exc}")
-                valid = False
-                continue
-
-            assertions = substantive_assertion_count(case)
-            minimum = item.get("minimum_assertion_count")
-            if not isinstance(minimum, int) or assertions < minimum:
-                self.fail(
-                    "晋级自动评估用例实质断言不足："
-                    f"{item.get('case_id')} 当前 {assertions}，授权下限 {minimum}"
-                )
-                valid = False
-            target_patch = item.get("target_patch")
-            expected = case.get("expected", {})
-            asserted_patches = (
-                set(expected.get("patch_not_applicable", {}))
-                if isinstance(expected, dict)
-                and isinstance(expected.get("patch_not_applicable"), dict)
-                else set()
-            )
-            if target_patch is not None and target_patch not in asserted_patches:
-                self.fail(
-                    "晋级自动评估用例 target_patch 未被适用性断言覆盖："
-                    f"{item.get('case_id')} / {target_patch}"
-                )
-                valid = False
-        if valid:
-            self.pass_(f"晋级自动评估用例注册表（{len(seen)} 条）")
+        issues = validate_registry(registry, root=ROOT)
+        if issues:
+            for issue in issues:
+                self.fail(f"晋级自动评估用例注册表：{issue}")
+        else:
+            self.pass_("晋级自动评估用例注册表 Schema、LF、哈希和授权约束")
 
     def run(self) -> int:
         self.validate_all_json_syntax()

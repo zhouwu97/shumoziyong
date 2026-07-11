@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from evaluation_case_registry import (
+    EVALUATOR_VERSION,
     find_authorized_case,
     load_registry,
     sha256_bytes,
@@ -16,9 +17,6 @@ from evaluation_case_registry import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EVALUATOR_VERSION = "1.2.0"
-
-
 def get_path(data: dict[str, Any], dotted_path: str) -> tuple[bool, Any]:
     current: Any = data
     for part in dotted_path.split("."):

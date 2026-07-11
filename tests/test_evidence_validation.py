@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -14,6 +16,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import evidence_validation as evidence_module  # noqa: E402
 import promotion_engine  # noqa: E402
 import promote_patch as promote_patch_module  # noqa: E402
+from evaluation_case_registry import (  # noqa: E402
+    build_expected_registry,
+    validate_registry,
+)
 from evidence_validation import (  # noqa: E402
     ControlOutcome,
     EvidenceOutcome,
@@ -283,6 +289,123 @@ def test_full_run_recomputes_automatic_evaluation(
     assert not outcome.valid
     assert any("response.json diagnosis.schema.json" in error for error in outcome.errors)
     assert any("现场重算" in error for error in outcome.errors), outcome.errors
+
+
+def _bypass_full_run_integrity(monkeypatch: Any) -> None:
+    """隔离自动评估绑定测试，避免无关 Seal 细节干扰断言。"""
+    import finalize_run_evidence
+    import run_workflow
+
+    monkeypatch.setattr(run_workflow, "verify_run_seal", lambda *_args: {})
+    monkeypatch.setattr(run_workflow, "verify_gate_artifacts", lambda *_args: {})
+    monkeypatch.setattr(
+        run_workflow,
+        "replay_transition_log",
+        lambda *_args: {"completed": True, "max_gate": 5, "transition_version": "2.0.0"},
+    )
+    monkeypatch.setattr(
+        finalize_run_evidence, "validate_evidence_manifest", lambda *_args: []
+    )
+
+
+def test_full_run_rejects_diagnosis_below_policy_minimum(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """普通 v2 晋级路径不能接受低于 Policy 下限的 Diagnosis v1。"""
+    fixture = ROOT / "tests" / "fixtures" / "valid_promotion_evidence" / "baseline"
+    run_dir = tmp_path / "run"
+    shutil.copytree(fixture, run_dir)
+    response_path = run_dir / "response.json"
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    response["schema_version"] = "1.0.0"
+    response_text = json.dumps(response)
+    response_path.write_text(response_text, encoding="utf-8")
+    automatic_path = run_dir / "automatic_evaluation.json"
+    automatic = json.loads(automatic_path.read_text(encoding="utf-8"))
+    automatic["response_sha256"] = hashlib.sha256(
+        response_text.encode("utf-8")
+    ).hexdigest()
+    automatic_path.write_text(json.dumps(automatic), encoding="utf-8")
+    _bypass_full_run_integrity(monkeypatch)
+
+    outcome = validate_full_run(
+        run_dir,
+        {"diagnosis_schema_requirements": {"minimum_schema_version": "2.0.0"}},
+    )
+
+    assert not outcome.valid
+    assert any("低于晋级证据最低版本" in error for error in outcome.errors)
+
+
+def test_authorized_case_role_and_target_must_match_run_context(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """授权 YAML 不能跨 baseline/treatment 或跨目标 Patch 复用。"""
+    baseline_fixture = ROOT / "tests" / "fixtures" / "valid_promotion_evidence" / "baseline"
+    treatment_fixture = ROOT / "tests" / "fixtures" / "valid_promotion_evidence" / "treatment"
+    baseline_dir = tmp_path / "baseline"
+    treatment_dir = tmp_path / "treatment"
+    shutil.copytree(baseline_fixture, baseline_dir)
+    shutil.copytree(treatment_fixture, treatment_dir)
+    # 把 treatment 授权用例记录放到 baseline 运行，记录内部仍然自洽。
+    shutil.copy2(
+        treatment_fixture / "automatic_evaluation.json",
+        baseline_dir / "automatic_evaluation.json",
+    )
+    treatment_manifest_path = treatment_dir / "run_manifest.json"
+    treatment_manifest = json.loads(treatment_manifest_path.read_text(encoding="utf-8"))
+    treatment_manifest["target_patch"] = "A999"
+    treatment_manifest_path.write_text(json.dumps(treatment_manifest), encoding="utf-8")
+    _bypass_full_run_integrity(monkeypatch)
+
+    baseline_outcome = validate_full_run(
+        baseline_dir, {}, expected_role="baseline"
+    )
+    treatment_outcome = validate_full_run(
+        treatment_dir,
+        {},
+        expected_role="patch_only",
+        expected_target_patch="A999",
+    )
+
+    assert not baseline_outcome.valid
+    assert any("control_type 与运行角色" in error for error in baseline_outcome.errors)
+    assert not treatment_outcome.valid
+    assert any("target_patch 与运行目标 Patch" in error for error in treatment_outcome.errors)
+
+
+def test_registry_generator_rejects_crlf_and_only_derives_hash(
+    tmp_path: Path,
+) -> None:
+    """更新器不能把 CRLF 工作区字节重新写成可信哈希。"""
+    case_path = tmp_path / "case.yaml"
+    case_path.write_bytes(
+        b"cases:\r\n  - case_id: C001\r\n    expected:\r\n      values:\r\n        primary_type: optimization\r\n"
+    )
+    registry = {
+        "registry_version": "1.0.0",
+        "evaluator_version": "1.2.0",
+        "cases": [
+            {
+                "case_id": "C001",
+                "case_file": "case.yaml",
+                "case_sha256": "0" * 64,
+                "control_type": "full_run",
+                "target_patch": None,
+                "minimum_assertion_count": 1,
+            }
+        ],
+    }
+
+    assert any("不是 LF 文件" in issue for issue in validate_registry(registry, root=tmp_path))
+    with pytest.raises(ValueError, match="不是 LF 文件"):
+        build_expected_registry(registry, root=tmp_path)
+
+    case_path.write_bytes(case_path.read_bytes().replace(b"\r\n", b"\n"))
+    expected = build_expected_registry(registry, root=tmp_path)
+    assert expected["cases"][0]["case_sha256"] != registry["cases"][0]["case_sha256"]
+    assert expected["cases"][0]["control_type"] == "full_run"
+    assert expected["cases"][0]["minimum_assertion_count"] == 1
 
 
 def test_full_run_rejects_unregistered_or_empty_evaluation_case(

@@ -234,6 +234,28 @@ def validate_full_run(
         response = json.loads(response_text)
         if not isinstance(response, dict):
             raise ValueError("response.json 必须是 JSON 对象")
+        diagnosis_requirements = policy.get("diagnosis_schema_requirements", {})
+        minimum_version = diagnosis_requirements.get("minimum_schema_version", "2.0.0")
+        response_version = response.get("schema_version")
+        if not isinstance(response_version, str):
+            errors.append("response.json.schema_version 必须是版本字符串")
+        elif not isinstance(minimum_version, str):
+            errors.append("Policy diagnosis_schema_requirements.minimum_schema_version 非法")
+        else:
+            try:
+                actual_parts = tuple(int(part) for part in response_version.split("."))
+                minimum_parts = tuple(int(part) for part in minimum_version.split("."))
+            except ValueError:
+                errors.append("response.json.schema_version 必须是数字语义版本")
+            else:
+                width = max(len(actual_parts), len(minimum_parts))
+                if actual_parts + (0,) * (width - len(actual_parts)) < minimum_parts + (
+                    0,
+                ) * (width - len(minimum_parts)):
+                    errors.append(
+                        "response.json.schema_version 低于晋级证据最低版本："
+                        f"当前 {response_version}，要求 {minimum_version}"
+                    )
         diagnosis_schema = _diagnosis_schema_name(response)
         errors.extend(
             f"response.json {diagnosis_schema}: {issue}"
@@ -303,6 +325,31 @@ def validate_full_run(
                             errors.append(
                                 f"automatic_evaluation.{field_name} 与授权用例不一致"
                             )
+                    manifest_role = manifest.get("experiment_role")
+                    effective_role = (
+                        expected_role
+                        if expected_role is not None
+                        else manifest_role
+                        if isinstance(manifest_role, str)
+                        else None
+                    )
+                    role_key = effective_role or ""
+                    expected_control_type = {
+                        "baseline": "baseline",
+                        "patch_only": "treatment",
+                    }.get(role_key, "full_run")
+                    if authorized.get("control_type") != expected_control_type:
+                        errors.append("授权用例 control_type 与运行角色不一致")
+                    if effective_role == "patch_only":
+                        effective_target_patch = expected_target_patch or manifest.get(
+                            "target_patch"
+                        )
+                        if authorized.get("target_patch") != effective_target_patch:
+                            errors.append("授权用例 target_patch 与运行目标 Patch 不一致")
+                    elif effective_role == "baseline" and authorized.get(
+                        "target_patch"
+                    ) is not None:
+                        errors.append("baseline 授权用例 target_patch 必须为 null")
             recomputed_errors = evaluate_case(case, response)
             recomputed_errors.extend(evaluate_manifest_alignment(response, runtime))
             recomputed_result = "fail" if recomputed_errors else "pass"
