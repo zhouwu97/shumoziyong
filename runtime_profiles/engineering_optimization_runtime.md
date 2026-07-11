@@ -15,19 +15,14 @@
 
 1. `prompt_base/prompt_base_v1.0.md`
 2. `prompt_plugins/plugin_optimization_v1.md`
-3. `prompt_patches/patch_index.json` 中 `runtime_profiles` 包含 `engineering_optimization`，且状态为 `regression_verified` 或 `stable` 的 patch
+3. `prompt_patches/patch_index.json` 中 `runtime_profiles` 包含 `engineering_optimization`，且状态为 `regression_verified` 或 `competition_evidenced` 的 patch
 4. `checklists/gate_0_problem_diagnosis.md`
 5. `checklists/gate_1_before_modeling.md`
 6. `checklists/gate_2_before_coding.md`
 7. `checklists/gate_3_before_writing.md`
 8. `checklists/gate_4_final_review.md`
 
-当前默认导入的工程优化 patch：
-
-1. `prompt_patches/patch_A092_engineering_optimization.md`
-2. `prompt_patches/patch_A127_engineering_layout_optimization.md`
-
-`candidate` patch 只允许在旧题闭环测试中显式启用，不进入默认比赛运行包。
+当前没有满足正式导入状态的工程优化 patch。`review_ready` patch 只允许在显式实验中启用，不进入默认比赛运行包。
 
 硬规则：
 

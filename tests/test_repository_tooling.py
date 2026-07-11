@@ -25,6 +25,9 @@ from run_workflow import (  # noqa: E402
     TRANSITION_VERSION,
     VALID_TRANSITIONS,
     advance_run,
+    atomic_write_bytes,
+    chain_transition_event,
+    complete_and_seal_run,
     create_old_problem_run,
     create_prompt_regression_run,
     get_current_gate,
@@ -320,21 +323,21 @@ def _v2_gate_0_run(parent: Path, name: str = "v2_run") -> Path:
     run_dir.mkdir()
     _write_minimal_run_binding(run_dir, run_id=name)
     (run_dir / "gate_artifacts").mkdir()
+    initialized = chain_transition_event(
+        {
+            "transition_version": TRANSITION_VERSION,
+            "from": None,
+            "to": None,
+            "completed_gate": None,
+            "next_gate": 0,
+            "state": "initialized",
+            "material_ready": True,
+            "max_gate": 5,
+        },
+        None,
+    )
     (run_dir / "transitions.jsonl").write_text(
-        json.dumps(
-            {
-                "transition_version": TRANSITION_VERSION,
-                "from": None,
-                "to": None,
-                "completed_gate": None,
-                "next_gate": 0,
-                "state": "initialized",
-                "material_ready": True,
-                "max_gate": 5,
-            }
-        )
-        + "\n",
-        encoding="utf-8",
+        json.dumps(initialized) + "\n", encoding="utf-8"
     )
     record_transition(run_dir, None, 0, "human", "approved")
     return run_dir
@@ -358,6 +361,21 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     assert manifest["exclusion_experiment"]["enabled"] is False
     validator = RepositoryValidator()
     assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
+
+
+def test_build_identity_is_independent_from_generation_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pack = build_pack("engineering_optimization")
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1704067200")
+    first = build_manifest("engineering_optimization", pack)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1711929600")
+    second = build_manifest("engineering_optimization", pack)
+
+    assert first["generated_at"] != second["generated_at"]
+    assert first["build_identity"] == second["build_identity"]
+    changed = build_manifest("engineering_optimization", pack + "\nchanged")
+    assert changed["build_identity"] != first["build_identity"]
 
 
 @pytest.mark.skip(reason="旧 Profile 人工计数契约已由 test_profile_derivation.py 取代")
@@ -706,10 +724,10 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     run_dir, ready = create_old_problem_run(args)
     manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     assert ready is True
-    assert manifest["automatic_stable_update"] is False
+    assert "automatic_stable_update" not in manifest
     assert manifest["experiment_kind"] == "standard"
-    assert manifest["run_status"] == "initialized"
-    assert manifest["integrity_status"] == "unsealed"
+    assert manifest["manifest_version"] == "2.0.0"
+    assert manifest["initial_state"] == "initialized"
     assert (run_dir / "runtime_pack.manifest.json").is_file()
     assert (run_dir / "patch_suggestions.md").is_file()
     # 新增：problem_manifest 记录材料文件哈希
@@ -844,13 +862,27 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     write_gate_artifact_manifest(
         run_dir, 5, completed_at="2026-07-11T00:00:00Z"
     )
+    immutable_manifest_before = (run_dir / "run_manifest.json").read_bytes()
     mark_run_completed(run_dir, "test_reviewer")
+    preseal_report = verify_run(run_dir)
+    assert preseal_report["completed"] is True
+    assert preseal_report["sealed"] is False
+    assert preseal_report["eligible_for_promotion"] is False
 
-    evidence = finalize_run_evidence(run_dir)
+    report = complete_and_seal_run(run_dir, "test_reviewer")
+    evidence = json.loads(
+        (run_dir / "run_evidence_manifest.json").read_text(encoding="utf-8")
+    )
     required_artifacts = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))["run_evidence_requirements"]["ai_run_metadata_checks"]["required_artifacts"]
-    sealed_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
-    assert sealed_manifest["run_status"] == "completed"
-    assert sealed_manifest["integrity_status"] == "sealed"
+    assert (run_dir / "run_manifest.json").read_bytes() == immutable_manifest_before
+    seal = json.loads((run_dir / "seal_record.json").read_text(encoding="utf-8"))
+    validator = RepositoryValidator()
+    assert validator.validate_schema(seal, "run_seal.schema.json", "run seal")
+    assert seal["run_manifest_sha256"] == hashlib.sha256(immutable_manifest_before).hexdigest()
+    assert report["completed"] is True
+    assert report["sealed"] is True
+    assert report["eligible_for_promotion"] is False
+    assert complete_and_seal_run(run_dir, "test_reviewer")["sealed"] is True
     assert not validate_evidence_manifest(run_dir, evidence, required_artifacts)
 
     with (run_dir / "response.json").open("a", encoding="utf-8") as response:
@@ -878,7 +910,7 @@ def test_finalize_run_evidence_rejects_incomplete_gate_workflow(tmp_path: Path) 
     metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="run_status 必须为 completed"):
+    with pytest.raises(ValueError, match="仅允许封存已完成 Gate 0-5"):
         finalize_run_evidence(run_dir)
 
 
@@ -942,8 +974,9 @@ def test_old_problem_cli_promotion_evidence_mode(tmp_path: Path) -> None:
     assert manifest["experiment_group_id"] == "GRP_A127"
     assert manifest["experiment_role"] == "baseline"
     assert manifest["target_patch"] == "A127"
-    assert manifest["evidence_validity"] == "pending"
-    assert manifest["eligible_for_promotion"] is False
+    assert manifest["promotion_evidence"] is True
+    assert "evidence_validity" not in manifest
+    assert "eligible_for_promotion" not in manifest
 
 
 # ====== verify_materials failure-scenario tests ======
@@ -1311,6 +1344,46 @@ def test_v2_transition_records_completed_gate_and_next_gate(tmp_path: Path) -> N
     assert last["state"] == "completed_gate_0"
     assert "from" not in last and "to" not in last
     assert replay_transition_log(run_dir)["completed_gates"] == [0]
+
+
+def test_v2_transition_hash_chain_rejects_event_tampering(tmp_path: Path) -> None:
+    run_dir = _v2_gate_0_run(tmp_path)
+    lines = (run_dir / "transitions.jsonl").read_text(encoding="utf-8").splitlines()
+    first = json.loads(lines[0])
+    first["note"] = "tampered without rebuilding the chain"
+    lines[0] = json.dumps(first)
+    (run_dir / "transitions.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="event_sha256 不匹配"):
+        replay_transition_log(run_dir)
+
+
+def test_atomic_write_preserves_original_on_replace_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "state.json"
+    target.write_bytes(b"original")
+
+    def fail_replace(source: Path, destination: Path) -> None:
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr("atomic_io.os.replace", fail_replace)
+    with pytest.raises(OSError, match="simulated replace failure"):
+        atomic_write_bytes(target, b"replacement")
+
+    assert target.read_bytes() == b"original"
+    assert list(tmp_path.glob(".state.json.*.tmp")) == []
+
+
+def test_atomic_write_cleans_stale_temp_file_before_recovery(tmp_path: Path) -> None:
+    target = tmp_path / "state.json"
+    stale = tmp_path / ".state.json.interrupted.tmp"
+    stale.write_bytes(b"partial")
+
+    atomic_write_bytes(target, b"recovered")
+
+    assert target.read_bytes() == b"recovered"
+    assert not stale.exists()
 
 
 def test_v2_missing_gate_manifest_cannot_advance(tmp_path: Path) -> None:

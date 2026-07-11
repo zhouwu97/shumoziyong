@@ -20,7 +20,7 @@
 ```bash
 git clone <本仓库地址>
 cd <仓库目录>
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.lock
 python scripts/validate_repository.py
 ```
 
@@ -37,7 +37,7 @@ python scripts/check_runtime_manifest.py
 
 - `export/cumcm_runtime_pack.md`：提供给执行 AI 的规则包；
 - `export/cumcm_runtime_pack.manifest.json`：记录版本、源文件、patch 选择和 SHA-256；
-- 默认包不会包含 `candidate` patch。
+- 默认包不会包含 `review_ready` patch；正式包只包含 `regression_verified` 或 `competition_evidenced` patch。
 
 ### 3. 在 AI 中执行
 
@@ -56,10 +56,13 @@ python scripts/check_runtime_manifest.py
 ### 4. 初始化旧题回归
 
 ```bash
-python scripts/run_workflow.py --workflow old_problem --problem 2024-C --profile engineering_optimization --gates 0-2
+python scripts/run_workflow.py init --workflow full_replay --problem 2024-C --profile engineering_optimization --materials official_materials/2024_C
+python scripts/run_workflow.py advance --run-dir runs/<run_id> --reviewer <审核人>
+python scripts/run_workflow.py complete --run-dir runs/<run_id> --reviewer <审核人>
+python scripts/run_workflow.py verify --run-dir runs/<run_id>
 ```
 
-命令会在 `runs/` 下创建本轮 manifest、材料审查、runtime pack、执行计划、评分、失败标签和 patch 建议文件；它不会自动把任何状态升级为 `stable`。完整执行产物可参考 `examples/2023B_gate2_5/` 到 `examples/2023B_gate5/`。
+命令会在 `runs/` 下冻结材料、Profile、Patch 与 runtime pack，并按 Gate 0-5 校验业务产物。`complete` 同时封存证据，任何命令都不会自动修改 Patch 或 Profile 状态。
 
 ## 三个入口
 
@@ -75,9 +78,9 @@ python scripts/run_workflow.py --workflow old_problem --problem 2024-C --profile
 
 三条流程不能混用：
 
-- 论文学习流不跑旧题、不改正式 base/plugin、不标记 stable。
-- 旧题闭环流不写代码、不写论文、不求最终答案。
-- 新题执行流不使用 T0-T4、M1-M5 或 stable 判定。
+- 论文学习流不跑旧题、不改正式 base/plugin、不标记 `competition_evidenced`。
+- `prompt_regression` 只测轻量提示词行为，不能生成 Gate 或晋级证据。
+- `full_replay` 与 `new_problem` 都执行完整 Gate 0-5 产物契约。
 
 ## 目录结构
 
@@ -92,7 +95,7 @@ docs/workflows/
     材料风险_M1-M5.md
     失败标签_P1-P10.md
     总控诊断评分表.md
-    stable判定规则.md
+    stable判定规则.md  # 文件名为兼容保留，内容使用 competition_evidenced 口径
   archive/
     旧版长提示词和历史启动模板存档
 
@@ -145,7 +148,7 @@ training_log.md
 | base | `prompt_base/prompt_base_v1.0.md` | 通用读题、拆题、题型判断、输入输出链、数据需求、候选模型、人工确认 |
 | plugin | `prompt_plugins/` | 某类题的专项规则，例如优化题的目标、变量、约束、算法质疑、敏感性分析 |
 | patch | `prompt_patches/` | 某篇论文的可迁移经验、适用条件和误用风险 |
-| rules | `docs/workflows/rules/` | 旧题闭环的材料等级、风险标签、评分、stable 判定 |
+| rules | `docs/workflows/rules/` | 旧题闭环的材料等级、风险标签、评分、晋级判定 |
 | workflow | `docs/workflows/` | 本次任务按什么步骤跑、读哪些文件、产出哪些文件 |
 
 ## 常用执行方式
@@ -216,13 +219,12 @@ export/cumcm_runtime_pack.manifest.json
 
 导出器读取 `prompt_patches/patch_index.json` 与 `runtime_profiles/<profile>.json`。正式运行包只导入同时满足三条件的 patch：
 
-1. `patch_index` 中状态为 `verified_candidate` 或 `stable`；
-2. `patch_id` 出现在 `runtime_profiles/<profile>.json` 的 `verified_patches` 列表中；
-3. patch 的 `runtime_profiles` 包含当前 profile。
+1. `patch_index` 中状态为 `regression_verified` 或 `competition_evidenced`；
+2. patch 的 `runtime_profiles` 包含当前 profile。
 
-`runtime_profiles/*.json` 是状态唯一事实源：`verified_patches` 决定正式批准使用哪些 patch。
+`runtime_profiles/*.json` 只保存结构化证据引用；成熟度由验证器现场派生。
 
-显式加入候选 patch 做旧题实验（可重复传入，每个必须状态为 `candidate` 且支持当前 profile）：
+显式加入待审 patch 做旧题实验（可重复传入，每个必须状态为 `review_ready` 且支持当前 profile）：
 
 ```bash
 python scripts/export_runtime_pack.py --candidate-patch B311
@@ -259,12 +261,9 @@ python scripts/export_runtime_pack.py --exclude-patch A127
 
 - 已有工程优化 base/plugin/patch。
 - 已有 A092、A127、B311、B477 学习卡片和知识卡片。
-- 当前工程优化 runtime：版本 `0.2.0`，成熟度 `verified_candidate`，验证级别 `cross_mechanism`，未经过正式比赛验证。
-- 依据：
-  1. 2024-C 农作物种植策略完成 Gate 0-5 full smoke chain pass；
-  2. 2023-B 多波束测线问题完成 Gate 0-5 full smoke chain pass；
-  3. 2024-B 生产过程中的决策问题完成 Gate 0-2 third-mechanism generalization pass。
-- 边界：该状态只说明工程优化 runtime 已具备初步跨题可用性，不代表正式提交质量、完整最优化算法能力或 `stable`。
+- 当前工程优化 runtime：版本 `0.2.0`，现场派生成熟度为 `assembled`。
+- A092、A127、B311、B477 当前均为 `review_ready`；旧证据不参与主动晋级。
+- A092/A127 的正向、边界、负控矩阵已迁移为 v2，但真实重跑证据仍为空，因此未宣称 `regression_verified` 或 `competition_evidenced`。
 - 建议比赛时默认使用本状态对应的 `export/cumcm_runtime_pack.md`；后续大改应另开分支，不直接在当前验证结构上重写。
 
 ## 使用原则
@@ -276,4 +275,4 @@ python scripts/export_runtime_pack.py --exclude-patch A127
 5. 先失败复盘，后提示词修复。
 6. 没有人工确认，不进入下一阶段。
 7. 没有执行计划，不开始旧题闭环。
-8. 没有人工确认，不正式标记 stable。
+8. 没有完整可复核证据和人工确认，不进入 `competition_evidenced`。

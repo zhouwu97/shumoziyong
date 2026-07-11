@@ -14,7 +14,7 @@ from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest
 from control_evidence import derive_control_result
 from profile_derivation import derive_profile_report
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
-from run_workflow import OPTIONAL_GATE_EVIDENCE_SPECS, replay_transition_log
+from run_workflow import OPTIONAL_GATE_EVIDENCE_SPECS, replay_transition_log, verify_run_seal
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -593,11 +593,14 @@ class RepositoryValidator:
                 if not isinstance(artifact, dict):
                     continue
                 role_name = artifact.get("role")
+                if not isinstance(role_name, str):
+                    self.fail(f"{run_dir.name} run_evidence_manifest.role 必须是字符串")
+                    ok = False
+                    continue
                 if role_name in seen_roles:
                     self.fail(f"{run_dir.name} run_evidence_manifest.role 重复：{role_name}")
                     ok = False
-                if isinstance(role_name, str):
-                    seen_roles.add(role_name)
+                seen_roles.add(role_name)
                 raw_path = artifact.get("path")
                 if not isinstance(raw_path, str):
                     continue
@@ -661,19 +664,32 @@ class RepositoryValidator:
                 if legacy and not allow_legacy:
                     self.fail(f"{run_dir.name} 禁止使用 legacy 历史证据（allow_legacy=False）")
                     ok = False
-                if not run_manifest.get("eligible_for_promotion"):
-                    self.fail(f"{run_dir.name} eligible_for_promotion 为 false")
-                    ok = False
-                if run_manifest.get("evidence_validity") != "real_ai_run":
-                    self.fail(f"{run_dir.name} evidence_validity 不是 real_ai_run")
-                    ok = False
+                immutable_manifest = run_manifest.get("manifest_version") == "2.0.0"
+                if immutable_manifest:
+                    if run_manifest.get("promotion_evidence") is not True:
+                        self.fail(f"{run_dir.name} 初始化时未声明 promotion_evidence=true")
+                        ok = False
+                else:
+                    if not run_manifest.get("eligible_for_promotion"):
+                        self.fail(f"{run_dir.name} eligible_for_promotion 为 false")
+                        ok = False
+                    if run_manifest.get("evidence_validity") != "real_ai_run":
+                        self.fail(f"{run_dir.name} evidence_validity 不是 real_ai_run")
+                        ok = False
                 if not legacy:
-                    if run_manifest.get("run_status") != "completed":
-                        self.fail(f"{run_dir.name} run_status 必须为 completed 才可作为晋级证据")
-                        ok = False
-                    if run_manifest.get("integrity_status") != "sealed":
-                        self.fail(f"{run_dir.name} integrity_status 必须为 sealed 才可作为晋级证据")
-                        ok = False
+                    if immutable_manifest:
+                        try:
+                            verify_run_seal(run_dir)
+                        except (OSError, ValueError, json.JSONDecodeError) as exc:
+                            self.fail(f"{run_dir.name} v2 封存记录无效：{exc}")
+                            ok = False
+                    else:
+                        if run_manifest.get("run_status") != "completed":
+                            self.fail(f"{run_dir.name} run_status 必须为 completed 才可作为晋级证据")
+                            ok = False
+                        if run_manifest.get("integrity_status") != "sealed":
+                            self.fail(f"{run_dir.name} integrity_status 必须为 sealed 才可作为晋级证据")
+                            ok = False
                     try:
                         state = replay_transition_log(run_dir)
                     except (OSError, ValueError, json.JSONDecodeError) as exc:
@@ -1110,6 +1126,7 @@ class RepositoryValidator:
                     f"{patch_id} {control_type} comparison review v2",
                 ):
                     ok = False
+                assert review is not None
                 expected_review_fields = {
                     "control_type": control_type,
                     "target_patch": patch_id,
@@ -1472,6 +1489,9 @@ class RepositoryValidator:
                     self.fail(f"{patch_id} stable_evidence 负控 {group_id} 缺少运行或审查路径")
                     ok = False
                     continue
+                assert isinstance(baseline_ref, str)
+                assert isinstance(treatment_ref, str)
+                assert isinstance(review_ref, str)
                 b_run = self.resolve_repo_path(baseline_ref)
                 t_run = self.resolve_repo_path(treatment_ref)
                 c_rev = self.resolve_repo_path(review_ref)

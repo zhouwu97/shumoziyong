@@ -10,39 +10,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  policy-gate:
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
+  quality:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
-      - run: python -m pip install -r requirements.txt
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install -r requirements.lock
+      - run: python -m ruff check scripts tests
+      - run: python -m pyright
       - run: python scripts/validate_repository.py
-
-  runtime-pack:
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - run: python -m pip install -r requirements.txt
-      - run: python scripts/export_runtime_pack.py
-      - run: python scripts/check_runtime_manifest.py
-
-  tests:
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - run: python -m pip install -r requirements.txt
-      - run: python -m pytest -q
+      - run: python -m coverage run -m pytest -q
+      - run: python -m coverage report --fail-under=50
+      - name: Verify deterministic runtime build
+        shell: bash
+        env:
+          SOURCE_DATE_EPOCH: "1783699200"
+        run: |
+          python scripts/export_runtime_pack.py --output first.md --manifest-output first.json
+          python scripts/export_runtime_pack.py --output second.md --manifest-output second.json
+          python -c "import json; a=json.load(open('first.json',encoding='utf-8')); b=json.load(open('second.json',encoding='utf-8')); assert a==b; assert open('first.md','rb').read()==open('second.md','rb').read()"

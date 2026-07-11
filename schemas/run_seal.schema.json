@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "不可变运行封存记录",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seal_version", "run_id", "sealed_at", "run_manifest_sha256", "transitions_sha256", "evidence_manifest_sha256"],
+  "properties": {
+    "seal_version": {"const": "1.0.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "sealed_at": {"type": "string", "format": "date-time"},
+    "run_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "transitions_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidence_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

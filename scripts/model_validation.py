@@ -70,7 +70,9 @@ def validate_model_and_execution(
         bound_claims = {binding.get("claim_id") for binding in claim_bindings}
         if claim_ids != bound_claims:
             errors.append(
-                f"Claim-Result 绑定不完整：claims={sorted(claim_ids)} bindings={sorted(bound_claims)}"
+                "Claim-Result 绑定不完整："
+                f"claims={sorted(str(item) for item in claim_ids)} "
+                f"bindings={sorted(str(item) for item in bound_claims)}"
             )
 
     optimization = contract.get("optimization_checks", {})

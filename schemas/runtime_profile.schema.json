@@ -46,6 +46,22 @@
       }
     },
     "known_failures": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "last_updated": {"type": "string", "format": "date"}
-  }
+    "last_updated": {"type": "string", "format": "date"},
+    "deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deprecated_at", "reason"],
+      "properties": {
+        "deprecated_at": {"type": "string", "format": "date"},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"maturity": {"const": "deprecated"}}, "required": ["maturity"]},
+      "then": {"required": ["deprecation"]},
+      "else": {"not": {"required": ["deprecation"]}}
+    }
+  ]
 }

@@ -25,23 +25,11 @@ MATRIX_PATH = ROOT / "tests" / "prompt_regression" / "patch_negative_control_mat
 INDEX_PATH = ROOT / "prompt_patches" / "patch_index.json"
 
 
-class PromotionGap:
-    """一条不满足的条件。"""
-
-    def __init__(self, patch_id: str, target_status: str, condition: str) -> None:
-        self.patch_id = patch_id
-        self.target_status = target_status
-        self.condition = condition
-
-    def __str__(self) -> str:
-        return f"[{self.patch_id}] → {self.target_status}：{self.condition}"
-
-
 def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
     """返回 (report, gaps)。gaps 来自 promotion_engine 的统一评估。
 
     与上一版的关键区别：
-      - candidate patch 现在会报告"到 regression_verified 还差什么"。
+      - review_ready patch 现在会报告“到 regression_verified 还差什么”。
       - 机制计数为 patch 级别，不从 profile 继承。
       - 真正检查 failure_labels.json 中的 P/M 标签。
     """
@@ -67,7 +55,7 @@ def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
         for g in full.current_gaps:
             all_gaps.append(PromotionGap(pid, current_status, g))
 
-        # 收集下一级状态的 gaps（candidate → regression_verified 等）
+        # 收集下一级状态的 gaps（review_ready → regression_verified 等）
         for g in full.gaps_to_next_status:
             next_s = full.next_status or "?"
             all_gaps.append(PromotionGap(pid, next_s, g))

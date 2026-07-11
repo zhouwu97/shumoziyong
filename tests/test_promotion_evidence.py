@@ -744,6 +744,18 @@ def test_evaluate_status_eligibility_stable_fail_closed():
     assert any("必须提供 stable_evidence 对象" in gap for gap in report.gaps)
 
 
+def test_deprecated_patch_is_a_valid_terminal_state():
+    policy = json.loads((ROOT / "policies/promotion_policy.json").read_text("utf-8"))
+    report = evaluate_status_eligibility(
+        {"patch_id": "A092", "status": "deprecated"},
+        {},
+        policy,
+        "deprecated",
+    )
+
+    assert report.eligible
+
+
 @pytest.mark.parametrize("risk", ["M1", "M2", "M3", "M5"])
 def test_forbidden_material_risk_blocks_promotion(tmp_path, risk):
     """failure_labels.json 中的禁止材料风险必须阻断晋级。"""

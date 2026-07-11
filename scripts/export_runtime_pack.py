@@ -3,9 +3,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from atomic_io import atomic_write_bytes
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,6 +72,14 @@ def sha256_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def build_timestamp() -> str:
+    """生成时间允许由 SOURCE_DATE_EPOCH 固定，但不参与 Build Identity。"""
+    source_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if source_epoch is not None:
+        return datetime.fromtimestamp(int(source_epoch), tz=timezone.utc).isoformat()
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
 def read_text(relative_path: str) -> str:
     path = ROOT / relative_path
     if not path.is_file():
@@ -103,8 +114,8 @@ def select_patches(
 
     正式 Patch 必须同时满足两个条件：状态已通过回归或比赛证据验证，且声明支持当前 Profile。
 
-    candidate patch 必须显式按 ID 传入，且每个都必须：
-      存在于 patch_index；状态为 candidate；runtime_profiles 包含当前 profile。
+    review_ready patch 必须显式按 ID 传入，且每个都必须：
+      存在于 patch_index；状态为 review_ready；runtime_profiles 包含当前 profile。
 
     exclude_patch_ids 用于隔离实验：从已批准集合中移除指定 patch（如负控 baseline）。
     """
@@ -113,7 +124,7 @@ def select_patches(
 
     patches_by_id = {patch["patch_id"]: patch for patch in read_patch_index()}
 
-    # 校验显式 candidate patch
+    # 校验显式 review_ready 实验 patch
     for cid in candidate_patch_ids:
         patch = patches_by_id.get(cid)
         if patch is None:
@@ -145,7 +156,7 @@ def select_patches(
     # 隔离实验：从已批准集合中移除显式排除项
     verified_selected = [p for p in verified_selected if p["patch_id"] not in exclude_set]
 
-    # 显式 candidate patch（按传入顺序保留，随后排序统一处理）
+    # 显式 review_ready 实验 patch（按传入顺序保留，随后排序统一处理）
     candidate_selected = [patches_by_id[cid] for cid in candidate_patch_ids]
 
     selected = verified_selected + candidate_selected
@@ -195,7 +206,7 @@ def build_pack(
         "- 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。\n",
     ]
     if candidate_patch_ids:
-        parts.append(f"- 警告：本次显式包含 candidate patch（{', '.join(candidate_patch_ids)}），{CANDIDATE_WARNING}。\n")
+        parts.append(f"- 警告：本次显式包含 review_ready patch（{', '.join(candidate_patch_ids)}），{CANDIDATE_WARNING}。\n")
     if exclude_patch_ids:
         parts.append(f"- 警告：本次隔离实验排除已批准 patch（{', '.join(exclude_patch_ids)}），仅用于负控或对比测试。\n")
     parts.append("\n")
@@ -215,7 +226,7 @@ def _exclusion_reason(
     if pid in exclude_set:
         reasons.append("显式排除（隔离实验）")
     if status == CANDIDATE_STATUS and pid not in candidate_ids:
-        reasons.append("candidate patch 未显式指定导入")
+        reasons.append("review_ready patch 未显式指定导入")
     if status not in VERIFIED_STATUSES and status != CANDIDATE_STATUS:
         reasons.append(f"状态 {status} 不允许导出")
     return "；".join(reasons) if reasons else "状态未进入本次导出的允许集合"
@@ -244,10 +255,10 @@ def build_manifest(
         return [file_record(path) for path in files if path.startswith(prefix)]
 
     base_records = records("prompt_base/")
-    return {
+    manifest = {
         "manifest_version": "1.1.0",
         "runtime_version": profile_state["version"],
-        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "generated_at": build_timestamp(),
         "profile": profile,
         "maturity": profile_state["maturity"],
         "runtime_profile_state": file_record(profile_state_path),
@@ -294,6 +305,18 @@ def build_manifest(
         },
         "runtime_pack_sha256": sha256_bytes(pack_content.encode("utf-8")),
     }
+    identity_payload = {
+        key: value for key, value in manifest.items() if key != "generated_at"
+    }
+    manifest["build_identity"] = sha256_bytes(
+        json.dumps(
+            identity_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    )
+    return manifest
 
 
 def parse_args() -> argparse.Namespace:
@@ -307,7 +330,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         metavar="PATCH_ID",
         dest="candidate_patch",
-        help="显式加入指定 candidate patch，可重复传入；每个必须存在于 patch_index、状态为 candidate、支持当前 profile。",
+        help="显式加入指定 review_ready patch，可重复传入；每个必须存在于 patch_index 且支持当前 profile。",
     )
     parser.add_argument(
         "--exclude-patch",
@@ -334,8 +357,9 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest_output.parent.mkdir(parents=True, exist_ok=True)
     # 按 UTF-8 字节写入，避免 Windows 自动换行转换破坏 manifest 中的哈希。
-    output.write_bytes(pack_content.encode("utf-8"))
-    manifest_output.write_bytes(
+    atomic_write_bytes(output, pack_content.encode("utf-8"))
+    atomic_write_bytes(
+        manifest_output,
         (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     )
     print(f"已导出运行包：{output}")

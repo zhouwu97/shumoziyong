@@ -36,7 +36,7 @@
       }
     }
   },
-  "required": ["manifest_version", "runtime_version", "generated_at", "profile", "maturity", "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists", "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment", "export_flags", "runtime_pack_sha256"],
+  "required": ["manifest_version", "runtime_version", "generated_at", "profile", "maturity", "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists", "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment", "export_flags", "runtime_pack_sha256", "build_identity"],
   "properties": {
     "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
@@ -79,6 +79,7 @@
         "excluded_patches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}}
       }
     },
-    "runtime_pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    "runtime_pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "build_identity": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   }
 }

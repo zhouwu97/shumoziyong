@@ -21,6 +21,7 @@ def derive_profile_report(
     records = profile.get("validation_records", [])
     seen_ids: set[str] = set()
     seen_paths: set[str] = set()
+    seen_evidence_keys: set[str] = set()
     valid_records: list[dict[str, Any]] = []
     invalid_records: list[dict[str, str]] = []
     for record in records:
@@ -42,13 +43,84 @@ def derive_profile_report(
             actual_sha = hashlib.sha256(path.read_bytes()).hexdigest()
             if actual_sha != record.get("sha256"):
                 error = "sha256_mismatch"
+        evidence: dict[str, Any] | None = None
         if error is None:
-            valid_records.append(record)
+            try:
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                error = "invalid_json"
+            else:
+                if not isinstance(loaded, dict):
+                    error = "evidence_not_object"
+                else:
+                    evidence = loaded
+
+        evidence_key: str | None = None
+        actual_control_type: str | None = None
+        kind = record.get("kind")
+        if error is None and evidence is not None:
+            if kind == "control_review":
+                group_id = evidence.get("experiment_group_id")
+                actual_control_type = evidence.get("control_type")
+                if not isinstance(group_id, str) or not group_id.strip():
+                    error = "missing_experiment_group_id"
+                elif actual_control_type not in {"positive", "boundary", "negative"}:
+                    error = "invalid_control_type"
+                elif record.get("control_type") != actual_control_type:
+                    error = "control_type_mismatch"
+                elif evidence.get("final_conclusion") != "pass":
+                    error = "control_not_passed"
+                else:
+                    evidence_key = f"experiment_group:{group_id}"
+            elif kind == "full_run":
+                run_id = evidence.get("run_id")
+                if evidence.get("seal_version") != "1.0.0":
+                    error = "full_run_not_sealed"
+                elif not isinstance(run_id, str) or not run_id.strip():
+                    error = "missing_run_id"
+                else:
+                    sealed_files = {
+                        "run_manifest_sha256": path.parent / "run_manifest.json",
+                        "transitions_sha256": path.parent / "transitions.jsonl",
+                        "evidence_manifest_sha256": path.parent
+                        / "run_evidence_manifest.json",
+                    }
+                    for field, sealed_path in sealed_files.items():
+                        if not sealed_path.is_file() or evidence.get(field) != hashlib.sha256(
+                            sealed_path.read_bytes()
+                        ).hexdigest():
+                            error = "full_run_seal_invalid"
+                            break
+                    if error is None:
+                        evidence_key = f"full_run:{run_id}"
+            elif kind == "competition":
+                run_id = evidence.get("run_id")
+                result = evidence.get("result", evidence.get("final_result"))
+                if not isinstance(run_id, str) or not run_id.strip():
+                    error = "missing_run_id"
+                elif result != "pass":
+                    error = "competition_not_passed"
+                else:
+                    evidence_key = f"competition:{run_id}"
+            else:
+                error = "unknown_kind"
+
+        if error is None and evidence_key is not None:
+            if evidence_key in seen_evidence_keys:
+                error = "duplicate_evidence_identity"
+            else:
+                seen_evidence_keys.add(evidence_key)
+
+        if error is None:
+            enriched = dict(record)
+            enriched["derived_control_type"] = actual_control_type
+            enriched["evidence_key"] = evidence_key
+            valid_records.append(enriched)
         else:
             invalid_records.append({"record_id": record_id, "error": error})
 
     controls = {
-        record.get("control_type")
+        record.get("derived_control_type")
         for record in valid_records
         if record.get("kind") == "control_review"
     }
@@ -57,7 +129,10 @@ def derive_profile_report(
     regression_complete = controls == {"positive", "boundary", "negative"} and bool(full_runs)
     competition_complete = regression_complete and bool(competitions)
 
-    if competition_complete:
+    deprecation = profile.get("deprecation")
+    if isinstance(deprecation, dict) and deprecation.get("reason"):
+        computed_maturity = "deprecated"
+    elif competition_complete:
         computed_maturity = "competition_evidenced"
     elif regression_complete:
         computed_maturity = "regression_verified"

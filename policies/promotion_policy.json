@@ -144,12 +144,28 @@
       },
       "repetition": {
         "min_negative_control_runs": 2,
-        "note": "stable 要求至少 2 次独立负控运行以降低随机性误判"
+        "note": "competition_evidenced 要求至少 2 次独立负控运行以降低随机性误判"
       },
       "stable_evidence": {
         "required": true,
         "requires_patch_level_competition_record": true,
         "requires_digest_bound_human_approval": true
+      }
+    },
+    "deprecated": {
+      "description": "人工弃用终态，不作为自动晋级目标",
+      "required_controls": [],
+      "required_result": "any",
+      "min_distinct_cases": 0,
+      "min_distinct_years": 0,
+      "mechanism_scope": "patch",
+      "min_distinct_mechanisms": 0,
+      "forbidden_failure_labels": [],
+      "forbidden_material_risks": [],
+      "negative_control": {
+        "requires_case": false,
+        "requires_structured_evidence": false,
+        "required_evidence_fields": []
       }
     }
   },
@@ -225,7 +241,7 @@
     "forbid_candidate_experiment": true,
     "forbid_exclusion_experiment": true,
     "require_result_record_sha256": true,
-    "note": "stable Profile 的负控次数复用 status_rules.stable.repetition.min_negative_control_runs；比赛验证必须通过可解析的 runtime manifest 和 result record 证明。"
+    "note": "competition_evidenced Profile 的负控次数复用对应 Patch 规则；比赛验证必须由可解析的 runtime manifest 和 result record 证明。"
   },
   "manual_controls": {
     "human_review_required": true,

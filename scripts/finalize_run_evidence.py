@@ -6,9 +6,11 @@ import argparse
 import hashlib
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+from atomic_io import atomic_write_bytes
 from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
     ROOT,
@@ -126,10 +128,17 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     run_id = run_manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("run_manifest.run_id 不能为空")
-    if run_manifest.get("run_status") != "completed":
-        raise ValueError("run_manifest.run_status 必须为 completed 才能封存证据")
-    if run_manifest.get("integrity_status") != "unsealed":
-        raise ValueError("run_manifest.integrity_status 必须为 unsealed 才能封存证据")
+    immutable_manifest = run_manifest.get("manifest_version") == "2.0.0"
+    if immutable_manifest:
+        if run_manifest.get("initial_state") != "initialized":
+            raise ValueError("run_manifest.initial_state 必须为 initialized 才能封存证据")
+        if (run_dir / "seal_record.json").exists():
+            raise ValueError("运行已经封存，不能重复生成 seal_record.json")
+    else:
+        if run_manifest.get("run_status") != "completed":
+            raise ValueError("run_manifest.run_status 必须为 completed 才能封存证据")
+        if run_manifest.get("integrity_status") != "unsealed":
+            raise ValueError("run_manifest.integrity_status 必须为 unsealed 才能封存证据")
     try:
         state = replay_transition_log(run_dir)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
@@ -137,17 +146,40 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     if not state["completed"] or state["max_gate"] != 5:
         raise ValueError("仅允许封存已完成 Gate 0-5 全流程的运行")
 
-    run_manifest["integrity_status"] = "sealed"
-    run_manifest_bytes = (json.dumps(run_manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-    overrides = {"run_manifest.json": run_manifest_bytes}
+    if immutable_manifest:
+        run_manifest_bytes = (run_dir / "run_manifest.json").read_bytes()
+        overrides: dict[str, bytes] = {}
+    else:
+        run_manifest["integrity_status"] = "sealed"
+        run_manifest_bytes = (
+            json.dumps(run_manifest, ensure_ascii=False, indent=2) + "\n"
+        ).encode("utf-8")
+        overrides = {"run_manifest.json": run_manifest_bytes}
     evidence_manifest = build_run_evidence_manifest(run_dir, run_id, overrides)
     errors = validate_evidence_manifest(run_dir, evidence_manifest, required_artifacts, overrides)
     if errors:
         raise ValueError("；".join(errors))
 
     # 仅在全部预校验通过后写入；失败时保留旧的 run_evidence_manifest.json。
-    (run_dir / "run_manifest.json").write_bytes(run_manifest_bytes)
+    if not immutable_manifest:
+        atomic_write_bytes(run_dir / "run_manifest.json", run_manifest_bytes)
     write_json(run_dir / "run_evidence_manifest.json", evidence_manifest)
+
+    if immutable_manifest:
+        evidence_bytes = (run_dir / "run_evidence_manifest.json").read_bytes()
+        write_json(
+            run_dir / "seal_record.json",
+            {
+                "seal_version": "1.0.0",
+                "run_id": run_id,
+                "sealed_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "run_manifest_sha256": hashlib.sha256(run_manifest_bytes).hexdigest(),
+                "transitions_sha256": hashlib.sha256(
+                    (run_dir / "transitions.jsonl").read_bytes()
+                ).hexdigest(),
+                "evidence_manifest_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
+            },
+        )
 
     errors = validate_evidence_manifest(run_dir, evidence_manifest, required_artifacts)
     if errors:  # pragma: no cover - 防御性检查，避免 I/O 异常后错误报告成功
