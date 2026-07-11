@@ -24,13 +24,16 @@ from run_workflow import (  # noqa: E402
     GATE_NAMES,
     TRANSITION_VERSION,
     VALID_TRANSITIONS,
+    advance_run,
     create_old_problem_run,
+    create_prompt_regression_run,
     get_current_gate,
     is_gate_complete,
     mark_run_completed,
     record_transition,
     replay_transition_log,
     verify_gate_artifacts,
+    verify_run,
     write_gate_artifact_manifest,
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
@@ -684,6 +687,78 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
         "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review", "transitions",
         "gate_5_review", "score", "failure_labels",
     }
+
+
+def test_prompt_regression_never_creates_gate_or_promotion_evidence(tmp_path: Path) -> None:
+    args = Namespace(
+        run_id="prompt_only",
+        output_root=str(tmp_path / "runs"),
+        problem="2024-C",
+        profile="engineering_optimization",
+        candidate_patch=[],
+        exclude_patch=[],
+    )
+    run_dir = create_prompt_regression_run(args)
+
+    assert not (run_dir / "transitions.jsonl").exists()
+    assert not (run_dir / "gate_artifacts").exists()
+    report = verify_run(run_dir)
+    assert report["workflow"] == "prompt_regression"
+    assert report["eligible_for_promotion"] is False
+
+
+def test_modes_change_confirmation_points_not_machine_contract(tmp_path: Path) -> None:
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"fake problem pdf"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", problem)]})
+
+    run_dirs: list[Path] = []
+    for mode in ("strict", "emergency"):
+        args = Namespace(
+            workflow="new_problem",
+            mode=mode,
+            run_id=f"mode_{mode}",
+            output_root=str(tmp_path / "runs"),
+            problem="2024-C",
+            profile="engineering_optimization",
+            gates="0-5",
+            materials=str(materials),
+            candidate_patch=[],
+            exclude_patch=[],
+            material_file=[],
+            promotion_evidence=False,
+            experiment_group_id=None,
+            experiment_role=None,
+            target_patch=None,
+        )
+        run_dir, ready = create_old_problem_run(args)
+        assert ready is True
+        run_dirs.append(run_dir)
+
+    strict_manifest = json.loads((run_dirs[0] / "run_manifest.json").read_text("utf-8"))
+    emergency_manifest = json.loads((run_dirs[1] / "run_manifest.json").read_text("utf-8"))
+    assert strict_manifest["human_confirmation_gates"] == [0, 1, 2, 3, 4, 5]
+    assert emergency_manifest["human_confirmation_gates"] == [0, 5]
+    assert (run_dirs[0] / "runtime_pack.md").read_bytes() == (
+        run_dirs[1] / "runtime_pack.md"
+    ).read_bytes()
+    assert {path.name for path in run_dirs[0].glob("*.json")} == {
+        path.name for path in run_dirs[1].glob("*.json")
+    }
+
+
+def test_advance_and_verify_partial_v2_run(tmp_path: Path) -> None:
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+
+    state = advance_run(run_dir, "human")
+    report = verify_run(run_dir)
+
+    assert state["current_gate"] == 1
+    assert report["verified_gates"] == [0]
+    assert report["eligible_for_promotion"] is False
 
 
 def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(tmp_path: Path) -> None:
@@ -1536,3 +1611,5 @@ def test_rejected_transition_not_advances(tmp_path: Path) -> None:
 def test_get_current_gate_no_file(tmp_path: Path) -> None:
     """No transitions file → None."""
     assert get_current_gate(tmp_path / "nonexistent") is None
+    advance_run,
+    create_prompt_regression_run,

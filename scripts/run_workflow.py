@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Mapping
@@ -52,6 +53,8 @@ EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
 )
 
 OPTIONAL_GATE_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
+    ("runtime_profile.snapshot.json", "runtime_profile_snapshot"),
+    ("patch_selection.snapshot.json", "patch_selection_snapshot"),
     ("diagnosis.json", "gate_0_diagnosis"),
     ("model_route.json", "gate_1_model_route"),
     ("code_plan.json", "gate_2_code_plan"),
@@ -214,15 +217,33 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     pack_manifest = build_manifest(args.profile, pack_content, args.candidate_patch, args.exclude_patch)
     (run_dir / "runtime_pack.md").write_bytes(pack_content.encode("utf-8"))
     write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
+    write_json(run_dir / "runtime_profile.snapshot.json", profile_state)
+    patch_selection_snapshot = {
+        "selected_patches": [item["patch_id"] for item in pack_manifest.get("patches", [])],
+        "candidate_patches": list(args.candidate_patch),
+        "excluded_patches": list(args.exclude_patch),
+    }
+    write_json(run_dir / "patch_selection.snapshot.json", patch_selection_snapshot)
 
     problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
     write_json(run_dir / "problem_manifest.json", problem_manifest)
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
     run_status = "initialized" if material_verification.ready else "blocked"
+    workflow = getattr(args, "workflow", "full_replay")
+    if workflow == "old_problem":
+        workflow = "full_replay"
+    mode = getattr(args, "mode", "standard")
+    confirmation_gates = {
+        "strict": [0, 1, 2, 3, 4, 5],
+        "standard": [0, 2, 5],
+        "emergency": [0, 5],
+    }[mode]
     manifest_data: dict[str, Any] = {
         "run_id": run_id,
-        "workflow": "old_problem",
+        "workflow": workflow,
+        "mode": mode,
+        "human_confirmation_gates": confirmation_gates,
         "created_at": created_at,
         "problem_id": args.problem,
         "profile": args.profile,
@@ -240,6 +261,12 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "run_status": run_status,
         "integrity_status": "unsealed",
         "automatic_stable_update": False,
+        "runtime_profile_snapshot_sha256": sha256_bytes(
+            (run_dir / "runtime_profile.snapshot.json").read_bytes()
+        ),
+        "patch_selection_snapshot_sha256": sha256_bytes(
+            (run_dir / "patch_selection.snapshot.json").read_bytes()
+        ),
     }
 
     if getattr(args, "promotion_evidence", False):
@@ -1106,44 +1133,155 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
         write_json(manifest_path, run_manifest)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="初始化可追溯的数学建模工作流运行目录。")
-    parser.add_argument("--workflow", required=True, choices=["old_problem"])
-    parser.add_argument("--problem", required=True, help="旧题编号，例如 2024-C。")
+def create_prompt_regression_run(args: argparse.Namespace) -> Path:
+    """创建轻量 Prompt 回归目录；该流程不进入 Gate，也不能生成晋级证据。"""
+    run_id = args.run_id or f"{date.today().isoformat()}_{normalize_problem_dir(args.problem)}_prompt"
+    output_root = Path(args.output_root)
+    if not output_root.is_absolute():
+        output_root = ROOT / output_root
+    run_dir = output_root / run_id
+    if run_dir.exists():
+        raise FileExistsError(f"运行目录已存在：{run_dir}")
+    run_dir.mkdir(parents=True)
+
+    profile = json.loads(
+        (ROOT / "runtime_profiles" / f"{args.profile}.json").read_text(encoding="utf-8")
+    )
+    pack = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
+    pack_manifest = build_manifest(
+        args.profile, pack, args.candidate_patch, args.exclude_patch
+    )
+    (run_dir / "runtime_pack.md").write_text(pack, encoding="utf-8")
+    write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
+    write_json(run_dir / "runtime_profile.snapshot.json", profile)
+    write_json(
+        run_dir / "run_manifest.json",
+        {
+            "run_id": run_id,
+            "workflow": "prompt_regression",
+            "problem_id": args.problem,
+            "profile": args.profile,
+            "runtime_version": profile["version"],
+            "runtime_pack_sha256": pack_manifest["runtime_pack_sha256"],
+            "run_status": "initialized",
+            "eligible_for_promotion": False,
+            "evidence_validity": "prompt_behavior_only",
+        },
+    )
+    write_json(
+        run_dir / "request.json",
+        {"prompt": "", "model": "", "source": "pending", "response_reference": None},
+    )
+    write_json(run_dir / "response.json", {"_note": "待执行轻量提示词行为测试"})
+    return run_dir
+
+
+def advance_run(run_dir: Path, reviewer: str, decision: str = "approved") -> dict[str, Any]:
+    """推进一次 Gate；离开当前 Gate 时复用业务产物机器校验。"""
+    state = replay_transition_log(run_dir)
+    current = state["current_gate"]
+    if current is None:
+        record_transition(run_dir, None, 0, reviewer, decision)
+    elif current == 5:
+        raise ValueError("当前已在 Gate 5；请使用 complete 完成最终验收")
+    else:
+        record_transition(run_dir, current, current + 1, reviewer, decision)
+    return replay_transition_log(run_dir)
+
+
+def verify_run(run_dir: Path) -> dict[str, Any]:
+    """复核运行现场；部分 Gate 运行可返回状态，但不会被标记为晋级证据。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if manifest.get("workflow") == "prompt_regression":
+        return {
+            "run_id": manifest.get("run_id"),
+            "workflow": "prompt_regression",
+            "eligible_for_promotion": False,
+            "verified_gates": [],
+            "completed": False,
+        }
+    state = replay_transition_log(run_dir)
+    verified_gates: list[int] = []
+    for gate in state.get("completed_gates", []):
+        verify_gate_artifacts(run_dir, gate)
+        verified_gates.append(gate)
+    return {
+        "run_id": manifest.get("run_id"),
+        "workflow": manifest.get("workflow"),
+        "mode": manifest.get("mode"),
+        "eligible_for_promotion": bool(
+            state["completed"]
+            and state["max_gate"] == 5
+            and state.get("transition_version") == TRANSITION_VERSION
+        ),
+        "verified_gates": verified_gates,
+        "current_gate": state["current_gate"],
+        "completed": state["completed"],
+    }
+
+
+def _add_init_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--workflow", required=True, choices=["prompt_regression", "full_replay", "new_problem"]
+    )
+    parser.add_argument("--problem", required=True, help="题号，例如 2024-C。")
     parser.add_argument("--profile", default="engineering_optimization")
-    parser.add_argument("--gates", default="0-2", choices=["0-2", "0-5"])
-    parser.add_argument("--materials", help="题面/附件根目录；默认从 official_materials/<题号> 推导。")
+    parser.add_argument("--mode", default="standard", choices=["strict", "standard", "emergency"])
+    parser.add_argument("--materials", help="材料根目录；new_problem 必须显式提供。")
     parser.add_argument("--output-root", default="runs")
-    parser.add_argument("--run-id", help="显式运行 ID，便于自动化测试或重跑隔离。")
-    parser.add_argument(
-        "--candidate-patch",
-        action="append",
-        default=[],
-        metavar="PATCH_ID",
-        dest="candidate_patch",
-        help="显式加入指定 candidate patch，可重复传入。",
-    )
-    parser.add_argument(
-        "--exclude-patch",
-        action="append",
-        default=[],
-        help="要排除的 patch_id（可多次指定）。",
-    )
-    parser.add_argument("--promotion-evidence", action="store_true", help="启用晋级评估模式。")
-    parser.add_argument("--experiment-group-id", help="实验组 ID。")
-    parser.add_argument("--experiment-role", choices=["baseline", "patch_only"], help="实验角色。")
-    parser.add_argument("--target-patch", help="目标 Patch ID。")
+    parser.add_argument("--run-id")
+    parser.add_argument("--candidate-patch", action="append", default=[], dest="candidate_patch")
+    parser.add_argument("--exclude-patch", action="append", default=[])
+    parser.add_argument("--promotion-evidence", action="store_true")
+    parser.add_argument("--experiment-group-id")
+    parser.add_argument("--experiment-role", choices=["baseline", "patch_only"])
+    parser.add_argument("--target-patch")
+    parser.set_defaults(material_file=[])
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="可追溯数学建模工作流 CLI。")
+    commands = parser.add_subparsers(dest="command", required=True)
+    _add_init_arguments(commands.add_parser("init", help="冻结材料、Profile、Patch 和运行包"))
+    advance = commands.add_parser("advance", help="验证并推进一个 Gate")
+    advance.add_argument("--run-dir", required=True)
+    advance.add_argument("--reviewer", required=True)
+    advance.add_argument("--decision", default="approved", choices=["approved", "rejected"])
+    complete = commands.add_parser("complete", help="验证 Gate 5 并完成运行")
+    complete.add_argument("--run-dir", required=True)
+    complete.add_argument("--reviewer", required=True)
+    verify = commands.add_parser("verify", help="复核当前运行状态与已完成 Gate")
+    verify.add_argument("--run-dir", required=True)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run_dir, material_ready = create_old_problem_run(args)
-    print(f"已创建运行目录：{run_dir}")
-    if not material_ready:
-        print("[BLOCKED] 题面、附件、模板或 SHA-256 校验未通过；详见 material_review.json。")
-        raise SystemExit(2)
-    print("[READY] 题面、附件、模板和 SHA-256 校验通过；请完成人工材料等级与风险确认。")
+    try:
+        if args.command == "init":
+            if args.workflow == "prompt_regression":
+                run_dir = create_prompt_regression_run(args)
+                print(f"[READY] 已创建轻量 Prompt 回归：{run_dir}")
+                return
+            if args.workflow == "new_problem" and not args.materials:
+                raise ValueError("new_problem 必须显式提供 --materials")
+            args.gates = "0-5"
+            run_dir, material_ready = create_old_problem_run(args)
+            print(f"已创建运行目录：{run_dir}")
+            if not material_ready:
+                raise ValueError("题面、附件、模板或 SHA-256 校验未通过")
+            print("[READY] 材料与冻结快照已就绪；请从 Gate 0 开始。")
+        elif args.command == "advance":
+            state = advance_run(Path(args.run_dir), args.reviewer, args.decision)
+            print(json.dumps(state, ensure_ascii=False, indent=2))
+        elif args.command == "complete":
+            mark_run_completed(Path(args.run_dir), args.reviewer)
+            print("[COMPLETED] Gate 0-5 已完成。")
+        elif args.command == "verify":
+            print(json.dumps(verify_run(Path(args.run_dir)), ensure_ascii=False, indent=2))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"[BLOCKED] {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
 
 
 if __name__ == "__main__":
