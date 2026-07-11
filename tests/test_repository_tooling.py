@@ -162,24 +162,41 @@ def test_stable_profile_requires_evidence_level_requirements() -> None:
         assert any(message in failure for failure in validator.failures)
 
 
-def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -> None:
-    """Stable Profile 的比赛状态必须由真实运行包和通过的结果记录证明。"""
-    pack = build_pack("engineering_optimization")
-    runtime_manifest = build_manifest("engineering_optimization", pack)
+def _validate_stable_profile_competition_fixture(
+    tmp_path: Path,
+    *,
+    candidate_patch_ids: list[str] | None = None,
+    exclude_patch_ids: list[str] | None = None,
+    mutate_manifest=None,
+    tamper_result_after_binding: bool = False,
+) -> RepositoryValidator:
+    """构造 Profile Stable 比赛证据并返回完成校验的 validator。"""
+    candidate_patch_ids = candidate_patch_ids or []
+    exclude_patch_ids = exclude_patch_ids or []
+    pack = build_pack("engineering_optimization", candidate_patch_ids, exclude_patch_ids)
+    runtime_manifest = build_manifest(
+        "engineering_optimization",
+        pack,
+        candidate_patch_ids,
+        exclude_patch_ids,
+    )
+    runtime_manifest["maturity"] = "stable"
+    for patch_entry in runtime_manifest["patches"]:
+        if patch_entry["patch_id"] in {"A092", "A127"}:
+            patch_entry["status"] = "stable"
+    if mutate_manifest is not None:
+        mutate_manifest(runtime_manifest)
     runtime_manifest_path = tmp_path / "runtime_pack.manifest.json"
     runtime_manifest_path.write_text(json.dumps(runtime_manifest), encoding="utf-8")
     runtime_manifest_sha = hashlib.sha256(runtime_manifest_path.read_bytes()).hexdigest()
     result_path = tmp_path / "result_record.json"
-    result_path.write_text(
-        json.dumps(
-            {
-                "result": "pass",
-                "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
-                "runtime_pack_manifest_sha256": runtime_manifest_sha,
-            }
-        ),
-        encoding="utf-8",
-    )
+    result = {
+        "result": "pass",
+        "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
+        "runtime_pack_manifest_sha256": runtime_manifest_sha,
+    }
+    result_path.write_text(json.dumps(result), encoding="utf-8")
+    result_record_sha = hashlib.sha256(result_path.read_bytes()).hexdigest()
 
     profile = json.loads(
         (ROOT / "runtime_profiles" / "engineering_optimization.json").read_text(encoding="utf-8")
@@ -201,10 +218,14 @@ def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -
                     "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
                     "runtime_pack_manifest_sha256": runtime_manifest_sha,
                     "result_record": "fixture/result_record.json",
+                    "result_record_sha256": result_record_sha,
                 }
             ],
         }
     )
+    if tamper_result_after_binding:
+        result["comments"] = "tampered after profile approval"
+        result_path.write_text(json.dumps(result), encoding="utf-8")
     patches = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text(encoding="utf-8"))
     for patch in patches:
         if patch["patch_id"] in {"A092", "A127"}:
@@ -232,7 +253,61 @@ def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -
         monkeypatch.setattr(validator, "load_json", load_json)
         monkeypatch.setattr(validator, "resolve_repo_path", resolve_repo_path.__get__(validator))
         validator.validate_profiles()
+    return validator
+
+
+def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -> None:
+    """Stable Profile 的比赛状态必须由真实运行包和通过的结果记录证明。"""
+    validator = _validate_stable_profile_competition_fixture(tmp_path)
     assert not validator.failures
+
+
+def test_stable_profile_rejects_candidate_experiment_and_extra_patch(tmp_path: Path) -> None:
+    """包含额外 candidate Patch 的实验包不能证明正式 Stable Profile。"""
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        candidate_patch_ids=["B311"],
+    )
+    assert any("Patch 集合不一致" in failure and "B311" in failure for failure in validator.failures)
+    assert any("不得来自 candidate experiment" in failure for failure in validator.failures)
+
+
+def test_stable_profile_rejects_exclusion_experiment(tmp_path: Path) -> None:
+    """排除正式 Patch 的隔离实验不能作为 Stable Profile 比赛证据。"""
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        exclude_patch_ids=["A127"],
+    )
+    assert any("Patch 集合不一致" in failure and "A127" in failure for failure in validator.failures)
+    assert any("不得来自 exclusion experiment" in failure for failure in validator.failures)
+
+
+def test_stable_profile_verifies_manifest_patch_content(tmp_path: Path) -> None:
+    """Manifest 中的 Patch 状态、路径和 SHA-256 必须与当前 Stable Patch 一致。"""
+    def mutate_manifest(manifest: dict[str, object]) -> None:
+        patch_entry = next(
+            item for item in manifest["patches"] if item["patch_id"] == "A092"
+        )
+        patch_entry["status"] = "candidate"
+        patch_entry["path"] = "prompt_patches/patch_A127_engineering_layout_optimization.md"
+        patch_entry["sha256"] = "0" * 64
+
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        mutate_manifest=mutate_manifest,
+    )
+    assert any("Patch A092 status 必须为 stable" in failure for failure in validator.failures)
+    assert any("Patch A092 path 与 patch_index.file 不一致" in failure for failure in validator.failures)
+    assert any("Patch A092 sha256 与当前文件不一致" in failure for failure in validator.failures)
+
+
+def test_stable_profile_binds_result_record_sha256(tmp_path: Path) -> None:
+    """Profile 批准后改写 result record 必须被内容哈希检测。"""
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        tamper_result_after_binding=True,
+    )
+    assert any("result_record SHA-256 不匹配" in failure for failure in validator.failures)
 
 
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:

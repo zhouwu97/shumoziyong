@@ -208,8 +208,10 @@ class RepositoryValidator:
                 manifest_ref = record.get("runtime_pack_manifest")
                 result_ref = record.get("result_record")
                 expected_sha = record.get("runtime_pack_manifest_sha256")
-                if not all(isinstance(value, str) and value for value in (manifest_ref, result_ref, expected_sha)):
-                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 缺少路径或 manifest SHA-256")
+                expected_result_sha = record.get("result_record_sha256")
+                required_values = (manifest_ref, result_ref, expected_sha, expected_result_sha)
+                if not all(isinstance(value, str) and value for value in required_values):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 缺少路径或证据 SHA-256")
                     continue
                 try:
                     manifest_path = self.resolve_repo_path(manifest_ref)
@@ -223,6 +225,12 @@ class RepositoryValidator:
                 actual_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
                 if expected_sha != actual_sha:
                     self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 manifest SHA-256 不匹配")
+                actual_result_sha = hashlib.sha256(result_path.read_bytes()).hexdigest()
+                if (
+                    stable_policy.get("require_result_record_sha256", True)
+                    and expected_result_sha != actual_result_sha
+                ):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 result_record SHA-256 不匹配")
                 manifest = _load_record(manifest_path, "比赛 runtime manifest", profile_id)
                 result = _load_record(result_path, "比赛 result_record", profile_id)
                 if manifest is None or result is None:
@@ -233,21 +241,93 @@ class RepositoryValidator:
                     self.fail(f"runtime profile {profile_id} 比赛 manifest.profile 不一致")
                 if manifest.get("runtime_version") != data.get("version"):
                     self.fail(f"runtime profile {profile_id} 比赛 manifest.runtime_version 不一致")
+                if manifest.get("maturity") != "stable":
+                    self.fail(f"runtime profile {profile_id} 比赛 manifest.maturity 必须为 stable")
                 if result.get("result", result.get("final_result")) != "pass":
                     self.fail(f"runtime profile {profile_id} 比赛 result_record 必须为 pass")
                 if result.get("runtime_pack_manifest") != manifest_ref:
                     self.fail(f"runtime profile {profile_id} 比赛 result_record 的 manifest 路径不一致")
                 if result.get("runtime_pack_manifest_sha256") != actual_sha:
                     self.fail(f"runtime profile {profile_id} 比赛 result_record 的 manifest SHA-256 不一致")
-                manifest_patch_ids = {
-                    item.get("patch_id") for item in manifest.get("patches", []) if isinstance(item, dict)
-                }
-                missing_patches = profile_patch_ids - manifest_patch_ids
-                if missing_patches:
+                raw_candidate_experiment = manifest.get("candidate_experiment")
+                candidate_experiment = (
+                    raw_candidate_experiment if isinstance(raw_candidate_experiment, dict) else {}
+                )
+                raw_export_flags = manifest.get("export_flags")
+                export_flags = raw_export_flags if isinstance(raw_export_flags, dict) else {}
+                candidate_flags = export_flags.get("candidate_patches", [])
+                if stable_policy.get("forbid_candidate_experiment", True) and (
+                    candidate_experiment.get("enabled") is not False
+                    or candidate_experiment.get("patch_ids")
+                    or candidate_flags
+                ):
+                    self.fail(f"runtime profile {profile_id} 比赛证据不得来自 candidate experiment")
+                raw_exclusion_experiment = manifest.get("exclusion_experiment")
+                exclusion_experiment = (
+                    raw_exclusion_experiment if isinstance(raw_exclusion_experiment, dict) else {}
+                )
+                exclusion_flags = export_flags.get("excluded_patches", [])
+                if stable_policy.get("forbid_exclusion_experiment", True) and (
+                    exclusion_experiment.get("enabled") is not False
+                    or exclusion_experiment.get("patch_ids")
+                    or exclusion_flags
+                ):
+                    self.fail(f"runtime profile {profile_id} 比赛证据不得来自 exclusion experiment")
+
+                manifest_patch_by_id: dict[str, dict[str, Any]] = {}
+                for patch_entry in manifest.get("patches", []):
+                    if not isinstance(patch_entry, dict):
+                        continue
+                    manifest_patch_id = patch_entry.get("patch_id")
+                    if not isinstance(manifest_patch_id, str):
+                        continue
+                    if manifest_patch_id in manifest_patch_by_id:
+                        self.fail(f"runtime profile {profile_id} 比赛 manifest Patch ID 重复：{manifest_patch_id}")
+                        continue
+                    manifest_patch_by_id[manifest_patch_id] = patch_entry
+
+                manifest_patch_ids = set(manifest_patch_by_id)
+                if (
+                    stable_policy.get("require_exact_patch_set", True)
+                    and manifest_patch_ids != profile_patch_ids
+                ):
+                    missing_patches = sorted(profile_patch_ids - manifest_patch_ids)
+                    extra_patches = sorted(manifest_patch_ids - profile_patch_ids)
                     self.fail(
-                        f"runtime profile {profile_id} 比赛 manifest 未覆盖 stable patch："
-                        f"{', '.join(sorted(missing_patches))}"
+                        f"runtime profile {profile_id} 比赛运行包与 Stable Profile Patch 集合不一致："
+                        f"缺少={missing_patches}，额外={extra_patches}"
                     )
+
+                for manifest_patch_id, patch_entry in manifest_patch_by_id.items():
+                    if patch_entry.get("status") != "stable":
+                        self.fail(
+                            f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
+                            "status 必须为 stable"
+                        )
+                    indexed_patch = patch_by_id.get(manifest_patch_id)
+                    if not isinstance(indexed_patch, dict):
+                        self.fail(f"runtime profile {profile_id} 比赛 manifest 引用了未知 Patch：{manifest_patch_id}")
+                        continue
+                    expected_path = indexed_patch.get("file")
+                    if patch_entry.get("path") != expected_path:
+                        self.fail(
+                            f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
+                            "path 与 patch_index.file 不一致"
+                        )
+                    try:
+                        patch_path = self.resolve_repo_path(str(expected_path))
+                    except ValueError as exc:
+                        self.fail(f"runtime profile {profile_id} Patch {manifest_patch_id} 路径无效：{exc}")
+                        continue
+                    if not patch_path.is_file():
+                        self.fail(f"runtime profile {profile_id} Patch {manifest_patch_id} 文件不存在")
+                        continue
+                    current_patch_sha = hashlib.sha256(patch_path.read_bytes()).hexdigest()
+                    if patch_entry.get("sha256") != current_patch_sha:
+                        self.fail(
+                            f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
+                            "sha256 与当前文件不一致"
+                        )
 
         for path in sorted((ROOT / "runtime_profiles").glob("*.json")):
             data = self.load_json(path.relative_to(ROOT).as_posix())
