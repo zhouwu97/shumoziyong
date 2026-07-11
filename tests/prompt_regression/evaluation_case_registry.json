@@ -1,0 +1,22 @@
+{
+  "registry_version": "1.0.0",
+  "evaluator_version": "1.2.0",
+  "cases": [
+    {
+      "case_id": "test_case_b",
+      "case_file": "tests/fixtures/valid_promotion_evidence/test_b.yaml",
+      "case_sha256": "84512c6b14e7a79213bbd5306ba94f452ca9b4651aeb3b14679885536fc85bee",
+      "control_type": "baseline",
+      "target_patch": null,
+      "minimum_assertion_count": 1
+    },
+    {
+      "case_id": "test_case_t",
+      "case_file": "tests/fixtures/valid_promotion_evidence/test_t.yaml",
+      "case_sha256": "5e223c5b2c87eff22a1dfa0d34edaf170c9cb2457805a8223fa4b5358fd66319",
+      "control_type": "treatment",
+      "target_patch": "A001",
+      "minimum_assertion_count": 1
+    }
+  ]
+}

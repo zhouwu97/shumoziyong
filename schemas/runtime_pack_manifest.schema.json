@@ -9,7 +9,7 @@
     "manifest_version", "runtime_version", "generated_at", "profile", "maturity",
     "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists",
     "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment",
-    "export_flags", "runtime_pack_sha256", "build_identity"
+    "export_flags", "validation_target_status", "runtime_pack_sha256", "build_identity"
   ],
   "properties": {
     "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
@@ -28,6 +28,7 @@
     "candidate_experiment": {"$ref": "#/$defs/candidateExperiment"},
     "exclusion_experiment": {"$ref": "#/$defs/exclusionExperiment"},
     "export_flags": {"$ref": "#/$defs/exportFlags"},
+    "validation_target_status": {"type": ["string", "null"], "enum": [null, "competition_evidenced"]},
     "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
     "build_identity": {"$ref": "#/$defs/sha256"}
   },

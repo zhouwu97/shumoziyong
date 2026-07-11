@@ -201,7 +201,7 @@ training_log.md
 如需读取 Excel 附件或运行基础数模代码，先安装依赖：
 
 ```bash
-pip install -r requirements.txt
+python -m pip install --require-hashes -r requirements.lock
 ```
 
 导出运行包：

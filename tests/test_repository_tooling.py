@@ -371,6 +371,7 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     pack = build_pack("engineering_optimization")
     manifest = build_manifest("engineering_optimization", pack)
     assert manifest["runtime_pack_sha256"]
+    assert manifest["validation_target_status"] is None
     assert manifest["patches"] == []
     assert {item["patch_id"] for item in manifest["excluded_patches"]} == {
         "A092", "A127", "B311", "B477"

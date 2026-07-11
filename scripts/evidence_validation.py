@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from control_evidence import derive_control_result
+from evaluation_case_registry import (
+    find_authorized_case,
+    load_registry,
+    substantive_assertion_count,
+)
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -219,6 +224,7 @@ def validate_full_run(
     response_path = run_dir / "response.json"
     try:
         from evaluate_prompt_response import (
+            EVALUATOR_VERSION,
             evaluate_case,
             evaluate_manifest_alignment,
             load_case,
@@ -246,11 +252,57 @@ def validate_full_run(
             ROOT, automatic.get("case_file"), "automatic_evaluation.case_file", errors
         )
         if case_path is not None:
-            case_text = case_path.read_text(encoding="utf-8")
-            actual_case_sha = hashlib.sha256(case_text.encode("utf-8")).hexdigest()
+            actual_case_sha = hashlib.sha256(case_path.read_bytes()).hexdigest()
             if automatic.get("case_sha256") != actual_case_sha:
                 errors.append("automatic_evaluation.case_sha256 与现场用例不一致")
             case = load_case(case_path, automatic.get("case_id"))
+            try:
+                registry = load_registry()
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                errors.append(f"evaluation_case_registry 无法读取：{exc}")
+                registry = None
+            if registry is not None:
+                errors.extend(
+                    f"evaluation_case_registry Schema: {issue}"
+                    for issue in _schema_errors(
+                        registry, "evaluation_case_registry.schema.json"
+                    )
+                )
+                authorized = find_authorized_case(
+                    registry,
+                    case_id=automatic.get("case_id"),
+                    case_file=automatic.get("case_file"),
+                    case_sha256=actual_case_sha,
+                )
+                if authorized is None:
+                    errors.append(
+                        "automatic_evaluation 用例未被授权："
+                        "case_id、case_file 和 case_sha256 必须同时命中注册表"
+                    )
+                else:
+                    assertion_count = substantive_assertion_count(case)
+                    minimum_assertions = authorized.get("minimum_assertion_count")
+                    if not isinstance(minimum_assertions, int):
+                        errors.append("授权用例 minimum_assertion_count 必须是整数")
+                    elif assertion_count < minimum_assertions:
+                        errors.append(
+                            "授权用例的实质断言不足："
+                            f"当前 {assertion_count}，授权下限 {minimum_assertions}"
+                        )
+                    expected_metadata = {
+                        "case_registry_version": registry.get("registry_version"),
+                        "evaluator_version": registry.get("evaluator_version"),
+                        "control_type": authorized.get("control_type"),
+                        "target_patch": authorized.get("target_patch"),
+                        "assertion_count": assertion_count,
+                    }
+                    if registry.get("evaluator_version") != EVALUATOR_VERSION:
+                        errors.append("用例注册表 evaluator_version 与当前评估器不一致")
+                    for field_name, expected in expected_metadata.items():
+                        if automatic.get(field_name) != expected:
+                            errors.append(
+                                f"automatic_evaluation.{field_name} 与授权用例不一致"
+                            )
             recomputed_errors = evaluate_case(case, response)
             recomputed_errors.extend(evaluate_manifest_alignment(response, runtime))
             recomputed_result = "fail" if recomputed_errors else "pass"
@@ -649,6 +701,10 @@ def validate_profile_record(
                 or export_flags.get("excluded_patches")
             ):
                 errors.append("competition Profile 证据不得来自 exclusion experiment")
+            if runtime_data.get("validation_target_status") != "competition_evidenced":
+                errors.append(
+                    "competition Runtime Pack 必须显式声明 validation_target_status=competition_evidenced"
+                )
 
             expected_patches: dict[str, dict[str, Any]] = {}
             for item in patches:
@@ -685,8 +741,17 @@ def validate_profile_record(
                 )
                 if patch_entry.get("path") != indexed.get("file"):
                     errors.append(f"competition Patch {patch_id} 路径与 patch_index 不一致")
-                if patch_entry.get("status") != indexed.get("status"):
-                    errors.append(f"competition Patch {patch_id} 状态与 patch_index 不一致")
+                expected_runtime_status = indexed.get("status")
+                if (
+                    runtime_data.get("validation_target_status")
+                    == "competition_evidenced"
+                    and indexed.get("status") == "competition_evidenced"
+                ):
+                    expected_runtime_status = "regression_verified"
+                if patch_entry.get("status") != expected_runtime_status:
+                    errors.append(
+                        f"competition Patch {patch_id} 当前状态与晋级证据不一致"
+                    )
                 if patch_path is None or not patch_path.is_file():
                     errors.append(f"competition Patch {patch_id} 文件不存在")
                 elif patch_entry.get("sha256") != hashlib.sha256(
@@ -703,10 +768,62 @@ def validate_profile_record(
                 f"result_record Schema: {issue}"
                 for issue in _schema_errors(result_data, "result_record.schema.json")
             )
-            if result_data.get("result") != "pass" or result_data.get("run_id") != evidence.get(
-                "run_id"
-            ):
-                errors.append("competition result_record 未通过或运行身份不一致")
+            result_bindings = {
+                "run_id": evidence.get("run_id"),
+                "profile": profile_id,
+                "runtime_version": evidence.get("runtime_version"),
+                "runtime_pack_manifest": evidence.get("runtime_pack_manifest"),
+                "runtime_pack_manifest_sha256": evidence.get(
+                    "runtime_pack_manifest_sha256"
+                ),
+            }
+            if run_outcome is not None:
+                result_bindings["problem_id"] = run_outcome.identity.get("problem_id")
+            for field_name, expected in result_bindings.items():
+                if result_data.get(field_name) != expected:
+                    errors.append(
+                        f"competition result_record.{field_name} 与运行证据不一致"
+                    )
+            if result_data.get("result") != "pass":
+                errors.append("competition result_record 未通过")
+            if runtime_data is not None:
+                runtime_patch_ids = {
+                    item.get("patch_id")
+                    for item in runtime_data.get("patches", [])
+                    if isinstance(item, Mapping)
+                }
+                if result_data.get("target_patch") not in runtime_patch_ids:
+                    errors.append("competition result_record.target_patch 不在运行包 Patch 集合中")
+            if run_dir is not None:
+                automatic_path = run_dir / "automatic_evaluation.json"
+                automatic = _load_object(
+                    automatic_path,
+                    "competition automatic_evaluation",
+                    errors,
+                )
+                if automatic_path.is_file():
+                    actual_automatic_sha = hashlib.sha256(
+                        automatic_path.read_bytes()
+                    ).hexdigest()
+                    if result_data.get("automatic_evaluation_sha256") != actual_automatic_sha:
+                        errors.append(
+                            "competition result_record.automatic_evaluation_sha256 与运行现场不一致"
+                        )
+                if automatic is not None:
+                    expected_summary = {
+                        field_name: automatic.get(field_name)
+                        for field_name in (
+                            "result",
+                            "errors",
+                            "response_sha256",
+                            "case_sha256",
+                            "evaluator_version",
+                        )
+                    }
+                    if result_data.get("automatic_evaluation_summary") != expected_summary:
+                        errors.append(
+                            "competition result_record.automatic_evaluation_summary 与运行现场不一致"
+                        )
         return EvidenceOutcome(
             not errors,
             errors,
@@ -727,11 +844,16 @@ def validate_formal_patch(
     policy: Mapping[str, Any],
     *,
     root: Path = ROOT,
+    expected_status: str | None = None,
+    enforce_recorded_status: bool = True,
 ) -> EvidenceOutcome:
-    """验证手填 Patch 状态与 Policy/现场证据支持的最高状态一致。"""
+    """验证 Patch 的当前状态或指定晋级目标是否由现场证据支持。"""
     status = patch.get("status")
     if status not in {"regression_verified", "competition_evidenced"}:
         return EvidenceOutcome(True)
+    target_status = expected_status or status
+    if target_status not in {"regression_verified", "competition_evidenced"}:
+        return EvidenceOutcome(False, [f"不支持的正式 Patch 目标状态：{target_status}"])
     errors: list[str] = []
     from promotion_engine import evaluate_status_eligibility
 
@@ -1036,10 +1158,12 @@ def validate_formal_patch(
                         matching[0].get("path") != patch.get("file")
                         or matching[0].get("sha256")
                         != working_patch.get("_resolved_patch_sha256")
-                        or matching[0].get("status") != "competition_evidenced"
+                        or matching[0].get("status") != "regression_verified"
+                        or manifest.get("validation_target_status")
+                        != "competition_evidenced"
                     ):
                         stable_errors.append(
-                            f"比赛验证 #{index + 1} Patch 路径、哈希或状态不一致"
+                            f"比赛验证 #{index + 1} Patch 当前状态、路径、哈希或晋级目标不一致"
                         )
             if result_path is None or not result_path.is_file():
                 stable_errors.append(f"比赛验证 #{index + 1} result_record 不存在")
@@ -1057,10 +1181,13 @@ def validate_formal_patch(
                     )
                     if result.get("result") != "pass":
                         stable_errors.append(f"比赛验证 #{index + 1} 结果不是 pass")
-                    if result.get("runtime_pack_manifest") not in {
-                        None,
-                        item.get("runtime_pack_manifest"),
-                    }:
+                    if result.get("target_patch") != patch.get("patch_id"):
+                        stable_errors.append(
+                            f"比赛验证 #{index + 1} result_record.target_patch 与当前 Patch 不一致"
+                        )
+                    if result.get("runtime_pack_manifest") != item.get(
+                        "runtime_pack_manifest"
+                    ):
                         stable_errors.append(
                             f"比赛验证 #{index + 1} result_record 指向其他运行包"
                         )
@@ -1068,7 +1195,7 @@ def validate_formal_patch(
                         manifest_path is not None
                         and manifest_path.is_file()
                         and result.get("runtime_pack_manifest_sha256")
-                        not in {None, hashlib.sha256(manifest_path.read_bytes()).hexdigest()}
+                        != hashlib.sha256(manifest_path.read_bytes()).hexdigest()
                     ):
                         stable_errors.append(
                             f"比赛验证 #{index + 1} result_record manifest SHA-256 不一致"
@@ -1096,14 +1223,18 @@ def validate_formal_patch(
         if regression_valid
         else "review_ready"
     )
-    if status != derived_status:
+    if derived_status != target_status:
+        errors.append(
+            f"Patch 目标状态 {target_status} 与现场证据派生状态 {derived_status} 不一致"
+        )
+    if enforce_recorded_status and status != derived_status:
         errors.append(
             f"Patch 记录状态 {status} 与现场证据派生状态 {derived_status} 不一致"
         )
-    if status == "competition_evidenced":
+    if target_status == "competition_evidenced":
         errors.extend(stable_errors)
         errors.extend(competition.gaps)
-    elif status == "regression_verified":
+    elif target_status == "regression_verified":
         errors.extend(regression.gaps)
     return EvidenceOutcome(not errors, errors, {"derived_status": derived_status})
 

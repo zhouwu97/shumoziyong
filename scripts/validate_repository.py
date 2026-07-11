@@ -10,7 +10,13 @@ import hashlib
 from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
+from evaluate_prompt_response import (
+    EVALUATOR_VERSION,
+    evaluate_case,
+    load_case,
+    evaluate_manifest_alignment,
+)
+from evaluation_case_registry import substantive_assertion_count
 from evidence_validation import derive_v2_matrix_results
 from profile_derivation import derive_profile_report
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
@@ -516,8 +522,7 @@ class RepositoryValidator:
                     ok = False
 
                 case_file = self.resolve_repo_path(eval_json.get("case_file", ""))
-                case_text = case_file.read_text(encoding="utf-8")
-                actual_case_sha = hashlib.sha256(case_text.encode("utf-8")).hexdigest()
+                actual_case_sha = hashlib.sha256(case_file.read_bytes()).hexdigest()
                 if eval_json.get("case_sha256") != actual_case_sha:
                     self.fail(f"{run_dir.name} case_sha256 不匹配")
                     ok = False
@@ -1412,6 +1417,78 @@ class RepositoryValidator:
             else:
                 self.pass_("patch 负控矩阵覆盖全部已注册 patch")
 
+    def validate_evaluation_case_registry(self) -> None:
+        """验证晋级自动评估用例的授权范围和最低断言强度。"""
+        registry_path = "tests/prompt_regression/evaluation_case_registry.json"
+        registry = self.load_json(registry_path)
+        if not isinstance(registry, dict):
+            return
+        if not self.validate_schema(
+            registry,
+            "evaluation_case_registry.schema.json",
+            "晋级自动评估用例注册表",
+        ):
+            return
+        if registry.get("evaluator_version") != EVALUATOR_VERSION:
+            self.fail("晋级自动评估用例注册表 evaluator_version 与当前评估器不一致")
+            return
+
+        seen: set[tuple[Any, Any, Any]] = set()
+        valid = True
+        for item in registry.get("cases", []):
+            if not isinstance(item, dict):
+                valid = False
+                continue
+            identity = (
+                item.get("case_id"),
+                item.get("case_file"),
+                item.get("case_sha256"),
+            )
+            if identity in seen:
+                self.fail(f"晋级自动评估用例注册表存在重复授权：{identity}")
+                valid = False
+                continue
+            seen.add(identity)
+            try:
+                case_path = self.resolve_repo_path(str(item.get("case_file", "")))
+                actual_sha = hashlib.sha256(case_path.read_bytes()).hexdigest()
+                if actual_sha != item.get("case_sha256"):
+                    self.fail(
+                        f"晋级自动评估用例内容哈希不一致：{item.get('case_file')}"
+                    )
+                    valid = False
+                    continue
+                case = load_case(case_path, str(item.get("case_id", "")))
+            except (OSError, ValueError) as exc:
+                self.fail(f"晋级自动评估用例无法读取：{exc}")
+                valid = False
+                continue
+
+            assertions = substantive_assertion_count(case)
+            minimum = item.get("minimum_assertion_count")
+            if not isinstance(minimum, int) or assertions < minimum:
+                self.fail(
+                    "晋级自动评估用例实质断言不足："
+                    f"{item.get('case_id')} 当前 {assertions}，授权下限 {minimum}"
+                )
+                valid = False
+            target_patch = item.get("target_patch")
+            expected = case.get("expected", {})
+            asserted_patches = (
+                set(expected.get("patch_not_applicable", {}))
+                if isinstance(expected, dict)
+                and isinstance(expected.get("patch_not_applicable"), dict)
+                else set()
+            )
+            if target_patch is not None and target_patch not in asserted_patches:
+                self.fail(
+                    "晋级自动评估用例 target_patch 未被适用性断言覆盖："
+                    f"{item.get('case_id')} / {target_patch}"
+                )
+                valid = False
+        if valid:
+            self.pass_(f"晋级自动评估用例注册表（{len(seen)} 条）")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1423,6 +1500,7 @@ class RepositoryValidator:
         self.validate_markdown_links()
         self.validate_training_log_duplicates()
         self.validate_prompt_regression_cases()
+        self.validate_evaluation_case_registry()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:

@@ -1,4 +1,5 @@
 cases:
   - case_id: test_case_b
     expected:
-      patch_not_applicable: {}
+      values:
+        primary_type: 优化

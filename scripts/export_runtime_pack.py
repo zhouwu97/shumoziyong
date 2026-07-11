@@ -262,6 +262,7 @@ def build_pack(
     profile: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
+    validation_target_status: str | None = None,
 ) -> str:
     files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
     all_patches = read_patch_index()
@@ -278,6 +279,11 @@ def build_pack(
         parts.append(f"- 警告：本次显式包含 review_ready patch（{', '.join(candidate_patch_ids)}），{CANDIDATE_WARNING}。\n")
     if exclude_patch_ids:
         parts.append(f"- 警告：本次隔离实验排除已批准 patch（{', '.join(exclude_patch_ids)}），仅用于负控或对比测试。\n")
+    if validation_target_status:
+        parts.append(
+            f"- 晋级验证目标：`{validation_target_status}`；运行包记录的是执行时 Patch 当前状态，"
+            "不得预先手改状态。\n"
+        )
     parts.append("\n")
 
     for relative_path in files:
@@ -306,15 +312,33 @@ def build_manifest(
     pack_content: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
+    validation_target_status: str | None = None,
 ) -> dict[str, Any]:
     candidate_patch_ids = list(candidate_patch_ids or [])
     exclude_patch_ids = list(exclude_patch_ids or [])
     exclude_set = set(exclude_patch_ids)
+    if validation_target_status not in {None, "competition_evidenced"}:
+        raise ValueError("validation_target_status 仅允许 competition_evidenced")
+    if validation_target_status and (candidate_patch_ids or exclude_patch_ids):
+        raise ValueError("晋级验证运行不得混用 candidate 或 exclusion experiment")
 
     profile_state_path = f"runtime_profiles/{profile}.json"
     all_patches = read_patch_index()
     profile_state, computed_maturity = _derive_profile_state(profile, all_patches)
     selected_patches = select_patches(profile, candidate_patch_ids, exclude_patch_ids)
+    if validation_target_status:
+        if not selected_patches:
+            raise ValueError("晋级验证运行至少需要一个 regression_verified Patch")
+        non_regression = [
+            str(patch.get("patch_id"))
+            for patch in selected_patches
+            if patch.get("status") != "regression_verified"
+        ]
+        if non_regression:
+            raise ValueError(
+                "晋级验证运行只能包含当前状态为 regression_verified 的 Patch："
+                + ", ".join(sorted(non_regression))
+            )
     selected_ids = {patch["patch_id"] for patch in selected_patches}
     all_profile_patches = [
         patch for patch in all_patches if profile in patch.get("runtime_profiles", [])
@@ -373,6 +397,7 @@ def build_manifest(
             "candidate_patches": candidate_patch_ids,
             "excluded_patches": exclude_patch_ids,
         },
+        "validation_target_status": validation_target_status,
         "runtime_pack_sha256": sha256_bytes(pack_content.encode("utf-8")),
     }
     identity_payload = {
@@ -410,6 +435,11 @@ def parse_args() -> argparse.Namespace:
         dest="exclude_patch",
         help="显式排除已批准 patch（隔离实验用，如负控 baseline / A092-only / A127-only），可重复传入。",
     )
+    parser.add_argument(
+        "--validation-target-status",
+        choices=["competition_evidenced"],
+        help="为比赛晋级生成验证运行包；包内保留 Patch 执行时的当前状态。",
+    )
     return parser.parse_args()
 
 
@@ -421,8 +451,19 @@ def main() -> None:
         if args.manifest_output
         else output.with_suffix(".manifest.json")
     )
-    pack_content = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
-    manifest = build_manifest(args.profile, pack_content, args.candidate_patch, args.exclude_patch)
+    pack_content = build_pack(
+        args.profile,
+        args.candidate_patch,
+        args.exclude_patch,
+        args.validation_target_status,
+    )
+    manifest = build_manifest(
+        args.profile,
+        pack_content,
+        args.candidate_patch,
+        args.exclude_patch,
+        args.validation_target_status,
+    )
 
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest_output.parent.mkdir(parents=True, exist_ok=True)

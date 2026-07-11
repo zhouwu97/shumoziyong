@@ -108,6 +108,13 @@ def derive_profile_report(
         stable_requirements = active_policy.get(
             "runtime_profile_stable_requirements", {}
         )
+        profile_formal_patches = [
+            patch
+            for patch in patches
+            if isinstance(patch, Mapping)
+            and profile.get("profile_id") in patch.get("runtime_profiles", [])
+            and patch.get("patch_id") in validated_formal_patch_ids
+        ]
         minimum_full_runs = stable_requirements.get("minimum_gate_0_5", 1)
         minimum_competitions = stable_requirements.get(
             "minimum_competition_validation_records", 1
@@ -143,6 +150,20 @@ def derive_profile_report(
             "known_failures"
         ):
             competition_errors.append("competition Profile known_failures 必须为空")
+        if stable_requirements.get("require_non_empty_verified_patches", True) and not profile_formal_patches:
+            competition_errors.append("competition Profile 必须至少包含一个现场验证 Patch")
+        non_competition_patches = [
+            str(patch.get("patch_id"))
+            for patch in profile_formal_patches
+            if patch.get("status") != "competition_evidenced"
+        ]
+        if non_competition_patches:
+            competition_errors.append(
+                "competition Profile 的正式 Patch 尚未全部完成比赛晋级："
+                + ", ".join(sorted(non_competition_patches))
+            )
+        if invalid_records:
+            competition_errors.append("competition Profile 不能包含任何无效或未深验证的证据记录")
         if competition_errors:
             competition_complete = False
             invalid_records.append(

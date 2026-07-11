@@ -106,9 +106,7 @@ def _retarget_fixture_patch(fix_dir: Path, patch_id: str) -> None:
     for run_name in ("treatment", "treatment2", "retest"):
         evaluation_path = fix_dir / run_name / "automatic_evaluation.json"
         evaluation = json.loads(evaluation_path.read_text("utf-8"))
-        evaluation["case_sha256"] = hashlib.sha256(
-            test_case_path.read_text("utf-8").encode("utf-8")
-        ).hexdigest()
+        evaluation["case_sha256"] = _sha256(test_case_path)
         evaluation_path.write_text(json.dumps(evaluation), "utf-8")
     failure_id = f"F-{patch_id}-001"
     for record_name in ("failure_record.json", "fix_record.json", "fix_review.json"):
@@ -177,10 +175,11 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
         if item["patch_id"] == "A092"
     )
     competition_manifest["maturity"] = "competition_evidenced"
+    competition_manifest["validation_target_status"] = "competition_evidenced"
     competition_manifest["patches"] = [
         {
             "patch_id": "A092",
-            "status": "competition_evidenced",
+            "status": "regression_verified",
             "path": source_patch["file"],
             "sha256": _sha256(ROOT / source_patch["file"]),
         }

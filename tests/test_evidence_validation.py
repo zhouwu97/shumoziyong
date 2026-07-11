@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import evidence_validation as evidence_module  # noqa: E402
 import promotion_engine  # noqa: E402
+import promote_patch as promote_patch_module  # noqa: E402
 from evidence_validation import (  # noqa: E402
     ControlOutcome,
     EvidenceOutcome,
@@ -114,16 +115,18 @@ def test_formal_patch_status_must_equal_highest_derived_state(
                     "patch_id": "A999",
                     "path": "patch.md",
                     "sha256": patch_sha,
-                    "status": "competition_evidenced",
+                    "status": "regression_verified",
                 }
-            ]
+            ],
+            "validation_target_status": "competition_evidenced",
         },
     )
     _write(
         tmp_path / "competition.result.json",
-        {
-            "result": "pass",
-            "runtime_pack_manifest": "competition.manifest.json",
+            {
+                "result": "pass",
+                "target_patch": "A999",
+                "runtime_pack_manifest": "competition.manifest.json",
             "runtime_pack_manifest_sha256": competition_sha,
         },
     )
@@ -280,6 +283,53 @@ def test_full_run_recomputes_automatic_evaluation(
     assert not outcome.valid
     assert any("response.json diagnosis.schema.json" in error for error in outcome.errors)
     assert any("现场重算" in error for error in outcome.errors), outcome.errors
+
+
+def test_full_run_rejects_unregistered_or_empty_evaluation_case(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """晋级评估不得把任意 YAML 或空断言用例伪装成可信用例。"""
+    fixture = ROOT / "tests" / "fixtures" / "valid_promotion_evidence" / "baseline"
+    run_dir = tmp_path / "run"
+    shutil.copytree(fixture, run_dir)
+    empty_case = tmp_path / "empty.yaml"
+    empty_case.write_text(
+        "cases:\n  - case_id: empty_case\n    expected:\n      patch_not_applicable: {}\n",
+        encoding="utf-8",
+    )
+    automatic_path = run_dir / "automatic_evaluation.json"
+    automatic = json.loads(automatic_path.read_text(encoding="utf-8"))
+    automatic.update(
+        {
+            "case_id": "empty_case",
+            "case_file": empty_case.relative_to(ROOT).as_posix()
+            if empty_case.is_relative_to(ROOT)
+            else str(empty_case),
+            "case_sha256": hashlib.sha256(empty_case.read_bytes()).hexdigest(),
+            "assertion_count": 0,
+        }
+    )
+    # 绝对路径本身也应被 _resolve 拒绝；这里同时证明不会退回到“空用例通过”。
+    automatic_path.write_text(json.dumps(automatic), encoding="utf-8")
+
+    import finalize_run_evidence
+    import run_workflow
+
+    monkeypatch.setattr(run_workflow, "verify_run_seal", lambda *_args: {})
+    monkeypatch.setattr(run_workflow, "verify_gate_artifacts", lambda *_args: {})
+    monkeypatch.setattr(
+        run_workflow,
+        "replay_transition_log",
+        lambda *_args: {"completed": True, "max_gate": 5, "transition_version": "2.0.0"},
+    )
+    monkeypatch.setattr(
+        finalize_run_evidence, "validate_evidence_manifest", lambda *_args: []
+    )
+
+    outcome = validate_full_run(run_dir, {})
+
+    assert not outcome.valid
+    assert any("case_file" in error or "授权" in error for error in outcome.errors)
 
 
 def test_control_requires_same_prompt_and_distinct_responses(
@@ -452,6 +502,91 @@ def test_profile_competition_rejects_experiment_and_patch_set_mismatch(
     assert any("Patch 集合" in error for error in outcome.errors)
 
 
+def test_profile_competition_binds_result_record_to_runtime_identity(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """只有 result=pass 的记录不能与任意运行包拼接成比赛证据。"""
+    patch_file = tmp_path / "patch.md"
+    patch_file.write_text("patch", encoding="utf-8")
+    runtime_path = tmp_path / "runtime.json"
+    runtime_sha = _write(
+        runtime_path,
+        {
+            "profile": "engineering_optimization",
+            "runtime_version": "1.0.0",
+            "runtime_pack_sha256": "a" * 64,
+            "validation_target_status": "competition_evidenced",
+            "candidate_experiment": {"enabled": False, "patch_ids": [], "warning": None},
+            "exclusion_experiment": {"enabled": False, "patch_ids": []},
+            "export_flags": {"candidate_patches": [], "excluded_patches": []},
+            "patches": [
+                {
+                    "patch_id": "A999",
+                    "path": "patch.md",
+                    "status": "regression_verified",
+                    "sha256": hashlib.sha256(patch_file.read_bytes()).hexdigest(),
+                }
+            ],
+        },
+    )
+    result_path = tmp_path / "result.json"
+    result_sha = _write(result_path, {"run_id": "run", "result": "pass"})
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    evidence_path = tmp_path / "competition.json"
+    _write(
+        evidence_path,
+        {
+            "profile": "engineering_optimization",
+            "runtime_version": "1.0.0",
+            "run_id": "run",
+            "run_dir": "run",
+            "runtime_pack_manifest": "runtime.json",
+            "runtime_pack_manifest_sha256": runtime_sha,
+            "result_record": "result.json",
+            "result_record_sha256": result_sha,
+        },
+    )
+    monkeypatch.setattr(evidence_module, "_schema_errors", lambda *_args: [])
+    monkeypatch.setattr(
+        evidence_module,
+        "validate_full_run",
+        lambda *_args, **_kwargs: EvidenceOutcome(
+            True,
+            identity={
+                "run_id": "run",
+                "problem_id": "2024-C",
+                "runtime_pack_sha256": "a" * 64,
+            },
+        ),
+    )
+    record = {
+        "record_id": "competition",
+        "kind": "competition",
+        "path": "competition.json",
+        "sha256": hashlib.sha256(evidence_path.read_bytes()).hexdigest(),
+    }
+    patches = [
+        {
+            "patch_id": "A999",
+            "status": "competition_evidenced",
+            "file": "patch.md",
+            "runtime_profiles": ["engineering_optimization"],
+        }
+    ]
+    outcome = validate_profile_record(
+        record,
+        "engineering_optimization",
+        patches,
+        {"runtime_profile_stable_requirements": {}},
+        root=tmp_path,
+        validated_formal_patch_ids={"A999"},
+    )
+
+    assert not outcome.valid
+    assert any("result_record.profile" in error for error in outcome.errors)
+
+
 def test_recorded_formal_status_does_not_create_validated_patch_id(
     tmp_path: Path, monkeypatch: Any
 ) -> None:
@@ -472,3 +607,52 @@ def test_recorded_formal_status_does_not_create_validated_patch_id(
 
     assert validated == set()
     assert any("deep evidence invalid" in error for error in errors)
+
+
+def test_explicit_promotion_command_is_the_only_state_mutation_path(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """晋级命令在证据验证后原子改状态，不要求预先把状态伪造成终态。"""
+    index_path = tmp_path / "patch_index.json"
+    _write(
+        index_path,
+        [
+            {
+                "patch_id": "A999",
+                "status": "regression_verified",
+                "stable_evidence": {
+                    "human_approval_record": {"reviewer": "reviewer"}
+                },
+            }
+        ],
+    )
+    matrix_path = tmp_path / "matrix.json"
+    _write(matrix_path, {"patches": [{"patch_id": "A999"}]})
+    policy_path = tmp_path / "policy.json"
+    _write(policy_path, {})
+    monkeypatch.setattr(
+        promote_patch_module,
+        "derive_v2_matrix_results",
+        lambda matrix, _policy, **_kwargs: (matrix, []),
+    )
+    monkeypatch.setattr(
+        promote_patch_module,
+        "validate_formal_patch",
+        lambda *_args, **_kwargs: EvidenceOutcome(
+            True, identity={"derived_status": "competition_evidenced"}
+        ),
+    )
+
+    result = promote_patch_module.promote_patch(
+        "A999",
+        "competition_evidenced",
+        "reviewer",
+        root=tmp_path,
+        index_path=index_path,
+        matrix_path=matrix_path,
+        policy_path=policy_path,
+    )
+
+    rewritten = json.loads(index_path.read_text(encoding="utf-8"))
+    assert rewritten[0]["status"] == "competition_evidenced"
+    assert result["previous_status"] == "regression_verified"

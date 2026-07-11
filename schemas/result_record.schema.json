@@ -1,50 +1,59 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://shumo.local/schemas/result_record.schema.json",
-  "title": "Result Record",
+  "title": "Competition Result Record",
+  "description": "比赛结果必须绑定实际运行、运行包和自动/人工结论，不能只声明 pass。",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "schema_version",
+    "run_id",
+    "problem_id",
+    "profile",
+    "runtime_version",
+    "target_patch",
+    "runtime_pack_manifest",
+    "runtime_pack_manifest_sha256",
+    "automatic_evaluation_sha256",
+    "automatic_evaluation_summary",
+    "manual_review",
     "result"
   ],
   "properties": {
-    "run_id": {
-      "type": "string"
-    },
-    "schema_version": {
-      "type": "string"
-    },
-    "result": {
-      "type": "string",
-      "enum": ["pass", "fail"]
-    },
-    "final_result": {
-      "type": "string",
-      "enum": ["pass", "fail"]
-    },
-    "score": {
-      "type": "number"
-    },
-    "comments": {
-      "type": "string"
-    },
-    "patch_id": {
-      "type": "string"
-    },
-    "target_patch": {
-      "type": "string"
-    },
-    "runtime_pack_manifest": {
-      "type": "string"
-    },
-    "runtime_pack_manifest_sha256": {
-      "type": "string"
-    },
-    "automatic_evaluation": {
-      "type": "object"
+    "schema_version": {"const": "2.0.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "target_patch": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
+    "runtime_pack_manifest": {"type": "string", "minLength": 1},
+    "runtime_pack_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "automatic_evaluation_sha256": {"$ref": "#/$defs/sha256"},
+    "automatic_evaluation_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "errors", "response_sha256", "case_sha256", "evaluator_version"],
+      "properties": {
+        "result": {"const": "pass"},
+        "errors": {"type": "array", "maxItems": 0},
+        "response_sha256": {"$ref": "#/$defs/sha256"},
+        "case_sha256": {"$ref": "#/$defs/sha256"},
+        "evaluator_version": {"type": "string", "minLength": 1}
+      }
     },
     "manual_review": {
-      "type": ["object", "null"]
-    }
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reviewer", "conclusion"],
+      "properties": {
+        "decision": {"const": "approved"},
+        "reviewer": {"type": "string", "minLength": 1},
+        "conclusion": {"type": "string", "minLength": 1}
+      }
+    },
+    "result": {"const": "pass"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   }
 }

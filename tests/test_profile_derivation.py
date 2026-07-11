@@ -172,6 +172,72 @@ def test_known_failures_block_competition_maturity(
     )
 
 
+def test_competition_maturity_requires_a_non_empty_formal_patch_set(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """比赛记录齐全也不能在没有正式 Patch 时抬升 Profile。"""
+    _trust_fixture_records(monkeypatch)
+    records = [
+        _record(tmp_path, "positive", "control_review", "positive"),
+        _record(tmp_path, "boundary", "control_review", "boundary"),
+        _record(tmp_path, "negative", "control_review", "negative"),
+        _record(tmp_path, "full", "full_run"),
+        _record(tmp_path, "competition", "competition"),
+    ]
+    profile = {
+        "profile_id": "engineering_optimization",
+        "plugin_version": "1.0.0",
+        "validation_records": records,
+    }
+
+    report = derive_profile_report(profile, [], root=tmp_path)
+
+    assert report["computed_maturity"] == "regression_verified"
+    assert any(
+        "至少包含一个现场验证 Patch" in item["error"]
+        for item in report["invalid_records"]
+    )
+
+
+def test_competition_maturity_requires_every_formal_patch_to_be_promoted(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """Profile 的最高成熟度不能仅靠记录计数绕过 Patch 当前状态。"""
+    _trust_fixture_records(monkeypatch)
+    monkeypatch.setattr(
+        profile_derivation_module,
+        "derive_validated_formal_patch_ids",
+        lambda *_args, **_kwargs: ({"A001"}, []),
+    )
+    records = [
+        _record(tmp_path, "positive", "control_review", "positive"),
+        _record(tmp_path, "boundary", "control_review", "boundary"),
+        _record(tmp_path, "negative", "control_review", "negative"),
+        _record(tmp_path, "full", "full_run"),
+        _record(tmp_path, "competition", "competition"),
+    ]
+    profile = {
+        "profile_id": "engineering_optimization",
+        "plugin_version": "1.0.0",
+        "validation_records": records,
+    }
+    patches = [
+        {
+            "patch_id": "A001",
+            "status": "regression_verified",
+            "runtime_profiles": ["engineering_optimization"],
+        }
+    ]
+
+    report = derive_profile_report(profile, patches, root=tmp_path)
+
+    assert report["computed_maturity"] == "regression_verified"
+    assert any(
+        "尚未全部完成比赛晋级" in item["error"]
+        for item in report["invalid_records"]
+    )
+
+
 def test_duplicate_evidence_path_is_not_counted_twice(
     tmp_path: Path, monkeypatch: Any
 ) -> None:
