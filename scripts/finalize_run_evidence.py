@@ -9,7 +9,21 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
-from run_workflow import ROOT, build_run_evidence_manifest, replay_transition_log, write_json
+from run_workflow import (
+    OPTIONAL_GATE_EVIDENCE_SPECS,
+    ROOT,
+    build_run_evidence_manifest,
+    replay_transition_log,
+    write_json,
+)
+
+
+OPTIONAL_EVIDENCE_ARTIFACTS = {
+    role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS
+}
+OPTIONAL_EVIDENCE_ARTIFACTS.update(
+    {f"gate_{gate}_artifact_manifest": f"gate_artifacts/gate_{gate}.manifest.json" for gate in range(6)}
+)
 
 
 def load_policy() -> dict[str, Any]:
@@ -48,7 +62,7 @@ def validate_evidence_manifest(
         if path_text in seen_paths:
             errors.append(f"run_evidence_manifest.path 重复：{path_text}")
         seen_paths.add(path_text)
-        expected_path = required_artifacts.get(role)
+        expected_path = required_artifacts.get(role, OPTIONAL_EVIDENCE_ARTIFACTS.get(role))
         if expected_path is None:
             errors.append(f"run_evidence_manifest 包含未知证据角色：{role}")
         elif path_text != expected_path:

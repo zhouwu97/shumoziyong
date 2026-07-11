@@ -22,6 +22,7 @@ from export_runtime_pack import (  # noqa: E402
 from run_workflow import (  # noqa: E402
     GATE_5_CHECKLIST_KEYS,
     GATE_NAMES,
+    TRANSITION_VERSION,
     VALID_TRANSITIONS,
     create_old_problem_run,
     get_current_gate,
@@ -29,6 +30,8 @@ from run_workflow import (  # noqa: E402
     mark_run_completed,
     record_transition,
     replay_transition_log,
+    verify_gate_artifacts,
+    write_gate_artifact_manifest,
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
@@ -117,6 +120,116 @@ def _gate_5_review(run_dir: Path, reviewer: str = "human") -> dict[str, object]:
     }
 
 
+def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
+    """写入最小但具备业务含义的 Gate 0-4 产物及对应哈希清单。"""
+    run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+    )
+    binding = {
+        "schema_version": "1.0.0",
+        "run_id": run_manifest["run_id"],
+        "problem_id": run_manifest["problem_id"],
+        "profile": run_manifest["profile"],
+        "runtime_version": run_manifest["runtime_version"],
+        "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
+    }
+    runtime_pack_sha = runtime_manifest["runtime_pack_sha256"]
+    payloads: dict[int, list[tuple[str, dict[str, object]]]] = {
+        0: [
+            (
+                "diagnosis.json",
+                {
+                    **binding,
+                    "artifact_type": "diagnosis",
+                    "problem_summary": "This fixture identifies the mathematical task and its evidence boundary.",
+                    "material_findings": ["All declared problem materials passed hash checks."],
+                    "objectives": ["Produce a reproducible and reviewable mathematical result."],
+                    "constraints": ["Use only the frozen input materials."],
+                    "risks": ["Unsupported assumptions may invalidate downstream claims."],
+                },
+            )
+        ],
+        1: [
+            (
+                "model_route.json",
+                {
+                    **binding,
+                    "artifact_type": "model_route",
+                    "selected_route": "Use a deterministic baseline followed by constrained validation.",
+                    "alternatives": ["A stochastic alternative was considered and rejected."],
+                    "assumptions": ["The frozen input data is representative of the stated task."],
+                    "validation_plan": ["Compare outputs against the declared constraints."],
+                },
+            )
+        ],
+        2: [
+            (
+                "code_plan.json",
+                {
+                    **binding,
+                    "artifact_type": "code_plan",
+                    "commands": ["python solve.py --input frozen.json"],
+                    "modules": ["solve.py implements the declared model route."],
+                    "inputs": ["frozen.json"],
+                    "outputs": ["result.json"],
+                    "verification_steps": ["Re-run the command and compare output hashes."],
+                },
+            )
+        ],
+        3: [
+            (
+                "result_report.json",
+                {
+                    **binding,
+                    "artifact_type": "result_report",
+                    "conclusions": ["The configured fixture checks completed successfully."],
+                    "metrics": [
+                        {"name": "fixture_score", "value": 1.0, "unit": None, "source": "result.json"}
+                    ],
+                    "limitations": ["This fixture result is not a universal correctness claim."],
+                },
+            ),
+            (
+                "result_manifest.json",
+                {
+                    **binding,
+                    "artifact_type": "result_manifest",
+                    "executions": [
+                        {
+                            "command": "python solve.py --input frozen.json",
+                            "exit_code": 0,
+                            "outputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                        }
+                    ],
+                    "inputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                    "outputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                },
+            ),
+        ],
+        4: [
+            (
+                "paper_claim_map.json",
+                {
+                    **binding,
+                    "artifact_type": "paper_claim_map",
+                    "claims": [
+                        {
+                            "claim_id": "C001",
+                            "claim": "The configured fixture execution completed successfully.",
+                            "result_refs": ["result_report.json#/conclusions/0"],
+                            "evidence_refs": ["result_manifest.json#/executions/0"],
+                        }
+                    ],
+                },
+            )
+        ],
+    }
+    for filename, payload in payloads[gate]:
+        (run_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+    write_gate_artifact_manifest(run_dir, gate, completed_at="2026-07-11T00:00:00Z")
+
+
 def _ready_gate_5_run(
     parent: Path,
     name: str,
@@ -147,6 +260,32 @@ def _ready_gate_5_run(
     )
     for gate in range(6):
         record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
+    return run_dir
+
+
+def _v2_gate_0_run(parent: Path, name: str = "v2_run") -> Path:
+    """构造已启动 Gate 0 的 v2 运行，用于语义完成契约负向测试。"""
+    run_dir = parent / name
+    run_dir.mkdir()
+    _write_minimal_run_binding(run_dir, run_id=name)
+    (run_dir / "gate_artifacts").mkdir()
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps(
+            {
+                "transition_version": TRANSITION_VERSION,
+                "from": None,
+                "to": None,
+                "completed_gate": None,
+                "next_gate": 0,
+                "state": "initialized",
+                "material_ready": True,
+                "max_gate": 5,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    record_transition(run_dir, None, 0, "human", "approved")
     return run_dir
 
 
@@ -565,11 +704,16 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
     metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
 
-    for gate in range(6):
-        record_transition(run_dir, gate - 1 if gate else None, gate, "test_reviewer", "approved")
+    record_transition(run_dir, None, 0, "test_reviewer", "approved")
+    for gate in range(5):
+        _write_valid_gate_artifact(run_dir, gate)
+        record_transition(run_dir, gate, gate + 1, "test_reviewer", "approved")
     (run_dir / "gate_5_review.json").write_text(
         json.dumps(_gate_5_review(run_dir, "test_reviewer"), ensure_ascii=False),
         encoding="utf-8",
+    )
+    write_gate_artifact_manifest(
+        run_dir, 5, completed_at="2026-07-11T00:00:00Z"
     )
     mark_run_completed(run_dir, "test_reviewer")
 
@@ -1021,6 +1165,84 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     )
     mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
+
+
+def test_v2_transition_records_completed_gate_and_next_gate(tmp_path: Path) -> None:
+    """v2 推进事件必须表达完成的 Gate，而不是只记录进入下一 Gate。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+
+    record_transition(run_dir, 0, 1, "human", "approved")
+
+    last = json.loads(
+        (run_dir / "transitions.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+    )
+    assert last["completed_gate"] == 0
+    assert last["next_gate"] == 1
+    assert last["state"] == "completed_gate_0"
+    assert "from" not in last and "to" not in last
+    assert replay_transition_log(run_dir)["completed_gates"] == [0]
+
+
+def test_v2_missing_gate_manifest_cannot_advance(tmp_path: Path) -> None:
+    """未生成 Gate 清单时必须停留在当前 Gate。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+
+    with pytest.raises(FileNotFoundError, match="gate_0.manifest.json"):
+        record_transition(run_dir, 0, 1, "human", "approved")
+    assert replay_transition_log(run_dir)["current_gate"] == 0
+
+
+def test_v2_placeholder_business_artifact_cannot_build_manifest(tmp_path: Path) -> None:
+    """只有占位说明而无业务内容的文件不能被封装为 Gate 完成证据。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    (run_dir / "diagnosis.json").write_text(
+        json.dumps({"artifact_type": "diagnosis", "_note": "pending"}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="diagnosis.json 不符合 Schema"):
+        write_gate_artifact_manifest(run_dir, 0)
+
+
+def test_v2_artifact_identity_mismatch_is_fail_closed(tmp_path: Path) -> None:
+    """业务产物身份与当前运行不一致时不得生成可信清单。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+    diagnosis_path = run_dir / "diagnosis.json"
+    diagnosis = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    diagnosis["run_id"] = "copied_from_other_run"
+    diagnosis_path.write_text(json.dumps(diagnosis), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="diagnosis.json.run_id 与当前运行现场不一致"):
+        write_gate_artifact_manifest(run_dir, 0)
+
+
+def test_v2_tampered_artifact_hash_cannot_advance(tmp_path: Path) -> None:
+    """清单生成后篡改业务产物，即使 JSON 仍合法也不得离开 Gate。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+    diagnosis_path = run_dir / "diagnosis.json"
+    diagnosis = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    diagnosis["risks"].append("Tampering changed the reviewed business content.")
+    diagnosis_path.write_text(json.dumps(diagnosis), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="SHA-256 不匹配"):
+        record_transition(run_dir, 0, 1, "human", "approved")
+    assert replay_transition_log(run_dir)["current_gate"] == 0
+
+
+def test_partial_v2_run_can_be_verified_but_is_not_completed(tmp_path: Path) -> None:
+    """部分 Gate 可保存复核，但不会被状态机标记为完整运行。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+
+    manifest = verify_gate_artifacts(run_dir, 0)
+    state = replay_transition_log(run_dir)
+
+    assert manifest["gate"] == 0
+    assert state["completed"] is False
+    assert state["completed_gates"] == []
 
 
 def test_gate_5_review_schema_requires_target_gate(tmp_path: Path) -> None:
