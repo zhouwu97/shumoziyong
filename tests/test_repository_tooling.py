@@ -119,6 +119,122 @@ def test_stable_profile_rejects_non_stable_patch() -> None:
     assert any("stable profile 只能导入 stable patch" in failure for failure in validator.failures)
 
 
+def test_stable_profile_requires_evidence_level_requirements() -> None:
+    """完整状态字段不能替代 Gate、负控、比赛证据和失败清理。"""
+    profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": True,
+            "validation_level": "competition_verified",
+            "verified_patches": [],
+            "known_failures": ["仍有未关闭问题"],
+        }
+    )
+    profile["validation"].update(
+        {
+            "gate_0_5": 0,
+            "negative_control": 0,
+            "evidence": [],
+        }
+    )
+    validator = RepositoryValidator()
+    real_load = RepositoryValidator().load_json
+
+    def load_json(path: str):
+        if str(path).replace("\\", "/") == "runtime_profiles/general.json":
+            return profile
+        return real_load(path)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(validator, "load_json", load_json)
+        validator.validate_profiles()
+
+    expected_messages = (
+        "至少需要 1 个 stable patch",
+        "gate_0_5 至少需要",
+        "negative_control 至少需要",
+        "validation.evidence 不能为空",
+        "competition_validation_records 至少需要",
+        "known_failures 必须为空",
+    )
+    for message in expected_messages:
+        assert any(message in failure for failure in validator.failures)
+
+
+def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -> None:
+    """Stable Profile 的比赛状态必须由真实运行包和通过的结果记录证明。"""
+    pack = build_pack("engineering_optimization")
+    runtime_manifest = build_manifest("engineering_optimization", pack)
+    runtime_manifest_path = tmp_path / "runtime_pack.manifest.json"
+    runtime_manifest_path.write_text(json.dumps(runtime_manifest), encoding="utf-8")
+    runtime_manifest_sha = hashlib.sha256(runtime_manifest_path.read_bytes()).hexdigest()
+    result_path = tmp_path / "result_record.json"
+    result_path.write_text(
+        json.dumps(
+            {
+                "result": "pass",
+                "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
+                "runtime_pack_manifest_sha256": runtime_manifest_sha,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    profile = json.loads(
+        (ROOT / "runtime_profiles" / "engineering_optimization.json").read_text(encoding="utf-8")
+    )
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": True,
+            "validation_level": "competition_verified",
+            "verified_patches": ["A092", "A127"],
+        }
+    )
+    profile["validation"].update(
+        {
+            "gate_0_5": 1,
+            "negative_control": 2,
+            "competition_validation_records": [
+                {
+                    "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
+                    "runtime_pack_manifest_sha256": runtime_manifest_sha,
+                    "result_record": "fixture/result_record.json",
+                }
+            ],
+        }
+    )
+    patches = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text(encoding="utf-8"))
+    for patch in patches:
+        if patch["patch_id"] in {"A092", "A127"}:
+            patch["status"] = "stable"
+
+    validator = RepositoryValidator()
+    real_load = RepositoryValidator().load_json
+
+    def load_json(path: str):
+        normalized = str(path).replace("\\", "/")
+        if normalized == "runtime_profiles/engineering_optimization.json":
+            return profile
+        if normalized == "prompt_patches/patch_index.json":
+            return patches
+        return real_load(path)
+
+    def resolve_repo_path(self, raw: str) -> Path:
+        if raw == "fixture/runtime_pack.manifest.json":
+            return runtime_manifest_path
+        if raw == "fixture/result_record.json":
+            return result_path
+        return RepositoryValidator().resolve_repo_path(raw)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(validator, "load_json", load_json)
+        monkeypatch.setattr(validator, "resolve_repo_path", resolve_repo_path.__get__(validator))
+        validator.validate_profiles()
+    assert not validator.failures
+
+
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:
     """verified_candidate/stable 但未进入 verified_patches 的 patch 不得进入正式包。
     当前 A092/A127 都在 verified_patches，故默认应包含；本测试确认 AND 条件不误伤已批准 patch。"""
@@ -659,7 +775,8 @@ def test_verify_materials_to_dict_serializable(tmp_path: Path) -> None:
 def test_check_promotion_eligibility_produces_report() -> None:
     """Real policy + matrix + patch_index produce a valid report."""
     report, gaps = check_promotion_eligibility()
-    assert report["policy_version"] == "1.3.0"
+    policy = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))
+    assert report["policy_version"] == policy["policy_version"]
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report

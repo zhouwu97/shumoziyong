@@ -131,7 +131,124 @@ class RepositoryValidator:
     def validate_profiles(self) -> None:
         patches = self.load_json("prompt_patches/patch_index.json") or []
         patch_by_id = {patch.get("patch_id"): patch for patch in patches}
+        policy = self.load_json("policies/promotion_policy.json") or {}
+        stable_policy = policy.get("runtime_profile_stable_requirements", {})
+        stable_rules = policy.get("status_rules", {}).get("stable", {})
         found_profiles: set[str] = set()
+
+        def _load_record(path: Path, label: str, profile_id: str) -> dict[str, Any] | None:
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                self.fail(f"runtime profile {profile_id} 的 {label} 无法解析：{exc}")
+                return None
+            if not isinstance(data, dict):
+                self.fail(f"runtime profile {profile_id} 的 {label} 必须是 JSON 对象")
+                return None
+            return data
+
+        def _validate_stable_profile(data: dict[str, Any], profile_id: str) -> None:
+            """将 stable Profile 与可验证的比赛证据、Patch 状态和 policy 阈值绑定。"""
+            validation = data.get("validation")
+            if not isinstance(validation, dict):
+                self.fail(f"runtime profile {profile_id} 的 validation 必须是对象")
+                return
+
+            def policy_int(key: str, default: int) -> int:
+                value = stable_policy.get(key, default)
+                if not isinstance(value, int) or value < 0:
+                    self.fail(f"promotion policy runtime_profile_stable_requirements.{key} 必须是非负整数")
+                    return default
+                return value
+
+            minimum_gate_0_5 = policy_int("minimum_gate_0_5", 1)
+            repetition = stable_rules.get("repetition", {}) if isinstance(stable_rules, dict) else {}
+            minimum_negative_controls = repetition.get("min_negative_control_runs")
+            if not isinstance(minimum_negative_controls, int) or minimum_negative_controls < 0:
+                self.fail("promotion policy status_rules.stable.repetition.min_negative_control_runs 必须是非负整数")
+                minimum_negative_controls = 1
+            minimum_competition_records = policy_int("minimum_competition_validation_records", 1)
+
+            def validation_count(key: str) -> int:
+                value = validation.get(key)
+                if not isinstance(value, int):
+                    self.fail(f"runtime profile {profile_id} 的 validation.{key} 必须是整数")
+                    return 0
+                return value
+
+            raw_profile_patches = data.get("verified_patches")
+            profile_patch_ids = set(raw_profile_patches) if isinstance(raw_profile_patches, list) else set()
+            if stable_policy.get("require_non_empty_verified_patches", True) and not profile_patch_ids:
+                self.fail(f"runtime profile {profile_id} 为 stable 时至少需要 1 个 stable patch")
+            if validation_count("gate_0_5") < minimum_gate_0_5:
+                self.fail(
+                    f"runtime profile {profile_id} 为 stable 时 gate_0_5 至少需要 {minimum_gate_0_5}"
+                )
+            if validation_count("negative_control") < minimum_negative_controls:
+                self.fail(
+                    f"runtime profile {profile_id} 为 stable 时 negative_control 至少需要 {minimum_negative_controls}"
+                )
+            if stable_policy.get("require_non_empty_validation_evidence", True) and not validation.get("evidence"):
+                self.fail(f"runtime profile {profile_id} 为 stable 时 validation.evidence 不能为空")
+            if stable_policy.get("require_empty_known_failures", True) and data.get("known_failures"):
+                self.fail(f"runtime profile {profile_id} 为 stable 时 known_failures 必须为空")
+
+            records = validation.get("competition_validation_records")
+            if not isinstance(records, list) or len(records) < minimum_competition_records:
+                self.fail(
+                    f"runtime profile {profile_id} 为 stable 时 competition_validation_records 至少需要 "
+                    f"{minimum_competition_records} 条"
+                )
+                return
+
+            for index, record in enumerate(records, start=1):
+                if not isinstance(record, dict):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 必须是对象")
+                    continue
+                manifest_ref = record.get("runtime_pack_manifest")
+                result_ref = record.get("result_record")
+                expected_sha = record.get("runtime_pack_manifest_sha256")
+                if not all(isinstance(value, str) and value for value in (manifest_ref, result_ref, expected_sha)):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 缺少路径或 manifest SHA-256")
+                    continue
+                try:
+                    manifest_path = self.resolve_repo_path(manifest_ref)
+                    result_path = self.resolve_repo_path(result_ref)
+                except ValueError as exc:
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 路径无效：{exc}")
+                    continue
+                if not manifest_path.is_file() or not result_path.is_file():
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 manifest 或 result_record 不存在")
+                    continue
+                actual_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+                if expected_sha != actual_sha:
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 manifest SHA-256 不匹配")
+                manifest = _load_record(manifest_path, "比赛 runtime manifest", profile_id)
+                result = _load_record(result_path, "比赛 result_record", profile_id)
+                if manifest is None or result is None:
+                    continue
+                self.validate_schema(manifest, "runtime_pack_manifest.schema.json", f"runtime profile {profile_id} 比赛 runtime manifest")
+                self.validate_schema(result, "result_record.schema.json", f"runtime profile {profile_id} 比赛 result_record")
+                if manifest.get("profile") != profile_id:
+                    self.fail(f"runtime profile {profile_id} 比赛 manifest.profile 不一致")
+                if manifest.get("runtime_version") != data.get("version"):
+                    self.fail(f"runtime profile {profile_id} 比赛 manifest.runtime_version 不一致")
+                if result.get("result", result.get("final_result")) != "pass":
+                    self.fail(f"runtime profile {profile_id} 比赛 result_record 必须为 pass")
+                if result.get("runtime_pack_manifest") != manifest_ref:
+                    self.fail(f"runtime profile {profile_id} 比赛 result_record 的 manifest 路径不一致")
+                if result.get("runtime_pack_manifest_sha256") != actual_sha:
+                    self.fail(f"runtime profile {profile_id} 比赛 result_record 的 manifest SHA-256 不一致")
+                manifest_patch_ids = {
+                    item.get("patch_id") for item in manifest.get("patches", []) if isinstance(item, dict)
+                }
+                missing_patches = profile_patch_ids - manifest_patch_ids
+                if missing_patches:
+                    self.fail(
+                        f"runtime profile {profile_id} 比赛 manifest 未覆盖 stable patch："
+                        f"{', '.join(sorted(missing_patches))}"
+                    )
+
         for path in sorted((ROOT / "runtime_profiles").glob("*.json")):
             data = self.load_json(path.relative_to(ROOT).as_posix())
             if data is None:
@@ -162,6 +279,7 @@ class RepositoryValidator:
                     self.fail(f"runtime profile {profile_id} 为 stable 时 competition_verified 必须为 true")
                 if data.get("validation_level") != "competition_verified":
                     self.fail(f"runtime profile {profile_id} 为 stable 时 validation_level 必须为 competition_verified")
+                _validate_stable_profile(data, profile_id)
         missing = PROFILE_IDS - found_profiles
         if missing:
             self.fail(f"缺少 runtime 状态文件：{', '.join(sorted(missing))}")

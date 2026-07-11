@@ -1,5 +1,5 @@
 {
-  "policy_version": "1.3.0",
+  "policy_version": "1.4.0",
   "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。Schema 记录事实，policy 负责判定——两者不混。",
   "automatic_status_update_allowed": false,
   "diagnosis_schema_requirements": {
@@ -199,6 +199,14 @@
         "failure_labels": "failure_labels.json"
       }
     }
+  },
+  "runtime_profile_stable_requirements": {
+    "minimum_gate_0_5": 1,
+    "minimum_competition_validation_records": 1,
+    "require_non_empty_verified_patches": true,
+    "require_non_empty_validation_evidence": true,
+    "require_empty_known_failures": true,
+    "note": "stable Profile 的负控次数复用 status_rules.stable.repetition.min_negative_control_runs；比赛验证必须通过可解析的 runtime manifest 和 result record 证明。"
   },
   "manual_controls": {
     "human_review_required": true,
