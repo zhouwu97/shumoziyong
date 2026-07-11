@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/runtime_pack_manifest.schema.json",
+  "title": "Runtime Pack Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "profile",
+    "runtime_version",
+    "patches",
+    "runtime_pack_sha256"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string"
+    },
+    "profile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtime_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtime_pack_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "patches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "patch_id",
+          "status",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "patch_id": {
+            "type": "string",
+            "pattern": "^[A-Z][0-9]{3}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["candidate", "verified_candidate", "stable"]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "uniqueItems": true
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/result_record.schema.json",
+  "title": "Result Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result"
+  ],
+  "properties": {
+    "result": {
+      "type": "string",
+      "enum": ["pass", "fail"]
+    },
+    "score": {
+      "type": "number"
+    },
+    "comments": {
+      "type": "string"
+    }
+  }
+}
