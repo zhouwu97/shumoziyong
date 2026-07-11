@@ -95,6 +95,55 @@ def derive_profile_report(
         full_runs
     )
     competition_complete = regression_complete and bool(competitions)
+    competition_errors: list[str] = []
+    if competitions:
+        stable_requirements = active_policy.get(
+            "runtime_profile_stable_requirements", {}
+        )
+        minimum_full_runs = stable_requirements.get("minimum_gate_0_5", 1)
+        minimum_competitions = stable_requirements.get(
+            "minimum_competition_validation_records", 1
+        )
+        minimum_negative_controls = (
+            active_policy.get("status_rules", {})
+            .get("competition_evidenced", {})
+            .get("repetition", {})
+            .get("min_negative_control_runs", 1)
+        )
+        negative_controls = [
+            record
+            for record in valid_records
+            if record.get("kind") == "control_review"
+            and record.get("derived_control_type") == "negative"
+        ]
+        if len(full_runs) < minimum_full_runs:
+            competition_errors.append(
+                f"完整 Gate 0-5 运行至少需要 {minimum_full_runs} 条，当前 {len(full_runs)} 条"
+            )
+        if len(competitions) < minimum_competitions:
+            competition_errors.append(
+                f"比赛验证至少需要 {minimum_competitions} 条，当前 {len(competitions)} 条"
+            )
+        if len(negative_controls) < minimum_negative_controls:
+            competition_errors.append(
+                f"独立负控至少需要 {minimum_negative_controls} 组，"
+                f"当前 {len(negative_controls)} 组"
+            )
+        if stable_requirements.get("require_non_empty_validation_evidence", True) and not records:
+            competition_errors.append("competition Profile validation_records 不能为空")
+        if stable_requirements.get("require_empty_known_failures", True) and profile.get(
+            "known_failures"
+        ):
+            competition_errors.append("competition Profile known_failures 必须为空")
+        if competition_errors:
+            competition_complete = False
+            invalid_records.append(
+                {
+                    "record_id": "<profile>",
+                    "error": "competition_requirements_failed: "
+                    + "; ".join(competition_errors),
+                }
+            )
 
     deprecation = profile.get("deprecation")
     if isinstance(deprecation, dict) and deprecation.get("reason"):
@@ -129,6 +178,7 @@ def derive_profile_report(
         "competition_evidence": {
             "record_count": len(competitions),
             "complete": competition_complete,
+            "errors": competition_errors,
         },
         "invalid_records": invalid_records,
     }

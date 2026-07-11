@@ -145,6 +145,33 @@ def test_competition_record_advances_only_after_regression(tmp_path: Path) -> No
     assert derive_profile_report(profile, [], root=tmp_path)["computed_maturity"] == "assembled"
 
 
+def test_known_failures_block_competition_maturity(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    _trust_fixture_records(monkeypatch)
+    records = [
+        _record(tmp_path, "positive", "control_review", "positive"),
+        _record(tmp_path, "boundary", "control_review", "boundary"),
+        _record(tmp_path, "negative-a", "control_review", "negative"),
+        _record(tmp_path, "negative-b", "control_review", "negative"),
+        _record(tmp_path, "full", "full_run"),
+        _record(tmp_path, "competition", "competition"),
+    ]
+    profile = {
+        "profile_id": "engineering_optimization",
+        "plugin_version": "1.0.0",
+        "validation_records": records,
+        "known_failures": ["unresolved failure"],
+    }
+
+    report = derive_profile_report(profile, [], root=tmp_path)
+
+    assert report["computed_maturity"] == "regression_verified"
+    assert any(
+        "known_failures" in item["error"] for item in report["invalid_records"]
+    )
+
+
 def test_duplicate_evidence_path_is_not_counted_twice(
     tmp_path: Path, monkeypatch: Any
 ) -> None:

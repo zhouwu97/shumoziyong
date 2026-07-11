@@ -182,6 +182,52 @@ def validate_full_run(
     if automatic.get("result") != "pass" or automatic.get("errors"):
         errors.append("automatic_evaluation 未通过")
 
+    response_path = run_dir / "response.json"
+    try:
+        from evaluate_prompt_response import (
+            evaluate_case,
+            evaluate_manifest_alignment,
+            load_case,
+        )
+
+        response_text = response_path.read_text(encoding="utf-8")
+        response = json.loads(response_text)
+        if not isinstance(response, dict):
+            raise ValueError("response.json 必须是 JSON 对象")
+        runtime_text = (run_dir / "runtime_pack.manifest.json").read_text(
+            encoding="utf-8"
+        )
+        actual_response_sha = hashlib.sha256(response_text.encode("utf-8")).hexdigest()
+        actual_runtime_sha = hashlib.sha256(runtime_text.encode("utf-8")).hexdigest()
+        if automatic.get("response_sha256") != actual_response_sha:
+            errors.append("automatic_evaluation.response_sha256 与现场响应不一致")
+        if automatic.get("manifest_sha256") != actual_runtime_sha:
+            errors.append("automatic_evaluation.manifest_sha256 与现场运行包不一致")
+        case_path = _resolve(
+            ROOT, automatic.get("case_file"), "automatic_evaluation.case_file", errors
+        )
+        if case_path is not None:
+            case_text = case_path.read_text(encoding="utf-8")
+            actual_case_sha = hashlib.sha256(case_text.encode("utf-8")).hexdigest()
+            if automatic.get("case_sha256") != actual_case_sha:
+                errors.append("automatic_evaluation.case_sha256 与现场用例不一致")
+            case = load_case(case_path, automatic.get("case_id"))
+            recomputed_errors = evaluate_case(case, response)
+            recomputed_errors.extend(evaluate_manifest_alignment(response, runtime))
+            recomputed_result = "fail" if recomputed_errors else "pass"
+            if automatic.get("errors") != recomputed_errors:
+                errors.append(
+                    "automatic_evaluation 现场重算错误列表不一致："
+                    f"记录={automatic.get('errors')}，现场={recomputed_errors}"
+                )
+            if automatic.get("result") != recomputed_result:
+                errors.append(
+                    "automatic_evaluation 现场重算结论不一致："
+                    f"记录={automatic.get('result')}，现场={recomputed_result}"
+                )
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, KeyError) as exc:
+        errors.append(f"automatic_evaluation 无法现场重算：{exc}")
+
     try:
         from run_workflow import replay_transition_log, verify_gate_artifacts, verify_run_seal
 
@@ -228,6 +274,12 @@ def validate_full_run(
         "experiment_group_id": manifest.get("experiment_group_id"),
         "target_patch": manifest.get("target_patch"),
         "experiment_role": manifest.get("experiment_role"),
+        "prompt_sha256": prompt_sha,
+        "response_sha256": (
+            hashlib.sha256(response_path.read_bytes()).hexdigest()
+            if response_path.is_file()
+            else None
+        ),
     }
     return EvidenceOutcome(not errors, errors, identity, manifest)
 
@@ -311,6 +363,12 @@ def validate_control_evidence(
     for field_name in ("problem_id", "profile", "runtime_version", "experiment_group_id"):
         if baseline.identity.get(field_name) != treatment.identity.get(field_name):
             errors.append(f"baseline/treatment {field_name} 不一致")
+    if baseline.identity.get("prompt_sha256") != treatment.identity.get("prompt_sha256"):
+        errors.append("baseline/treatment 规范化后的 prompt 不一致")
+    if baseline.identity.get("response_sha256") == treatment.identity.get(
+        "response_sha256"
+    ):
+        errors.append("baseline/treatment response 完全相同，不能证明独立运行")
     if control.get("case") != baseline.identity.get("problem_id"):
         errors.append("control.case 与运行 problem_id 不一致")
     if review is not None and review.get("experiment_group_id") != baseline.identity.get(
@@ -525,6 +583,71 @@ def validate_profile_record(
                 != run_outcome.identity.get("runtime_pack_sha256")
             ):
                 errors.append("competition Runtime Pack 与运行现场 SHA-256 不一致")
+            stable_policy = policy.get("runtime_profile_stable_requirements", {})
+            candidate = runtime_data.get("candidate_experiment", {})
+            exclusion = runtime_data.get("exclusion_experiment", {})
+            export_flags = runtime_data.get("export_flags", {})
+            if stable_policy.get("forbid_candidate_experiment", True) and (
+                not isinstance(candidate, Mapping)
+                or candidate.get("enabled") is not False
+                or candidate.get("patch_ids")
+                or not isinstance(export_flags, Mapping)
+                or export_flags.get("candidate_patches")
+            ):
+                errors.append("competition Profile 证据不得来自 candidate experiment")
+            if stable_policy.get("forbid_exclusion_experiment", True) and (
+                not isinstance(exclusion, Mapping)
+                or exclusion.get("enabled") is not False
+                or exclusion.get("patch_ids")
+                or not isinstance(export_flags, Mapping)
+                or export_flags.get("excluded_patches")
+            ):
+                errors.append("competition Profile 证据不得来自 exclusion experiment")
+
+            expected_patches: dict[str, dict[str, Any]] = {}
+            for item in patches:
+                patch_id = item.get("patch_id")
+                if (
+                    isinstance(patch_id, str)
+                    and profile_id in item.get("runtime_profiles", [])
+                    and item.get("status")
+                    in {"regression_verified", "competition_evidenced"}
+                ):
+                    expected_patches[patch_id] = item
+            manifest_entries = runtime_data.get("patches", [])
+            actual_patches: dict[str, Mapping[str, Any]] = {}
+            for item in manifest_entries:
+                if not isinstance(item, Mapping):
+                    continue
+                patch_id = item.get("patch_id")
+                if isinstance(patch_id, str):
+                    actual_patches[patch_id] = item
+            if stable_policy.get("require_non_empty_verified_patches", True) and not expected_patches:
+                errors.append("competition Profile 必须至少包含一个现场验证 Patch")
+            if stable_policy.get("require_exact_patch_set", True) and set(
+                actual_patches
+            ) != set(expected_patches):
+                errors.append(
+                    "competition Runtime Pack Patch 集合与当前 Profile 不一致："
+                    f"期望={sorted(expected_patches)}，实际={sorted(actual_patches)}"
+                )
+            for patch_id, patch_entry in actual_patches.items():
+                indexed = expected_patches.get(patch_id)
+                if indexed is None:
+                    continue
+                patch_path = _resolve(
+                    root, indexed.get("file"), f"Patch {patch_id} 文件", errors
+                )
+                if patch_entry.get("path") != indexed.get("file"):
+                    errors.append(f"competition Patch {patch_id} 路径与 patch_index 不一致")
+                if patch_entry.get("status") != indexed.get("status"):
+                    errors.append(f"competition Patch {patch_id} 状态与 patch_index 不一致")
+                if patch_path is None or not patch_path.is_file():
+                    errors.append(f"competition Patch {patch_id} 文件不存在")
+                elif patch_entry.get("sha256") != hashlib.sha256(
+                    patch_path.read_bytes()
+                ).hexdigest():
+                    errors.append(f"competition Patch {patch_id} SHA-256 不一致")
         result_data = (
             _load_object(result_path, "competition result_record", errors)
             if result_path is not None
@@ -676,6 +799,7 @@ def validate_formal_patch(
             if not isinstance(item, Mapping):
                 stable_errors.append(f"失败修复重测 #{index + 1} 必须是对象")
                 continue
+            semantic_records: dict[str, dict[str, Any]] = {}
             for key in ("failure_record", "fix_record", "review_record"):
                 path = _resolve(root, item.get(key), key, stable_errors)
                 if path is None or not path.is_file():
@@ -684,6 +808,58 @@ def validate_formal_patch(
                     inner_hashes[f"failure_fix_retests/{index}/{key}"] = hashlib.sha256(
                         path.read_bytes()
                     ).hexdigest()
+                    if path.suffix.lower() != ".json":
+                        stable_errors.append(
+                            f"失败修复重测 #{index + 1} 的 {key} 必须是结构化 JSON"
+                        )
+                    else:
+                        record_data = _load_object(
+                            path, f"失败修复重测 #{index + 1} {key}", stable_errors
+                        )
+                        if record_data is not None:
+                            semantic_records[key] = record_data
+                            record_patch = record_data.get(
+                                "patch_id", record_data.get("target_patch")
+                            )
+                            if record_patch not in {None, patch.get("patch_id")}:
+                                stable_errors.append(
+                                    f"失败修复重测 #{index + 1} 的 {key} 绑定到其他 Patch"
+                                )
+            failure_record = semantic_records.get("failure_record", {})
+            if not any(
+                key in failure_record
+                for key in (
+                    "failure_label",
+                    "failure_labels",
+                    "original_failure",
+                    "original_failure_snapshot",
+                    "failure",
+                    "issue_description",
+                )
+            ):
+                stable_errors.append(
+                    f"失败修复重测 #{index + 1} failure_record 缺少原失败描述或标签"
+                )
+            fix_record = semantic_records.get("fix_record", {})
+            fix_descriptions = [
+                value
+                for key in ("fix_description", "fix", "changes")
+                if isinstance((value := fix_record.get(key)), str)
+            ]
+            if not any(value.strip() for value in fix_descriptions):
+                stable_errors.append(
+                    f"失败修复重测 #{index + 1} fix_record 缺少修复内容"
+                )
+            review_record = semantic_records.get("review_record", {})
+            if review_record.get("decision") not in {"approved", "pass"}:
+                stable_errors.append(
+                    f"失败修复重测 #{index + 1} review_record 必须批准重测"
+                )
+            reviewer = review_record.get("reviewer")
+            if not isinstance(reviewer, str) or not reviewer.strip():
+                stable_errors.append(
+                    f"失败修复重测 #{index + 1} review_record.reviewer 不能为空"
+                )
             retest = _resolve(root, item.get("retest_run"), "retest_run", stable_errors)
             if retest is not None:
                 outcome = validate_full_run(
