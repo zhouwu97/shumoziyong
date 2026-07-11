@@ -26,6 +26,8 @@ from run_workflow import (  # noqa: E402
     mark_run_completed,
     record_transition,
 )
+from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
+from validate_repository import RepositoryValidator  # noqa: E402
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
 
@@ -196,6 +198,51 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     assert (run_dir / "response.json").is_file()
     assert (run_dir / "automatic_evaluation.json").is_file()
     assert (run_dir / "human_review.md").is_file()
+    metadata = json.loads((run_dir / "ai_run_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["status"] == "pending"
+    assert metadata["provider"] is None
+    validator = RepositoryValidator()
+    assert validator.validate_schema(metadata, "ai_run_metadata.schema.json", "pending metadata")
+    evidence_manifest = json.loads((run_dir / "run_evidence_manifest.json").read_text(encoding="utf-8"))
+    assert validator.validate_schema(evidence_manifest, "run_evidence_manifest.schema.json", "run evidence manifest")
+    assert {item["role"] for item in evidence_manifest["artifacts"]} >= {
+        "run_manifest", "request", "model_response", "runtime_pack", "runtime_pack_manifest",
+        "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review",
+    }
+
+
+def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(tmp_path: Path) -> None:
+    """封存命令应重建最终哈希；随后篡改 response 必须可被校验器发现。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    pdf_data = b"fake problem pdf"
+    (materials / "problem.pdf").write_bytes(pdf_data)
+    _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", pdf_data)]})
+    args = Namespace(
+        run_id="sealed_run", output_root=str(tmp_path / "runs"), problem="2024-C",
+        profile="engineering_optimization", gates="0-2", materials=str(materials),
+        candidate_patch=[], exclude_patch=[], material_file=[], promotion_evidence=False,
+        experiment_group_id=None, experiment_role=None, target_patch=None,
+    )
+    run_dir, ready = create_old_problem_run(args)
+    assert ready is True
+    request_path = run_dir / "request.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    request.update({"prompt": "真实运行提示词", "model": "TestModel", "source": "real_ai_run"})
+    request_path.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+    metadata_path = run_dir / "ai_run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
+
+    evidence = finalize_run_evidence(run_dir)
+    required_artifacts = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))["run_evidence_requirements"]["ai_run_metadata_checks"]["required_artifacts"]
+    assert json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))["status"] == "sealed"
+    assert not validate_evidence_manifest(run_dir, evidence, required_artifacts)
+
+    with (run_dir / "response.json").open("a", encoding="utf-8") as response:
+        response.write("\n篡改")
+    assert any("response.json" in error and "sha256" in error for error in validate_evidence_manifest(run_dir, evidence, required_artifacts))
 
 
 def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None:
@@ -520,7 +567,7 @@ def test_verify_materials_to_dict_serializable(tmp_path: Path) -> None:
 def test_check_promotion_eligibility_produces_report() -> None:
     """Real policy + matrix + patch_index produce a valid report."""
     report, gaps = check_promotion_eligibility()
-    assert report["policy_version"] == "1.1.0"
+    assert report["policy_version"] == "1.2.0"
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
@@ -529,7 +576,7 @@ def test_check_promotion_eligibility_produces_report() -> None:
     assert a092["positive"] == "pass"
     assert a092["boundary"] == "pass"
     assert a092["negative"] == "pass"
-    # With the stricter v1.1.0 policy (min_distinct_cases=3, min_distinct_years=2),
+    # With the stricter v1.2.0 policy (min_distinct_cases=3, min_distinct_years=2),
     # A092 still passes (2016-C/2023-B/2024-C = 3 cases, 2016+2023+2024 = 3 years)
     assert a092["current_status_valid"] is True
     # Check that per_patch format uses new fields

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/evidence_reference.schema.json",
+  "title": "统一证据引用",
+  "description": "指向一个证据文件的标准化引用。用于运行目录中引用 runtime pack、题目快照等共享产物，避免重复存储。当前仅支持仓库相对路径；未来可扩展为内容寻址引用。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path", "sha256", "media_type", "size_bytes", "role"],
+  "properties": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$",
+      "description": "仓库内相对路径或相对于引用方的路径。不得为绝对路径。"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "文件内容的 SHA-256。"
+    },
+    "media_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "MIME 类型或简化类型标识（如 application/json、text/markdown、application/pdf）。"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "文件大小（字节）。"
+    },
+    "role": {
+      "type": "string",
+      "minLength": 1,
+      "description": "该证据在实验中的角色（如 runtime_pack、problem_snapshot、model_response、automatic_evaluation、human_review）。"
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "生成该证据的工具或流程标识（如 export_runtime_pack.py、claude-code、manual）。可选。"
+    },
+    "note": {
+      "type": "string",
+      "description": "人工备注。可选。"
+    }
+  }
+}

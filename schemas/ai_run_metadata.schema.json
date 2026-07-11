@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/ai_run_metadata.schema.json",
+  "title": "AI 运行元数据",
+  "description": "一次 AI 调用的机器可读元数据。pending 仅可作为脚手架；晋级证据必须使用 completed。所有哈希均为小写十六进制 SHA-256。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "metadata_version", "status", "note", "provider", "model", "model_snapshot",
+    "client", "client_version", "reasoning_effort", "temperature", "seed", "started_at",
+    "completed_at", "prompt_sha256", "runtime_pack_sha256", "problem_material_digest",
+    "tool_permissions", "working_directory_mode"
+  ],
+  "properties": {
+    "metadata_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "status": {"type": "string", "enum": ["pending", "completed"]},
+    "note": {"type": ["string", "null"]},
+    "provider": {"type": ["string", "null"], "minLength": 1},
+    "model": {"type": ["string", "null"], "minLength": 1},
+    "model_snapshot": {"type": ["string", "null"]},
+    "client": {"type": ["string", "null"], "minLength": 1},
+    "client_version": {"type": ["string", "null"]},
+    "reasoning_effort": {"type": ["string", "null"], "enum": ["none", "low", "medium", "high", "xhigh", "max", null]},
+    "temperature": {"type": ["number", "null"], "minimum": 0, "maximum": 2},
+    "seed": {"type": ["integer", "null"], "minimum": 0},
+    "started_at": {"type": ["string", "null"], "format": "date-time"},
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "prompt_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "runtime_pack_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "problem_material_digest": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "tool_permissions": {"type": ["array", "null"], "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "working_directory_mode": {"type": ["string", "null"], "enum": ["isolated", "shared", "unknown", null]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}},
+      "then": {
+        "properties": {
+          "provider": {"type": "string", "minLength": 1},
+          "model": {"type": "string", "minLength": 1},
+          "client": {"type": "string", "minLength": 1},
+          "reasoning_effort": {"type": "string", "enum": ["none", "low", "medium", "high", "xhigh", "max"]},
+          "started_at": {"type": "string", "format": "date-time"},
+          "completed_at": {"type": "string", "format": "date-time"},
+          "prompt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "runtime_pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "problem_material_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "tool_permissions": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "working_directory_mode": {"type": "string", "enum": ["isolated", "shared"]}
+        }
+      }
+    }
+  ]
+}

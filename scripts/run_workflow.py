@@ -6,7 +6,7 @@ import json
 import re
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from export_runtime_pack import build_manifest, build_pack
 from verify_materials import MaterialVerificationResult, verify_materials
@@ -28,6 +28,48 @@ def write_json(path: Path, data: object) -> None:
 def sha256_bytes(content: bytes) -> str:
     """计算内容哈希。"""
     return hashlib.sha256(content).hexdigest()
+
+
+EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("run_manifest.json", "run_manifest", "application/json"),
+    ("request.json", "request", "application/json"),
+    ("response.json", "model_response", "application/json"),
+    ("runtime_pack.md", "runtime_pack", "text/markdown"),
+    ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
+    ("problem_manifest.json", "problem_manifest", "application/json"),
+    ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
+    ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
+    ("human_review.md", "human_review", "text/markdown"),
+)
+
+
+def build_run_evidence_manifest(
+    run_dir: Path,
+    run_id: str,
+    content_overrides: Mapping[str, bytes] | None = None,
+) -> dict[str, Any]:
+    """为运行目录中的晋级证据生成可验证的路径、大小和内容哈希清单。"""
+    artifacts: list[dict[str, Any]] = []
+    for filename, role, media_type in EVIDENCE_ARTIFACT_SPECS:
+        path = run_dir / filename
+        if content_overrides and filename in content_overrides:
+            content = content_overrides[filename]
+        else:
+            content = path.read_bytes()
+        artifacts.append(
+            {
+                "path": filename,
+                "sha256": sha256_bytes(content),
+                "media_type": media_type,
+                "size_bytes": len(content),
+                "role": role,
+            }
+        )
+    return {
+        "evidence_manifest_version": "1.0.0",
+        "run_id": run_id,
+        "artifacts": artifacts,
+    }
 
 
 def repo_relative(path: Path) -> str:
@@ -254,6 +296,34 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "- 最终判定 pass/fail\n"
         "- 判断理由\n",
         encoding="utf-8",
+    )
+    # AI 运行元数据脚手架：状态 pending，不含伪造时间戳或模型名
+    write_json(
+        run_dir / "ai_run_metadata.json",
+        {
+            "metadata_version": "1.0.0",
+            "status": "pending",
+            "note": "待填写真实运行数据；pending 元数据不能作为晋级证据。",
+            "provider": None,
+            "model": None,
+            "model_snapshot": None,
+            "client": None,
+            "client_version": None,
+            "reasoning_effort": None,
+            "temperature": None,
+            "seed": None,
+            "started_at": None,
+            "completed_at": None,
+            "prompt_sha256": None,
+            "runtime_pack_sha256": None,
+            "problem_material_digest": None,
+            "tool_permissions": None,
+            "working_directory_mode": None,
+        },
+    )
+    write_json(
+        run_dir / "run_evidence_manifest.json",
+        build_run_evidence_manifest(run_dir, run_id),
     )
     # 闸门转换日志：记录每次阶段推进
     _init_transitions(run_dir, args.gates, material_verification.ready)
