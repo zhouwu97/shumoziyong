@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": [
     "manifest_version", "runtime_version", "generated_at", "profile", "maturity",
-    "runtime_profile_state", "competition_contract", "patch_index", "base", "plugins", "patches", "checklists",
+    "runtime_profile_state", "workflow_context", "runtime_contract", "patch_index", "base", "plugins", "patches", "checklists",
     "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment",
     "export_flags", "validation_target_status", "runtime_pack_sha256", "build_identity"
   ],
@@ -16,9 +16,10 @@
     "runtime_version": {"type": "string", "minLength": 1},
     "generated_at": {"type": "string", "format": "date-time"},
     "profile": {"type": "string", "minLength": 1},
+    "workflow_context": {"type": "string", "enum": ["new_problem", "full_replay", "prompt_regression"]},
     "maturity": {"type": "string", "enum": ["draft", "assembled", "regression_verified", "competition_evidenced", "deprecated"]},
     "runtime_profile_state": {"$ref": "#/$defs/fileRecord"},
-    "competition_contract": {"$ref": "#/$defs/fileRecord"},
+    "runtime_contract": {"$ref": "#/$defs/fileRecord"},
     "patch_index": {"$ref": "#/$defs/fileRecord"},
     "base": {"anyOf": [{"$ref": "#/$defs/fileRecord"}, {"type": "null"}]},
     "plugins": {"type": "array", "items": {"$ref": "#/$defs/fileRecord"}},

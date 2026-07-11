@@ -8,9 +8,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
+sys.path.insert(0, str(ROOT / "tests"))
 from validate_repository import RepositoryValidator
 from finalize_run_evidence import finalize_run_evidence
-from run_workflow import GATE_5_CHECKLIST_KEYS, mark_run_completed, record_transition
+from export_runtime_pack import RUNTIME_CONTRACTS
+from run_workflow import mark_run_completed, record_transition, write_gate_artifact_manifest
+from test_repository_tooling import _gate_5_review, _write_valid_gate_artifact
 from promotion_engine import evaluate_status_eligibility
 
 FIXTURE_DIR = ROOT / "tests/fixtures/valid_promotion_evidence"
@@ -45,38 +48,61 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     """用真实 Gate API 构造可用于晋级验证的完整运行证据。"""
     manifest_path = run_dir / "run_manifest.json"
     manifest = json.loads(manifest_path.read_text("utf-8"))
-    manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
+    manifest.update(
+        {
+            "run_status": "initialized",
+            "integrity_status": "unsealed",
+            "workflow": "full_replay",
+            "evidence_purpose": "training_validation",
+        }
+    )
     manifest_path.write_text(json.dumps(manifest), "utf-8")
     runtime_manifest = json.loads(
         (run_dir / "runtime_pack.manifest.json").read_text("utf-8")
     )
+    contract_path = RUNTIME_CONTRACTS["full_replay"]
+    runtime_manifest.update(
+        {
+            "workflow_context": "full_replay",
+            "runtime_contract": {
+                "path": contract_path,
+                "sha256": hashlib.sha256((ROOT / contract_path).read_bytes()).hexdigest(),
+            },
+        }
+    )
+    (run_dir / "runtime_pack.manifest.json").write_text(
+        json.dumps(runtime_manifest), "utf-8"
+    )
+    (run_dir / "material_review.json").write_text("{}", "utf-8")
+    (run_dir / "response.md").write_text("fixture response", "utf-8")
+    (run_dir / "runtime_profile.snapshot.json").write_text(
+        json.dumps({"version": manifest["runtime_version"]}), "utf-8"
+    )
+    (run_dir / "patch_selection.snapshot.json").write_text(
+        json.dumps({"selected_patches": [item["patch_id"] for item in runtime_manifest["patches"]]}),
+        "utf-8",
+    )
+    (run_dir / "patch_suggestions.md").write_text("# fixture\n", "utf-8")
+    automatic_path = run_dir / "automatic_evaluation.json"
+    automatic = json.loads(automatic_path.read_text("utf-8"))
+    automatic["manifest_sha256"] = hashlib.sha256(
+        (run_dir / "runtime_pack.manifest.json").read_bytes()
+    ).hexdigest()
+    automatic_path.write_text(json.dumps(automatic), "utf-8")
     (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
     (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
     (run_dir / "transitions.jsonl").write_text(
         json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
         "utf-8",
     )
-    for gate in range(6):
-        record_transition(run_dir, gate - 1 if gate else None, gate, "fixture", "approved")
+    record_transition(run_dir, None, 0, "fixture", "approved")
+    for gate in range(5):
+        _write_valid_gate_artifact(run_dir, gate)
+        record_transition(run_dir, gate, gate + 1, "fixture", "approved")
     (run_dir / "gate_5_review.json").write_text(
-        json.dumps(
-            {
-                "run_id": manifest["run_id"],
-                "problem_id": manifest["problem_id"],
-                "profile": manifest["profile"],
-                "runtime_version": manifest["runtime_version"],
-                "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
-                "target_gate": 5,
-                "reviewer": "fixture",
-                "reviewed_at": "2026-07-11T00:00:00Z",
-                "decision": "approved",
-                "final_acceptance": True,
-                "reason": "Fixture Gate 5 review is approved.",
-                "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
-            }
-        ),
-        "utf-8",
+        json.dumps(_gate_5_review(run_dir, "fixture")), "utf-8"
     )
+    write_gate_artifact_manifest(run_dir, 5, completed_at="2026-07-11T00:00:00Z")
     mark_run_completed(run_dir, "fixture")
     finalize_run_evidence(run_dir)
 
@@ -670,14 +696,15 @@ def test_forged_legacy_marker_cannot_bypass_metadata_gate(validator, valid_matri
 def test_evidence_manifest_path_hash_and_role_are_verified(validator, valid_matrix, valid_patch_index, tmp_path):
     """证据清单必须拒绝目录穿越、错误哈希和缺失角色。"""
     fix_dir = _copy_fixture(tmp_path)
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
     evidence_path = fix_dir / "baseline" / "run_evidence_manifest.json"
     evidence = json.loads(evidence_path.read_text("utf-8"))
     evidence["artifacts"][0]["path"] = "../outside.json"
     evidence["artifacts"][1]["sha256"] = "0" * 64
     evidence["artifacts"] = [item for item in evidence["artifacts"] if item["role"] != "human_review"]
     evidence_path.write_text(json.dumps(evidence), "utf-8")
-    _setup_fixture_paths(fix_dir, valid_matrix)
-
     with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
             validator.validate_patch_promotion()
@@ -687,6 +714,9 @@ def test_evidence_manifest_path_hash_and_role_are_verified(validator, valid_matr
 def test_evidence_manifest_role_must_reference_its_fixed_file(validator, valid_matrix, valid_patch_index, tmp_path):
     """每个证据角色只能引用政策登记的固定文件。"""
     fix_dir = _copy_fixture(tmp_path)
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
     evidence_path = fix_dir / "baseline" / "run_evidence_manifest.json"
     evidence = json.loads(evidence_path.read_text("utf-8"))
     response = next(item for item in evidence["artifacts"] if item["role"] == "model_response")
@@ -695,8 +725,6 @@ def test_evidence_manifest_role_must_reference_its_fixed_file(validator, valid_m
     response["size_bytes"] = human_review.stat().st_size
     response["sha256"] = hashlib.sha256(human_review.read_bytes()).hexdigest()
     evidence_path.write_text(json.dumps(evidence), "utf-8")
-    _setup_fixture_paths(fix_dir, valid_matrix)
-
     with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
         with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
             validator.validate_patch_promotion()

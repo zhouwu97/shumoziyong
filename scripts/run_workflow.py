@@ -5,13 +5,14 @@ import hashlib
 import json
 import re
 import secrets
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
 from atomic_io import atomic_write_bytes, atomic_write_text
-from export_runtime_pack import build_manifest, build_pack
+from export_runtime_pack import RUNTIME_CONTRACTS, build_manifest, build_pack
 from model_validation import validate_model_and_execution
 from verify_materials import MaterialVerificationResult, verify_materials
 
@@ -83,7 +84,6 @@ COMMON_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("material_review.json", "material_review", "application/json"),
     ("request.json", "request", "application/json"),
     ("response.json", "model_response", "application/json"),
-    ("response.md", "model_response_markdown", "text/markdown"),
     ("runtime_pack.md", "runtime_pack", "text/markdown"),
     ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
     ("runtime_profile.snapshot.json", "runtime_profile_snapshot", "application/json"),
@@ -480,8 +480,12 @@ def create_gate_run_core(
     profile_state = _load_profile_state(profile)
     candidate_patches = list(getattr(args, "candidate_patch", []))
     excluded_patches = list(getattr(args, "exclude_patch", []))
-    pack_content = build_pack(profile, candidate_patches, excluded_patches)
-    pack_manifest = build_manifest(profile, pack_content, candidate_patches, excluded_patches)
+    pack_content = build_pack(
+        profile, workflow, candidate_patches, excluded_patches
+    )
+    pack_manifest = build_manifest(
+        profile, workflow, pack_content, candidate_patches, excluded_patches
+    )
 
     run_dir.mkdir(parents=True)
     atomic_write_text(run_dir / "runtime_pack.md", pack_content)
@@ -785,11 +789,43 @@ def _replay_v2_transition_log(
     completed_gates: list[int] = []
     completed = False
     completed_entry: dict[str, Any] | None = None
+    lifecycle_status = "active"
+    superseded_by_run_id: str | None = None
+    fork_transaction_id: str | None = None
     for idx, entry in enumerate(entries[1:], start=2):
         if entry.get("transition_version") != TRANSITION_VERSION:
             raise ValueError(f"第 {idx} 条 Gate 记录 transition_version 不一致")
-        if completed:
+        if completed or lifecycle_status != "active":
             raise ValueError("completed 终态之后不得再追加转换记录")
+        if entry.get("state") == "profile_forked":
+            if entry.get("event_type") != "profile_forked":
+                raise ValueError("profile_forked 事件类型非法")
+            if (
+                current != 0
+                or entry.get("completed_gate") is not None
+                or entry.get("next_gate") is not None
+            ):
+                raise ValueError("profile_forked 只能在 Gate 0 尚未推进时发生")
+            child_run_id = entry.get("child_run_id")
+            transaction_id = entry.get("fork_transaction_id")
+            selected_profile = entry.get("selected_profile")
+            if not all(
+                isinstance(value, str) and value.strip()
+                for value in (
+                    child_run_id,
+                    transaction_id,
+                    selected_profile,
+                    entry.get("reviewer"),
+                    entry.get("reason"),
+                )
+            ):
+                raise ValueError("profile_forked 事件缺少必填身份字段")
+            if entry.get("lifecycle_status") != "superseded":
+                raise ValueError("profile_forked 事件必须将 lifecycle_status 设为 superseded")
+            lifecycle_status = "superseded"
+            superseded_by_run_id = child_run_id
+            fork_transaction_id = transaction_id
+            continue
         decision = entry.get("decision")
         if decision not in ("approved", "rejected"):
             raise ValueError(f"第 {idx} 条 Gate 记录 decision 非法：{decision!r}")
@@ -859,6 +895,9 @@ def _replay_v2_transition_log(
         "max_gate": init_data.get("max_gate"),
         "material_ready": init_data.get("material_ready"),
         "entries": entries,
+        "lifecycle_status": lifecycle_status,
+        "superseded_by_run_id": superseded_by_run_id,
+        "fork_transaction_id": fork_transaction_id,
     }
 
 
@@ -968,6 +1007,9 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
             list(range(current)) if current is not None else []
         ),
         "entries": entries,
+        "lifecycle_status": "active",
+        "superseded_by_run_id": None,
+        "fork_transaction_id": None,
     }
 
 
@@ -981,6 +1023,7 @@ def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, review
         raise ValueError(f"decision 必须为 approved 或 rejected，实际为 {decision!r}")
 
     state = replay_transition_log(run_dir)
+    _assert_run_can_progress(run_dir, state)
     if state["completed"]:
         raise ValueError("运行已 completed，不能再记录 Gate 转换。")
     if state["material_ready"] is not True:
@@ -1115,6 +1158,7 @@ def _load_current_run_binding(run_dir: Path) -> dict[str, str]:
     runtime_manifest = _load_json_object(
         run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
     )
+    _validate_runtime_context_binding(run_manifest, runtime_manifest)
 
     binding: dict[str, Any] = {
         "run_id": run_manifest.get("run_id"),
@@ -1144,6 +1188,26 @@ def _load_current_run_binding(run_dir: Path) -> dict[str, str]:
                 f"run_manifest.json.{field} 与 runtime_pack.manifest.json.{field} 不一致"
             )
     return {field: str(value) for field, value in binding.items()}
+
+
+def _validate_runtime_context_binding(
+    run_manifest: Mapping[str, Any], runtime_manifest: Mapping[str, Any]
+) -> None:
+    """验证运行包上下文与 Run workflow 的一对一绑定。"""
+    workflow = run_manifest.get("workflow")
+    if not isinstance(workflow, str) or workflow not in RUNTIME_CONTRACTS:
+        raise ValueError(f"run_manifest.workflow 非法：{workflow!r}")
+    if runtime_manifest.get("workflow_context") != workflow:
+        raise ValueError(
+            "runtime_pack.manifest.json.workflow_context 与 run_manifest.workflow 不一致"
+        )
+    contract = runtime_manifest.get("runtime_contract")
+    if not isinstance(contract, Mapping):
+        raise ValueError("runtime_pack.manifest.json.runtime_contract 非法")
+    if contract.get("path") != RUNTIME_CONTRACTS[workflow]:
+        raise ValueError(
+            "runtime_pack.manifest.json.runtime_contract 与 workflow_context 不一致"
+        )
 
 
 def verify_run_seal(run_dir: Path) -> dict[str, Any]:
@@ -1396,6 +1460,7 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
 def mark_run_completed(run_dir: Path, reviewer: str) -> None:
     """将运行标记为 completed 终态（必须已严格到达 Gate 5 且审核记录获批）。"""
     state = replay_transition_log(run_dir)
+    _assert_run_can_progress(run_dir, state)
     if state["completed"]:
         raise ValueError("运行已标记为 completed，不能重复标记。")
     if state["max_gate"] < 5:
@@ -1461,9 +1526,15 @@ def create_prompt_regression_run(args: argparse.Namespace) -> Path:
     run_dir.mkdir(parents=True)
 
     profile = _load_profile_state(profile_name)
-    pack = build_pack(profile_name, args.candidate_patch, args.exclude_patch)
+    pack = build_pack(
+        profile_name, "prompt_regression", args.candidate_patch, args.exclude_patch
+    )
     pack_manifest = build_manifest(
-        profile_name, pack, args.candidate_patch, args.exclude_patch
+        profile_name,
+        "prompt_regression",
+        pack,
+        args.candidate_patch,
+        args.exclude_patch,
     )
     atomic_write_text(run_dir / "runtime_pack.md", pack)
     write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
@@ -1491,6 +1562,490 @@ def create_prompt_regression_run(args: argparse.Namespace) -> Path:
     return run_dir
 
 
+FORK_TRANSACTION_VERSION = "1.0.0"
+FORK_TRANSACTION_STATUSES = {
+    "prepared",
+    "child_published",
+    "parent_linked",
+    "committed",
+    "aborted",
+}
+
+
+def _fork_transaction_directory(run_root: Path) -> Path:
+    """返回统一的 Profile Fork 事务目录。"""
+    return run_root / ".transactions" / "fork-profile"
+
+
+def _fork_transaction_path(run_root: Path, transaction_id: str) -> Path:
+    """由事务 ID 计算唯一事务记录路径。"""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", transaction_id):
+        raise ValueError("fork transaction ID 必须为 8-80 位安全字符")
+    return _fork_transaction_directory(run_root) / f"{transaction_id}.json"
+
+
+def _read_fork_transaction(path: Path) -> dict[str, Any]:
+    """读取并检查事务记录的基本身份字段。"""
+    transaction = _load_json_object(path, "fork transaction")
+    if transaction.get("transaction_version") != FORK_TRANSACTION_VERSION:
+        raise ValueError("fork transaction_version 不支持")
+    if transaction.get("status") not in FORK_TRANSACTION_STATUSES:
+        raise ValueError("fork transaction.status 非法")
+    for field in (
+        "fork_transaction_id",
+        "parent_run_id",
+        "child_run_id",
+        "parent_transition_head_sha256",
+        "parent_material_digest",
+        "selected_profile",
+        "reviewer",
+        "reason",
+    ):
+        value = transaction.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"fork transaction 缺少合法 {field}")
+    return transaction
+
+
+def _write_fork_transaction(path: Path, transaction: Mapping[str, Any]) -> None:
+    """原子更新事务记录及更新时间，避免恢复时读取半写入内容。"""
+    payload = dict(transaction)
+    payload["updated_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    write_json(path, payload)
+
+
+def _transaction_head_sha256(run_dir: Path) -> str:
+    """取得父 Run 当前不可变转换链头。"""
+    entries = _read_transition_entries(run_dir / "transitions.jsonl")
+    if not entries:
+        raise ValueError("父 Run transitions.jsonl 为空")
+    _validate_transition_hash_chain(entries)
+    head = entries[-1].get("event_sha256")
+    if not isinstance(head, str) or not re.fullmatch(r"[a-f0-9]{64}", head):
+        raise ValueError("父 Run transitions 末端缺少合法 event_sha256")
+    return head
+
+
+def _material_path_from_run_manifest(manifest: Mapping[str, Any]) -> Path:
+    """从 Run Manifest 解析原始材料目录，并拒绝缺失记录。"""
+    raw_materials = manifest.get("materials")
+    if not isinstance(raw_materials, str) or not raw_materials.strip():
+        raise ValueError("run_manifest 缺少 materials")
+    material_path = Path(raw_materials)
+    if not material_path.is_absolute():
+        material_path = ROOT / material_path
+    return material_path.resolve()
+
+
+def _verified_material_digest(manifest: Mapping[str, Any]) -> str:
+    """重新验证材料并从当前字节派生问题摘要。"""
+    material_path = _material_path_from_run_manifest(manifest)
+    problem_id = manifest.get("problem_id")
+    if not isinstance(problem_id, str) or not problem_id:
+        raise ValueError("run_manifest 缺少 problem_id")
+    verification = verify_materials(material_path, expected_problem_id=problem_id)
+    if not verification.ready:
+        raise ValueError("fork-profile 前材料重新验证失败")
+    digest = build_problem_manifest(problem_id, material_path, verification).get("content_digest")
+    if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise ValueError("无法从当前材料派生合法 content_digest")
+    return digest
+
+
+def _fork_lock_path(run_root: Path, parent_run_id: str) -> Path:
+    """为同一父 Run 生成稳定的跨进程排他锁路径。"""
+    key = sha256_bytes(parent_run_id.encode("utf-8"))
+    return _fork_transaction_directory(run_root) / ".locks" / f"{key}.lock"
+
+
+def _acquire_fork_lock(run_root: Path, parent_run_id: str, transaction_id: str, *, resume: bool) -> Path:
+    """以独占创建锁阻止同一父 Run 并发 Fork。"""
+    lock_path = _fork_lock_path(run_root, parent_run_id)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with lock_path.open("x", encoding="utf-8") as handle:
+            handle.write(transaction_id)
+    except FileExistsError as exc:
+        holder = lock_path.read_text(encoding="utf-8").strip() if lock_path.is_file() else ""
+        if resume and holder == transaction_id:
+            lock_path.unlink(missing_ok=True)
+            return _acquire_fork_lock(run_root, parent_run_id, transaction_id, resume=False)
+        raise ValueError("该父 Run 已有进行中的 fork-profile 事务") from exc
+    return lock_path
+
+
+def _release_fork_lock(lock_path: Path, transaction_id: str) -> None:
+    """仅释放本次事务持有的锁，避免删除其他调用方的锁。"""
+    if lock_path.is_file() and lock_path.read_text(encoding="utf-8").strip() == transaction_id:
+        lock_path.unlink(missing_ok=True)
+
+
+def _find_parent_transactions(run_root: Path, parent_run_id: str) -> list[dict[str, Any]]:
+    """列出同一父 Run 的已记录事务，用于阻止重复或并发 Fork。"""
+    directory = _fork_transaction_directory(run_root)
+    if not directory.is_dir():
+        return []
+    records: list[dict[str, Any]] = []
+    for path in sorted(directory.glob("*.json")):
+        transaction = _read_fork_transaction(path)
+        if transaction["parent_run_id"] == parent_run_id:
+            records.append(transaction)
+    return records
+
+
+def _assert_parent_fork_eligible(parent_run: Path, selected_profile: str) -> tuple[dict[str, Any], dict[str, Any], str, str]:
+    """执行 fork-profile 的完整预检，并返回父身份、状态、材料摘要和链头。"""
+    parent_manifest = _load_json_object(parent_run / "run_manifest.json", "run_manifest.json")
+    if parent_manifest.get("workflow") != "new_problem":
+        raise ValueError("fork-profile 只允许从 new_problem 父 Run 发起")
+    if parent_manifest.get("profile") != "general":
+        raise ValueError("fork-profile 当前只允许 general 父 Profile")
+    if parent_manifest.get("profile") == selected_profile:
+        raise ValueError("fork-profile 的目标 Profile 必须不同于父 Profile")
+    _load_profile_state(selected_profile)
+    state = replay_transition_log(parent_run)
+    if state.get("lifecycle_status") != "active":
+        raise ValueError("父 Run 已 superseded，不能再次 fork-profile")
+    if state.get("completed") or state.get("current_gate") != 0:
+        raise ValueError("fork-profile 只能在 Gate 0 已形成产物且尚未推进时执行")
+    verify_gate_artifacts(parent_run, 0)
+    problem_manifest = _load_json_object(parent_run / "problem_manifest.json", "problem_manifest.json")
+    parent_digest = problem_manifest.get("content_digest")
+    if not isinstance(parent_digest, str) or not re.fullmatch(r"[a-f0-9]{64}", parent_digest):
+        raise ValueError("父 Run problem_manifest.content_digest 非法")
+    current_digest = _verified_material_digest(parent_manifest)
+    if current_digest != parent_digest:
+        raise ValueError("当前材料摘要与父 Run 不一致，禁止 fork-profile")
+    return parent_manifest, state, parent_digest, _transaction_head_sha256(parent_run)
+
+
+def _next_child_run_id(run_root: Path, parent_manifest: Mapping[str, Any], profile: str) -> str:
+    """预分配不会覆盖正式目录的子 Run ID。"""
+    problem_id = str(parent_manifest["problem_id"])
+    for _attempt in range(RUN_ID_MAX_ATTEMPTS):
+        run_id = build_automatic_run_id(problem_id, "new_problem", profile)
+        if not (run_root / run_id).exists():
+            return run_id
+    raise FileExistsError("无法为 fork-profile 分配不冲突的子 Run ID")
+
+
+def _prepare_fork_child(
+    parent_run: Path,
+    parent_manifest: Mapping[str, Any],
+    transaction: Mapping[str, Any],
+    staging_root: Path,
+) -> Path:
+    """在临时目录初始化子 Run，并重新绑定可验证的 Gate 0 产物。"""
+    child_id = str(transaction["child_run_id"])
+    args = argparse.Namespace(
+        run_id=child_id,
+        output_root=str(staging_root),
+        problem=parent_manifest["problem_id"],
+        profile=transaction["selected_profile"],
+        gates="0-5",
+        materials=str(_material_path_from_run_manifest(parent_manifest)),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow="new_problem",
+        mode=parent_manifest.get("mode", "standard"),
+    )
+    child_run, ready = create_new_problem_run(args)
+    if not ready:
+        raise ValueError("fork-profile 临时子 Run 材料未就绪")
+
+    parent_diagnosis_path = parent_run / "diagnosis.json"
+    parent_diagnosis = _load_json_object(parent_diagnosis_path, "parent diagnosis.json")
+    child_manifest = _load_json_object(child_run / "run_manifest.json", "child run_manifest.json")
+    child_runtime = _load_json_object(
+        child_run / "runtime_pack.manifest.json", "child runtime_pack.manifest.json"
+    )
+    for field, value in {
+        "run_id": child_manifest["run_id"],
+        "problem_id": child_manifest["problem_id"],
+        "profile": child_manifest["profile"],
+        "runtime_version": child_manifest["runtime_version"],
+        "runtime_pack_sha256": child_runtime["runtime_pack_sha256"],
+    }.items():
+        parent_diagnosis[field] = value
+    write_json(child_run / "diagnosis.json", parent_diagnosis)
+    write_gate_artifact_manifest(child_run, 0)
+    atomic_write_bytes(child_run / "parent_diagnosis.snapshot.json", parent_diagnosis_path.read_bytes())
+
+    parent_gate_manifest = parent_run / "gate_artifacts" / "gate_0.manifest.json"
+    fork_record = {
+        "fork_transaction_id": transaction["fork_transaction_id"],
+        "parent_run_id": transaction["parent_run_id"],
+        "child_run_id": child_manifest["run_id"],
+        "parent_gate_0_manifest": "gate_artifacts/gate_0.manifest.json",
+        "parent_gate_0_manifest_sha256": sha256_bytes(parent_gate_manifest.read_bytes()),
+        "parent_diagnosis_sha256": sha256_bytes(parent_diagnosis_path.read_bytes()),
+        "parent_problem_material_digest": transaction["parent_material_digest"],
+        "selected_profile": transaction["selected_profile"],
+        "profile_selection_reason": transaction["reason"],
+        "reviewer": transaction["reviewer"],
+        "lineage_type": "profile_fork",
+        "status": "prepared",
+    }
+    write_json(child_run / "fork_record.json", fork_record)
+    write_json(
+        child_run / "run_evidence_manifest.json",
+        build_run_evidence_manifest(child_run, str(child_manifest["run_id"])),
+    )
+    verify_gate_artifacts(child_run, 0)
+    verify_run(child_run)
+    return child_run
+
+
+def _append_profile_fork_event(parent_run: Path, transaction: Mapping[str, Any]) -> None:
+    """在父 Run 链尾追加 superseded 生命周期事件。"""
+    if _transaction_head_sha256(parent_run) != transaction["parent_transition_head_sha256"]:
+        raise ValueError("父 Run transition head 已变化，禁止覆盖新状态")
+    state = replay_transition_log(parent_run)
+    if state.get("current_gate") != 0 or state.get("lifecycle_status") != "active":
+        raise ValueError("父 Run 已不满足 profile_forked 前提")
+    _append_transition_event(
+        parent_run / "transitions.jsonl",
+        {
+            "transition_version": TRANSITION_VERSION,
+            "event_type": "profile_forked",
+            "state": "profile_forked",
+            "fork_transaction_id": transaction["fork_transaction_id"],
+            "child_run_id": transaction["child_run_id"],
+            "selected_profile": transaction["selected_profile"],
+            "reviewer": transaction["reviewer"],
+            "reason": transaction["reason"],
+            "lifecycle_status": "superseded",
+        },
+    )
+
+
+def _fork_record_path(run_dir: Path) -> Path:
+    """集中定义子 Run 的 Fork 记录位置。"""
+    return run_dir / "fork_record.json"
+
+
+def _fork_lineage_errors(run_dir: Path, state: Mapping[str, Any]) -> list[str]:
+    """交叉验证父事件、子记录和事务，任何不一致均返回阻断错误。"""
+    errors: list[str] = []
+    run_root = run_dir.parent
+    if state.get("lifecycle_status") == "superseded":
+        transaction_id = state.get("fork_transaction_id")
+        child_id = state.get("superseded_by_run_id")
+        if not isinstance(transaction_id, str) or not isinstance(child_id, str):
+            return ["父 Run profile_forked 生命周期字段缺失"]
+        try:
+            transaction = _read_fork_transaction(_fork_transaction_path(run_root, transaction_id))
+        except (OSError, ValueError) as exc:
+            return [f"父 Run fork transaction 无效：{exc}"]
+        if transaction.get("status") != "committed":
+            errors.append("父 Run 引用的 fork transaction 尚未 committed")
+        if transaction.get("parent_run_id") != run_dir.name or transaction.get("child_run_id") != child_id:
+            errors.append("父 Run 与 fork transaction 身份不一致")
+        child_run = run_root / child_id
+        try:
+            record = _load_json_object(_fork_record_path(child_run), "child fork_record.json")
+        except (OSError, ValueError) as exc:
+            errors.append(f"父 Run 引用的子 Run 缺少 fork_record：{exc}")
+            return errors
+        for field, expected in {
+            "fork_transaction_id": transaction_id,
+            "parent_run_id": run_dir.name,
+            "child_run_id": child_id,
+            "selected_profile": transaction.get("selected_profile"),
+            "parent_problem_material_digest": transaction.get("parent_material_digest"),
+        }.items():
+            if record.get(field) != expected:
+                errors.append(f"父子 fork 记录 {field} 不一致")
+        if record.get("status") != "committed":
+            errors.append("子 Run fork_record 尚未 committed")
+    elif _fork_record_path(run_dir).is_file():
+        try:
+            record = _load_json_object(_fork_record_path(run_dir), "fork_record.json")
+            transaction_id = record.get("fork_transaction_id")
+            parent_id = record.get("parent_run_id")
+            if not isinstance(transaction_id, str) or not isinstance(parent_id, str):
+                return ["子 Run fork_record 缺少父子事务身份"]
+            transaction = _read_fork_transaction(_fork_transaction_path(run_root, transaction_id))
+            parent_state = replay_transition_log(run_root / parent_id)
+            if transaction.get("status") != "committed" or record.get("status") != "committed":
+                errors.append("子 Run 的 fork transaction 尚未 committed")
+            if parent_state.get("superseded_by_run_id") != run_dir.name:
+                errors.append("子 Run 未被父 Run 的 profile_forked 事件引用")
+            if parent_state.get("fork_transaction_id") != transaction_id:
+                errors.append("子 Run 与父 Run fork_transaction_id 不一致")
+        except (OSError, ValueError) as exc:
+            errors.append(f"子 Run fork lineage 无效：{exc}")
+    return errors
+
+
+def _assert_run_can_progress(run_dir: Path, state: Mapping[str, Any]) -> None:
+    """统一阻止 superseded 父 Run、半事务子 Run 和损坏谱系继续推进。"""
+    if state.get("lifecycle_status") != "active":
+        raise ValueError("Run 已 superseded，禁止 advance 或 complete")
+    errors = _fork_lineage_errors(run_dir, state)
+    if errors:
+        raise ValueError("fork-profile 谱系未提交或不一致：" + "；".join(errors))
+    if not _fork_record_path(run_dir).is_file():
+        pending = [
+            item
+            for item in _find_parent_transactions(run_dir.parent, run_dir.name)
+            if item.get("status") not in {"committed", "aborted"}
+        ]
+        if pending:
+            raise ValueError("父 Run 存在进行中的 fork-profile 事务，禁止推进")
+
+
+def _staged_child_path(run_root: Path, transaction: Mapping[str, Any]) -> Path:
+    """由事务字段确定唯一临时子 Run 路径，供恢复流程复用。"""
+    staging_root = run_root / ".tmp" / (
+        f"fork-{transaction['fork_transaction_id']}-{transaction['child_run_id']}"
+    )
+    return staging_root / str(transaction["child_run_id"])
+
+
+def _publish_staged_child(run_root: Path, transaction: Mapping[str, Any]) -> Path:
+    """原子发布已完整验证的临时子 Run。"""
+    staged_child = _staged_child_path(run_root, transaction)
+    if not staged_child.is_dir():
+        raise ValueError("prepared 事务缺少可恢复的临时子 Run")
+    final_child = run_root / str(transaction["child_run_id"])
+    if final_child.exists():
+        raise FileExistsError("正式子 Run 目录已存在，拒绝覆盖")
+    staged_child.replace(final_child)
+    try:
+        staged_child.parent.rmdir()
+        staged_child.parent.parent.rmdir()
+    except OSError:
+        pass
+    return final_child
+
+
+def _commit_child_fork_record(child_run: Path, transaction: Mapping[str, Any]) -> None:
+    """将子 Run 从不可推进的 prepared 状态原子切换为 committed。"""
+    record_path = _fork_record_path(child_run)
+    record = _load_json_object(record_path, "fork_record.json")
+    if record.get("fork_transaction_id") != transaction["fork_transaction_id"]:
+        raise ValueError("child fork_record 的 transaction ID 不一致")
+    if record.get("status") not in {"prepared", "committed"}:
+        raise ValueError("child fork_record.status 非法")
+    record["status"] = "committed"
+    write_json(record_path, record)
+
+
+def _resume_fork_transaction(parent_run: Path, transaction_path: Path) -> dict[str, Any]:
+    """从已落盘状态继续事务，重复调用不创建第二个子 Run。"""
+    run_root = parent_run.parent
+    transaction = _read_fork_transaction(transaction_path)
+    if transaction["parent_run_id"] != parent_run.name:
+        raise ValueError("--from-run 与 transaction.parent_run_id 不一致")
+    status = transaction["status"]
+    if status == "aborted":
+        raise ValueError("aborted 事务不得自动复用，请创建新事务或人工清理")
+    if status == "committed":
+        errors = _fork_lineage_errors(parent_run, replay_transition_log(parent_run))
+        if errors:
+            raise ValueError("已提交事务谱系不一致：" + "；".join(errors))
+        return {"child_run": str(run_root / transaction["child_run_id"]), "transaction_id": transaction["fork_transaction_id"], "status": status}
+    if status == "prepared":
+        _publish_staged_child(run_root, transaction)
+        transaction["status"] = "child_published"
+        _write_fork_transaction(transaction_path, transaction)
+        status = "child_published"
+    if status == "child_published":
+        try:
+            _append_profile_fork_event(parent_run, transaction)
+        except ValueError as exc:
+            if "transition head" in str(exc):
+                transaction["status"] = "aborted"
+                _write_fork_transaction(transaction_path, transaction)
+            raise
+        transaction["status"] = "parent_linked"
+        _write_fork_transaction(transaction_path, transaction)
+        status = "parent_linked"
+    if status == "parent_linked":
+        _commit_child_fork_record(run_root / str(transaction["child_run_id"]), transaction)
+        transaction["status"] = "committed"
+        _write_fork_transaction(transaction_path, transaction)
+    errors = _fork_lineage_errors(parent_run, replay_transition_log(parent_run))
+    if errors:
+        raise ValueError("fork-profile 提交后的交叉验证失败：" + "；".join(errors))
+    return {
+        "child_run": str(run_root / transaction["child_run_id"]),
+        "transaction_id": transaction["fork_transaction_id"],
+        "status": "committed",
+    }
+
+
+def fork_profile(
+    parent_run: Path,
+    *,
+    profile: str,
+    reviewer: str,
+    reason: str,
+    transaction_id: str | None = None,
+    resume: bool = False,
+) -> dict[str, Any]:
+    """将 general Gate 0 Run 可恢复地 Fork 为目标 Profile 子 Run。"""
+    parent_run = parent_run.resolve()
+    if not parent_run.is_dir():
+        raise ValueError("--from-run 不是有效 Run 目录")
+    if not reviewer.strip() or not reason.strip():
+        raise ValueError("fork-profile 的 reviewer 和 reason 均不能为空")
+    run_root = parent_run.parent
+    transaction_id = transaction_id or (
+        datetime.now().strftime("%Y%m%d%H%M%S") + "_" + secrets.token_hex(6)
+    )
+    transaction_path = _fork_transaction_path(run_root, transaction_id)
+    parent_manifest = _load_json_object(parent_run / "run_manifest.json", "run_manifest.json")
+    lock_path = _acquire_fork_lock(
+        run_root, str(parent_manifest.get("run_id", parent_run.name)), transaction_id, resume=resume
+    )
+    try:
+        if transaction_path.is_file():
+            if not resume:
+                raise ValueError("事务已存在；请使用 --resume 继续")
+            return _resume_fork_transaction(parent_run, transaction_path)
+        if resume:
+            raise ValueError("--resume 指定的事务不存在")
+        parent_manifest, _state, material_digest, transition_head = _assert_parent_fork_eligible(
+            parent_run, profile
+        )
+        existing = _find_parent_transactions(run_root, parent_run.name)
+        if existing:
+            raise ValueError("父 Run 已存在 fork-profile 事务，禁止创建第二个子 Run")
+        child_id = _next_child_run_id(run_root, parent_manifest, profile)
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
+        transaction: dict[str, Any] = {
+            "transaction_version": FORK_TRANSACTION_VERSION,
+            "fork_transaction_id": transaction_id,
+            "parent_run_id": parent_run.name,
+            "child_run_id": child_id,
+            "parent_transition_head_sha256": transition_head,
+            "parent_material_digest": material_digest,
+            "selected_profile": profile,
+            "reviewer": reviewer.strip(),
+            "reason": reason.strip(),
+            "status": "prepared",
+            "created_at": now,
+            "updated_at": now,
+        }
+        staged_child = _staged_child_path(run_root, transaction)
+        try:
+            _prepare_fork_child(parent_run, parent_manifest, transaction, staged_child.parent)
+            _write_fork_transaction(transaction_path, transaction)
+        except Exception:
+            shutil.rmtree(staged_child.parent, ignore_errors=True)
+            raise
+        return _resume_fork_transaction(parent_run, transaction_path)
+    finally:
+        _release_fork_lock(lock_path, transaction_id)
+
+
 def advance_run(run_dir: Path, reviewer: str, decision: str = "approved") -> dict[str, Any]:
     """推进一次 Gate；离开当前 Gate 时复用业务产物机器校验。"""
     state = replay_transition_log(run_dir)
@@ -1508,6 +2063,10 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
     """复核运行现场；部分 Gate 运行可返回状态，但不会被标记为晋级证据。"""
     manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
     if manifest.get("workflow") == "prompt_regression":
+        runtime_manifest = _load_json_object(
+            run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
+        )
+        _validate_runtime_context_binding(manifest, runtime_manifest)
         return {
             "run_id": manifest.get("run_id"),
             "workflow": "prompt_regression",
@@ -1518,11 +2077,17 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         }
     state = replay_transition_log(run_dir)
     evidence_errors: list[str] = []
+    lineage_errors = _fork_lineage_errors(run_dir, state)
+    evidence_errors.extend(lineage_errors)
     purpose_error = validate_workflow_evidence_purpose(manifest)
     if purpose_error:
         evidence_errors.append(purpose_error)
     else:
         try:
+            runtime_manifest = _load_json_object(
+                run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
+            )
+            _validate_runtime_context_binding(manifest, runtime_manifest)
             from finalize_run_evidence import validate_evidence_manifest
 
             workflow = manifest.get("workflow")
@@ -1576,12 +2141,13 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             if automatic.get("result") != "pass" or automatic.get("errors"):
                 promotion_errors.append("automatic_evaluation 未通过")
 
-            from finalize_run_evidence import load_policy, validate_evidence_manifest
+            from finalize_run_evidence import validate_evidence_manifest
 
-            policy = load_policy()
-            required = policy["run_evidence_requirements"]["ai_run_metadata_checks"][
-                "required_artifacts"
-            ]
+            workflow = manifest.get("workflow")
+            assert isinstance(workflow, str)
+            required = evidence_required_artifacts_for_workflow(
+                workflow, completed=True
+            )
             evidence = _load_json_object(
                 run_dir / "run_evidence_manifest.json", "run_evidence_manifest.json"
             )
@@ -1589,6 +2155,16 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         except (KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
             promotion_errors.append(str(exc))
 
+    advance_allowed = (
+        state.get("lifecycle_status") == "active"
+        and not state["completed"]
+        and not _fork_lineage_errors(run_dir, state)
+    )
+    if advance_allowed and not _fork_record_path(run_dir).is_file():
+        advance_allowed = not any(
+            item.get("status") not in {"committed", "aborted"}
+            for item in _find_parent_transactions(run_dir.parent, run_dir.name)
+        )
     return {
         "run_id": manifest.get("run_id"),
         "workflow": manifest.get("workflow"),
@@ -1598,6 +2174,11 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "current_gate": state["current_gate"],
         "completed": state["completed"],
         "sealed": not seal_errors and not evidence_errors,
+        "lifecycle_status": state.get("lifecycle_status", "active"),
+        "superseded_by_run_id": state.get("superseded_by_run_id"),
+        "fork_transaction_id": state.get("fork_transaction_id"),
+        "advance_allowed": advance_allowed,
+        "complete_allowed": advance_allowed and state.get("current_gate") == 5,
         "promotion_readiness_errors": promotion_errors,
     }
 
@@ -1650,6 +2231,13 @@ def parse_args() -> argparse.Namespace:
     complete.add_argument("--reviewer", required=True)
     verify = commands.add_parser("verify", help="复核当前运行状态与已完成 Gate")
     verify.add_argument("--run-dir", required=True)
+    fork = commands.add_parser("fork-profile", help="从 general Gate 0 创建可恢复的专项 Profile 子 Run")
+    fork.add_argument("--from-run", required=True)
+    fork.add_argument("--profile", required=True)
+    fork.add_argument("--reviewer", required=True)
+    fork.add_argument("--reason", required=True)
+    fork.add_argument("--transaction-id")
+    fork.add_argument("--resume", action="store_true")
     return parser.parse_args()
 
 
@@ -1681,6 +2269,16 @@ def main() -> None:
             print("[SEALED] Gate 0-5 已完成并封存。")
         elif args.command == "verify":
             print(json.dumps(verify_run(Path(args.run_dir)), ensure_ascii=False, indent=2))
+        elif args.command == "fork-profile":
+            result = fork_profile(
+                Path(args.from_run),
+                profile=args.profile,
+                reviewer=args.reviewer,
+                reason=args.reason,
+                transaction_id=args.transaction_id,
+                resume=args.resume,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"[BLOCKED] {exc}", file=sys.stderr)
         raise SystemExit(2) from exc

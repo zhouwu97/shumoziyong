@@ -15,7 +15,11 @@ from profile_derivation import derive_profile_report
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTO_PATCHES_MARKER = "__AUTO_PATCHES__"
-COMPETITION_CONTRACT_PATH = "runtime_contracts/new_problem_competition.md"
+RUNTIME_CONTRACTS = {
+    "new_problem": "runtime_contracts/new_problem_competition.md",
+    "full_replay": "runtime_contracts/full_replay.md",
+    "prompt_regression": "runtime_contracts/prompt_regression.md",
+}
 # 正式运行包只允许现场状态为 regression_verified/competition_evidenced 的 Patch。
 VERIFIED_STATUSES = {"regression_verified", "competition_evidenced"}
 CANDIDATE_STATUS = "review_ready"
@@ -25,7 +29,6 @@ MATRIX_PATH = ROOT / "tests" / "prompt_regression" / "patch_negative_control_mat
 
 PROFILE_FILES = {
     "general": [
-        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/general_runtime.md",
         "checklists/gate_0_material_diagnosis.md",
@@ -36,7 +39,6 @@ PROFILE_FILES = {
         "checklists/gate_5_final_acceptance.md",
     ],
     "engineering_optimization": [
-        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/engineering_optimization_runtime.md",
         "prompt_plugins/plugin_optimization_v1.md",
@@ -49,7 +51,6 @@ PROFILE_FILES = {
         "checklists/gate_5_final_acceptance.md",
     ],
     "evaluation": [
-        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/evaluation_runtime.md",
         "checklists/gate_0_material_diagnosis.md",
@@ -60,7 +61,6 @@ PROFILE_FILES = {
         "checklists/gate_5_final_acceptance.md",
     ],
     "prediction": [
-        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/prediction_runtime.md",
         "checklists/gate_0_material_diagnosis.md",
@@ -73,7 +73,7 @@ PROFILE_FILES = {
 }
 
 SECTION_LABELS = {
-    COMPETITION_CONTRACT_PATH: "编译版比赛契约",
+    **{path: "编译版运行契约" for path in RUNTIME_CONTRACTS.values()},
     "prompt_base/prompt_base_v1.0.md": "Base",
     "runtime_profiles/general_runtime.md": "Runtime Profile：general",
     "runtime_profiles/engineering_optimization_runtime.md": "Runtime Profile：engineering_optimization",
@@ -252,14 +252,18 @@ def select_patch_files(
 
 def resolve_pack_files(
     profile: str,
+    workflow_context: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
 ) -> list[str]:
     if profile not in PROFILE_FILES:
         available = ", ".join(sorted(PROFILE_FILES))
         raise ValueError(f"未知 profile：{profile}。可选项：{available}")
+    if workflow_context not in RUNTIME_CONTRACTS:
+        available = ", ".join(sorted(RUNTIME_CONTRACTS))
+        raise ValueError(f"未知 workflow context：{workflow_context}。可选项：{available}")
 
-    files: list[str] = []
+    files: list[str] = [RUNTIME_CONTRACTS[workflow_context]]
     for relative_path in PROFILE_FILES[profile]:
         if relative_path == AUTO_PATCHES_MARKER:
             files.extend(select_patch_files(profile, candidate_patch_ids, exclude_patch_ids))
@@ -268,18 +272,39 @@ def resolve_pack_files(
     return files
 
 
+def resolve_profile_for_context(workflow_context: str, profile: str | None) -> str:
+    """按 workflow context 解析独立导出命令的 Profile 默认值。"""
+    if workflow_context not in RUNTIME_CONTRACTS:
+        available = ", ".join(sorted(RUNTIME_CONTRACTS))
+        raise ValueError(f"未知 workflow context：{workflow_context}。可选项：{available}")
+    if profile is not None:
+        return profile
+    if workflow_context == "new_problem":
+        return "general"
+    raise ValueError(f"{workflow_context} 必须显式提供 --profile")
+
+
 def build_pack(
     profile: str,
+    workflow_context: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
     validation_target_status: str | None = None,
 ) -> str:
-    files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
+    if workflow_context not in RUNTIME_CONTRACTS:
+        available = ", ".join(sorted(RUNTIME_CONTRACTS))
+        raise ValueError(f"未知 workflow context：{workflow_context}。可选项：{available}")
+    if workflow_context != "full_replay" and (candidate_patch_ids or exclude_patch_ids):
+        raise ValueError("candidate/exclude Patch 只允许用于 full_replay 隔离实验")
+    files = resolve_pack_files(
+        profile, workflow_context, candidate_patch_ids, exclude_patch_ids
+    )
     all_patches = read_patch_index()
     profile_state, computed_maturity = _derive_profile_state(profile, all_patches)
     parts = [
         "# 数模比赛运行规则包\n\n",
         f"- profile：`{profile}`\n",
+        f"- workflow context：`{workflow_context}`\n",
         f"- runtime version：`{profile_state['version']}`\n",
         f"- maturity：`{computed_maturity}`\n",
         "- 用途：这是自包含的单文件比赛运行包；执行代理不得依赖未编译的仓库路径。\n",
@@ -329,6 +354,7 @@ def _exclusion_reason(
 
 def build_manifest(
     profile: str,
+    workflow_context: str,
     pack_content: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
@@ -341,6 +367,11 @@ def build_manifest(
         raise ValueError("validation_target_status 仅允许 competition_evidenced")
     if validation_target_status and (candidate_patch_ids or exclude_patch_ids):
         raise ValueError("晋级验证运行不得混用 candidate 或 exclusion experiment")
+    if workflow_context not in RUNTIME_CONTRACTS:
+        available = ", ".join(sorted(RUNTIME_CONTRACTS))
+        raise ValueError(f"未知 workflow context：{workflow_context}。可选项：{available}")
+    if workflow_context != "full_replay" and (candidate_patch_ids or exclude_patch_ids):
+        raise ValueError("candidate/exclude Patch 只允许用于 full_replay 隔离实验")
 
     profile_state_path = f"runtime_profiles/{profile}.json"
     all_patches = read_patch_index()
@@ -363,20 +394,23 @@ def build_manifest(
     all_profile_patches = [
         patch for patch in all_patches if profile in patch.get("runtime_profiles", [])
     ]
-    files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
+    files = resolve_pack_files(
+        profile, workflow_context, candidate_patch_ids, exclude_patch_ids
+    )
 
     def records(prefix: str) -> list[dict[str, str]]:
         return [file_record(path) for path in files if path.startswith(prefix)]
 
     base_records = records("prompt_base/")
     manifest = {
-        "manifest_version": "1.1.0",
+        "manifest_version": "1.2.0",
         "runtime_version": profile_state["version"],
         "generated_at": build_timestamp(),
         "profile": profile,
+        "workflow_context": workflow_context,
         "maturity": computed_maturity,
         "runtime_profile_state": file_record(profile_state_path),
-        "competition_contract": file_record(COMPETITION_CONTRACT_PATH),
+        "runtime_contract": file_record(RUNTIME_CONTRACTS[workflow_context]),
         "patch_index": file_record("prompt_patches/patch_index.json"),
         "base": base_records[0] if base_records else None,
         "plugins": records("prompt_plugins/"),
@@ -392,7 +426,8 @@ def build_manifest(
         "other_files": [
             file_record(path)
             for path in files
-            if not path.startswith(("prompt_base/", "prompt_plugins/", "prompt_patches/", "checklists/"))
+            if path != RUNTIME_CONTRACTS[workflow_context]
+            and not path.startswith(("prompt_base/", "prompt_plugins/", "prompt_patches/", "checklists/"))
         ],
         "excluded_patches": [
             {
@@ -437,7 +472,8 @@ def build_manifest(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导出可复现的数模比赛运行规则包和 manifest。")
-    parser.add_argument("--profile", default="general", choices=sorted(PROFILE_FILES))
+    parser.add_argument("--context", required=True, choices=sorted(RUNTIME_CONTRACTS))
+    parser.add_argument("--profile", choices=sorted(PROFILE_FILES))
     parser.add_argument("--output", default="export/cumcm_runtime_pack.md")
     parser.add_argument("--manifest-output", help="manifest 路径；默认与运行包同名并加 .manifest.json。")
     parser.add_argument(
@@ -466,6 +502,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    try:
+        args.profile = resolve_profile_for_context(args.context, args.profile)
+    except ValueError as exc:
+        raise SystemExit(f"[BLOCKED] {exc}") from exc
     output = ROOT / args.output
     manifest_output = (
         ROOT / args.manifest_output
@@ -474,12 +514,14 @@ def main() -> None:
     )
     pack_content = build_pack(
         args.profile,
+        args.context,
         args.candidate_patch,
         args.exclude_patch,
         args.validation_target_status,
     )
     manifest = build_manifest(
         args.profile,
+        args.context,
         pack_content,
         args.candidate_patch,
         args.exclude_patch,

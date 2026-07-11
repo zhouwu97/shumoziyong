@@ -10,11 +10,17 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from export_runtime_pack import build_manifest, build_pack
+from export_runtime_pack import RUNTIME_CONTRACTS, build_manifest, build_pack
 from evidence_validation import failure_fix_evidence_digest
 from finalize_run_evidence import finalize_run_evidence
 from promotion_engine import stable_evidence_digest
-from run_workflow import GATE_5_CHECKLIST_KEYS, mark_run_completed, record_transition
+from run_workflow import (
+    mark_run_completed,
+    record_transition,
+    write_gate_artifact_manifest,
+)
+sys.path.insert(0, str(ROOT / "tests"))
+from test_repository_tooling import _gate_5_review, _write_valid_gate_artifact
 from validate_repository import RepositoryValidator
 
 
@@ -33,38 +39,61 @@ def _complete_and_seal_run(run_dir: Path) -> None:
     """通过正式 Gate API 构造可复放、可封存的稳定证据运行。"""
     manifest_path = run_dir / "run_manifest.json"
     manifest = json.loads(manifest_path.read_text("utf-8"))
-    manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
-    manifest_path.write_text(json.dumps(manifest), "utf-8")
-    runtime_manifest = json.loads(
-        (run_dir / "runtime_pack.manifest.json").read_text("utf-8")
+    manifest.update(
+        {
+            "manifest_version": "2.0.0",
+            "run_status": "initialized",
+            "integrity_status": "unsealed",
+            "workflow": "full_replay",
+            "evidence_purpose": "training_validation",
+            "initial_state": "initialized",
+            "mode": "standard",
+            "promotion_evidence": True,
+        }
     )
+    candidate_patches = [manifest["target_patch"]] if manifest.get("target_patch") else []
+    runtime_pack = (run_dir / "runtime_pack.md").read_text("utf-8")
+    runtime_manifest = build_manifest(
+        manifest["profile"], "full_replay", runtime_pack, candidate_patches
+    )
+    manifest["runtime_version"] = runtime_manifest["runtime_version"]
+    manifest["runtime_pack_sha256"] = runtime_manifest["runtime_pack_sha256"]
+    manifest_path.write_text(json.dumps(manifest), "utf-8")
+    (run_dir / "runtime_pack.manifest.json").write_text(
+        json.dumps(runtime_manifest), "utf-8"
+    )
+    (run_dir / "material_review.json").write_text("{}", "utf-8")
+    (run_dir / "response.md").write_text("fixture response", "utf-8")
+    (run_dir / "runtime_profile.snapshot.json").write_text(
+        json.dumps({"version": manifest["runtime_version"]}), "utf-8"
+    )
+    (run_dir / "patch_selection.snapshot.json").write_text(
+        json.dumps({"selected_patches": [item["patch_id"] for item in runtime_manifest["patches"]]}),
+        "utf-8",
+    )
+    (run_dir / "patch_suggestions.md").write_text("# fixture\n", "utf-8")
+    request_path = run_dir / "request.json"
+    request = json.loads(request_path.read_text("utf-8"))
+    request["runtime_version"] = manifest["runtime_version"]
+    request_path.write_text(json.dumps(request), "utf-8")
+    automatic_path = run_dir / "automatic_evaluation.json"
+    automatic = json.loads(automatic_path.read_text("utf-8"))
+    automatic["manifest_sha256"] = _sha256(run_dir / "runtime_pack.manifest.json")
+    automatic_path.write_text(json.dumps(automatic), "utf-8")
     (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
     (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
     (run_dir / "transitions.jsonl").write_text(
         json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
         "utf-8",
     )
-    for gate in range(6):
-        record_transition(run_dir, gate - 1 if gate else None, gate, "fixture", "approved")
+    record_transition(run_dir, None, 0, "fixture", "approved")
+    for gate in range(5):
+        _write_valid_gate_artifact(run_dir, gate)
+        record_transition(run_dir, gate, gate + 1, "fixture", "approved")
     (run_dir / "gate_5_review.json").write_text(
-        json.dumps(
-            {
-                "run_id": manifest["run_id"],
-                "problem_id": manifest["problem_id"],
-                "profile": manifest["profile"],
-                "runtime_version": manifest["runtime_version"],
-                "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
-                "target_gate": 5,
-                "reviewer": "fixture",
-                "reviewed_at": "2026-07-11T00:00:00Z",
-                "decision": "approved",
-                "final_acceptance": True,
-                "reason": "Fixture Gate 5 review is approved.",
-                "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
-            }
-        ),
-        "utf-8",
+        json.dumps(_gate_5_review(run_dir, "fixture")), "utf-8"
     )
+    write_gate_artifact_manifest(run_dir, 5, completed_at="2026-07-11T00:00:00Z")
     mark_run_completed(run_dir, "fixture")
     finalize_run_evidence(run_dir)
 
@@ -165,8 +194,8 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
         review["target_patch"] = "A092"
         review_path.write_text(json.dumps(review), "utf-8")
 
-    pack = build_pack("engineering_optimization")
-    competition_manifest = build_manifest("engineering_optimization", pack)
+    pack = build_pack("engineering_optimization", "new_problem")
+    competition_manifest = build_manifest("engineering_optimization", "new_problem", pack)
     source_patch = next(
         item
         for item in json.loads(

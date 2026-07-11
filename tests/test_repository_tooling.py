@@ -15,9 +15,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from evaluate_prompt_response import evaluate_case  # noqa: E402
 from export_runtime_pack import (  # noqa: E402
-    COMPETITION_CONTRACT_PATH,
+    RUNTIME_CONTRACTS,
     build_manifest,
     build_pack,
+    resolve_profile_for_context,
     select_patch_files,
     select_patches,
 )
@@ -34,6 +35,7 @@ from run_workflow import (  # noqa: E402
     create_new_problem_run,
     create_old_problem_run,
     create_prompt_regression_run,
+    fork_profile,
     get_current_gate,
     is_gate_complete,
     mark_run_completed,
@@ -92,6 +94,8 @@ def _write_minimal_run_binding(
         json.dumps(
             {
                 "run_id": run_id,
+                "workflow": "full_replay",
+                "evidence_purpose": "training_validation",
                 "problem_id": problem_id,
                 "profile": profile,
                 "runtime_version": runtime_version,
@@ -105,6 +109,13 @@ def _write_minimal_run_binding(
                 "profile": profile,
                 "runtime_version": runtime_version,
                 "runtime_pack_sha256": runtime_pack_sha,
+                "workflow_context": "full_replay",
+                "runtime_contract": {
+                    "path": RUNTIME_CONTRACTS["full_replay"],
+                    "sha256": hashlib.sha256(
+                        (ROOT / RUNTIME_CONTRACTS["full_replay"]).read_bytes()
+                    ).hexdigest(),
+                },
             }
         ),
         encoding="utf-8",
@@ -397,10 +408,11 @@ def test_default_pack_excludes_candidate_patches() -> None:
 
 
 def test_manifest_hashes_pack_and_records_exclusions() -> None:
-    pack = build_pack("engineering_optimization")
-    manifest = build_manifest("engineering_optimization", pack)
+    pack = build_pack("engineering_optimization", "full_replay")
+    manifest = build_manifest("engineering_optimization", "full_replay", pack)
     assert manifest["runtime_pack_sha256"]
-    assert manifest["competition_contract"]["path"] == COMPETITION_CONTRACT_PATH
+    assert manifest["runtime_contract"]["path"] == RUNTIME_CONTRACTS["full_replay"]
+    assert manifest["workflow_context"] == "full_replay"
     assert manifest["validation_target_status"] is None
     assert manifest["patches"] == []
     assert {item["patch_id"] for item in manifest["excluded_patches"]} == {
@@ -414,15 +426,19 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
 
 
 @pytest.mark.parametrize("profile", ["general", "engineering_optimization", "evaluation", "prediction"])
-def test_competition_pack_is_self_contained_and_binds_contract(profile: str) -> None:
-    """所有正式比赛 Profile 均必须编译比赛契约，且运行包不得要求读取仓库相对路径。"""
-    pack = build_pack(profile)
-    manifest = build_manifest(profile, pack)
-    assert "# ===== 编译版比赛契约 =====" in pack
-    assert manifest["competition_contract"]["path"] == COMPETITION_CONTRACT_PATH
-    assert manifest["competition_contract"]["sha256"] == hashlib.sha256(
-        (ROOT / COMPETITION_CONTRACT_PATH).read_bytes()
-    ).hexdigest()
+def test_runtime_pack_is_self_contained_and_binds_context_contract(profile: str) -> None:
+    """每个 workflow 只编译自己的契约，且运行包不得要求读取仓库相对路径。"""
+    for context, contract_path in RUNTIME_CONTRACTS.items():
+        pack = build_pack(profile, context)
+        manifest = build_manifest(profile, context, pack)
+        assert "# ===== 编译版运行契约 =====" in pack
+        assert manifest["workflow_context"] == context
+        assert manifest["runtime_contract"]["path"] == contract_path
+        assert manifest["runtime_contract"]["sha256"] == hashlib.sha256(
+            (ROOT / contract_path).read_bytes()
+        ).hexdigest()
+        for other_path in set(RUNTIME_CONTRACTS.values()) - {contract_path}:
+            assert (ROOT / other_path).read_text(encoding="utf-8") not in pack
     for forbidden in (
         "请读取 docs/",
         "请读取 prompt_base/",
@@ -445,15 +461,15 @@ def test_hashed_runtime_fixtures_keep_lf_bytes_after_checkout() -> None:
 def test_build_identity_is_independent_from_generation_time(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    pack = build_pack("engineering_optimization")
+    pack = build_pack("engineering_optimization", "full_replay")
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1704067200")
-    first = build_manifest("engineering_optimization", pack)
+    first = build_manifest("engineering_optimization", "full_replay", pack)
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1711929600")
-    second = build_manifest("engineering_optimization", pack)
+    second = build_manifest("engineering_optimization", "full_replay", pack)
 
     assert first["generated_at"] != second["generated_at"]
     assert first["build_identity"] == second["build_identity"]
-    changed = build_manifest("engineering_optimization", pack + "\nchanged")
+    changed = build_manifest("engineering_optimization", "full_replay", pack + "\nchanged")
     assert changed["build_identity"] != first["build_identity"]
 
 
@@ -570,9 +586,12 @@ def _validate_stable_profile_competition_fixture(
     """构造 Profile Stable 比赛证据并返回完成校验的 validator。"""
     candidate_patch_ids = candidate_patch_ids or []
     exclude_patch_ids = exclude_patch_ids or []
-    pack = build_pack("engineering_optimization", candidate_patch_ids, exclude_patch_ids)
+    pack = build_pack(
+        "engineering_optimization", "full_replay", candidate_patch_ids, exclude_patch_ids
+    )
     runtime_manifest = build_manifest(
         "engineering_optimization",
+        "full_replay",
         pack,
         candidate_patch_ids,
         exclude_patch_ids,
@@ -984,7 +1003,7 @@ def test_workflow_and_evidence_purpose_cannot_be_relabelled(tmp_path: Path) -> N
 
     report = verify_run(run_dir)
     assert report["sealed"] is False
-    assert any("score" in error or "failure_labels" in error for error in report["promotion_readiness_errors"])
+    assert any("workflow_context" in error for error in report["promotion_readiness_errors"])
 
 
 def test_full_replay_seal_requires_training_specific_artifacts(tmp_path: Path) -> None:
@@ -1128,10 +1147,115 @@ def test_profile_requirements_and_explicit_run_id_collisions_fail_closed(tmp_pat
         create_new_problem_run(Namespace(**vars(args)))
 
 
-def test_export_runtime_pack_defaults_to_general(monkeypatch: pytest.MonkeyPatch) -> None:
-    """独立导出命令未传 Profile 时必须生成 general 运行包。"""
-    monkeypatch.setattr(sys, "argv", ["export_runtime_pack.py"])
-    assert parse_export_runtime_pack_args().profile == "general"
+def _forkable_general_run(tmp_path: Path) -> Path:
+    """构造已进入 Gate 0 且产物已绑定的 general 比赛父 Run。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"competition problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2026-F", {"problem": [("problem.pdf", problem)]})
+    parent, ready = create_new_problem_run(
+        Namespace(
+            run_id="fork_parent",
+            output_root=str(tmp_path / "runs"),
+            problem="2026-F",
+            profile="general",
+            gates="0-5",
+            materials=str(materials),
+            candidate_patch=[],
+            exclude_patch=[],
+            material_file=[],
+            promotion_evidence=False,
+            experiment_group_id=None,
+            experiment_role=None,
+            target_patch=None,
+            workflow="new_problem",
+            mode="standard",
+        )
+    )
+    assert ready is True
+    advance_run(parent, "reviewer")
+    _write_valid_gate_artifact(parent, 0)
+    return parent
+
+
+def test_fork_profile_commits_cross_bound_lineage_and_supersedes_parent(tmp_path: Path) -> None:
+    """Fork 成功后父 Run 停止推进，子 Run 仅在 committed 谱系下可继续。"""
+    parent = _forkable_general_run(tmp_path)
+    result = fork_profile(
+        parent,
+        profile="engineering_optimization",
+        reviewer="reviewer",
+        reason="Gate 0 确认需要工程优化专项 Profile。",
+        transaction_id="forktxn01",
+    )
+    child = Path(result["child_run"])
+
+    assert result["status"] == "committed"
+    parent_report = verify_run(parent)
+    assert parent_report["lifecycle_status"] == "superseded"
+    assert parent_report["superseded_by_run_id"] == child.name
+    assert parent_report["current_gate"] == 0
+    assert parent_report["advance_allowed"] is False
+    assert parent_report["complete_allowed"] is False
+    assert json.loads((child / "fork_record.json").read_text("utf-8"))["status"] == "committed"
+    assert verify_run(child)["advance_allowed"] is True
+
+    with pytest.raises(ValueError, match="superseded"):
+        advance_run(parent, "reviewer")
+    advance_run(child, "reviewer")
+    assert replay_transition_log(child)["current_gate"] == 0
+
+
+def test_fork_profile_resumes_after_child_publish_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """父事件写入失败后，--resume 必须复用同一子 Run 而非创建第二份。"""
+    parent = _forkable_general_run(tmp_path)
+    original_append = run_workflow_module._append_profile_fork_event
+
+    def interrupted(*_args, **_kwargs):
+        raise ValueError("模拟父事件写入中断")
+
+    monkeypatch.setattr(run_workflow_module, "_append_profile_fork_event", interrupted)
+    with pytest.raises(ValueError, match="中断"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn02",
+        )
+    transaction_path = parent.parent / ".transactions" / "fork-profile" / "forktxn02.json"
+    interrupted_transaction = json.loads(transaction_path.read_text("utf-8"))
+    assert interrupted_transaction["status"] == "child_published"
+    child_before = interrupted_transaction["child_run_id"]
+    with pytest.raises(ValueError, match="尚未 committed"):
+        advance_run(parent.parent / child_before, "reviewer")
+
+    monkeypatch.setattr(run_workflow_module, "_append_profile_fork_event", original_append)
+    resumed = fork_profile(
+        parent,
+        profile="engineering_optimization",
+        reviewer="reviewer",
+        reason="Gate 0 确认需要工程优化专项 Profile。",
+        transaction_id="forktxn02",
+        resume=True,
+    )
+    assert Path(resumed["child_run"]).name == child_before
+    assert resumed["status"] == "committed"
+
+
+def test_export_runtime_pack_requires_context_and_resolves_profile_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """独立导出命令必须显式声明 context，且仅比赛上下文默认 general。"""
+    monkeypatch.setattr(sys, "argv", ["export_runtime_pack.py", "--context", "new_problem"])
+    args = parse_export_runtime_pack_args()
+    assert args.context == "new_problem"
+    assert resolve_profile_for_context(args.context, args.profile) == "general"
+    with pytest.raises(ValueError, match="full_replay 必须显式提供 --profile"):
+        resolve_profile_for_context("full_replay", None)
 
 
 def test_prompt_regression_never_creates_gate_or_promotion_evidence(tmp_path: Path) -> None:

@@ -15,7 +15,12 @@ from evaluation_case_registry import validate_registry
 from evidence_validation import derive_v2_matrix_results
 from profile_derivation import derive_profile_report
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
-from run_workflow import OPTIONAL_GATE_EVIDENCE_SPECS, replay_transition_log, verify_run_seal
+from run_workflow import (
+    OPTIONAL_GATE_EVIDENCE_SPECS,
+    evidence_required_artifacts_for_workflow,
+    replay_transition_log,
+    verify_run_seal,
+)
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -320,14 +325,17 @@ class RepositoryValidator:
                 self.fail(f"{run_dir.name} run_evidence_manifest.run_id 与 run_manifest 不一致")
                 ok = False
 
-            required_artifacts = reqs.get("required_artifacts", {})
-            if not isinstance(required_artifacts, dict):
-                self.fail("promotion policy required_artifacts 必须是角色到文件路径的对象")
+            workflow = run_manifest.get("workflow")
+            if not isinstance(workflow, str):
+                self.fail(f"{run_dir.name} run_manifest.workflow 非法")
                 return False
-            
-            if is_legacy:
-                # Remove transitions requirement for legacy runs
-                required_artifacts = {k: v for k, v in required_artifacts.items() if k != "transitions"}
+            try:
+                required_artifacts = evidence_required_artifacts_for_workflow(
+                    workflow, completed=True
+                )
+            except ValueError as exc:
+                self.fail(f"{run_dir.name} {exc}")
+                return False
 
             required_roles = set(required_artifacts)
             seen_roles: set[str] = set()
@@ -1451,4 +1459,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

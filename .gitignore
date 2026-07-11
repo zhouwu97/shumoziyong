@@ -23,3 +23,6 @@ official_materials/**
 export/cumcm_runtime_pack.md
 export/cumcm_runtime_pack.manifest.json
 
+# 工作流和比赛材料命令生成的 Run 目录不纳入版本控制。
+runs/
+

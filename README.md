@@ -29,7 +29,7 @@ python scripts/validate_repository.py
 ### 2. 导出比赛运行包
 
 ```bash
-python scripts/export_runtime_pack.py
+python scripts/export_runtime_pack.py --context new_problem --profile general
 python scripts/check_runtime_manifest.py
 ```
 
@@ -59,6 +59,20 @@ python scripts/check_runtime_manifest.py
 
 ```bash
 python scripts/run_workflow.py init --workflow new_problem --problem 2026-A --materials competition/problem
+```
+
+正式比赛建议先准备并人工确认材料计划，再创建 Run：
+
+```bash
+python scripts/prepare_competition.py plan --problem 2026-A --materials competition/problem --output competition/material_plan.json
+# 人工逐项填写 material_plan.json 中的 confirmed_category 后执行：
+python scripts/prepare_competition.py apply --plan competition/material_plan.json --materials competition/problem --profile general --mode standard --confirm-no-solution --reviewer <审核人>
+```
+
+若 Gate 0 确认需要专项 Profile，可从尚未推进的 general Run 创建可恢复子 Run：
+
+```bash
+python scripts/run_workflow.py fork-profile --from-run runs/<GENERAL_RUN_ID> --profile engineering_optimization --reviewer <审核人> --reason "Gate 0 确认该题为工程优化题"
 ```
 
 旧题回归必须显式选择专项 Profile：
@@ -215,7 +229,7 @@ python -m pip install --require-hashes -r requirements.lock
 导出运行包：
 
 ```bash
-python scripts/export_runtime_pack.py
+python scripts/export_runtime_pack.py --context new_problem --profile general
 ```
 
 默认导出：
@@ -235,16 +249,16 @@ export/cumcm_runtime_pack.manifest.json
 显式加入待审 patch 做旧题实验（可重复传入，每个必须状态为 `review_ready` 且支持当前 profile）：
 
 ```bash
-python scripts/export_runtime_pack.py --candidate-patch B311
+python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --candidate-patch B311
 ```
 
 隔离实验（负控 baseline / 单 patch 对比，可重复传入排除已批准 patch）：
 
 ```bash
 # baseline：排除全部已批准 patch
-python scripts/export_runtime_pack.py --exclude-patch A092 --exclude-patch A127
+python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --exclude-patch A092 --exclude-patch A127
 # A092-only
-python scripts/export_runtime_pack.py --exclude-patch A127
+python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --exclude-patch A127
 ```
 
 比赛目录建议：
