@@ -15,6 +15,7 @@ from profile_derivation import derive_profile_report
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTO_PATCHES_MARKER = "__AUTO_PATCHES__"
+COMPETITION_CONTRACT_PATH = "runtime_contracts/new_problem_competition.md"
 # 正式运行包只允许现场状态为 regression_verified/competition_evidenced 的 Patch。
 VERIFIED_STATUSES = {"regression_verified", "competition_evidenced"}
 CANDIDATE_STATUS = "review_ready"
@@ -24,7 +25,7 @@ MATRIX_PATH = ROOT / "tests" / "prompt_regression" / "patch_negative_control_mat
 
 PROFILE_FILES = {
     "general": [
-        "export/mathmodelagent_inject_prompt.md",
+        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/general_runtime.md",
         "checklists/gate_0_material_diagnosis.md",
@@ -35,7 +36,7 @@ PROFILE_FILES = {
         "checklists/gate_5_final_acceptance.md",
     ],
     "engineering_optimization": [
-        "export/mathmodelagent_inject_prompt.md",
+        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/engineering_optimization_runtime.md",
         "prompt_plugins/plugin_optimization_v1.md",
@@ -48,7 +49,7 @@ PROFILE_FILES = {
         "checklists/gate_5_final_acceptance.md",
     ],
     "evaluation": [
-        "export/mathmodelagent_inject_prompt.md",
+        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/evaluation_runtime.md",
         "checklists/gate_0_material_diagnosis.md",
@@ -59,7 +60,7 @@ PROFILE_FILES = {
         "checklists/gate_5_final_acceptance.md",
     ],
     "prediction": [
-        "export/mathmodelagent_inject_prompt.md",
+        COMPETITION_CONTRACT_PATH,
         "prompt_base/prompt_base_v1.0.md",
         "runtime_profiles/prediction_runtime.md",
         "checklists/gate_0_material_diagnosis.md",
@@ -69,6 +70,15 @@ PROFILE_FILES = {
         "checklists/gate_4_paper_confirmation.md",
         "checklists/gate_5_final_acceptance.md",
     ],
+}
+
+SECTION_LABELS = {
+    COMPETITION_CONTRACT_PATH: "编译版比赛契约",
+    "prompt_base/prompt_base_v1.0.md": "Base",
+    "runtime_profiles/general_runtime.md": "Runtime Profile：general",
+    "runtime_profiles/engineering_optimization_runtime.md": "Runtime Profile：engineering_optimization",
+    "runtime_profiles/evaluation_runtime.md": "Runtime Profile：evaluation",
+    "runtime_profiles/prediction_runtime.md": "Runtime Profile：prediction",
 }
 
 
@@ -272,7 +282,7 @@ def build_pack(
         f"- profile：`{profile}`\n",
         f"- runtime version：`{profile_state['version']}`\n",
         f"- maturity：`{computed_maturity}`\n",
-        "- 用途：复制到比赛工作目录的 `rules/runtime_pack.md`，供 MathModelAgent 执行前读取。\n",
+        "- 用途：这是自包含的单文件比赛运行包；执行代理不得依赖未编译的仓库路径。\n",
         "- 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。\n",
     ]
     if candidate_patch_ids:
@@ -287,7 +297,17 @@ def build_pack(
     parts.append("\n")
 
     for relative_path in files:
-        parts.append(f"\n\n# ===== {relative_path} =====\n\n")
+        label = SECTION_LABELS.get(relative_path)
+        if label is None:
+            if relative_path.startswith("prompt_plugins/"):
+                label = "已审核 Plugin"
+            elif relative_path.startswith("prompt_patches/"):
+                label = "正式 Patch"
+            elif relative_path.startswith("checklists/"):
+                label = "Gate Checklist"
+            else:
+                label = "编译内容"
+        parts.append(f"\n\n# ===== {label} =====\n\n")
         parts.append(read_text(relative_path))
     return "".join(parts)
 
@@ -356,6 +376,7 @@ def build_manifest(
         "profile": profile,
         "maturity": computed_maturity,
         "runtime_profile_state": file_record(profile_state_path),
+        "competition_contract": file_record(COMPETITION_CONTRACT_PATH),
         "patch_index": file_record("prompt_patches/patch_index.json"),
         "base": base_records[0] if base_records else None,
         "plugins": records("prompt_plugins/"),

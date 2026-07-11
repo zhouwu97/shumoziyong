@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from evaluate_prompt_response import evaluate_case  # noqa: E402
 from export_runtime_pack import (  # noqa: E402
+    COMPETITION_CONTRACT_PATH,
     build_manifest,
     build_pack,
     select_patch_files,
@@ -399,6 +400,7 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     pack = build_pack("engineering_optimization")
     manifest = build_manifest("engineering_optimization", pack)
     assert manifest["runtime_pack_sha256"]
+    assert manifest["competition_contract"]["path"] == COMPETITION_CONTRACT_PATH
     assert manifest["validation_target_status"] is None
     assert manifest["patches"] == []
     assert {item["patch_id"] for item in manifest["excluded_patches"]} == {
@@ -409,6 +411,27 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     assert manifest["exclusion_experiment"]["enabled"] is False
     validator = RepositoryValidator()
     assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
+
+
+@pytest.mark.parametrize("profile", ["general", "engineering_optimization", "evaluation", "prediction"])
+def test_competition_pack_is_self_contained_and_binds_contract(profile: str) -> None:
+    """所有正式比赛 Profile 均必须编译比赛契约，且运行包不得要求读取仓库相对路径。"""
+    pack = build_pack(profile)
+    manifest = build_manifest(profile, pack)
+    assert "# ===== 编译版比赛契约 =====" in pack
+    assert manifest["competition_contract"]["path"] == COMPETITION_CONTRACT_PATH
+    assert manifest["competition_contract"]["sha256"] == hashlib.sha256(
+        (ROOT / COMPETITION_CONTRACT_PATH).read_bytes()
+    ).hexdigest()
+    for forbidden in (
+        "请读取 docs/",
+        "请读取 prompt_base/",
+        "请读取 prompt_plugins/",
+        "请读取当前 plugin",
+        "请读取当前 patch",
+        "请读取 checklists/",
+    ):
+        assert forbidden not in pack
 
 
 def test_hashed_runtime_fixtures_keep_lf_bytes_after_checkout() -> None:
