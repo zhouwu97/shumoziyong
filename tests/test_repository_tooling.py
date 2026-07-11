@@ -567,7 +567,7 @@ def test_verify_materials_to_dict_serializable(tmp_path: Path) -> None:
 def test_check_promotion_eligibility_produces_report() -> None:
     """Real policy + matrix + patch_index produce a valid report."""
     report, gaps = check_promotion_eligibility()
-    assert report["policy_version"] == "1.2.0"
+    assert report["policy_version"] == "1.3.0"
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
@@ -650,7 +650,7 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     assert is_gate_complete(run_dir, 5) is False
 
     # Mark completed - Gate 5 should now be complete
-    (run_dir / "gate_5_review.json").write_text('{"final_acceptance": true}', encoding="utf-8")
+    (run_dir / "gate_5_review.json").write_text('{"final_acceptance": true, "reviewer": "automated_test"}', encoding="utf-8")
     mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
 
