@@ -203,12 +203,17 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "failure_id",
                 "failure_record",
                 "fix_record",
                 "retest_run",
                 "review_record"
               ],
               "properties": {
+                "failure_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
                 "failure_record": {
                   "$ref": "#/$defs/relativePath"
                 },

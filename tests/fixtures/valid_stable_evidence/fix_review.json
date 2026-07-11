@@ -1,1 +1,9 @@
-{"decision": "approved", "reviewer": "test"}
+{
+  "failure_id": "F-A001-001",
+  "target_patch": "A001",
+  "retest_run_id": "treatment",
+  "fix_record_sha256": "2f09ca1042afa78e587abdcc406c18b2386cc8e7f68af57f2bc66aa2bbe17df9",
+  "evidence_digest": "8e971eb6e2f2eee47962284526044eb7eecb48d34bad3f643660dfbdb528dad5",
+  "decision": "approved",
+  "reviewer": "test"
+}

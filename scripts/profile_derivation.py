@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from evidence_validation import validate_profile_record
+from evidence_validation import derive_validated_formal_patch_ids, validate_profile_record
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +35,13 @@ def derive_profile_report(
     seen_evidence_keys: set[str] = set()
     valid_records: list[dict[str, Any]] = []
     invalid_records: list[dict[str, str]] = []
+    validated_formal_patch_ids, formal_patch_errors = derive_validated_formal_patch_ids(
+        patches, active_policy, root=root
+    )
+    invalid_records.extend(
+        {"record_id": "<formal-patch>", "error": error}
+        for error in formal_patch_errors
+    )
 
     for raw_record in records:
         if not isinstance(raw_record, Mapping):
@@ -59,6 +66,7 @@ def derive_profile_report(
                 patches,
                 active_policy,
                 root=root,
+                validated_formal_patch_ids=validated_formal_patch_ids,
             )
             if not outcome.valid:
                 error = "evidence_validation_failed: " + "; ".join(outcome.errors)

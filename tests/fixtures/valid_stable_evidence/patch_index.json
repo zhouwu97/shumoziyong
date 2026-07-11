@@ -21,6 +21,7 @@
       ],
       "failure_fix_retests": [
         {
+          "failure_id": "F-A001-001",
           "failure_record": "tests/fixtures/valid_stable_evidence/failure_record.json",
           "review_record": "tests/fixtures/valid_stable_evidence/fix_review.json",
           "retest_run": "tests/fixtures/valid_stable_evidence/retest",
@@ -42,7 +43,7 @@
         "decision": "approved",
         "reviewer": "admin",
         "reviewed_at": "2024-01-01T00:00:00Z",
-        "evidence_digest": "b7b3495d580b857b7611f38b9f2948ee63f69897dd13cede3164a268ebcdcc6c"
+        "evidence_digest": "01ea798c57ae173f245d92181f3bffbc547b08c37903ce0ec3c1682de5f23cbe"
       }
     }
   }

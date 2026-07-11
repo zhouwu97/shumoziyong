@@ -1,1 +1,6 @@
-{"patch_id": "A001", "fix_description": "Fixed it!"}
+{
+  "failure_id": "F-A001-001",
+  "target_patch": "A001",
+  "retest_run_id": "treatment",
+  "fix_description": "Fixed it!"
+}

@@ -102,6 +102,40 @@ def _parse_time(value: Any, label: str, errors: list[str]) -> datetime | None:
     return parsed
 
 
+def _diagnosis_schema_name(response: Mapping[str, Any]) -> str:
+    """按响应声明的主版本选择诊断契约；缺失或非法版本按当前契约闭锁校验。"""
+    version = response.get("schema_version")
+    if isinstance(version, str):
+        major = version.split(".", maxsplit=1)[0]
+        if major.isdigit() and int(major) < 2:
+            return "diagnosis_output.schema.json"
+    return "diagnosis.schema.json"
+
+
+def failure_fix_evidence_digest(
+    *,
+    failure_id: str,
+    target_patch: str,
+    retest_run_id: str,
+    failure_record_sha256: str,
+    fix_record_sha256: str,
+    retest_evidence_manifest_sha256: str,
+) -> str:
+    """计算失败、修复与重测共同身份的规范化摘要。"""
+    payload = {
+        "failure_id": failure_id,
+        "target_patch": target_patch,
+        "retest_run_id": retest_run_id,
+        "failure_record_sha256": failure_record_sha256,
+        "fix_record_sha256": fix_record_sha256,
+        "retest_evidence_manifest_sha256": retest_evidence_manifest_sha256,
+    }
+    canonical = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def validate_full_run(
     run_dir: Path,
     policy: Mapping[str, Any],
@@ -194,6 +228,11 @@ def validate_full_run(
         response = json.loads(response_text)
         if not isinstance(response, dict):
             raise ValueError("response.json 必须是 JSON 对象")
+        diagnosis_schema = _diagnosis_schema_name(response)
+        errors.extend(
+            f"response.json {diagnosis_schema}: {issue}"
+            for issue in _schema_errors(response, diagnosis_schema)
+        )
         runtime_text = (run_dir / "runtime_pack.manifest.json").read_text(
             encoding="utf-8"
         )
@@ -456,6 +495,7 @@ def validate_profile_record(
     policy: Mapping[str, Any],
     *,
     root: Path = ROOT,
+    validated_formal_patch_ids: set[str] | None = None,
 ) -> EvidenceOutcome:
     """按记录类型深验证 Profile 引用，不信任记录中的摘要字段。"""
     errors: list[str] = []
@@ -528,6 +568,12 @@ def validate_profile_record(
         return outcome
 
     if kind == "competition":
+        formal_patch_errors: list[str] = []
+        if validated_formal_patch_ids is None:
+            validated_formal_patch_ids, formal_patch_errors = (
+                derive_validated_formal_patch_ids(patches, policy, root=root)
+            )
+        errors.extend(formal_patch_errors)
         evidence = _load_object(path, "competition evidence", errors)
         if evidence is None:
             return EvidenceOutcome(False, errors)
@@ -610,8 +656,7 @@ def validate_profile_record(
                 if (
                     isinstance(patch_id, str)
                     and profile_id in item.get("runtime_profiles", [])
-                    and item.get("status")
-                    in {"regression_verified", "competition_evidenced"}
+                    and patch_id in validated_formal_patch_ids
                 ):
                     expected_patches[patch_id] = item
             manifest_entries = runtime_data.get("patches", [])
@@ -715,6 +760,19 @@ def validate_formal_patch(
         claim_ids = source.get("claim_ids", [])
         if card_source.get("verification_status") != "verified" or not claim_ids:
             errors.append("正式 Patch 必须引用已验证 Claim ID")
+        card_claim_ids = {
+            claim.get("claim_id")
+            for claim in card_source.get("claims", [])
+            if isinstance(claim, Mapping) and isinstance(claim.get("claim_id"), str)
+        }
+        missing_claim_ids = (
+            set(claim_ids) - card_claim_ids if isinstance(claim_ids, list) else set()
+        )
+        if missing_claim_ids:
+            errors.append(
+                "正式 Patch 引用的 Claim ID 不存在于知识卡片："
+                + ", ".join(sorted(str(item) for item in missing_claim_ids))
+            )
     if not patch.get("validation_records"):
         errors.append("正式 Patch 缺少 validation_records")
 
@@ -799,15 +857,20 @@ def validate_formal_patch(
             if not isinstance(item, Mapping):
                 stable_errors.append(f"失败修复重测 #{index + 1} 必须是对象")
                 continue
+            failure_id = item.get("failure_id")
+            if not isinstance(failure_id, str) or not failure_id.strip():
+                stable_errors.append(f"失败修复重测 #{index + 1} failure_id 不能为空")
+                failure_id = ""
             semantic_records: dict[str, dict[str, Any]] = {}
+            record_hashes: dict[str, str] = {}
             for key in ("failure_record", "fix_record", "review_record"):
                 path = _resolve(root, item.get(key), key, stable_errors)
                 if path is None or not path.is_file():
                     stable_errors.append(f"失败修复重测 #{index + 1} 的 {key} 不存在")
                 else:
-                    inner_hashes[f"failure_fix_retests/{index}/{key}"] = hashlib.sha256(
-                        path.read_bytes()
-                    ).hexdigest()
+                    record_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+                    record_hashes[key] = record_sha
+                    inner_hashes[f"failure_fix_retests/{index}/{key}"] = record_sha
                     if path.suffix.lower() != ".json":
                         stable_errors.append(
                             f"失败修复重测 #{index + 1} 的 {key} 必须是结构化 JSON"
@@ -818,10 +881,11 @@ def validate_formal_patch(
                         )
                         if record_data is not None:
                             semantic_records[key] = record_data
-                            record_patch = record_data.get(
-                                "patch_id", record_data.get("target_patch")
-                            )
-                            if record_patch not in {None, patch.get("patch_id")}:
+                            if record_data.get("failure_id") != failure_id:
+                                stable_errors.append(
+                                    f"失败修复重测 #{index + 1} 的 {key}.failure_id 不一致"
+                                )
+                            if record_data.get("target_patch") != patch.get("patch_id"):
                                 stable_errors.append(
                                     f"失败修复重测 #{index + 1} 的 {key} 绑定到其他 Patch"
                                 )
@@ -861,6 +925,8 @@ def validate_formal_patch(
                     f"失败修复重测 #{index + 1} review_record.reviewer 不能为空"
                 )
             retest = _resolve(root, item.get("retest_run"), "retest_run", stable_errors)
+            retest_run_id: str | None = None
+            retest_manifest_sha: str | None = None
             if retest is not None:
                 outcome = validate_full_run(
                     retest,
@@ -871,11 +937,51 @@ def validate_formal_patch(
                 stable_errors.extend(
                     f"失败修复重测 #{index + 1}: {error}" for error in outcome.errors
                 )
+                actual_run_id = outcome.identity.get("run_id")
+                if isinstance(actual_run_id, str) and actual_run_id.strip():
+                    retest_run_id = actual_run_id
+                else:
+                    stable_errors.append(
+                        f"失败修复重测 #{index + 1} 无法从重测证据派生 run_id"
+                    )
                 retest_manifest = retest / "run_evidence_manifest.json"
                 if retest_manifest.is_file():
+                    retest_manifest_sha = hashlib.sha256(
+                        retest_manifest.read_bytes()
+                    ).hexdigest()
                     inner_hashes[
                         f"failure_fix_retests/{index}/retest_evidence_manifest.json"
-                    ] = hashlib.sha256(retest_manifest.read_bytes()).hexdigest()
+                    ] = retest_manifest_sha
+
+            if retest_run_id is not None:
+                for key, record_data in semantic_records.items():
+                    if record_data.get("retest_run_id") != retest_run_id:
+                        stable_errors.append(
+                            f"失败修复重测 #{index + 1} 的 {key}.retest_run_id 与现场重测不一致"
+                        )
+            if review_record.get("fix_record_sha256") != record_hashes.get("fix_record"):
+                stable_errors.append(
+                    f"失败修复重测 #{index + 1} review_record.fix_record_sha256 不匹配"
+                )
+            if (
+                failure_id
+                and retest_run_id is not None
+                and retest_manifest_sha is not None
+                and "failure_record" in record_hashes
+                and "fix_record" in record_hashes
+            ):
+                expected_digest = failure_fix_evidence_digest(
+                    failure_id=failure_id,
+                    target_patch=str(patch.get("patch_id")),
+                    retest_run_id=retest_run_id,
+                    failure_record_sha256=record_hashes["failure_record"],
+                    fix_record_sha256=record_hashes["fix_record"],
+                    retest_evidence_manifest_sha256=retest_manifest_sha,
+                )
+                if review_record.get("evidence_digest") != expected_digest:
+                    stable_errors.append(
+                        f"失败修复重测 #{index + 1} review_record.evidence_digest 不匹配"
+                    )
 
         competitions = stable.get("competition_validation_records", [])
         if not isinstance(competitions, list):
@@ -1000,3 +1106,48 @@ def validate_formal_patch(
     elif status == "regression_verified":
         errors.extend(regression.gaps)
     return EvidenceOutcome(not errors, errors, {"derived_status": derived_status})
+
+
+def derive_validated_formal_patch_ids(
+    patches: list[dict[str, Any]],
+    policy: Mapping[str, Any],
+    *,
+    root: Path = ROOT,
+) -> tuple[set[str], list[str]]:
+    """深验证所有声明为正式状态的 Patch，返回可信 ID 集合与闭锁错误。"""
+    formal = [
+        patch
+        for patch in patches
+        if patch.get("status") in {"regression_verified", "competition_evidenced"}
+    ]
+    if not formal:
+        return set(), []
+
+    errors: list[str] = []
+    matrix_path = root / "tests" / "prompt_regression" / "patch_negative_control_matrix.json"
+    matrix = _load_object(matrix_path, "patch_negative_control_matrix.json", errors)
+    if matrix is None:
+        return set(), errors
+    if matrix.get("matrix_version") != "2.0.0":
+        errors.append("正式 Patch 深验证必须使用 control matrix v2")
+        return set(), errors
+
+    matrix_by_id = {
+        item.get("patch_id"): item
+        for item in matrix.get("patches", [])
+        if isinstance(item, dict) and isinstance(item.get("patch_id"), str)
+    }
+    validated: set[str] = set()
+    for patch in formal:
+        patch_id = str(patch.get("patch_id", "<unknown>"))
+        outcome = validate_formal_patch(
+            patch,
+            matrix_by_id.get(patch_id, {}),
+            policy,
+            root=root,
+        )
+        if outcome.valid:
+            validated.add(patch_id)
+        else:
+            errors.extend(f"正式 Patch {patch_id}: {error}" for error in outcome.errors)
+    return validated, errors

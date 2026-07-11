@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from export_runtime_pack import build_manifest, build_pack
+from evidence_validation import failure_fix_evidence_digest
 from finalize_run_evidence import finalize_run_evidence
 from promotion_engine import stable_evidence_digest
 from run_workflow import GATE_5_CHECKLIST_KEYS, mark_run_completed, record_transition
@@ -109,11 +110,41 @@ def _retarget_fixture_patch(fix_dir: Path, patch_id: str) -> None:
             test_case_path.read_text("utf-8").encode("utf-8")
         ).hexdigest()
         evaluation_path.write_text(json.dumps(evaluation), "utf-8")
-    for record_name in ("failure_record.json", "fix_record.json"):
+    failure_id = f"F-{patch_id}-001"
+    for record_name in ("failure_record.json", "fix_record.json", "fix_review.json"):
         record_path = fix_dir / record_name
         record = json.loads(record_path.read_text("utf-8"))
-        record["patch_id"] = patch_id
+        record.pop("patch_id", None)
+        record["failure_id"] = failure_id
+        record["target_patch"] = patch_id
+        record["retest_run_id"] = "treatment"
         record_path.write_text(json.dumps(record), "utf-8")
+    fixture_index_path = fix_dir / "patch_index.json"
+    fixture_index = json.loads(fixture_index_path.read_text("utf-8"))
+    fixture_index[0]["stable_evidence"]["failure_fix_retests"][0][
+        "failure_id"
+    ] = failure_id
+    fixture_index_path.write_text(json.dumps(fixture_index), "utf-8")
+
+
+def _bind_failure_fix_chain(fix_dir: Path, patch_id: str) -> None:
+    """在重测封存后将审核记录绑定到修复文件和最终重测证据。"""
+    failure_id = f"F-{patch_id}-001"
+    failure_path = fix_dir / "failure_record.json"
+    fix_path = fix_dir / "fix_record.json"
+    retest_manifest = fix_dir / "retest" / "run_evidence_manifest.json"
+    review_path = fix_dir / "fix_review.json"
+    review = json.loads(review_path.read_text("utf-8"))
+    review["fix_record_sha256"] = _sha256(fix_path)
+    review["evidence_digest"] = failure_fix_evidence_digest(
+        failure_id=failure_id,
+        target_patch=patch_id,
+        retest_run_id="treatment",
+        failure_record_sha256=_sha256(failure_path),
+        fix_record_sha256=_sha256(fix_path),
+        retest_evidence_manifest_sha256=_sha256(retest_manifest),
+    )
+    review_path.write_text(json.dumps(review), "utf-8")
 
 
 def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
@@ -128,6 +159,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
         manifest = json.loads(manifest_path.read_text("utf-8"))
         manifest_path.write_text(json.dumps(manifest), "utf-8")
         _complete_and_seal_run(fix_dir / run_name)
+    _bind_failure_fix_chain(fix_dir, "A092")
 
     for review_name in ("comparison_review.json", "comparison_review_2.json"):
         review_path = fix_dir / review_name

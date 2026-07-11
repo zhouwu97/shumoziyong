@@ -16,6 +16,8 @@ import promotion_engine  # noqa: E402
 from evidence_validation import (  # noqa: E402
     ControlOutcome,
     EvidenceOutcome,
+    derive_validated_formal_patch_ids,
+    failure_fix_evidence_digest,
     validate_control_evidence,
     validate_formal_patch,
     validate_full_run,
@@ -60,14 +62,48 @@ def test_formal_patch_status_must_equal_highest_derived_state(
             }
         )
 
-    _write(tmp_path / "failure.json", {"patch_id": "A999", "failure_label": "logic"})
-    _write(tmp_path / "fix.json", {"patch_id": "A999", "fix_description": "fixed"})
-    _write(
-        tmp_path / "review-fix.json",
-        {"patch_id": "A999", "decision": "approved", "reviewer": "human"},
+    failure_id = "F-A999-001"
+    failure_sha = _write(
+        tmp_path / "failure.json",
+        {
+            "failure_id": failure_id,
+            "target_patch": "A999",
+            "retest_run_id": "retest",
+            "failure_label": "logic",
+        },
+    )
+    fix_sha = _write(
+        tmp_path / "fix.json",
+        {
+            "failure_id": failure_id,
+            "target_patch": "A999",
+            "retest_run_id": "retest",
+            "fix_description": "fixed",
+        },
     )
     retest = tmp_path / "retest"
-    _write(retest / "run_evidence_manifest.json", {"run_id": "retest"})
+    retest_manifest_sha = _write(
+        retest / "run_evidence_manifest.json", {"run_id": "retest"}
+    )
+    _write(
+        tmp_path / "review-fix.json",
+        {
+            "failure_id": failure_id,
+            "target_patch": "A999",
+            "retest_run_id": "retest",
+            "fix_record_sha256": fix_sha,
+            "evidence_digest": failure_fix_evidence_digest(
+                failure_id=failure_id,
+                target_patch="A999",
+                retest_run_id="retest",
+                failure_record_sha256=failure_sha,
+                fix_record_sha256=fix_sha,
+                retest_evidence_manifest_sha256=retest_manifest_sha,
+            ),
+            "decision": "approved",
+            "reviewer": "human",
+        },
+    )
 
     competition_manifest = tmp_path / "competition.manifest.json"
     competition_sha = _write(
@@ -102,6 +138,7 @@ def test_formal_patch_status_must_equal_highest_derived_state(
             "negative_control_runs": negative_runs,
             "failure_fix_retests": [
                 {
+                    "failure_id": failure_id,
                     "failure_record": "failure.json",
                     "fix_record": "fix.json",
                     "review_record": "review-fix.json",
@@ -131,7 +168,9 @@ def test_formal_patch_status_must_equal_highest_derived_state(
     monkeypatch.setattr(
         evidence_module,
         "validate_full_run",
-        lambda *_args, **_kwargs: EvidenceOutcome(True),
+        lambda *_args, **_kwargs: EvidenceOutcome(
+            True, identity={"run_id": "retest"}
+        ),
     )
     monkeypatch.setattr(evidence_module, "_schema_errors", lambda *_args: [])
 
@@ -155,8 +194,44 @@ def test_formal_patch_status_must_equal_highest_derived_state(
     assert outcome.identity["derived_status"] == "competition_evidenced"
     assert any("记录状态 regression_verified" in error for error in outcome.errors)
 
-    _write(tmp_path / "failure.json", {"patch_id": "A999"})
+    patch["source"]["claim_ids"] = ["C999"]
+    missing_claim_outcome = validate_formal_patch(patch, matrix_entry, {}, root=tmp_path)
+    assert not missing_claim_outcome.valid
+    assert any("Claim ID 不存在" in error for error in missing_claim_outcome.errors)
+    patch["source"]["claim_ids"] = ["C001"]
+
+    review_path = tmp_path / "review-fix.json"
+    original_review = review_path.read_text(encoding="utf-8")
+    mismatched_review = json.loads(original_review)
+    mismatched_review["failure_id"] = "F-OTHER-001"
+    review_path.write_text(json.dumps(mismatched_review), encoding="utf-8")
     patch["status"] = "competition_evidenced"
+    identity_outcome = validate_formal_patch(patch, matrix_entry, {}, root=tmp_path)
+    assert not identity_outcome.valid
+    assert any("failure_id 不一致" in error for error in identity_outcome.errors)
+    review_path.write_text(original_review, encoding="utf-8")
+
+    for field_name, invalid_value, expected_error in (
+        ("retest_run_id", "other-run", "retest_run_id"),
+        ("fix_record_sha256", "0" * 64, "fix_record_sha256"),
+        ("evidence_digest", "0" * 64, "evidence_digest"),
+    ):
+        invalid_review = json.loads(original_review)
+        invalid_review[field_name] = invalid_value
+        review_path.write_text(json.dumps(invalid_review), encoding="utf-8")
+        binding_outcome = validate_formal_patch(patch, matrix_entry, {}, root=tmp_path)
+        assert not binding_outcome.valid
+        assert any(expected_error in error for error in binding_outcome.errors)
+        review_path.write_text(original_review, encoding="utf-8")
+
+    _write(
+        tmp_path / "failure.json",
+        {
+            "failure_id": failure_id,
+            "target_patch": "A999",
+            "retest_run_id": "retest",
+        },
+    )
     semantic_outcome = validate_formal_patch(patch, matrix_entry, {}, root=tmp_path)
     assert not semantic_outcome.valid
     assert any("failure_record" in error for error in semantic_outcome.errors)
@@ -189,7 +264,6 @@ def test_full_run_recomputes_automatic_evaluation(
     import finalize_run_evidence
     import run_workflow
 
-    monkeypatch.setattr(evidence_module, "_schema_errors", lambda *_args: [])
     monkeypatch.setattr(run_workflow, "verify_run_seal", lambda *_args: {})
     monkeypatch.setattr(run_workflow, "verify_gate_artifacts", lambda *_args: {})
     monkeypatch.setattr(
@@ -204,6 +278,7 @@ def test_full_run_recomputes_automatic_evaluation(
     outcome = validate_full_run(run_dir, {})
 
     assert not outcome.valid
+    assert any("response.json diagnosis.schema.json" in error for error in outcome.errors)
     assert any("现场重算" in error for error in outcome.errors), outcome.errors
 
 
@@ -300,7 +375,14 @@ def test_profile_competition_rejects_experiment_and_patch_set_mismatch(
             "candidate_experiment": {"enabled": True, "patch_ids": ["A999"]},
             "exclusion_experiment": {"enabled": False, "patch_ids": []},
             "export_flags": {"candidate_patches": ["A999"], "excluded_patches": []},
-            "patches": [],
+            "patches": [
+                {
+                    "patch_id": "A999",
+                    "path": "patch.md",
+                    "status": "regression_verified",
+                    "sha256": hashlib.sha256(patch_file.read_bytes()).hexdigest(),
+                }
+            ],
         },
     )
     result_path = tmp_path / "result.json"
@@ -362,8 +444,31 @@ def test_profile_competition_rejects_experiment_and_patch_set_mismatch(
         patches,
         policy,
         root=tmp_path,
+        validated_formal_patch_ids=set(),
     )
 
     assert not outcome.valid
     assert any("candidate" in error for error in outcome.errors)
     assert any("Patch 集合" in error for error in outcome.errors)
+
+
+def test_recorded_formal_status_does_not_create_validated_patch_id(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    _write(
+        tmp_path / "tests/prompt_regression/patch_negative_control_matrix.json",
+        {"matrix_version": "2.0.0", "patches": [{"patch_id": "A999"}]},
+    )
+    patches = [{"patch_id": "A999", "status": "regression_verified"}]
+    monkeypatch.setattr(
+        evidence_module,
+        "validate_formal_patch",
+        lambda *_args, **_kwargs: EvidenceOutcome(False, ["deep evidence invalid"]),
+    )
+
+    validated, errors = derive_validated_formal_patch_ids(
+        patches, {}, root=tmp_path
+    )
+
+    assert validated == set()
+    assert any("deep evidence invalid" in error for error in errors)
