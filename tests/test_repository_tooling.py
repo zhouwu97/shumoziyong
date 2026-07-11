@@ -28,6 +28,8 @@ from run_workflow import (  # noqa: E402
     atomic_write_bytes,
     chain_transition_event,
     complete_and_seal_run,
+    create_full_replay_run,
+    create_new_problem_run,
     create_old_problem_run,
     create_prompt_regression_run,
     get_current_gate,
@@ -797,6 +799,97 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
         "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review", "transitions",
         "gate_5_review", "score", "failure_labels",
     }
+
+
+def test_new_problem_initialization_uses_competition_artifacts_only(tmp_path: Path) -> None:
+    """比赛 Run 共享 Gate 基础产物，但不得混入旧题训练与晋级文件。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"competition problem"
+    attachment = b"competition attachment"
+    (materials / "problem.pdf").write_bytes(problem)
+    (materials / "data.xlsx").write_bytes(attachment)
+    _write_material_manifest(
+        materials,
+        "2026-A",
+        {"problem": [("problem.pdf", problem)], "attachments": [("data.xlsx", attachment)]},
+    )
+    common = {
+        "run_id": "competition_run",
+        "output_root": str(tmp_path / "runs"),
+        "problem": "2026-A",
+        "profile": "general",
+        "gates": "0-5",
+        "materials": str(materials),
+        "candidate_patch": [],
+        "exclude_patch": [],
+        "material_file": [],
+        "promotion_evidence": False,
+        "experiment_group_id": None,
+        "experiment_role": None,
+        "target_patch": None,
+        "workflow": "new_problem",
+        "mode": "standard",
+    }
+    run_dir, ready = create_new_problem_run(Namespace(**common))
+
+    assert ready is True
+    manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["workflow"] == "new_problem"
+    assert manifest["evidence_purpose"] == "competition_execution"
+    assert not (run_dir / "score.json").exists()
+    assert not (run_dir / "failure_labels.json").exists()
+    assert not (run_dir / "patch_suggestions.md").exists()
+    assert (run_dir / "competition_process_review.md").is_file()
+    for shared in (
+        "runtime_pack.md",
+        "runtime_pack.manifest.json",
+        "runtime_profile.snapshot.json",
+        "patch_selection.snapshot.json",
+        "problem_manifest.json",
+        "transitions.jsonl",
+        "ai_run_metadata.json",
+        "run_evidence_manifest.json",
+    ):
+        assert (run_dir / shared).is_file()
+    execution_plan = (run_dir / "execution_plan.md").read_text(encoding="utf-8")
+    forbidden_training_terms = ("T0", "T4", "M1", "M5", "P1", "P10", "旧题闭环", "晋级计数")
+    assert not any(term in execution_plan for term in forbidden_training_terms)
+    evidence = json.loads((run_dir / "run_evidence_manifest.json").read_text(encoding="utf-8"))
+    roles = {item["role"] for item in evidence["artifacts"]}
+    assert "competition_process_review" in roles
+    assert "score" not in roles
+    assert "failure_labels" not in roles
+
+
+@pytest.mark.parametrize("workflow", ["full_replay", "new_problem"])
+def test_gate_workflows_fail_closed_without_material_manifest(tmp_path: Path, workflow: str) -> None:
+    """两个 Gate 流程都必须将缺失的机器材料清单派生为阻断状态。"""
+    materials = tmp_path / workflow
+    materials.mkdir()
+    (materials / "problem.pdf").write_bytes(b"unlisted problem")
+    args = Namespace(
+        run_id=f"missing_manifest_{workflow}",
+        output_root=str(tmp_path / "runs"),
+        problem="2026-A",
+        profile="general",
+        gates="0-5",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow=workflow,
+        mode="standard",
+    )
+    creator = create_full_replay_run if workflow == "full_replay" else create_new_problem_run
+    run_dir, ready = creator(args)
+    assert ready is False
+    state = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert state["initial_state"] == "blocked"
 
 
 def test_prompt_regression_never_creates_gate_or_promotion_evidence(tmp_path: Path) -> None:

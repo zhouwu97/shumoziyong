@@ -77,7 +77,7 @@ def _append_transition_event(path: Path, event: Mapping[str, Any]) -> None:
     )
 
 
-EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
+COMMON_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("run_manifest.json", "run_manifest", "application/json"),
     ("request.json", "request", "application/json"),
     ("response.json", "model_response", "application/json"),
@@ -89,8 +89,15 @@ EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("human_review.md", "human_review", "text/markdown"),
     ("transitions.jsonl", "transitions", "application/jsonlines"),
     ("gate_5_review.json", "gate_5_review", "application/json"),
+)
+
+FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("score.json", "score", "application/json"),
     ("failure_labels.json", "failure_labels", "application/json"),
+)
+
+NEW_PROBLEM_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("competition_process_review.md", "competition_process_review", "text/markdown"),
 )
 
 OPTIONAL_GATE_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
@@ -111,8 +118,21 @@ def build_run_evidence_manifest(
     content_overrides: Mapping[str, bytes] | None = None,
 ) -> dict[str, Any]:
     """为运行目录中的晋级证据生成可验证的路径、大小和内容哈希清单。"""
+    run_manifest_path = run_dir / "run_manifest.json"
+    try:
+        workflow = json.loads(run_manifest_path.read_text(encoding="utf-8")).get("workflow")
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"无法确定运行工作流：{run_manifest_path}（{exc}）") from exc
+    artifact_specs = list(COMMON_EVIDENCE_ARTIFACT_SPECS)
+    if workflow == "full_replay":
+        artifact_specs.extend(FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS)
+    elif workflow == "new_problem":
+        artifact_specs.extend(NEW_PROBLEM_EVIDENCE_ARTIFACT_SPECS)
+    else:
+        raise ValueError(f"Gate 运行不支持的 workflow：{workflow!r}")
+
     artifacts: list[dict[str, Any]] = []
-    for filename, role, media_type in EVIDENCE_ARTIFACT_SPECS:
+    for filename, role, media_type in artifact_specs:
         path = run_dir / filename
         if content_overrides and filename in content_overrides:
             content = content_overrides[filename]
@@ -221,11 +241,8 @@ def _experiment_kind(candidate_patches: list[str], excluded_patches: list[str]) 
     return "standard"
 
 
-def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
-    """初始化旧题运行目录，并在 Gate 0 前强制校验材料完整性。"""
-    if getattr(args, "material_file", []):
-        raise ValueError("不再支持 --material-file：旧题运行必须校验完整材料清单，不能用子集绕过附件或模板检查")
-
+def _resolve_run_directory(args: argparse.Namespace) -> tuple[str, Path]:
+    """解析当前阶段的运行目录；显式重复 ID 必须立即阻断。"""
     run_id = args.run_id or f"{date.today().isoformat()}_{normalize_problem_dir(args.problem)}_gate{args.gates}"
     output_root = Path(args.output_root)
     if not output_root.is_absolute():
@@ -233,8 +250,11 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     run_dir = output_root / run_id
     if run_dir.exists():
         raise FileExistsError(f"运行目录已存在：{run_dir}")
-    run_dir.mkdir(parents=True)
+    return run_id, run_dir
 
+
+def _resolve_material_path(args: argparse.Namespace) -> Path:
+    """解析材料根目录，保持旧题默认材料目录与新题显式材料目录兼容。"""
     material_path = (
         Path(args.materials)
         if args.materials
@@ -242,133 +262,22 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     )
     if not material_path.is_absolute():
         material_path = ROOT / material_path
-    material_path = material_path.resolve()
-    material_verification = verify_materials(
-        material_path,
-        expected_problem_id=args.problem,
-    )
+    return material_path.resolve()
 
-    profile_state_path = ROOT / "runtime_profiles" / f"{args.profile}.json"
+
+def _load_profile_state(profile: str) -> dict[str, Any]:
+    """读取已注册 Runtime Profile，避免目录初始化后才发现 Profile 不存在。"""
+    profile_state_path = ROOT / "runtime_profiles" / f"{profile}.json"
     if not profile_state_path.is_file():
         raise FileNotFoundError(f"runtime profile 状态不存在：{profile_state_path}")
     profile_state = json.loads(profile_state_path.read_text(encoding="utf-8"))
+    if not isinstance(profile_state, dict):
+        raise ValueError(f"runtime profile 必须是 JSON 对象：{profile_state_path}")
+    return profile_state
 
-    # 隔离实验：--exclude-patch / --candidate-patch 透传给导出器。
-    pack_content = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
-    pack_manifest = build_manifest(args.profile, pack_content, args.candidate_patch, args.exclude_patch)
-    atomic_write_text(run_dir / "runtime_pack.md", pack_content)
-    write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
-    write_json(run_dir / "runtime_profile.snapshot.json", profile_state)
-    patch_selection_snapshot = {
-        "selected_patches": [item["patch_id"] for item in pack_manifest.get("patches", [])],
-        "candidate_patches": list(args.candidate_patch),
-        "excluded_patches": list(args.exclude_patch),
-    }
-    write_json(run_dir / "patch_selection.snapshot.json", patch_selection_snapshot)
 
-    problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
-    write_json(run_dir / "problem_manifest.json", problem_manifest)
-
-    created_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    initial_state = "initialized" if material_verification.ready else "blocked"
-    workflow = getattr(args, "workflow", "full_replay")
-    if workflow == "old_problem":
-        workflow = "full_replay"
-    mode = getattr(args, "mode", "standard")
-    confirmation_gates = {
-        "strict": [0, 1, 2, 3, 4, 5],
-        "standard": [0, 2, 5],
-        "emergency": [0, 5],
-    }[mode]
-    manifest_data: dict[str, Any] = {
-        "manifest_version": "2.0.0",
-        "run_id": run_id,
-        "workflow": workflow,
-        "mode": mode,
-        "human_confirmation_gates": confirmation_gates,
-        "created_at": created_at,
-        "problem_id": args.problem,
-        "profile": args.profile,
-        "runtime_version": profile_state["version"],
-        "gates": args.gates,
-        "materials": repo_relative(material_path),
-        "material_manifest": repo_relative(material_verification.manifest_path),
-        "material_manifest_sha256": material_verification.manifest_sha256,
-        "material_status": material_verification.status,
-        "material_error_count": len(material_verification.errors)
-        + sum(len(category.errors) for category in material_verification.categories.values()),
-        "candidate_patches": args.candidate_patch,
-        "excluded_patches": args.exclude_patch,
-        "experiment_kind": _experiment_kind(args.candidate_patch, args.exclude_patch),
-        "promotion_evidence": bool(getattr(args, "promotion_evidence", False)),
-        "initial_state": initial_state,
-        "runtime_profile_snapshot_sha256": sha256_bytes(
-            (run_dir / "runtime_profile.snapshot.json").read_bytes()
-        ),
-        "patch_selection_snapshot_sha256": sha256_bytes(
-            (run_dir / "patch_selection.snapshot.json").read_bytes()
-        ),
-    }
-
-    if getattr(args, "promotion_evidence", False):
-        if not getattr(args, "experiment_group_id", None):
-            raise ValueError("--promotion-evidence 必须提供 --experiment-group-id")
-        if not getattr(args, "experiment_role", None):
-            raise ValueError("--promotion-evidence 必须提供 --experiment-role")
-        if not getattr(args, "target_patch", None):
-            raise ValueError("--promotion-evidence 必须提供 --target-patch")
-
-        manifest_data["experiment_kind"] = "negative_control"
-        manifest_data["experiment_group_id"] = args.experiment_group_id
-        manifest_data["experiment_role"] = args.experiment_role
-        manifest_data["target_patch"] = args.target_patch
-        target = args.target_patch
-        excluded = args.exclude_patch
-        if args.experiment_role == "baseline":
-            if target not in excluded:
-                raise ValueError("baseline 必须在 excluded_patches 中排除 target_patch")
-        elif args.experiment_role == "patch_only" and target in excluded:
-            raise ValueError("patch_only 不能排除 target_patch")
-
-    write_json(run_dir / "run_manifest.json", manifest_data)
-    material_report = material_verification.to_dict()
-    material_report["material_path"] = repo_relative(material_path)
-    material_report["manual_review_required"] = True
-    material_report["material_level"] = None
-    material_report["risk_labels"] = []
-    write_json(run_dir / "material_review.json", material_report)
-
-    material_status_text = "材料校验通过" if material_verification.ready else "材料校验失败，已阻塞"
-    atomic_write_text(
-        run_dir / "execution_plan.md",
-        f"# 旧题闭环执行计划\n\n"
-        f"- 题目：`{args.problem}`\n"
-        f"- profile：`{args.profile}`（{profile_state['version']} / {profile_state['maturity']}）\n"
-        f"- 闸门范围：Gate {args.gates}\n"
-        f"- 材料：`{repo_relative(material_path)}`\n"
-        f"- 材料清单：`{repo_relative(material_verification.manifest_path)}`\n"
-        f"- review_ready 实验 patch：{args.candidate_patch or '无'}\n"
-        f"- 排除 patch：{args.exclude_patch or '无'}\n"
-        f"- 实验类型：{_experiment_kind(args.candidate_patch, args.exclude_patch)}\n"
-        f"- 状态：{material_status_text}\n\n"
-        "## Gate 0-5 定义\n\n"
-        "- Gate 0：题目与材料诊断\n"
-        "- Gate 1：模型路线\n"
-        "- Gate 2：代码计划\n"
-        "- Gate 3：结果确认\n"
-        "- Gate 4：论文确认\n"
-        "- Gate 5：最终验收\n\n"
-        "## 执行顺序\n\n"
-        "1. 先检查 `material_review.json`：只有 `status=ready` 才能进入 Gate 0。\n"
-        "2. 人工确认材料等级 T0-T4 与风险 M1-M5。\n"
-        "3. 读取 `runtime_pack.md`，只执行指定 Gate。\n"
-        "4. 把发送给 AI 的提示词存入 `request.json`。\n"
-        "5. 将诊断写入 `diagnosis.md`（人看）与 `diagnosis.json`（机器检查，符合 `schemas/diagnosis.schema.json`）。\n"
-        "6. 把 AI 原始输出存入 `response.md` 和 `response.json`。\n"
-        "7. 运行 `evaluate_prompt_response.py` 生成 `automatic_evaluation.json`。\n"
-        "8. 人工填写 `human_review.md`、`score.json` 与 `failure_labels.json`。\n"
-        "9. 只把升级建议写入 `patch_suggestions.md`，不得自动修改 patch 状态。\n",
-    )
+def _initialize_common_gate_artifacts(run_dir: Path, profile_state: Mapping[str, Any]) -> None:
+    """创建两个 Gate 工作流共享的业务产物和 AI 运行证据脚手架。"""
     atomic_write_text(run_dir / "diagnosis.md", "# Gate 0：题目与材料诊断\n\n待执行。\n")
     write_json(
         run_dir / "diagnosis.json",
@@ -389,17 +298,10 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
             },
         )
     (run_dir / "gate_artifacts").mkdir()
-    write_json(run_dir / "score.json", {"total": None, "items": {}, "passed": None})
-    write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
     write_json(
         run_dir / "gate_5_review.json",
         {"_note": "待 Gate 5 通过后填写；完成记录必须符合 schemas/gate_5_review.schema.json。"},
     )
-    atomic_write_text(
-        run_dir / "patch_suggestions.md",
-        "# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n",
-    )
-    # 证据文件脚手架：由 AI 运行和人工审核填充。
     write_json(
         run_dir / "request.json",
         {
@@ -429,7 +331,6 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "- 最终判定 pass/fail\n"
         "- 判断理由\n",
     )
-    # AI 运行元数据脚手架：状态 pending，不含伪造时间戳或模型名
     write_json(
         run_dir / "ai_run_metadata.json",
         {
@@ -453,14 +354,232 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
             "working_directory_mode": None,
         },
     )
-    # 闸门转换日志：记录每次阶段推进
-    _init_transitions(run_dir, args.gates, material_verification.ready)
 
+
+def create_gate_run_core(
+    args: argparse.Namespace,
+    *,
+    workflow: str,
+    evidence_purpose: str,
+) -> tuple[Path, MaterialVerificationResult, dict[str, Any], dict[str, Any], Path]:
+    """初始化 full_replay 与 new_problem 共用的材料、运行包和 Gate 基础现场。"""
+    if getattr(args, "material_file", []):
+        raise ValueError("不再支持 --material-file：旧题运行必须校验完整材料清单，不能用子集绕过附件或模板检查")
+    if workflow not in {"full_replay", "new_problem"}:
+        raise ValueError(f"不支持的 Gate workflow：{workflow!r}")
+    run_id, run_dir = _resolve_run_directory(args)
+    material_path = _resolve_material_path(args)
+    material_verification = verify_materials(
+        material_path,
+        expected_problem_id=args.problem,
+    )
+    profile_state = _load_profile_state(args.profile)
+    candidate_patches = list(getattr(args, "candidate_patch", []))
+    excluded_patches = list(getattr(args, "exclude_patch", []))
+    pack_content = build_pack(args.profile, candidate_patches, excluded_patches)
+    pack_manifest = build_manifest(args.profile, pack_content, candidate_patches, excluded_patches)
+
+    run_dir.mkdir(parents=True)
+    atomic_write_text(run_dir / "runtime_pack.md", pack_content)
+    write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
+    write_json(run_dir / "runtime_profile.snapshot.json", profile_state)
+    patch_selection_snapshot = {
+        "selected_patches": [item["patch_id"] for item in pack_manifest.get("patches", [])],
+        "candidate_patches": candidate_patches,
+        "excluded_patches": excluded_patches,
+    }
+    write_json(run_dir / "patch_selection.snapshot.json", patch_selection_snapshot)
+
+    problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
+    write_json(run_dir / "problem_manifest.json", problem_manifest)
+
+    created_at = datetime.now().astimezone().isoformat(timespec="seconds")
+    initial_state = "initialized" if material_verification.ready else "blocked"
+    mode = getattr(args, "mode", "standard")
+    confirmation_gates = {
+        "strict": [0, 1, 2, 3, 4, 5],
+        "standard": [0, 2, 5],
+        "emergency": [0, 5],
+    }[mode]
+    manifest_data: dict[str, Any] = {
+        "manifest_version": "2.0.0",
+        "run_id": run_id,
+        "workflow": workflow,
+        "mode": mode,
+        "human_confirmation_gates": confirmation_gates,
+        "created_at": created_at,
+        "problem_id": args.problem,
+        "profile": args.profile,
+        "runtime_version": profile_state["version"],
+        "runtime_pack_sha256": pack_manifest["runtime_pack_sha256"],
+        "gates": args.gates,
+        "materials": repo_relative(material_path),
+        "material_manifest": repo_relative(material_verification.manifest_path),
+        "material_manifest_sha256": material_verification.manifest_sha256,
+        "material_status": material_verification.status,
+        "material_error_count": len(material_verification.errors)
+        + sum(len(category.errors) for category in material_verification.categories.values()),
+        "candidate_patches": candidate_patches,
+        "excluded_patches": excluded_patches,
+        "evidence_purpose": evidence_purpose,
+        "initial_state": initial_state,
+        "runtime_profile_snapshot_sha256": sha256_bytes(
+            (run_dir / "runtime_profile.snapshot.json").read_bytes()
+        ),
+        "patch_selection_snapshot_sha256": sha256_bytes(
+            (run_dir / "patch_selection.snapshot.json").read_bytes()
+        ),
+    }
+
+    write_json(run_dir / "run_manifest.json", manifest_data)
+    material_report = material_verification.to_dict()
+    material_report["material_path"] = repo_relative(material_path)
+    material_report["manual_review_required"] = True
+    write_json(run_dir / "material_review.json", material_report)
+
+    _initialize_common_gate_artifacts(run_dir, profile_state)
+    _init_transitions(run_dir, args.gates, material_verification.ready)
+    return run_dir, material_verification, profile_state, pack_manifest, material_path
+
+
+def create_full_replay_run(args: argparse.Namespace) -> tuple[Path, bool]:
+    """初始化旧题训练运行，并写入训练与 Patch 晋级专属产物。"""
+    run_dir, material_verification, profile_state, _pack_manifest, material_path = create_gate_run_core(
+        args,
+        workflow="full_replay",
+        evidence_purpose="training_validation",
+    )
+    manifest_path = run_dir / "run_manifest.json"
+    manifest_data = _load_json_object(manifest_path, "run_manifest.json")
+    candidate_patches = list(getattr(args, "candidate_patch", []))
+    excluded_patches = list(getattr(args, "exclude_patch", []))
+    manifest_data.update(
+        {
+            "experiment_kind": _experiment_kind(candidate_patches, excluded_patches),
+            "promotion_evidence": bool(getattr(args, "promotion_evidence", False)),
+        }
+    )
+    if getattr(args, "promotion_evidence", False):
+        if not getattr(args, "experiment_group_id", None):
+            raise ValueError("--promotion-evidence 必须提供 --experiment-group-id")
+        if not getattr(args, "experiment_role", None):
+            raise ValueError("--promotion-evidence 必须提供 --experiment-role")
+        if not getattr(args, "target_patch", None):
+            raise ValueError("--promotion-evidence 必须提供 --target-patch")
+        manifest_data.update(
+            {
+                "experiment_kind": "negative_control",
+                "experiment_group_id": args.experiment_group_id,
+                "experiment_role": args.experiment_role,
+                "target_patch": args.target_patch,
+            }
+        )
+        if args.experiment_role == "baseline" and args.target_patch not in excluded_patches:
+            raise ValueError("baseline 必须在 excluded_patches 中排除 target_patch")
+        if args.experiment_role == "patch_only" and args.target_patch in excluded_patches:
+            raise ValueError("patch_only 不能排除 target_patch")
+    write_json(manifest_path, manifest_data)
+
+    material_review = _load_json_object(run_dir / "material_review.json", "material_review.json")
+    material_review["material_level"] = None
+    material_review["risk_labels"] = []
+    write_json(run_dir / "material_review.json", material_review)
+    material_status_text = "材料校验通过" if material_verification.ready else "材料校验失败，已阻塞"
+    atomic_write_text(
+        run_dir / "execution_plan.md",
+        f"# 旧题闭环执行计划\n\n"
+        f"- 题目：`{args.problem}`\n"
+        f"- profile：`{args.profile}`（{profile_state['version']} / {profile_state['maturity']}）\n"
+        f"- 闸门范围：Gate {args.gates}\n"
+        f"- 材料：`{repo_relative(material_path)}`\n"
+        f"- 材料清单：`{repo_relative(material_verification.manifest_path)}`\n"
+        f"- review_ready 实验 patch：{candidate_patches or '无'}\n"
+        f"- 排除 patch：{excluded_patches or '无'}\n"
+        f"- 实验类型：{_experiment_kind(candidate_patches, excluded_patches)}\n"
+        f"- 状态：{material_status_text}\n\n"
+        "## Gate 0-5 定义\n\n"
+        "- Gate 0：题目与材料诊断\n"
+        "- Gate 1：模型路线\n"
+        "- Gate 2：代码计划\n"
+        "- Gate 3：结果确认\n"
+        "- Gate 4：论文确认\n"
+        "- Gate 5：最终验收\n\n"
+        "## 执行顺序\n\n"
+        "1. 先检查 `material_review.json`：只有 `status=ready` 才能进入 Gate 0。\n"
+        "2. 人工确认材料等级 T0-T4 与风险 M1-M5。\n"
+        "3. 读取 `runtime_pack.md`，只执行指定 Gate。\n"
+        "4. 把发送给 AI 的提示词存入 `request.json`。\n"
+        "5. 将诊断写入 `diagnosis.md`（人看）与 `diagnosis.json`（机器检查，符合 `schemas/diagnosis.schema.json`）。\n"
+        "6. 把 AI 原始输出存入 `response.md` 和 `response.json`。\n"
+        "7. 运行 `evaluate_prompt_response.py` 生成 `automatic_evaluation.json`。\n"
+        "8. 人工填写 `human_review.md`、`score.json` 与 `failure_labels.json`。\n"
+        "9. 只把升级建议写入 `patch_suggestions.md`，不得自动修改 patch 状态。\n",
+    )
+    write_json(run_dir / "score.json", {"total": None, "items": {}, "passed": None})
+    write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
+    atomic_write_text(
+        run_dir / "patch_suggestions.md",
+        "# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n",
+    )
     write_json(
         run_dir / "run_evidence_manifest.json",
-        build_run_evidence_manifest(run_dir, run_id),
+        build_run_evidence_manifest(run_dir, str(manifest_data["run_id"])),
     )
     return run_dir, material_verification.ready
+
+
+def create_new_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
+    """初始化比赛运行；不得携带旧题训练或 Patch 晋级语义。"""
+    if getattr(args, "candidate_patch", []) or getattr(args, "exclude_patch", []):
+        raise ValueError("new_problem 不支持 candidate/exclude Patch；正式比赛包只能使用已验证 Patch")
+    if getattr(args, "promotion_evidence", False):
+        raise ValueError("new_problem 不能声明为 Patch 晋级证据")
+    run_dir, material_verification, profile_state, _pack_manifest, material_path = create_gate_run_core(
+        args,
+        workflow="new_problem",
+        evidence_purpose="competition_execution",
+    )
+    material_status_text = "材料校验通过" if material_verification.ready else "材料校验失败，已阻塞"
+    atomic_write_text(
+        run_dir / "execution_plan.md",
+        f"# 比赛执行计划\n\n"
+        f"- 题目：`{args.problem}`\n"
+        f"- profile：`{args.profile}`（{profile_state['version']}）\n"
+        f"- 闸门范围：Gate {args.gates}\n"
+        f"- 材料：`{repo_relative(material_path)}`\n"
+        f"- 材料清单：`{repo_relative(material_verification.manifest_path)}`\n"
+        f"- 状态：{material_status_text}\n\n"
+        "## 比赛 Gate 0-5\n\n"
+        "- Gate 0：题目与材料诊断；本轮只完成读题、题型判断、风险和人工确认项。\n"
+        "- Gate 1：模型路线；经人工确认后明确变量、约束、基线和验证方式。\n"
+        "- Gate 2：实现计划；确认模块、输入输出、验证和降级策略。\n"
+        "- Gate 3：结果确认；验证结果、约束、基线比较和稳健性。\n"
+        "- Gate 4：论文确认；仅映射已有证据，不把候选内容写成结论。\n"
+        "- Gate 5：最终验收；复核可复现性、风险闭环和交付完整性。\n\n"
+        "## 执行约束\n\n"
+        "1. 仅在材料状态为 ready 时进入 Gate 0。\n"
+        "2. 第一轮只执行 Gate 0；未经人工确认不得进入下一阶段。\n"
+        "3. 每个 Gate 的 JSON 业务产物和 Gate Manifest 必须绑定当前 Run 身份。\n"
+        "4. 记录真实 AI 运行元数据、请求、响应和人工审核。\n"
+        "5. 本比赛 Run 的 evidence_purpose 为 competition_execution，不具备 Patch 首级晋级资格。\n",
+    )
+    atomic_write_text(
+        run_dir / "competition_process_review.md",
+        "# 比赛过程审核\n\n待填写每次人工确认、风险决策和阶段推进理由。\n",
+    )
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    write_json(
+        run_dir / "run_evidence_manifest.json",
+        build_run_evidence_manifest(run_dir, str(manifest["run_id"])),
+    )
+    return run_dir, material_verification.ready
+
+
+def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
+    """兼容旧调用名称，并按调用方声明的 workflow 分派初始化语义。"""
+    if getattr(args, "workflow", "full_replay") == "new_problem":
+        return create_new_problem_run(args)
+    return create_full_replay_run(args)
 
 
 GATE_NAMES: dict[int, str] = {
@@ -1420,7 +1539,10 @@ def main() -> None:
             if args.workflow == "new_problem" and not args.materials:
                 raise ValueError("new_problem 必须显式提供 --materials")
             args.gates = "0-5"
-            run_dir, material_ready = create_old_problem_run(args)
+            if args.workflow == "new_problem":
+                run_dir, material_ready = create_new_problem_run(args)
+            else:
+                run_dir, material_ready = create_full_replay_run(args)
             print(f"已创建运行目录：{run_dir}")
             if not material_ready:
                 raise ValueError("题面、附件、模板或 SHA-256 校验未通过")
