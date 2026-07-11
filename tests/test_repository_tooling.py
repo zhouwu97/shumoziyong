@@ -40,6 +40,7 @@ from run_workflow import (  # noqa: E402
     write_gate_artifact_manifest,
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
+from evidence_validation import validate_full_run  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
@@ -255,8 +256,26 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
                     "tolerances": {"absolute": 0.0},
                     "deterministic_expected": True,
                     "repeated_runs": [
-                        {"seed": 0, "exit_code": 0, "output_sha256": runtime_pack_sha},
-                        {"seed": 0, "exit_code": 0, "output_sha256": runtime_pack_sha},
+                        {
+                            "execution_id": "fixture-repeat-1",
+                            "seed": 0,
+                            "started_at": "2026-07-11T00:00:00Z",
+                            "completed_at": "2026-07-11T00:00:01Z",
+                            "exit_code": 0,
+                            "output_sha256": runtime_pack_sha,
+                            "stdout_sha256": runtime_pack_sha,
+                            "environment_sha256": runtime_pack_sha,
+                        },
+                        {
+                            "execution_id": "fixture-repeat-2",
+                            "seed": 0,
+                            "started_at": "2026-07-11T00:00:02Z",
+                            "completed_at": "2026-07-11T00:00:03Z",
+                            "exit_code": 0,
+                            "output_sha256": runtime_pack_sha,
+                            "stdout_sha256": runtime_pack_sha,
+                            "environment_sha256": runtime_pack_sha,
+                        },
                     ],
                 },
             ),
@@ -384,6 +403,22 @@ def test_build_identity_is_independent_from_generation_time(
     assert first["build_identity"] == second["build_identity"]
     changed = build_manifest("engineering_optimization", pack + "\nchanged")
     assert changed["build_identity"] != first["build_identity"]
+
+
+def test_formal_export_rejects_unverified_handwritten_patch_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    forged_patch = {
+        "patch_id": "A999",
+        "status": "regression_verified",
+        "file": "prompt_patches/patch_A092_engineering_optimization.md",
+        "runtime_profiles": ["engineering_optimization"],
+        "validation_records": [],
+    }
+    monkeypatch.setattr("export_runtime_pack.read_patch_index", lambda: [forged_patch])
+
+    with pytest.raises(ValueError, match="现场证据"):
+        select_patches("engineering_optimization")
 
 
 @pytest.mark.skip(reason="旧 Profile 人工计数契约已由 test_profile_derivation.py 取代")
@@ -892,9 +927,19 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     assert report["eligible_for_promotion"] is False
     assert complete_and_seal_run(run_dir, "test_reviewer")["sealed"] is True
     assert not validate_evidence_manifest(run_dir, evidence, required_artifacts)
+    policy = json.loads(
+        (ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8")
+    )
+    shared_outcome = validate_full_run(run_dir, policy)
+    assert not shared_outcome.valid
+    assert shared_outcome.identity["run_id"] == "sealed_run"
+    assert any("promotion_evidence" in error for error in shared_outcome.errors)
 
     with (run_dir / "response.json").open("a", encoding="utf-8") as response:
         response.write("\n篡改")
+    tampered_outcome = validate_full_run(run_dir, policy)
+    assert not tampered_outcome.valid
+    assert any("sha256" in error.lower() for error in tampered_outcome.errors)
     assert any("response.json" in error and "sha256" in error for error in validate_evidence_manifest(run_dir, evidence, required_artifacts))
 
 

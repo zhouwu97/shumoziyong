@@ -293,9 +293,18 @@ def evaluate_status_eligibility(
     required_controls = rules.get("required_controls", [])
     passed_controls = 0
     control_results: dict[str, str] = {}
+    active_v2 = matrix_entry.get("_matrix_version") == "2.0.0" or any(
+        isinstance(matrix_entry.get(control), dict)
+        and "_derived_result" in matrix_entry[control]
+        for control in ("positive", "boundary", "negative")
+    )
     for control in ("positive", "boundary", "negative"):
         control_data = matrix_entry.get(control, {})
-        result = control_data.get("_derived_result", control_data.get("result", "pending"))
+        result = (
+            control_data.get("_derived_result", "pending")
+            if active_v2
+            else control_data.get("result", "pending")
+        )
         control_results[control] = result
         if control in required_controls and result != rules.get("required_result", "pass"):
             gaps.append(
@@ -331,9 +340,9 @@ def evaluate_status_eligibility(
         gaps.append("positive 和 boundary 必须使用不同考题")
 
     # 5) negative 必须为 out_of_scope
-    if rules.get("negative_must_be_out_of_scope") and matrix_entry.get("negative", {}).get("result") == "pass":
+    if rules.get("negative_must_be_out_of_scope") and control_results.get("negative") == "pass":
         if not _negative_is_out_of_scope(matrix_entry):
-            gaps.append("negative-control case 的 relation_to_patch 应标记为 negative_out_of_scope")
+            gaps.append("negative case 必须明确标记为 out-of-scope（negative_out_of_scope）")
 
     # 6) 机制类覆盖（patch 级别，不从 profile 继承）
     min_mechanisms = rules.get("min_distinct_mechanisms", 0)

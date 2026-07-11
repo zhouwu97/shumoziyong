@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from atomic_io import atomic_write_bytes
+from evidence_validation import derive_v2_matrix_results, validate_formal_patch
+from profile_derivation import derive_profile_report
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +19,8 @@ AUTO_PATCHES_MARKER = "__AUTO_PATCHES__"
 VERIFIED_STATUSES = {"regression_verified", "competition_evidenced"}
 CANDIDATE_STATUS = "review_ready"
 CANDIDATE_WARNING = "仅供旧题验证，不得直接比赛使用"
+POLICY_PATH = ROOT / "policies" / "promotion_policy.json"
+MATRIX_PATH = ROOT / "tests" / "prompt_regression" / "patch_negative_control_matrix.json"
 
 PROFILE_FILES = {
     "general": [
@@ -105,6 +109,68 @@ def read_profile_state(profile: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _read_object(path: Path, label: str) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} 必须是 JSON 对象")
+    return value
+
+
+def _derive_profile_state(
+    profile: str, patches: list[dict[str, Any]]
+) -> tuple[dict[str, Any], str]:
+    """重算 Profile 成熟度，禁止手填 maturity 进入运行包。"""
+    profile_state = read_profile_state(profile)
+    policy = _read_object(POLICY_PATH, "promotion_policy.json")
+    report = derive_profile_report(
+        profile_state,
+        patches,
+        root=ROOT,
+        policy=policy,
+    )
+    computed = str(report["computed_maturity"])
+    if report["invalid_records"]:
+        raise ValueError(
+            f"Profile {profile} 现场证据无效：{report['invalid_records']}"
+        )
+    if profile_state.get("maturity") != computed:
+        raise ValueError(
+            f"Profile {profile} 手填 maturity 与现场证据不一致："
+            f"记录为 {profile_state.get('maturity')}，现场为 {computed}"
+        )
+    return profile_state, computed
+
+
+def _validate_formal_patches(patches: list[dict[str, Any]]) -> None:
+    """对所有正式 Patch 重算控制结论和晋级资格。"""
+    formal = [patch for patch in patches if patch.get("status") in VERIFIED_STATUSES]
+    if not formal:
+        return
+    policy = _read_object(POLICY_PATH, "promotion_policy.json")
+    matrix = _read_object(MATRIX_PATH, "patch_negative_control_matrix.json")
+    matrix, matrix_errors = derive_v2_matrix_results(matrix, policy, root=ROOT)
+    if matrix_errors:
+        raise ValueError("v2 控制现场证据无效：" + "；".join(matrix_errors))
+    matrix_by_id = {
+        item.get("patch_id"): item
+        for item in matrix.get("patches", [])
+        if isinstance(item, dict)
+    }
+    for patch in formal:
+        patch_id = str(patch.get("patch_id", "<unknown>"))
+        outcome = validate_formal_patch(
+            patch,
+            matrix_by_id.get(patch_id, {}),
+            policy,
+            root=ROOT,
+        )
+        if not outcome.valid:
+            raise ValueError(
+                f"正式 Patch {patch_id} 现场证据不满足 {patch.get('status')}："
+                + "；".join(outcome.errors)
+            )
+
+
 def select_patches(
     profile: str,
     candidate_patch_ids: list[str] | None = None,
@@ -122,7 +188,9 @@ def select_patches(
     candidate_patch_ids = list(candidate_patch_ids or [])
     exclude_set = set(exclude_patch_ids or [])
 
-    patches_by_id = {patch["patch_id"]: patch for patch in read_patch_index()}
+    all_patches = read_patch_index()
+    _validate_formal_patches(all_patches)
+    patches_by_id = {patch["patch_id"]: patch for patch in all_patches}
 
     # 校验显式 review_ready 实验 patch
     for cid in candidate_patch_ids:
@@ -148,7 +216,7 @@ def select_patches(
     # 正式 Patch：状态与 Profile 归属均从事实源现场判断。
     verified_selected = [
         patch
-        for patch in read_patch_index()
+        for patch in all_patches
         if profile in patch.get("runtime_profiles", [])
         and patch.get("status") in VERIFIED_STATUSES
         and patch.get("file")
@@ -196,12 +264,13 @@ def build_pack(
     exclude_patch_ids: list[str] | None = None,
 ) -> str:
     files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
-    profile_state = read_profile_state(profile)
+    all_patches = read_patch_index()
+    profile_state, computed_maturity = _derive_profile_state(profile, all_patches)
     parts = [
         "# 数模比赛运行规则包\n\n",
         f"- profile：`{profile}`\n",
         f"- runtime version：`{profile_state['version']}`\n",
-        f"- maturity：`{profile_state['maturity']}`\n",
+        f"- maturity：`{computed_maturity}`\n",
         "- 用途：复制到比赛工作目录的 `rules/runtime_pack.md`，供 MathModelAgent 执行前读取。\n",
         "- 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。\n",
     ]
@@ -243,11 +312,12 @@ def build_manifest(
     exclude_set = set(exclude_patch_ids)
 
     profile_state_path = f"runtime_profiles/{profile}.json"
-    profile_state = json.loads(read_text(profile_state_path))
+    all_patches = read_patch_index()
+    profile_state, computed_maturity = _derive_profile_state(profile, all_patches)
     selected_patches = select_patches(profile, candidate_patch_ids, exclude_patch_ids)
     selected_ids = {patch["patch_id"] for patch in selected_patches}
     all_profile_patches = [
-        patch for patch in read_patch_index() if profile in patch.get("runtime_profiles", [])
+        patch for patch in all_patches if profile in patch.get("runtime_profiles", [])
     ]
     files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
 
@@ -260,7 +330,7 @@ def build_manifest(
         "runtime_version": profile_state["version"],
         "generated_at": build_timestamp(),
         "profile": profile,
-        "maturity": profile_state["maturity"],
+        "maturity": computed_maturity,
         "runtime_profile_state": file_record(profile_state_path),
         "patch_index": file_record("prompt_patches/patch_index.json"),
         "base": base_records[0] if base_records else None,

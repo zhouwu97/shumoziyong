@@ -4,11 +4,14 @@ import hashlib
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import profile_derivation as profile_derivation_module  # noqa: E402
+from evidence_validation import EvidenceOutcome  # noqa: E402
 from profile_derivation import derive_profile_report  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
 
@@ -63,7 +66,37 @@ def _record(
     return record
 
 
-def test_profile_status_is_recomputed_from_unique_evidence(tmp_path: Path) -> None:
+def _trust_fixture_records(monkeypatch: Any) -> None:
+    """隔离测试 Profile 聚合逻辑；深验证失败路径由独立回归测试覆盖。"""
+
+    def validate(record: dict[str, Any], *_args: Any, **kwargs: Any) -> EvidenceOutcome:
+        root = kwargs["root"]
+        evidence = json.loads((root / record["path"]).read_text(encoding="utf-8"))
+        kind = record["kind"]
+        if kind == "control_review":
+            identity = {
+                "control_type": evidence["control_type"],
+                "evidence_key": f"experiment_group:{evidence['experiment_group_id']}",
+            }
+        elif kind == "full_run":
+            identity = {
+                "run_id": evidence["run_id"],
+                "evidence_key": f"full_run:{evidence['run_id']}",
+            }
+        else:
+            identity = {
+                "run_id": evidence["run_id"],
+                "evidence_key": f"competition:{evidence['run_id']}",
+            }
+        return EvidenceOutcome(True, identity=identity, data=evidence)
+
+    monkeypatch.setattr(profile_derivation_module, "validate_profile_record", validate)
+
+
+def test_profile_status_is_recomputed_from_unique_evidence(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    _trust_fixture_records(monkeypatch)
     records = [
         _record(tmp_path, "positive", "control_review", "positive"),
         _record(tmp_path, "boundary", "control_review", "boundary"),
@@ -83,6 +116,26 @@ def test_profile_status_is_recomputed_from_unique_evidence(tmp_path: Path) -> No
     assert report["competition_evidence"]["complete"] is False
 
 
+def test_shallow_profile_json_cannot_raise_maturity(tmp_path: Path) -> None:
+    records = [
+        _record(tmp_path, "positive", "control_review", "positive"),
+        _record(tmp_path, "boundary", "control_review", "boundary"),
+        _record(tmp_path, "negative", "control_review", "negative"),
+        _record(tmp_path, "full", "full_run"),
+        _record(tmp_path, "competition", "competition"),
+    ]
+    profile = {
+        "profile_id": "engineering_optimization",
+        "plugin_version": "1.0.0",
+        "validation_records": records,
+    }
+
+    report = derive_profile_report(profile, [], root=tmp_path)
+
+    assert report["computed_maturity"] == "assembled"
+    assert len(report["invalid_records"]) == len(records)
+
+
 def test_competition_record_advances_only_after_regression(tmp_path: Path) -> None:
     profile = {
         "profile_id": "engineering_optimization",
@@ -92,7 +145,10 @@ def test_competition_record_advances_only_after_regression(tmp_path: Path) -> No
     assert derive_profile_report(profile, [], root=tmp_path)["computed_maturity"] == "assembled"
 
 
-def test_duplicate_evidence_path_is_not_counted_twice(tmp_path: Path) -> None:
+def test_duplicate_evidence_path_is_not_counted_twice(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    _trust_fixture_records(monkeypatch)
     record = _record(tmp_path, "positive", "control_review", "positive")
     duplicate = {**record, "record_id": "positive-copy"}
     profile = {
@@ -110,8 +166,9 @@ def test_duplicate_evidence_path_is_not_counted_twice(tmp_path: Path) -> None:
 
 
 def test_duplicate_experiment_group_is_not_counted_through_another_path(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: Any
 ) -> None:
+    _trust_fixture_records(monkeypatch)
     first = _record(
         tmp_path, "positive-a", "control_review", "positive", evidence_id="same-group"
     )
@@ -144,9 +201,8 @@ def test_manual_control_type_must_match_review_content(tmp_path: Path) -> None:
     report = derive_profile_report(profile, [], root=tmp_path)
 
     assert report["regression_status"]["control_types"] == []
-    assert report["invalid_records"] == [
-        {"record_id": "positive", "error": "control_type_mismatch"}
-    ]
+    assert len(report["invalid_records"]) == 1
+    assert "control_type" in report["invalid_records"][0]["error"]
 
 
 def test_runtime_profile_schema_rejects_old_manual_counters() -> None:

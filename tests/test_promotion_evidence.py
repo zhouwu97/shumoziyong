@@ -756,6 +756,34 @@ def test_deprecated_patch_is_a_valid_terminal_state():
     assert report.eligible
 
 
+def test_negative_scope_uses_derived_v2_result() -> None:
+    policy = {
+        "status_rules": {
+            "regression_verified": {
+                "required_controls": ["negative"],
+                "required_result": "pass",
+                "negative_must_be_out_of_scope": True,
+            }
+        }
+    }
+    matrix = {
+        "negative": {
+            "_derived_result": "pass",
+            "case": "2024-B",
+            "case_metadata": {"relation_to_patch": "boundary_edge_scope"},
+        }
+    }
+    report = evaluate_status_eligibility(
+        {"patch_id": "A092", "status": "regression_verified"},
+        matrix,
+        policy,
+        "regression_verified",
+    )
+
+    assert not report.eligible
+    assert any("negative case 必须明确标记为 out-of-scope" in gap for gap in report.gaps)
+
+
 @pytest.mark.parametrize("risk", ["M1", "M2", "M3", "M5"])
 def test_forbidden_material_risk_blocks_promotion(tmp_path, risk):
     """failure_labels.json 中的禁止材料风险必须阻断晋级。"""

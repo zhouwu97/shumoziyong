@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -17,8 +18,27 @@ OPTIMIZATION_REQUIREMENTS: dict[str, set[str]] = {
     "nonlinear_optimization": {
         "baseline", "feasibility", "constraint_residual", "kkt", "multi_start", "bounds", "sensitivity"
     },
-    "heuristic": {"baseline", "feasibility", "multi_start", "bounds", "sensitivity"},
+    "heuristic": {
+        "baseline",
+        "feasibility",
+        "constraint_residual",
+        "multi_start",
+        "bounds",
+        "sensitivity",
+    },
 }
+MANDATORY_OPTIMIZATION_CHECKS = {"feasibility", "constraint_residual", "bounds"}
+CONDITIONAL_NA_CHECKS = {"mip_gap", "kkt", "multi_start"}
+
+
+def _parse_execution_time(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo is not None else None
 
 
 def validate_model_and_execution(
@@ -85,7 +105,25 @@ def validate_model_and_execution(
         )
     model_type = contract.get("model_type")
     required = OPTIMIZATION_REQUIREMENTS.get(str(model_type), set())
-    covered = configured | set(not_applicable)
+    na_names = set(not_applicable) if isinstance(not_applicable, Mapping) else set()
+    mandatory_na = MANDATORY_OPTIMIZATION_CHECKS & na_names
+    for name in sorted(mandatory_na):
+        errors.append(f"优化专项检查 {name} 不可豁免，必须配置并实际通过")
+    unsupported_na = na_names - CONDITIONAL_NA_CHECKS - MANDATORY_OPTIMIZATION_CHECKS
+    for name in sorted(unsupported_na):
+        errors.append(f"优化专项检查 {name} 不支持标记为不适用")
+    if isinstance(not_applicable, Mapping):
+        for name, exemption in not_applicable.items():
+            if not isinstance(exemption, Mapping):
+                errors.append(f"优化专项检查 {name} 的 N/A 必须包含结构化原因和适用条件")
+                continue
+            reason = exemption.get("reason")
+            condition = exemption.get("condition")
+            if not isinstance(reason, str) or len(reason.strip()) < 10:
+                errors.append(f"优化专项检查 {name} 的 N/A reason 不完整")
+            if not isinstance(condition, str) or len(condition.strip()) < 10:
+                errors.append(f"优化专项检查 {name} 的 N/A condition 不完整")
+    covered = configured | (na_names & CONDITIONAL_NA_CHECKS)
     missing = required - covered
     if missing:
         errors.append(f"模型类型 {model_type} 缺少专项检查：{sorted(missing)}")
@@ -103,6 +141,25 @@ def validate_model_and_execution(
 
     seeds = set(result_manifest.get("random_seeds", []))
     repeats = result_manifest.get("repeated_runs", [])
+    execution_ids = [
+        item.get("execution_id") for item in repeats if isinstance(item, Mapping)
+    ]
+    if (
+        len(execution_ids) != len(repeats)
+        or any(not isinstance(value, str) or not value.strip() for value in execution_ids)
+        or len(execution_ids) != len(set(execution_ids))
+    ):
+        errors.append("重复运行 execution_id 必须非空且全局唯一")
+    for item in repeats:
+        if not isinstance(item, Mapping):
+            errors.append("重复运行记录必须是对象")
+            continue
+        started = _parse_execution_time(item.get("started_at"))
+        completed = _parse_execution_time(item.get("completed_at"))
+        if started is None or completed is None:
+            errors.append(f"重复运行 {item.get('execution_id')} 时间必须为带时区 ISO 8601")
+        elif completed < started:
+            errors.append(f"重复运行 {item.get('execution_id')} 完成时间早于开始时间")
     repeat_seeds = {item.get("seed") for item in repeats if isinstance(item, Mapping)}
     if not repeat_seeds.issubset(seeds):
         errors.append("重复运行使用了未声明随机种子")
@@ -112,4 +169,6 @@ def validate_model_and_execution(
         }
         if len(output_hashes) != 1:
             errors.append("声明确定性运行，但重复运行输出哈希不一致")
+    elif len(repeat_seeds) < 2:
+        errors.append("随机或非确定性模型的独立重复运行必须使用至少两个不同 seed")
     return errors

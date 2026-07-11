@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from evidence_validation import derive_v2_matrix_results
 from promotion_engine import (
     PromotionGap,
     evaluate_full,
@@ -36,12 +37,16 @@ def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
     policy = load_json(POLICY_PATH)
     matrix = load_json(MATRIX_PATH)
     patch_index = load_json(INDEX_PATH)
+    matrix, evidence_errors = derive_v2_matrix_results(matrix, policy, root=ROOT)
 
     matrix_by_id: dict[str, dict[str, Any]] = {
         item["patch_id"]: item for item in matrix.get("patches", [])
     }
 
-    all_gaps: list[PromotionGap] = []
+    all_gaps: list[PromotionGap] = [
+        PromotionGap("<evidence>", "regression_verified", error)
+        for error in evidence_errors
+    ]
     results: list[dict[str, Any]] = []
 
     for patch in patch_index:
@@ -62,8 +67,14 @@ def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
 
         # 按控制类型收集 pass/fail
         control_results: dict[str, str] = {}
+        active_v2 = matrix.get("matrix_version") == "2.0.0"
         for control in ("positive", "boundary", "negative"):
-            control_results[control] = entry.get(control, {}).get("result", "pending")
+            control_data = entry.get(control, {})
+            control_results[control] = (
+                control_data.get("_derived_result", "pending")
+                if active_v2
+                else control_data.get("result", "pending")
+            )
         passed_count = sum(1 for r in control_results.values() if r == "pass")
 
         results.append(
