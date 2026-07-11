@@ -652,3 +652,29 @@ def test_request_model_and_runtime_version_must_match_run_metadata_and_manifest(
             validator.validate_patch_promotion()
             assert any("request.model 与 ai_run_metadata.model 不一致" in failure for failure in validator.failures)
             assert any("request.runtime_version 与 run_manifest.runtime_version 不一致" in failure for failure in validator.failures)
+
+def test_evaluate_status_eligibility_stable_fail_closed():
+    import sys
+    from pathlib import Path
+    ROOT = Path(__file__).resolve().parents[1]
+    if str(ROOT / 'scripts') not in sys.path:
+        sys.path.insert(0, str(ROOT / 'scripts'))
+    from promotion_engine import evaluate_status_eligibility
+    
+    # 1. Missing stable_evidence config in policy
+    policy_missing = {"status_rules": {"stable": {}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_missing, "stable")
+    assert not report.eligible
+    assert any("缺少 stable_evidence 配置" in gap for gap in report.gaps)
+    
+    # 2. stable_evidence config required is False
+    policy_not_required = {"status_rules": {"stable": {"stable_evidence": {"required": False}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_not_required, "stable")
+    assert not report.eligible
+    assert any("未启用 stable_evidence.required" in gap for gap in report.gaps)
+    
+    # 3. Patch missing stable_evidence
+    policy_valid = {"status_rules": {"stable": {"stable_evidence": {"required": True}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "stable")
+    assert not report.eligible
+    assert any("必须提供 stable_evidence 对象" in gap for gap in report.gaps)
