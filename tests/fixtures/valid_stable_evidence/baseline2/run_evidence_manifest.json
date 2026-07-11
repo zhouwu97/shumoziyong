@@ -1,5 +1,5 @@
 {
-  "evidence_manifest_version": "1.0.0",
+  "evidence_manifest_version": "2.0.0",
   "run_id": "baseline",
   "artifacts": [
     {
@@ -64,6 +64,13 @@
       "media_type": "text/markdown",
       "size_bytes": 72,
       "role": "human_review"
+    },
+    {
+      "path": "transitions.jsonl",
+      "sha256": "678eff8006ae245c0d4dc7e32ae78fa0915f0bbbeebb7e51872300f29d296b2a",
+      "media_type": "application/jsonlines",
+      "size_bytes": 20,
+      "role": "transitions"
     }
   ]
 }

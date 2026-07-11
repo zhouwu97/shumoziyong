@@ -40,6 +40,7 @@ EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
     ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
     ("human_review.md", "human_review", "text/markdown"),
+    ("transitions.jsonl", "transitions", "application/jsonlines"),
 )
 
 
@@ -66,7 +67,7 @@ def build_run_evidence_manifest(
             }
         )
     return {
-        "evidence_manifest_version": "1.0.0",
+        "evidence_manifest_version": "2.0.0",
         "run_id": run_id,
         "artifacts": artifacts,
     }
@@ -321,12 +322,13 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
             "working_directory_mode": None,
         },
     )
+    # 闸门转换日志：记录每次阶段推进
+    _init_transitions(run_dir, args.gates, material_verification.ready)
+
     write_json(
         run_dir / "run_evidence_manifest.json",
         build_run_evidence_manifest(run_dir, run_id),
     )
-    # 闸门转换日志：记录每次阶段推进
-    _init_transitions(run_dir, args.gates, material_verification.ready)
     return run_dir, material_verification.ready
 
 

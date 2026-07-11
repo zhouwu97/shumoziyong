@@ -153,7 +153,8 @@
       "automatic_evaluation.json",
       "ai_run_metadata.json",
       "human_review.md",
-      "run_evidence_manifest.json"
+      "run_evidence_manifest.json",
+      "transitions.jsonl"
     ],
     "ai_run_metadata_checks": {
       "schema": "schemas/ai_run_metadata.schema.json",
@@ -188,7 +189,8 @@
         "problem_manifest": "problem_manifest.json",
         "automatic_evaluation": "automatic_evaluation.json",
         "ai_run_metadata": "ai_run_metadata.json",
-        "human_review": "human_review.md"
+        "human_review": "human_review.md",
+        "transitions": "transitions.jsonl"
       }
     }
   },

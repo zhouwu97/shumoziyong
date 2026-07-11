@@ -1,5 +1,5 @@
 {
-  "evidence_manifest_version": "1.0.0",
+  "evidence_manifest_version": "2.0.0",
   "run_id": "treatment",
   "artifacts": [
     {
@@ -32,9 +32,9 @@
     },
     {
       "path": "runtime_pack.manifest.json",
-      "sha256": "86d33a9fa370bc00ecb41d497d57fcad459706e8467b0edf630370177f08a4a7",
+      "sha256": "f10784a9feb0253e71a5df863c38960e4fabf17c335dd1b6cba54f3a673b1620",
       "media_type": "application/json",
-      "size_bytes": 127,
+      "size_bytes": 128,
       "role": "runtime_pack_manifest"
     },
     {
@@ -46,16 +46,16 @@
     },
     {
       "path": "automatic_evaluation.json",
-      "sha256": "06a9b472a4eaaedf9cb28afd2f5108dbcb747e49857273de73f7aa7e3222728e",
+      "sha256": "0f63b6c2e2fd0639fb32169dc68d82500569adc8e6b6885ba764af23a0a9e848",
       "media_type": "application/json",
-      "size_bytes": 371,
+      "size_bytes": 372,
       "role": "automatic_evaluation"
     },
     {
       "path": "ai_run_metadata.json",
-      "sha256": "34d4654b725675797ce267e3db7d2dbfad3180a505fa6940afabb6f049be287c",
+      "sha256": "e9111abc6dd43554cdc639b097d9fc4d0218b062bd68dc2481e98c6f487e8fb3",
       "media_type": "application/json",
-      "size_bytes": 679,
+      "size_bytes": 680,
       "role": "ai_run_metadata"
     },
     {
@@ -64,6 +64,13 @@
       "media_type": "text/markdown",
       "size_bytes": 73,
       "role": "human_review"
+    },
+    {
+      "path": "transitions.jsonl",
+      "sha256": "678eff8006ae245c0d4dc7e32ae78fa0915f0bbbeebb7e51872300f29d296b2a",
+      "media_type": "application/jsonlines",
+      "size_bytes": 20,
+      "role": "transitions"
     }
   ]
 }

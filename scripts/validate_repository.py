@@ -262,6 +262,7 @@ class RepositoryValidator:
             run_dir: Path,
             run_manifest: dict[str, Any],
             policy: dict[str, Any],
+            is_legacy: bool = False,
         ) -> bool:
             """验证证据引用的角色、路径、字节数和 SHA-256，形成可执行证据契约。"""
             ok = True
@@ -287,6 +288,11 @@ class RepositoryValidator:
             if not isinstance(required_artifacts, dict):
                 self.fail("promotion policy required_artifacts 必须是角色到文件路径的对象")
                 return False
+            
+            if is_legacy:
+                # Remove transitions requirement for legacy runs
+                required_artifacts = {k: v for k, v in required_artifacts.items() if k != "transitions"}
+
             required_roles = set(required_artifacts)
             seen_roles: set[str] = set()
             seen_paths: set[str] = set()
@@ -449,7 +455,7 @@ class RepositoryValidator:
                             ok = False
                 ok = _verify_ai_run_metadata(run_dir, policy, target_patch, role, legacy) and ok
                 if not legacy:
-                    ok = _verify_run_evidence_manifest(run_dir, run_manifest, policy) and ok
+                    ok = _verify_run_evidence_manifest(run_dir, run_manifest, policy, legacy) and ok
 
             except Exception as e:
                 self.fail(f"读取 {run_dir} 证据时出错: {e}")
