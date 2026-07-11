@@ -9,6 +9,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_repository import RepositoryValidator
+from finalize_run_evidence import finalize_run_evidence
+from run_workflow import mark_run_completed, record_transition
+from promotion_engine import evaluate_status_eligibility
 
 FIXTURE_DIR = ROOT / "tests/fixtures/valid_promotion_evidence"
 
@@ -37,14 +40,64 @@ def modify_json(path: Path, updates: dict):
     data.update(updates)
     path.write_text(json.dumps(data), "utf-8")
 
-def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index):
+
+def _complete_and_seal_fixture_run(run_dir: Path) -> None:
+    """用真实 Gate API 构造可用于晋级验证的完整运行证据。"""
+    manifest_path = run_dir / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text("utf-8"))
+    manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
+    manifest_path.write_text(json.dumps(manifest), "utf-8")
+    (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
+    (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
+        "utf-8",
+    )
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "fixture", "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(
+            {
+                "target_gate": 5,
+                "reviewer": "fixture",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+                "decision": "approved",
+                "final_acceptance": True,
+                "reason": "Fixture Gate 5 review is approved.",
+            }
+        ),
+        "utf-8",
+    )
+    mark_run_completed(run_dir, "fixture")
+    finalize_run_evidence(run_dir)
+
+def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index, tmp_path):
+    fix_dir = _copy_fixture(tmp_path)
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
-        validator.validate_patch_promotion()
-        assert not validator.failures
-        assert (
-            "patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）"
-            in validator.passes
-        )
+        with patch.object(RepositoryValidator, 'resolve_repo_path', new=lambda self, raw: Path(raw).resolve()):
+            validator.validate_patch_promotion()
+            assert not validator.failures
+            assert (
+                "patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）"
+                in validator.passes
+            )
+
+
+def test_incomplete_gate_log_cannot_be_promotion_evidence(validator, valid_matrix, valid_patch_index, tmp_path):
+    """仅有 ready 文本的 transitions 不能伪装成完成的 Gate 0-5 运行。"""
+    fix_dir = _copy_fixture(tmp_path)
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
+    (fix_dir / "baseline" / "transitions.jsonl").write_text('{"state": "ready"}\n', "utf-8")
+
+    with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
+            validator.validate_patch_promotion()
+            assert any("Gate 状态机记录无效" in failure for failure in validator.failures)
 
 def test_negative_case_mismatch_fails(validator, valid_matrix, valid_patch_index):
     valid_matrix["patches"][0]["negative"]["case"] = "WRONG-CASE"
@@ -273,6 +326,8 @@ def test_ai_metadata_valid_passes(validator, valid_matrix, valid_patch_index, tm
     """Valid ai_run_metadata on both baseline and treatment passes."""
     fix_dir = _copy_fixture(tmp_path)
     _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
 
     def mock_resolve(self, raw):
         return Path(raw).resolve()
@@ -652,3 +707,49 @@ def test_request_model_and_runtime_version_must_match_run_metadata_and_manifest(
             validator.validate_patch_promotion()
             assert any("request.model 与 ai_run_metadata.model 不一致" in failure for failure in validator.failures)
             assert any("request.runtime_version 与 run_manifest.runtime_version 不一致" in failure for failure in validator.failures)
+
+def test_evaluate_status_eligibility_stable_fail_closed():
+    import sys
+    from pathlib import Path
+    ROOT = Path(__file__).resolve().parents[1]
+    if str(ROOT / 'scripts') not in sys.path:
+        sys.path.insert(0, str(ROOT / 'scripts'))
+    from promotion_engine import evaluate_status_eligibility
+    
+    # 1. Missing stable_evidence config in policy
+    policy_missing = {"status_rules": {"stable": {}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_missing, "stable")
+    assert not report.eligible
+    assert any("缺少 stable_evidence 配置" in gap for gap in report.gaps)
+    
+    # 2. stable_evidence config required is False
+    policy_not_required = {"status_rules": {"stable": {"stable_evidence": {"required": False}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_not_required, "stable")
+    assert not report.eligible
+    assert any("未启用 stable_evidence.required" in gap for gap in report.gaps)
+    
+    # 3. Patch missing stable_evidence
+    policy_valid = {"status_rules": {"stable": {"stable_evidence": {"required": True}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "stable")
+    assert not report.eligible
+    assert any("必须提供 stable_evidence 对象" in gap for gap in report.gaps)
+
+
+@pytest.mark.parametrize("risk", ["M1", "M2", "M3", "M5"])
+def test_forbidden_material_risk_blocks_promotion(tmp_path, risk):
+    """failure_labels.json 中的禁止材料风险必须阻断晋级。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    record_path = run_dir / "validation.md"
+    record_path.write_text("validation record", encoding="utf-8")
+    (run_dir / "failure_labels.json").write_text(
+        json.dumps({"labels": [], "material_risks": [risk]}),
+        encoding="utf-8",
+    )
+    report = evaluate_status_eligibility(
+        {"patch_id": "A001", "status": "candidate", "validation_records": [str(record_path)]},
+        {},
+        {"status_rules": {"candidate": {"forbidden_material_risks": [risk]}}},
+        "candidate",
+    )
+    assert any(f"禁止材料风险：{risk}" in gap for gap in report.gaps)

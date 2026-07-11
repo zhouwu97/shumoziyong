@@ -11,6 +11,11 @@ from typing import Any, Mapping
 from export_runtime_pack import build_manifest, build_pack
 from verify_materials import MaterialVerificationResult, verify_materials
 
+try:
+    from jsonschema import Draft202012Validator, FormatChecker
+except ImportError as exc:  # pragma: no cover - 依赖缺失时由命令行明确报告
+    raise SystemExit("缺少 jsonschema，请先执行：python -m pip install -r requirements.txt") from exc
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -40,6 +45,10 @@ EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
     ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
     ("human_review.md", "human_review", "text/markdown"),
+    ("transitions.jsonl", "transitions", "application/jsonlines"),
+    ("gate_5_review.json", "gate_5_review", "application/json"),
+    ("score.json", "score", "application/json"),
+    ("failure_labels.json", "failure_labels", "application/json"),
 )
 
 
@@ -66,7 +75,7 @@ def build_run_evidence_manifest(
             }
         )
     return {
-        "evidence_manifest_version": "1.0.0",
+        "evidence_manifest_version": "2.0.0",
         "run_id": run_id,
         "artifacts": artifacts,
     }
@@ -173,7 +182,7 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     write_json(run_dir / "problem_manifest.json", problem_manifest)
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    status = "initialized" if material_verification.ready else "blocked"
+    run_status = "initialized" if material_verification.ready else "blocked"
     manifest_data: dict[str, Any] = {
         "run_id": run_id,
         "workflow": "old_problem",
@@ -191,7 +200,8 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "candidate_patches": args.candidate_patch,
         "excluded_patches": args.exclude_patch,
         "experiment_kind": _experiment_kind(args.candidate_patch, args.exclude_patch),
-        "status": status,
+        "run_status": run_status,
+        "integrity_status": "unsealed",
         "automatic_stable_update": False,
     }
 
@@ -264,6 +274,10 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     )
     write_json(run_dir / "score.json", {"total": None, "items": {}, "passed": None})
     write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
+    write_json(
+        run_dir / "gate_5_review.json",
+        {"_note": "待 Gate 5 通过后填写；完成记录必须符合 schemas/gate_5_review.schema.json。"},
+    )
     (run_dir / "patch_suggestions.md").write_text(
         "# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n", encoding="utf-8"
     )
@@ -321,12 +335,13 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
             "working_directory_mode": None,
         },
     )
+    # 闸门转换日志：记录每次阶段推进
+    _init_transitions(run_dir, args.gates, material_verification.ready)
+
     write_json(
         run_dir / "run_evidence_manifest.json",
         build_run_evidence_manifest(run_dir, run_id),
     )
-    # 闸门转换日志：记录每次阶段推进
-    _init_transitions(run_dir, args.gates, material_verification.ready)
     return run_dir, material_verification.ready
 
 
@@ -372,151 +387,282 @@ def _init_transitions(run_dir: Path, gate_range: str, material_ready: bool) -> N
     (run_dir / "transitions.jsonl").write_text("".join(lines), encoding="utf-8")
 
 
-def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, reviewer: str, decision: str) -> None:
-    """记录一次闸门推进事件。
-
-    与 v1 不同，v2 不再信任调用方传入的 from_gate：
-    - 必须从 transitions.jsonl 读取真实的当前 Gate。
-    - from_gate 仅用于调用方自检（如传入错误值会触发 ValueError）。
-    - material_ready=false 时禁止进入任何 Gate。
-    - 不能超过初始化时声明的 max_gate。
-    - transitions.jsonl 必须已初始化。
-
-    Args:
-        run_dir: 运行目录。
-        from_gate: 调用方认为的当前 Gate（首次为 None）。必须与真实当前 Gate 一致。
-        to_gate: 将要进入的 Gate。
-        reviewer: 审核人标识（human 或 automated）。
-        decision: approved / rejected。
-
-    Raises:
-        ValueError: 如果转换不合法（伪造跳跃、回退、材料未就绪、超出 max_gate）。
-        FileNotFoundError: 如果 transitions.jsonl 未初始化。
-    """
-    if to_gate not in GATE_NAMES:
-        raise ValueError(f"未知 Gate：{to_gate}（允许 0-5）")
-
-    transitions_path = run_dir / "transitions.jsonl"
-    if not transitions_path.is_file():
-        raise FileNotFoundError(f"缺少 transitions.jsonl：{transitions_path}（请先通过 _init_transitions 初始化）")
-
-    # 读取初始化和当前状态
-    init_data: dict[str, Any] = {}
-    real_current: int | None = None
-    for line in transitions_path.read_text(encoding="utf-8").strip().splitlines():
+def _read_transition_entries(transitions_path: Path) -> list[dict[str, Any]]:
+    """读取转换日志，逐行要求为 JSON 对象，避免半截或伪造记录被忽略。"""
+    entries: list[dict[str, Any]] = []
+    for line_no, line in enumerate(transitions_path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
-        entry = json.loads(line)
-        if entry.get("state") == "initialized":
-            init_data = entry
-        to_g = entry.get("to")
-        if to_g is not None and entry.get("decision") == "approved":
-            real_current = to_g
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"transitions.jsonl 第 {line_no} 行不是合法 JSON：{exc}") from exc
+        if not isinstance(entry, dict):
+            raise ValueError(f"transitions.jsonl 第 {line_no} 行必须是 JSON 对象")
+        entries.append(entry)
+    return entries
 
-    # 1) 材料未就绪时禁止进入任何 Gate
-    if init_data.get("material_ready") is not True:
+
+def replay_transition_log(run_dir: Path) -> dict[str, Any]:
+    """严格回放 Gate 状态机，返回当前状态。
+
+    该函数是 Gate 完成度和终态标记的唯一事实来源：必须恰好一次 initialized，
+    初始化必须在首条有效记录，approved 只能按 VALID_TRANSITIONS 前进，completed
+    只能从 Gate 5 产生且必须绑定 gate_5_review.json 的 SHA-256。
+    """
+    transitions_path = run_dir / "transitions.jsonl"
+    if not transitions_path.is_file():
+        raise FileNotFoundError(f"缺少 transitions.jsonl：{transitions_path}")
+
+    entries = _read_transition_entries(transitions_path)
+    if not entries:
+        raise ValueError("transitions.jsonl 为空，缺少 initialized 记录")
+
+    init_entries = [entry for entry in entries if entry.get("state") == "initialized"]
+    if len(init_entries) != 1:
+        raise ValueError(f"transitions.jsonl 必须且只能包含 1 条 initialized 记录，实际 {len(init_entries)} 条")
+    if entries[0].get("state") != "initialized":
+        raise ValueError("initialized 必须是 transitions.jsonl 的第一条有效记录")
+
+    init_data = entries[0]
+    if init_data.get("from") is not None or init_data.get("to") is not None:
+        raise ValueError("initialized 记录的 from/to 必须为 null")
+    if not isinstance(init_data.get("max_gate"), int) or init_data.get("max_gate") < 0 or init_data.get("max_gate") > 5:
+        raise ValueError("initialized.max_gate 必须是 0-5 的整数")
+    if init_data.get("material_ready") is not True and len(entries) > 1:
+        raise ValueError("initialized.material_ready 不为 true，日志中不得出现 Gate 转换")
+
+    current: int | None = None
+    completed = False
+    completed_entry: dict[str, Any] | None = None
+    for idx, entry in enumerate(entries[1:], start=2):
+        state = entry.get("state")
+        if state == "initialized":
+            raise ValueError("initialized 记录不得重复出现")
+        if completed:
+            raise ValueError("completed 终态之后不得再追加转换记录")
+
+        if state == "completed":
+            if entry.get("from") != 5 or entry.get("to") is not None:
+                raise ValueError("completed 记录必须从 Gate 5 转入终态，且 to 为 null")
+            if current != 5:
+                raise ValueError(f"completed 记录出现前当前 Gate 不是 5（当前：{current}）")
+            if not str(entry.get("reviewer", "")).strip():
+                raise ValueError("completed 记录 reviewer 不能为空")
+            review_record = entry.get("review_record")
+            review_sha = entry.get("review_record_sha256")
+            if review_record != "gate_5_review.json":
+                raise ValueError("completed 记录必须绑定 gate_5_review.json")
+            if not isinstance(review_sha, str) or not re.fullmatch(r"[a-f0-9]{64}", review_sha):
+                raise ValueError("completed 记录缺少合法 review_record_sha256")
+            try:
+                _, actual_review_sha = _load_and_validate_gate_5_review(
+                    run_dir,
+                    str(entry["reviewer"]),
+                )
+            except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
+                raise ValueError(f"completed 记录绑定的 gate_5_review.json 无效：{exc}") from exc
+            if actual_review_sha != review_sha:
+                raise ValueError("completed 记录绑定的 gate_5_review.json SHA-256 不匹配")
+            completed = True
+            completed_entry = entry
+            continue
+
+        decision = entry.get("decision")
+        if decision not in ("approved", "rejected"):
+            raise ValueError(f"第 {idx} 条 Gate 记录 decision 非法：{decision!r}")
+        if not str(entry.get("reviewer", "")).strip():
+            raise ValueError(f"第 {idx} 条 Gate 记录 reviewer 不能为空")
+        from_gate = entry.get("from")
+        to_gate = entry.get("to")
+        if from_gate != current:
+            raise ValueError(f"第 {idx} 条 Gate 记录 from={from_gate!r} 与当前 Gate {current!r} 不一致")
+        if to_gate not in GATE_NAMES:
+            raise ValueError(f"第 {idx} 条 Gate 记录 to 非法：{to_gate!r}")
+        if to_gate > init_data.get("max_gate"):
+            raise ValueError(f"第 {idx} 条 Gate 记录超过 initialized.max_gate")
+        valid_next = VALID_TRANSITIONS.get(current, set())
+        if to_gate not in valid_next:
+            expected = f"{{{', '.join(str(g) for g in sorted(valid_next))}}}" if valid_next else "（终点）"
+            raise ValueError(f"Gate 转换非法：不能从 {current} 进入 Gate {to_gate}。允许的下一 Gate：{expected}。")
+        expected_state = f"entering_gate_{to_gate}" if decision == "approved" else f"rejected_gate_{to_gate}"
+        if state != expected_state:
+            raise ValueError(f"第 {idx} 条 Gate 记录 state 应为 {expected_state!r}，实际 {state!r}")
+        if decision == "approved":
+            current = to_gate
+
+    return {
+        "initialized": init_data,
+        "current_gate": current,
+        "completed": completed,
+        "completed_entry": completed_entry,
+        "max_gate": init_data.get("max_gate"),
+        "material_ready": init_data.get("material_ready"),
+        "entries": entries,
+    }
+
+
+def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, reviewer: str, decision: str) -> None:
+    """记录一次闸门推进事件，所有前置状态均通过 replay_transition_log 严格回放。"""
+    if to_gate not in GATE_NAMES:
+        raise ValueError(f"未知 Gate：{to_gate}（允许 0-5）")
+    if not str(reviewer).strip():
+        raise ValueError("reviewer 不能为空")
+    if decision not in ("approved", "rejected"):
+        raise ValueError(f"decision 必须为 approved 或 rejected，实际为 {decision!r}")
+
+    state = replay_transition_log(run_dir)
+    if state["completed"]:
+        raise ValueError("运行已 completed，不能再记录 Gate 转换。")
+    if state["material_ready"] is not True:
         raise ValueError(
-            f"材料校验未通过（material_ready={init_data.get('material_ready')}），"
+            f"材料校验未通过（material_ready={state['material_ready']}），"
             "禁止进入任何 Gate。请先修复材料问题。"
         )
+    if to_gate > state["max_gate"]:
+        raise ValueError(f"不能进入 Gate {to_gate}，初始化声明的最大 Gate 为 {state['max_gate']}。")
 
-    # 2) 不能超过 max_gate
-    max_gate = init_data.get("max_gate", 5)
-    if to_gate > max_gate:
-        raise ValueError(
-            f"不能进入 Gate {to_gate}，初始化声明的最大 Gate 为 {max_gate}。"
-        )
-
-    # 3) 验证调用方传入的 from_gate 与真实当前 Gate 一致
+    real_current = state["current_gate"]
     if from_gate != real_current:
         raise ValueError(
             f"from_gate 不匹配：调用方声称当前为 {from_gate}，"
-            f"但 transitions.jsonl 记录的实际当前 Gate 为 {real_current}。"
-            "禁止伪造跳跃。"
+            f"但 transitions.jsonl 记录的实际当前 Gate 为 {real_current}。禁止伪造跳跃。"
         )
 
-    # 4) 验证转换合法性
     valid_next = VALID_TRANSITIONS.get(real_current, set())
     if to_gate not in valid_next:
         expected = f"{{{', '.join(str(g) for g in sorted(valid_next))}}}" if valid_next else "（终点）"
-        raise ValueError(
-            f"Gate 转换非法：不能从 {real_current} 进入 Gate {to_gate}。"
-            f"允许的下一 Gate：{expected}。"
-        )
-
-    if decision not in ("approved", "rejected"):
-        raise ValueError(f"decision 必须为 approved 或 rejected，实际为 {decision!r}")
+        raise ValueError(f"Gate 转换非法：不能从 {real_current} 进入 Gate {to_gate}。允许的下一 Gate：{expected}。")
 
     entry = {
         "from": real_current,
         "to": to_gate,
         "state": f"entering_gate_{to_gate}" if decision == "approved" else f"rejected_gate_{to_gate}",
         "gate_name": GATE_NAMES[to_gate],
-        "reviewer": reviewer,
+        "reviewer": str(reviewer).strip(),
         "decision": decision,
     }
-    with open(transitions_path, "a", encoding="utf-8") as fh:
+    with open(run_dir / "transitions.jsonl", "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def is_gate_complete(run_dir: Path, gate: int) -> bool:
-    """检查指定 Gate 是否已完成并通过。
-
-    Gate 5 完成后（进入 completed 状态）视为 Gate 5 完成。
-    """
-    transitions_path = run_dir / "transitions.jsonl"
-    if not transitions_path.is_file():
+    """检查指定 Gate 是否已完成并通过；伪造或损坏日志一律视为未完成。"""
+    try:
+        state = replay_transition_log(run_dir)
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
         return False
-    current: int | None = None
-    completed = False
-    for line in transitions_path.read_text(encoding="utf-8").strip().splitlines():
-        if not line.strip():
-            continue
-        entry = json.loads(line)
-        if entry.get("state") == "completed":
-            completed = True
-            break
-        to_g = entry.get("to")
-        if to_g is not None and entry.get("decision") == "approved":
-            current = to_g
-    if completed:
+    if state["completed"]:
         return gate <= 5
-    if current is not None and current > gate:
-        return True
-    return False
+    current = state["current_gate"]
+    return current is not None and current > gate
 
 
 def get_current_gate(run_dir: Path) -> int | None:
-    """从 transitions.jsonl 读取当前所在 Gate。"""
-    transitions_path = run_dir / "transitions.jsonl"
-    if not transitions_path.is_file():
+    """从 transitions.jsonl 严格回放当前所在 Gate；缺少日志时返回 None。"""
+    try:
+        state = replay_transition_log(run_dir)
+    except FileNotFoundError:
         return None
-    current: int | None = None
-    for line in transitions_path.read_text(encoding="utf-8").strip().splitlines():
-        if not line.strip():
-            continue
-        entry = json.loads(line)
-        if entry.get("state") == "completed":
-            return None  # 已完成运行，没有"当前"Gate
-        to_gate = entry.get("to")
-        if to_gate is not None and entry.get("decision") == "approved":
-            current = to_gate
-    return current
+    if state["completed"]:
+        return None
+    return state["current_gate"]
 
 
-def mark_run_completed(run_dir: Path) -> None:
-    """将运行标记为 completed 终态（Gate 5 通过后调用）。"""
-    transitions_path = run_dir / "transitions.jsonl"
-    if not transitions_path.is_file():
-        raise FileNotFoundError(f"缺少 transitions.jsonl：{transitions_path}")
+def _parse_datetime(value: Any, field: str) -> None:
+    """校验 ISO 8601 时间字段；允许 Z 后缀。"""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"gate_5_review.{field} 不能为空")
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"gate_5_review.{field} 不是合法 ISO 8601 时间") from exc
+
+
+def _validate_gate_5_review_schema(review: dict[str, Any]) -> None:
+    """以唯一 Schema 契约校验 Gate 5 审核记录，避免手工规则漂移。"""
+    schema_path = ROOT / "schemas" / "gate_5_review.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    errors = sorted(
+        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(review),
+        key=lambda error: list(error.absolute_path),
+    )
+    if errors:
+        details = "；".join(
+            f"{'.'.join(str(part) for part in error.absolute_path) or '<root>'}：{error.message}"
+            for error in errors
+        )
+        raise ValueError(f"gate_5_review.json 不符合 Schema：{details}")
+
+
+def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict[str, Any], str]:
+    """读取并验证 Gate 5 人工审核记录，返回记录和 SHA-256。"""
+    if not str(reviewer).strip():
+        raise ValueError("reviewer 不能为空")
+    review_path = run_dir / "gate_5_review.json"
+    if not review_path.is_file():
+        raise FileNotFoundError(f"缺少 Gate 5 人工审核记录：{review_path}")
+    raw = review_path.read_bytes()
+    try:
+        review = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"gate_5_review.json 无法解析：{exc}") from exc
+    if not isinstance(review, dict):
+        raise ValueError("gate_5_review.json 必须是 JSON 对象")
+
+    _validate_gate_5_review_schema(review)
+    if review.get("target_gate") != 5:
+        raise ValueError("gate_5_review.target_gate 必须为 5")
+    if review.get("reviewer") != str(reviewer).strip():
+        raise ValueError("gate_5_review.reviewer 必须与 mark_run_completed 参数一致")
+    _parse_datetime(review.get("reviewed_at"), "reviewed_at")
+    if review.get("decision") != "approved":
+        raise ValueError("gate_5_review.decision 必须为 approved")
+    if review.get("final_acceptance") is not True:
+        raise ValueError("gate_5_review.final_acceptance 必须为 true")
+    if not isinstance(review.get("reason"), str) or len(review.get("reason", "").strip()) < 10:
+        raise ValueError("gate_5_review.reason 至少需要 10 个字符")
+    checklist = review.get("checklist", {})
+    if checklist is not None:
+        if not isinstance(checklist, dict):
+            raise ValueError("gate_5_review.checklist 必须是对象")
+        failed = [key for key, value in checklist.items() if value is not True]
+        if failed:
+            raise ValueError(f"gate_5_review.checklist 存在未通过项：{', '.join(sorted(failed))}")
+    return review, sha256_bytes(raw)
+
+
+def mark_run_completed(run_dir: Path, reviewer: str) -> None:
+    """将运行标记为 completed 终态（必须已严格到达 Gate 5 且审核记录获批）。"""
+    state = replay_transition_log(run_dir)
+    if state["completed"]:
+        raise ValueError("运行已标记为 completed，不能重复标记。")
+    if state["max_gate"] < 5:
+        raise ValueError(f"最大 Gate 为 {state['max_gate']}，0-4 的运行不得被标记为 completed。")
+    if state["current_gate"] != 5:
+        raise ValueError(f"当前不在 Gate 5（当前 Gate：{state['current_gate']}），无法完成运行。")
+
+    review, review_sha = _load_and_validate_gate_5_review(run_dir, reviewer)
     entry = {
         "from": 5,
         "to": None,
         "state": "completed",
+        "reviewer": str(reviewer).strip(),
+        "decision": "approved",
+        "review_record": "gate_5_review.json",
+        "review_record_sha256": review_sha,
+        "reviewed_at": review["reviewed_at"],
         "note": "Gate 5 通过，运行完成。",
     }
-    with open(transitions_path, "a", encoding="utf-8") as fh:
+    with open(run_dir / "transitions.jsonl", "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    manifest_path = run_dir / "run_manifest.json"
+    if manifest_path.is_file():
+        run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        run_manifest["run_status"] = "completed"
+        run_manifest.setdefault("integrity_status", "unsealed")
+        write_json(manifest_path, run_manifest)
 
 
 def parse_args() -> argparse.Namespace:

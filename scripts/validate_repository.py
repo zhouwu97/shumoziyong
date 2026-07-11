@@ -11,7 +11,8 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
-from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json
+from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
+from run_workflow import replay_transition_log
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -130,7 +131,204 @@ class RepositoryValidator:
     def validate_profiles(self) -> None:
         patches = self.load_json("prompt_patches/patch_index.json") or []
         patch_by_id = {patch.get("patch_id"): patch for patch in patches}
+        policy = self.load_json("policies/promotion_policy.json") or {}
+        stable_policy = policy.get("runtime_profile_stable_requirements", {})
+        stable_rules = policy.get("status_rules", {}).get("stable", {})
         found_profiles: set[str] = set()
+
+        def _load_record(path: Path, label: str, profile_id: str) -> dict[str, Any] | None:
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                self.fail(f"runtime profile {profile_id} 的 {label} 无法解析：{exc}")
+                return None
+            if not isinstance(data, dict):
+                self.fail(f"runtime profile {profile_id} 的 {label} 必须是 JSON 对象")
+                return None
+            return data
+
+        def _validate_stable_profile(data: dict[str, Any], profile_id: str) -> None:
+            """将 stable Profile 与可验证的比赛证据、Patch 状态和 policy 阈值绑定。"""
+            validation = data.get("validation")
+            if not isinstance(validation, dict):
+                self.fail(f"runtime profile {profile_id} 的 validation 必须是对象")
+                return
+
+            def policy_int(key: str, default: int) -> int:
+                value = stable_policy.get(key, default)
+                if not isinstance(value, int) or value < 0:
+                    self.fail(f"promotion policy runtime_profile_stable_requirements.{key} 必须是非负整数")
+                    return default
+                return value
+
+            minimum_gate_0_5 = policy_int("minimum_gate_0_5", 1)
+            repetition = stable_rules.get("repetition", {}) if isinstance(stable_rules, dict) else {}
+            minimum_negative_controls = repetition.get("min_negative_control_runs")
+            if not isinstance(minimum_negative_controls, int) or minimum_negative_controls < 0:
+                self.fail("promotion policy status_rules.stable.repetition.min_negative_control_runs 必须是非负整数")
+                minimum_negative_controls = 1
+            minimum_competition_records = policy_int("minimum_competition_validation_records", 1)
+
+            def validation_count(key: str) -> int:
+                value = validation.get(key)
+                if not isinstance(value, int):
+                    self.fail(f"runtime profile {profile_id} 的 validation.{key} 必须是整数")
+                    return 0
+                return value
+
+            raw_profile_patches = data.get("verified_patches")
+            profile_patch_ids = set(raw_profile_patches) if isinstance(raw_profile_patches, list) else set()
+            if stable_policy.get("require_non_empty_verified_patches", True) and not profile_patch_ids:
+                self.fail(f"runtime profile {profile_id} 为 stable 时至少需要 1 个 stable patch")
+            if validation_count("gate_0_5") < minimum_gate_0_5:
+                self.fail(
+                    f"runtime profile {profile_id} 为 stable 时 gate_0_5 至少需要 {minimum_gate_0_5}"
+                )
+            if validation_count("negative_control") < minimum_negative_controls:
+                self.fail(
+                    f"runtime profile {profile_id} 为 stable 时 negative_control 至少需要 {minimum_negative_controls}"
+                )
+            if stable_policy.get("require_non_empty_validation_evidence", True) and not validation.get("evidence"):
+                self.fail(f"runtime profile {profile_id} 为 stable 时 validation.evidence 不能为空")
+            if stable_policy.get("require_empty_known_failures", True) and data.get("known_failures"):
+                self.fail(f"runtime profile {profile_id} 为 stable 时 known_failures 必须为空")
+
+            records = validation.get("competition_validation_records")
+            if not isinstance(records, list) or len(records) < minimum_competition_records:
+                self.fail(
+                    f"runtime profile {profile_id} 为 stable 时 competition_validation_records 至少需要 "
+                    f"{minimum_competition_records} 条"
+                )
+                return
+
+            for index, record in enumerate(records, start=1):
+                if not isinstance(record, dict):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 必须是对象")
+                    continue
+                manifest_ref = record.get("runtime_pack_manifest")
+                result_ref = record.get("result_record")
+                expected_sha = record.get("runtime_pack_manifest_sha256")
+                expected_result_sha = record.get("result_record_sha256")
+                required_values = (manifest_ref, result_ref, expected_sha, expected_result_sha)
+                if not all(isinstance(value, str) and value for value in required_values):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 缺少路径或证据 SHA-256")
+                    continue
+                try:
+                    manifest_path = self.resolve_repo_path(manifest_ref)
+                    result_path = self.resolve_repo_path(result_ref)
+                except ValueError as exc:
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 路径无效：{exc}")
+                    continue
+                if not manifest_path.is_file() or not result_path.is_file():
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 manifest 或 result_record 不存在")
+                    continue
+                actual_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+                if expected_sha != actual_sha:
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 manifest SHA-256 不匹配")
+                actual_result_sha = hashlib.sha256(result_path.read_bytes()).hexdigest()
+                if (
+                    stable_policy.get("require_result_record_sha256", True)
+                    and expected_result_sha != actual_result_sha
+                ):
+                    self.fail(f"runtime profile {profile_id} 比赛验证 #{index} 的 result_record SHA-256 不匹配")
+                manifest = _load_record(manifest_path, "比赛 runtime manifest", profile_id)
+                result = _load_record(result_path, "比赛 result_record", profile_id)
+                if manifest is None or result is None:
+                    continue
+                self.validate_schema(manifest, "runtime_pack_manifest.schema.json", f"runtime profile {profile_id} 比赛 runtime manifest")
+                self.validate_schema(result, "result_record.schema.json", f"runtime profile {profile_id} 比赛 result_record")
+                if manifest.get("profile") != profile_id:
+                    self.fail(f"runtime profile {profile_id} 比赛 manifest.profile 不一致")
+                if manifest.get("runtime_version") != data.get("version"):
+                    self.fail(f"runtime profile {profile_id} 比赛 manifest.runtime_version 不一致")
+                if manifest.get("maturity") != "stable":
+                    self.fail(f"runtime profile {profile_id} 比赛 manifest.maturity 必须为 stable")
+                if result.get("result", result.get("final_result")) != "pass":
+                    self.fail(f"runtime profile {profile_id} 比赛 result_record 必须为 pass")
+                if result.get("runtime_pack_manifest") != manifest_ref:
+                    self.fail(f"runtime profile {profile_id} 比赛 result_record 的 manifest 路径不一致")
+                if result.get("runtime_pack_manifest_sha256") != actual_sha:
+                    self.fail(f"runtime profile {profile_id} 比赛 result_record 的 manifest SHA-256 不一致")
+                raw_candidate_experiment = manifest.get("candidate_experiment")
+                candidate_experiment = (
+                    raw_candidate_experiment if isinstance(raw_candidate_experiment, dict) else {}
+                )
+                raw_export_flags = manifest.get("export_flags")
+                export_flags = raw_export_flags if isinstance(raw_export_flags, dict) else {}
+                candidate_flags = export_flags.get("candidate_patches", [])
+                if stable_policy.get("forbid_candidate_experiment", True) and (
+                    candidate_experiment.get("enabled") is not False
+                    or candidate_experiment.get("patch_ids")
+                    or candidate_flags
+                ):
+                    self.fail(f"runtime profile {profile_id} 比赛证据不得来自 candidate experiment")
+                raw_exclusion_experiment = manifest.get("exclusion_experiment")
+                exclusion_experiment = (
+                    raw_exclusion_experiment if isinstance(raw_exclusion_experiment, dict) else {}
+                )
+                exclusion_flags = export_flags.get("excluded_patches", [])
+                if stable_policy.get("forbid_exclusion_experiment", True) and (
+                    exclusion_experiment.get("enabled") is not False
+                    or exclusion_experiment.get("patch_ids")
+                    or exclusion_flags
+                ):
+                    self.fail(f"runtime profile {profile_id} 比赛证据不得来自 exclusion experiment")
+
+                manifest_patch_by_id: dict[str, dict[str, Any]] = {}
+                for patch_entry in manifest.get("patches", []):
+                    if not isinstance(patch_entry, dict):
+                        continue
+                    manifest_patch_id = patch_entry.get("patch_id")
+                    if not isinstance(manifest_patch_id, str):
+                        continue
+                    if manifest_patch_id in manifest_patch_by_id:
+                        self.fail(f"runtime profile {profile_id} 比赛 manifest Patch ID 重复：{manifest_patch_id}")
+                        continue
+                    manifest_patch_by_id[manifest_patch_id] = patch_entry
+
+                manifest_patch_ids = set(manifest_patch_by_id)
+                if (
+                    stable_policy.get("require_exact_patch_set", True)
+                    and manifest_patch_ids != profile_patch_ids
+                ):
+                    missing_patches = sorted(profile_patch_ids - manifest_patch_ids)
+                    extra_patches = sorted(manifest_patch_ids - profile_patch_ids)
+                    self.fail(
+                        f"runtime profile {profile_id} 比赛运行包与 Stable Profile Patch 集合不一致："
+                        f"缺少={missing_patches}，额外={extra_patches}"
+                    )
+
+                for manifest_patch_id, patch_entry in manifest_patch_by_id.items():
+                    if patch_entry.get("status") != "stable":
+                        self.fail(
+                            f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
+                            "status 必须为 stable"
+                        )
+                    indexed_patch = patch_by_id.get(manifest_patch_id)
+                    if not isinstance(indexed_patch, dict):
+                        self.fail(f"runtime profile {profile_id} 比赛 manifest 引用了未知 Patch：{manifest_patch_id}")
+                        continue
+                    expected_path = indexed_patch.get("file")
+                    if patch_entry.get("path") != expected_path:
+                        self.fail(
+                            f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
+                            "path 与 patch_index.file 不一致"
+                        )
+                    try:
+                        patch_path = self.resolve_repo_path(str(expected_path))
+                    except ValueError as exc:
+                        self.fail(f"runtime profile {profile_id} Patch {manifest_patch_id} 路径无效：{exc}")
+                        continue
+                    if not patch_path.is_file():
+                        self.fail(f"runtime profile {profile_id} Patch {manifest_patch_id} 文件不存在")
+                        continue
+                    current_patch_sha = hashlib.sha256(patch_path.read_bytes()).hexdigest()
+                    if patch_entry.get("sha256") != current_patch_sha:
+                        self.fail(
+                            f"runtime profile {profile_id} 比赛 manifest Patch {manifest_patch_id} "
+                            "sha256 与当前文件不一致"
+                        )
+
         for path in sorted((ROOT / "runtime_profiles").glob("*.json")):
             data = self.load_json(path.relative_to(ROOT).as_posix())
             if data is None:
@@ -146,11 +344,22 @@ class RepositoryValidator:
                     self.fail(f"runtime profile {profile_id} 引用了未知 patch：{patch_id}")
                 elif patch.get("status") not in {"verified_candidate", "stable"}:
                     self.fail(f"runtime profile {profile_id} 错误导入未验证 patch：{patch_id}")
+                elif data.get("maturity") == "stable" and patch.get("status") != "stable":
+                    self.fail(
+                        f"runtime profile {profile_id} 为 stable，"
+                        f"但 stable profile 只能导入 stable patch：{patch_id}"
+                    )
             for evidence in data.get("validation", {}).get("evidence", []):
                 if not (ROOT / evidence).is_file():
                     self.fail(f"runtime profile {profile_id} 的证据不存在：{evidence}")
             if data.get("competition_verified") and data.get("validation_level") != "competition_verified":
                 self.fail(f"runtime profile {profile_id} 的 competition_verified 与 validation_level 冲突")
+            if data.get("maturity") == "stable":
+                if data.get("competition_verified") is not True:
+                    self.fail(f"runtime profile {profile_id} 为 stable 时 competition_verified 必须为 true")
+                if data.get("validation_level") != "competition_verified":
+                    self.fail(f"runtime profile {profile_id} 为 stable 时 validation_level 必须为 competition_verified")
+                _validate_stable_profile(data, profile_id)
         missing = PROFILE_IDS - found_profiles
         if missing:
             self.fail(f"缺少 runtime 状态文件：{', '.join(sorted(missing))}")
@@ -185,6 +394,7 @@ class RepositoryValidator:
 
     def validate_patch_promotion(self) -> None:
         """晋级规则强制校验：委托给 promotion_engine（promotion_policy.json 的唯一事实源）。"""
+        policy = self.load_json("policies/promotion_policy.json")
         matrix = self.load_json("tests/prompt_regression/patch_negative_control_matrix.json")
         patch_index = self.load_json("prompt_patches/patch_index.json") or []
         if matrix is None:
@@ -261,6 +471,7 @@ class RepositoryValidator:
             run_dir: Path,
             run_manifest: dict[str, Any],
             policy: dict[str, Any],
+            is_legacy: bool = False,
         ) -> bool:
             """验证证据引用的角色、路径、字节数和 SHA-256，形成可执行证据契约。"""
             ok = True
@@ -286,6 +497,11 @@ class RepositoryValidator:
             if not isinstance(required_artifacts, dict):
                 self.fail("promotion policy required_artifacts 必须是角色到文件路径的对象")
                 return False
+            
+            if is_legacy:
+                # Remove transitions requirement for legacy runs
+                required_artifacts = {k: v for k, v in required_artifacts.items() if k != "transitions"}
+
             required_roles = set(required_artifacts)
             seen_roles: set[str] = set()
             seen_paths: set[str] = set()
@@ -343,17 +559,39 @@ class RepositoryValidator:
                 ok = False
             return ok
 
-        def _verify_real_run(run_dir: Path, target_patch: str, role: str) -> bool:
+        def _verify_real_run(run_dir: Path, target_patch: str, role: str, *, allow_legacy: bool = True) -> bool:
             ok = True
             try:
                 run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
                 legacy = _is_legacy_evidence(run_dir, target_patch, role, run_manifest, policy)
+                if legacy and not allow_legacy:
+                    self.fail(f"{run_dir.name} 禁止使用 legacy 历史证据（allow_legacy=False）")
+                    ok = False
                 if not run_manifest.get("eligible_for_promotion"):
                     self.fail(f"{run_dir.name} eligible_for_promotion 为 false")
                     ok = False
                 if run_manifest.get("evidence_validity") != "real_ai_run":
                     self.fail(f"{run_dir.name} evidence_validity 不是 real_ai_run")
                     ok = False
+                if not legacy:
+                    if run_manifest.get("run_status") != "completed":
+                        self.fail(f"{run_dir.name} run_status 必须为 completed 才可作为晋级证据")
+                        ok = False
+                    if run_manifest.get("integrity_status") != "sealed":
+                        self.fail(f"{run_dir.name} integrity_status 必须为 sealed 才可作为晋级证据")
+                        ok = False
+                    try:
+                        state = replay_transition_log(run_dir)
+                    except (OSError, ValueError, json.JSONDecodeError) as exc:
+                        self.fail(f"{run_dir.name} Gate 状态机记录无效：{exc}")
+                        ok = False
+                    else:
+                        if not state["completed"]:
+                            self.fail(f"{run_dir.name} Gate 状态机未完成")
+                            ok = False
+                        if state["max_gate"] != 5:
+                            self.fail(f"{run_dir.name} 晋级证据必须来自 Gate 0-5 完整运行")
+                            ok = False
 
                 request = json.loads((run_dir / "request.json").read_text(encoding="utf-8"))
                 if not request.get("prompt"):
@@ -445,7 +683,7 @@ class RepositoryValidator:
                             ok = False
                 ok = _verify_ai_run_metadata(run_dir, policy, target_patch, role, legacy) and ok
                 if not legacy:
-                    ok = _verify_run_evidence_manifest(run_dir, run_manifest, policy) and ok
+                    ok = _verify_run_evidence_manifest(run_dir, run_manifest, policy, legacy) and ok
 
             except Exception as e:
                 self.fail(f"读取 {run_dir} 证据时出错: {e}")
@@ -714,6 +952,91 @@ class RepositoryValidator:
 
             return ok
 
+        def _collect_stable_inner_hashes(patch: dict[str, Any]) -> dict[str, str]:
+            """现场计算 stable 证据组件哈希，禁止把路径文字当作内容绑定。"""
+            patch_id = patch.get("patch_id", "<unknown>")
+            evidence = patch.get("stable_evidence")
+            if not isinstance(evidence, dict):
+                return {}
+
+            hashes: dict[str, str] = {}
+
+            def add_file(key: str, raw_path: Any, label: str) -> None:
+                if isinstance(raw_path, Path):
+                    path = raw_path
+                else:
+                    if not isinstance(raw_path, str) or not raw_path:
+                        self.fail(f"{patch_id} stable_evidence 缺少 {label}，无法生成内容摘要")
+                        return
+                    try:
+                        path = self.resolve_repo_path(raw_path)
+                    except ValueError as exc:
+                        self.fail(f"{patch_id} stable_evidence {label} 路径无效：{exc}")
+                        return
+                if not path.is_file():
+                    self.fail(f"{patch_id} stable_evidence {label} 文件不存在：{raw_path}")
+                    return
+                hashes[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+            for index, item in enumerate(evidence.get("negative_control_runs", [])):
+                if not isinstance(item, dict):
+                    continue
+                for role, field in (("baseline", "baseline_run"), ("treatment", "treatment_run")):
+                    raw_run = item.get(field)
+                    if not isinstance(raw_run, str) or not raw_run:
+                        self.fail(f"{patch_id} stable_evidence 负控缺少 {field}，无法生成内容摘要")
+                        continue
+                    try:
+                        run_dir = self.resolve_repo_path(raw_run)
+                    except ValueError as exc:
+                        self.fail(f"{patch_id} stable_evidence {field} 路径无效：{exc}")
+                        continue
+                    add_file(
+                        f"negative_control_runs/{index}/{role}/run_evidence_manifest.json",
+                        run_dir / "run_evidence_manifest.json",
+                        f"{field} 的 run_evidence_manifest.json",
+                    )
+                add_file(
+                    f"negative_control_runs/{index}/comparison_review",
+                    item.get("comparison_review"),
+                    "comparison_review",
+                )
+
+            for index, item in enumerate(evidence.get("failure_fix_retests", [])):
+                if not isinstance(item, dict):
+                    continue
+                for key in ("failure_record", "fix_record", "review_record"):
+                    add_file(f"failure_fix_retests/{index}/{key}", item.get(key), key)
+                raw_run = item.get("retest_run")
+                if isinstance(raw_run, str) and raw_run:
+                    try:
+                        run_dir = self.resolve_repo_path(raw_run)
+                    except ValueError as exc:
+                        self.fail(f"{patch_id} stable_evidence retest_run 路径无效：{exc}")
+                    else:
+                        add_file(
+                            f"failure_fix_retests/{index}/retest_evidence_manifest.json",
+                            run_dir / "run_evidence_manifest.json",
+                            "retest_run 的 run_evidence_manifest.json",
+                        )
+                else:
+                    self.fail(f"{patch_id} stable_evidence 缺少 retest_run，无法生成内容摘要")
+
+            for index, item in enumerate(evidence.get("competition_validation_records", [])):
+                if not isinstance(item, dict):
+                    continue
+                add_file(
+                    f"competition_validation_records/{index}/runtime_pack_manifest",
+                    item.get("runtime_pack_manifest"),
+                    "runtime_pack_manifest",
+                )
+                add_file(
+                    f"competition_validation_records/{index}/result_record",
+                    item.get("result_record"),
+                    "result_record",
+                )
+            return dict(sorted(hashes.items()))
+
         for patch in patch_index:
             patch_id = patch.get("patch_id", "<unknown>")
             status = patch.get("status")
@@ -724,6 +1047,12 @@ class RepositoryValidator:
                 self.fail(f"{patch_id} 标记为 {status}，但负控矩阵中没有该 patch 的记录")
                 promotion_ok = False
                 continue
+
+            patch_file = self.resolve_repo_path(str(patch.get("file", "")))
+            if patch_file.is_file():
+                patch["_resolved_patch_sha256"] = hashlib.sha256(patch_file.read_bytes()).hexdigest()
+            if status == "stable":
+                patch["_resolved_inner_sha256s"] = _collect_stable_inner_hashes(patch)
 
             # 委托给 promotion_engine（promotion_policy.json 唯一事实源）
             report = evaluate_status_eligibility(
@@ -811,6 +1140,318 @@ class RepositoryValidator:
                     except Exception as e:
                         self.fail(f"校验 {patch_id} 证据时出错: {e}")
                         promotion_ok = False
+
+        def _verify_stable_evidence(patch: dict[str, Any]) -> bool:
+            """深度验证 stable 证据，禁止仅凭路径存在或手填布尔值晋级。"""
+            patch_id = patch.get("patch_id", "<unknown>")
+            evidence = patch.get("stable_evidence")
+            if not isinstance(evidence, dict):
+                self.fail(f"{patch_id} 缺失 stable_evidence 对象")
+                return False
+
+            ok = True
+            policy_version = policy.get("policy_version")
+            if not isinstance(policy_version, str) or not policy_version.strip():
+                self.fail(f"{patch_id} promotion policy 缺少合法 policy_version")
+                return False
+
+            def _read_json_file(path: Path, label: str) -> dict[str, Any] | None:
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    self.fail(f"{patch_id} stable_evidence {label} 无法解析：{exc}")
+                    return None
+                if not isinstance(data, dict):
+                    self.fail(f"{patch_id} stable_evidence {label} 必须是 JSON 对象")
+                    return None
+                return data
+
+            def _verify_comparison_review(
+                review_path: Path,
+                review_ref: str,
+                baseline_ref: str,
+                treatment_ref: str,
+                b_dir: Path,
+                t_dir: Path,
+                expected_group_id: str,
+                expected_case: str | None = None,
+            ) -> bool:
+                review_ok = True
+                if not review_path.is_file():
+                    self.fail(f"{patch_id} stable_evidence comparison_review 不存在：{review_ref}")
+                    return False
+                rev_data = _read_json_file(review_path, "comparison_review")
+                if rev_data is None:
+                    return False
+                if not self.validate_schema(rev_data, "comparison_review.schema.json", f"{patch_id} stable comparison_review"):
+                    review_ok = False
+                if rev_data.get("final_result") != "pass":
+                    self.fail(f"{patch_id} stable comparison_review final_result 必须为 pass")
+                    review_ok = False
+                for flag_name, flag_value in rev_data.get("risk_flags", {}).items():
+                    if flag_value is True:
+                        self.fail(f"{patch_id} stable comparison_review risk_flags.{flag_name} 为 true")
+                        review_ok = False
+                for check_name, check_value in rev_data.get("consistency_checks", {}).items():
+                    if check_value is not True:
+                        self.fail(f"{patch_id} stable comparison_review consistency_checks.{check_name} 不是 true")
+                        review_ok = False
+
+                try:
+                    b_man = json.loads((b_dir / "run_manifest.json").read_text(encoding="utf-8"))
+                    t_man = json.loads((t_dir / "run_manifest.json").read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    self.fail(f"{patch_id} stable 负控运行 manifest 无法解析：{exc}")
+                    return False
+
+                if rev_data.get("experiment_group_id") != expected_group_id:
+                    self.fail(f"{patch_id} stable comparison_review experiment_group_id 与 stable_evidence 不一致")
+                    review_ok = False
+                if rev_data.get("experiment_group_id") not in {b_man.get("experiment_group_id"), t_man.get("experiment_group_id")}:
+                    self.fail(f"{patch_id} stable comparison_review experiment_group_id 与运行组不一致")
+                    review_ok = False
+                if rev_data.get("baseline_run") != baseline_ref:
+                    self.fail(f"{patch_id} stable comparison_review baseline_run 路径不匹配")
+                    review_ok = False
+                if rev_data.get("treatment_run") != treatment_ref:
+                    self.fail(f"{patch_id} stable comparison_review treatment_run 路径不匹配")
+                    review_ok = False
+                if rev_data.get("target_patch") != patch_id:
+                    self.fail(f"{patch_id} stable comparison_review target_patch 错误")
+                    review_ok = False
+                if expected_case and (b_man.get("problem_id") != expected_case or t_man.get("problem_id") != expected_case):
+                    self.fail(f"{patch_id} stable 负控 case 与运行题号不一致")
+                    review_ok = False
+                return review_ok
+
+            negative_runs = evidence.get("negative_control_runs", [])
+            if not isinstance(negative_runs, list):
+                self.fail(f"{patch_id} stable_evidence.negative_control_runs 必须是数组")
+                negative_runs = []
+                ok = False
+            seen_groups: set[str] = set()
+            for nc in negative_runs:
+                if not isinstance(nc, dict):
+                    self.fail(f"{patch_id} stable_evidence 负控条目必须是对象")
+                    ok = False
+                    continue
+                group_id = nc.get("experiment_group_id")
+                if not isinstance(group_id, str) or not group_id.strip():
+                    self.fail(f"{patch_id} stable_evidence 负控缺少 experiment_group_id")
+                    ok = False
+                    continue
+                if group_id in seen_groups:
+                    self.fail(f"{patch_id} stable_evidence 存在重复的负控组 {group_id}")
+                    ok = False
+                seen_groups.add(group_id)
+
+                baseline_ref = nc.get("baseline_run")
+                treatment_ref = nc.get("treatment_run")
+                review_ref = nc.get("comparison_review")
+                if not all(isinstance(v, str) and v for v in (baseline_ref, treatment_ref, review_ref)):
+                    self.fail(f"{patch_id} stable_evidence 负控 {group_id} 缺少运行或审查路径")
+                    ok = False
+                    continue
+                b_run = self.resolve_repo_path(baseline_ref)
+                t_run = self.resolve_repo_path(treatment_ref)
+                c_rev = self.resolve_repo_path(review_ref)
+                if not b_run.is_dir():
+                    self.fail(f"{patch_id} stable_evidence 负控 baseline_run 路径无效: {baseline_ref}")
+                    ok = False
+                if not t_run.is_dir():
+                    self.fail(f"{patch_id} stable_evidence 负控 treatment_run 路径无效: {treatment_ref}")
+                    ok = False
+                if b_run.is_dir():
+                    ok = _verify_real_run(b_run, patch_id, "baseline", allow_legacy=False) and ok
+                if t_run.is_dir():
+                    ok = _verify_real_run(t_run, patch_id, "patch_only", allow_legacy=False) and ok
+                if b_run.is_dir() and t_run.is_dir():
+                    ok = verify_experiment_pair(b_run, t_run, patch_id) and ok
+                    ok = _verify_comparison_review(
+                        c_rev,
+                        review_ref,
+                        baseline_ref,
+                        treatment_ref,
+                        b_run,
+                        t_run,
+                        group_id,
+                        nc.get("case") if isinstance(nc.get("case"), str) else None,
+                    ) and ok
+
+            retests = evidence.get("failure_fix_retests", [])
+            if not isinstance(retests, list):
+                self.fail(f"{patch_id} stable_evidence.failure_fix_retests 必须是数组")
+                retests = []
+                ok = False
+            for idx, fix in enumerate(retests, start=1):
+                if not isinstance(fix, dict):
+                    self.fail(f"{patch_id} stable_evidence 失败重测 #{idx} 必须是对象")
+                    ok = False
+                    continue
+                resolved: dict[str, Path] = {}
+                for key in ("failure_record", "fix_record", "retest_run", "review_record"):
+                    raw = fix.get(key)
+                    if not isinstance(raw, str) or not raw:
+                        self.fail(f"{patch_id} stable_evidence 失败重测 #{idx} 缺少 {key}")
+                        ok = False
+                        continue
+                    path = self.resolve_repo_path(raw)
+                    resolved[key] = path
+                    exists = path.is_dir() if key == "retest_run" else path.is_file()
+                    if not exists:
+                        self.fail(f"{patch_id} stable_evidence 失败重测 {key} 路径无效: {raw}")
+                        ok = False
+                retest_dir = resolved.get("retest_run")
+                if retest_dir and retest_dir.is_dir():
+                    ok = _verify_real_run(retest_dir, patch_id, "patch_only") and ok
+                    retest_eval = _read_json_file(retest_dir / "automatic_evaluation.json", "失败重测 automatic_evaluation")
+                    if retest_eval and retest_eval.get("result") != "pass":
+                        self.fail(f"{patch_id} stable_evidence 失败重测结果必须为 pass")
+                        ok = False
+                    retest_manifest = _read_json_file(retest_dir / "run_manifest.json", "失败重测 run_manifest")
+                    if retest_manifest and retest_manifest.get("target_patch") != patch_id:
+                        self.fail(f"{patch_id} stable_evidence 失败重测 target_patch 与当前 Patch 不一致")
+                        ok = False
+                for key in ("failure_record", "fix_record", "review_record"):
+                    record_path = resolved.get(key)
+                    if record_path and record_path.is_file() and record_path.suffix.lower() == ".json":
+                        record = _read_json_file(record_path, key)
+                        if record is None:
+                            ok = False
+                            continue
+                        record_patch = record.get("patch_id", record.get("target_patch"))
+                        if record_patch is not None and record_patch != patch_id:
+                            self.fail(f"{patch_id} stable_evidence 失败重测 {key} 绑定到其他 Patch：{record_patch}")
+                            ok = False
+                        if key == "failure_record" and not any(k in record for k in ("failure_label", "failure_labels", "original_failure", "failure")):
+                            self.fail(f"{patch_id} stable_evidence failure_record 缺少原失败描述或标签")
+                            ok = False
+                        if key == "review_record" and record.get("decision") not in ("approved", "pass"):
+                            self.fail(f"{patch_id} stable_evidence review_record 必须批准失败修复重测")
+                            ok = False
+
+            competitions = evidence.get("competition_validation_records", [])
+            if not isinstance(competitions, list):
+                self.fail(f"{patch_id} stable_evidence.competition_validation_records 必须是数组")
+                competitions = []
+                ok = False
+            for comp in competitions:
+                if not isinstance(comp, dict):
+                    self.fail(f"{patch_id} stable_evidence 比赛验证条目必须是对象")
+                    ok = False
+                    continue
+                manifest_ref = comp.get("runtime_pack_manifest")
+                if not isinstance(manifest_ref, str) or not manifest_ref:
+                    self.fail(f"{patch_id} stable_evidence 缺少比赛 manifest 路径")
+                    ok = False
+                    continue
+                resolved_man = self.resolve_repo_path(manifest_ref)
+                if not resolved_man.is_file():
+                    self.fail(f"{patch_id} stable_evidence 比赛 manifest 不存在: {manifest_ref}")
+                    ok = False
+                    continue
+                man_sha = hashlib.sha256(resolved_man.read_bytes()).hexdigest()
+                if comp.get("runtime_pack_manifest_sha256") != man_sha:
+                    self.fail(f"{patch_id} stable_evidence 比赛 manifest SHA256 不匹配")
+                    ok = False
+                man_data = _read_json_file(resolved_man, "比赛 runtime manifest")
+                if man_data is None:
+                    ok = False
+                    continue
+                if not self.validate_schema(man_data, "runtime_pack_manifest.schema.json", f"{patch_id} stable 比赛 runtime manifest"):
+                    ok = False
+                patch_entries = man_data.get("patches")
+                if not isinstance(patch_entries, list):
+                    self.fail(f"{patch_id} stable_evidence 比赛 manifest 缺少 patches 数组")
+                    ok = False
+                    patch_entries = []
+                matching = [entry for entry in patch_entries if isinstance(entry, dict) and entry.get("patch_id") == patch_id]
+                if len(matching) != 1:
+                    self.fail(f"{patch_id} stable_evidence 比赛 manifest 中 Patch 条目数量必须为 1，实际 {len(matching)}")
+                    ok = False
+                else:
+                    patch_entry = matching[0]
+                    if patch_entry.get("path") != patch.get("file"):
+                        self.fail(f"{patch_id} stable_evidence 比赛 manifest Patch path 与 patch_index.file 不一致")
+                        ok = False
+                    status_value = patch_entry.get("status")
+                    if status_value not in MATURITIES:
+                        self.fail(f"{patch_id} stable_evidence 比赛 manifest Patch status 非法：{status_value}")
+                        ok = False
+                    patch_file = self.resolve_repo_path(str(patch.get("file", "")))
+                    if not patch_file.is_file():
+                        self.fail(f"{patch_id} stable_evidence 比赛 Patch 文件不存在：{patch.get('file')}")
+                        ok = False
+                    else:
+                        patch_sha = hashlib.sha256(patch_file.read_bytes()).hexdigest()
+                        if patch_entry.get("sha256") != patch_sha:
+                            self.fail(f"{patch_id} stable_evidence 比赛 manifest Patch sha256 与实际文件不一致")
+                            ok = False
+
+                result_ref = comp.get("result_record")
+                if not isinstance(result_ref, str) or not result_ref:
+                    self.fail(f"{patch_id} stable_evidence 比赛验证缺少 result_record")
+                    ok = False
+                    continue
+                result_path = self.resolve_repo_path(result_ref)
+                if not result_path.is_file():
+                    self.fail(f"{patch_id} stable_evidence 比赛 result_record 不存在: {result_ref}")
+                    ok = False
+                    continue
+                result_data = _read_json_file(result_path, "比赛 result_record")
+                if result_data is None:
+                    ok = False
+                    continue
+                if not self.validate_schema(result_data, "result_record.schema.json", f"{patch_id} stable 比赛 result_record"):
+                    ok = False
+                result_value = result_data.get("result", result_data.get("final_result"))
+                if result_value != "pass":
+                    self.fail(f"{patch_id} stable_evidence 比赛 result_record 结果必须为 pass")
+                    ok = False
+                result_patch = result_data.get("patch_id", result_data.get("target_patch"))
+                if result_patch is not None and result_patch != patch_id:
+                    self.fail(f"{patch_id} stable_evidence 比赛 result_record Patch 不一致")
+                    ok = False
+                result_manifest_ref = result_data.get("runtime_pack_manifest")
+                if result_manifest_ref is not None and result_manifest_ref != manifest_ref:
+                    self.fail(f"{patch_id} stable_evidence 比赛题目、运行包和结果记录不属于同一次运行")
+                    ok = False
+                result_manifest_sha = result_data.get("runtime_pack_manifest_sha256")
+                if result_manifest_sha is not None and result_manifest_sha != man_sha:
+                    self.fail(f"{patch_id} stable_evidence 比赛 result_record manifest SHA256 不一致")
+                    ok = False
+
+            approval = evidence.get("human_approval_record")
+            if not isinstance(approval, dict):
+                self.fail(f"{patch_id} stable_evidence 缺少 human_approval_record")
+                return False
+            expected_digest = stable_evidence_digest(
+                patch, 
+                evidence, 
+                patch_sha256=patch.get("_resolved_patch_sha256", ""),
+                inner_component_sha256s=patch.get("_resolved_inner_sha256s", {}),
+                policy_version=policy_version,
+            )
+            if approval.get("evidence_digest") != expected_digest:
+                self.fail(f"{patch_id} stable_evidence 人工批准 evidence_digest 与当前证据不匹配")
+                ok = False
+            if approval.get("decision") not in (None, "approved"):
+                self.fail(f"{patch_id} stable_evidence 人工批准 decision 必须为 approved")
+                ok = False
+            if approval.get("policy_version") != policy_version:
+                self.fail(f"{patch_id} stable_evidence 人工批准 policy_version 与当前策略不一致")
+                ok = False
+            reviewer = approval.get("reviewer", approval.get("approved_by", ""))
+            if not isinstance(reviewer, str) or not reviewer.strip():
+                self.fail(f"{patch_id} stable_evidence 人工批准 reviewer 不能为空")
+                ok = False
+
+            return ok
+
+        for patch in patch_index:
+            if patch.get("status") == "stable":
+                if not _verify_stable_evidence(patch):
+                    promotion_ok = False
 
         if promotion_ok:
             self.pass_("patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）")
@@ -937,3 +1578,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

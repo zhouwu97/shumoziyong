@@ -17,10 +17,36 @@ validate_repository.py 和 check_promotion_eligibility.py 都通过本模块
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+def stable_evidence_digest(
+    patch: dict[str, Any], 
+    evidence: dict[str, Any],
+    patch_sha256: str = "",
+    inner_component_sha256s: dict[str, str] | None = None,
+    *,
+    policy_version: str,
+) -> str:
+    """计算稳定证据的摘要，供人工批准记录绑定。"""
+    if not isinstance(policy_version, str) or not policy_version.strip():
+        raise ValueError("stable evidence digest 必须显式提供非空 policy_version")
+    import json
+    data = {
+        "digest_schema_version": "2.0.0",
+        "target_status": "stable",
+        "policy_version": policy_version,
+        "patch_id": patch.get("patch_id"),
+        "patch_sha256": patch_sha256,
+        "inner_component_sha256s": inner_component_sha256s or {},
+        "negative_control_runs": evidence.get("negative_control_runs", []),
+        "failure_fix_retests": evidence.get("failure_fix_retests", []),
+        "competition_validation_records": evidence.get("competition_validation_records", []),
+    }
+    normalized = json.dumps(data, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 def load_json(path: Path) -> Any:
     """读取 JSON 文件。"""
@@ -178,8 +204,9 @@ def _check_forbidden_labels(
             try:
                 data = json.loads(labels_file.read_text(encoding="utf-8"))
                 labels = set(data.get("labels", []))
+                material_risks = set(data.get("material_risks", []))
                 hits_p = labels & forbidden_p
-                hits_m = labels & set(data.get("material_risks", []))
+                hits_m = material_risks & forbidden_m
                 for label in sorted(hits_p):
                     gaps.append(f"validation_record 中出现禁止标签：{label}（禁止 {sorted(forbidden_p)}）")
                 for label in sorted(hits_m):
@@ -329,29 +356,72 @@ def evaluate_status_eligibility(
     forbidden_gaps = _check_forbidden_labels(patch, rules)
     gaps.extend(forbidden_gaps)
 
-    # 9) stable 专属
-    if rules.get("requires_failure_fix_retest"):
-        if not patch.get("failure_fix_record"):
-            gaps.append("需要至少 1 次失败修复重测记录 (failure_fix_record)")
-    if rules.get("requires_competition_verified"):
-        # Check all profiles this patch belongs to
-        profiles = patch.get("runtime_profiles", [])
-        comp_verified = False
-        for prof_id in profiles:
-            prof_path = Path(__file__).resolve().parents[1] / "runtime_profiles" / f"{prof_id}.json"
-            if prof_path.is_file():
-                import json as _json
-                try:
-                    prof_data = _json.loads(prof_path.read_text(encoding="utf-8"))
-                    if prof_data.get("competition_verified"):
-                        comp_verified = True
-                        break
-                except (OSError, _json.JSONDecodeError):
-                    pass
-        if not comp_verified:
-            gaps.append("需要所属 profile 的 competition_verified=true")
-    if rules.get("requires_human_approval"):
-        details["human_approval_required"] = True
+    # 9) stable 专属：stable 必须 fail-closed，policy 配错不能静默跳过门禁。
+    if target_status == "stable":
+        stable_reqs = rules.get("stable_evidence")
+        if not isinstance(stable_reqs, dict):
+            gaps.append("promotion policy 缺少 stable_evidence 配置")
+            stable_reqs = {}
+        if stable_reqs.get("required") is not True:
+            gaps.append("promotion policy 未启用 stable_evidence.required")
+
+        evidence = patch.get("stable_evidence")
+        if not isinstance(evidence, dict):
+            gaps.append("stable 状态必须提供 stable_evidence 对象")
+            evidence = {}
+
+        min_nc_runs = rules.get("repetition", {}).get("min_negative_control_runs", 0)
+        nc_runs = evidence.get("negative_control_runs")
+        if not isinstance(nc_runs, list):
+            gaps.append("stable_evidence.negative_control_runs 必须是数组")
+            nc_runs = []
+        group_ids = [item.get("experiment_group_id") for item in nc_runs if isinstance(item, dict)]
+        if len(group_ids) != len(set(group_ids)) or any(not isinstance(gid, str) or not gid.strip() for gid in group_ids):
+            gaps.append("stable 负控必须使用唯一且非空的 experiment_group_id")
+        if len(set(group_ids)) < min_nc_runs:
+            gaps.append(f"stable 至少需要 {min_nc_runs} 组独立负控，当前 {len(set(group_ids))} 组")
+
+        retests = evidence.get("failure_fix_retests")
+        if rules.get("requires_failure_fix_retest") and (not isinstance(retests, list) or not retests):
+            gaps.append("需要至少 1 次失败修复重测记录 (failure_fix_retests)")
+
+        competition = evidence.get("competition_validation_records")
+        if (stable_reqs.get("requires_patch_level_competition_record") or rules.get("requires_competition_verified")) and (not isinstance(competition, list) or not competition):
+            gaps.append("需要至少 1 条 Patch 级比赛验证记录 (competition_validation_records)")
+
+        approval = evidence.get("human_approval_record")
+        if stable_reqs.get("requires_digest_bound_human_approval") or rules.get("requires_human_approval"):
+            details["human_approval_required"] = True
+            if not isinstance(approval, dict):
+                gaps.append("需要与证据摘要绑定的 human_approval_record 人工批准记录")
+            else:
+                policy_version = policy.get("policy_version")
+                if not isinstance(policy_version, str) or not policy_version.strip():
+                    gaps.append("promotion policy 缺少用于 stable evidence 的 policy_version")
+                    policy_version = "<missing>"
+                expected_digest = stable_evidence_digest(
+                    patch,
+                    evidence,
+                    patch.get("_resolved_patch_sha256", ""),
+                    patch.get("_resolved_inner_sha256s", {}),
+                    policy_version=policy_version,
+                )
+                reviewer = approval.get("reviewer", approval.get("approved_by", ""))
+                if approval.get("patch_id") not in (None, pid):
+                    gaps.append("人工批准记录 patch_id 与当前 Patch 不一致")
+                if approval.get("target_status") not in (None, "stable"):
+                    gaps.append("人工批准记录 target_status 必须为 stable")
+                if approval.get("policy_version") != policy_version:
+                    gaps.append(
+                        f"人工批准记录 policy_version 必须与当前策略一致（当前为 {policy_version}）"
+                    )
+                if approval.get("decision") not in (None, "approved"):
+                    gaps.append("人工批准记录 decision 必须为 approved")
+                if not isinstance(reviewer, str) or not reviewer.strip():
+                    gaps.append("人工批准记录 reviewer/approved_by 不能为空")
+                if approval.get("evidence_digest") != expected_digest:
+                    gaps.append(f"人工批准记录的 evidence_digest 不匹配（期望 {expected_digest}）")
+        details["stable_evidence_required"] = True
 
     # 10) diagnosis schema 版本要求
     diag_req = policy.get("diagnosis_schema_requirements", {})

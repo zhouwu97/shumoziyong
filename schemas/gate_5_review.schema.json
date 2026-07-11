@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gate 5 最终人工审核记录",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["target_gate", "reviewer", "reviewed_at", "decision", "final_acceptance", "reason"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "target_gate": {"const": 5},
+    "reviewer": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "decision": {"const": "approved"},
+    "final_acceptance": {"const": true},
+    "reason": {"type": "string", "minLength": 10},
+    "checklist": {
+      "type": "object",
+      "additionalProperties": {"const": true}
+    }
+  }
+}

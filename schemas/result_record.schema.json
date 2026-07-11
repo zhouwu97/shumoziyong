@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/result_record.schema.json",
+  "title": "Result Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["pass", "fail"]
+    },
+    "final_result": {
+      "type": "string",
+      "enum": ["pass", "fail"]
+    },
+    "score": {
+      "type": "number"
+    },
+    "comments": {
+      "type": "string"
+    },
+    "patch_id": {
+      "type": "string"
+    },
+    "target_patch": {
+      "type": "string"
+    },
+    "runtime_pack_manifest": {
+      "type": "string"
+    },
+    "runtime_pack_manifest_sha256": {
+      "type": "string"
+    },
+    "automatic_evaluation": {
+      "type": "object"
+    },
+    "manual_review": {
+      "type": ["object", "null"]
+    }
+  }
+}

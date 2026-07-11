@@ -6,6 +6,8 @@ import sys
 from argparse import Namespace
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -25,6 +27,7 @@ from run_workflow import (  # noqa: E402
     is_gate_complete,
     mark_run_completed,
     record_transition,
+    replay_transition_log,
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
@@ -72,6 +75,239 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     # 新增：默认导出不启用实验标记
     assert manifest["candidate_experiment"]["enabled"] is False
     assert manifest["exclusion_experiment"]["enabled"] is False
+    validator = RepositoryValidator()
+    assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
+
+
+def test_stable_profile_schema_requires_competition_validation() -> None:
+    """Profile 标记 stable 时必须同时声明比赛验证完成。"""
+    profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": False,
+            "validation_level": "cross_mechanism",
+        }
+    )
+    validator = RepositoryValidator()
+    assert not validator.validate_schema(profile, "runtime_profile.schema.json", "伪造 stable profile")
+    assert any("True was expected" in failure for failure in validator.failures)
+
+
+def test_stable_profile_rejects_non_stable_patch() -> None:
+    """Stable Profile 只能导入已具备 Stable Evidence 的 patch。"""
+    profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": True,
+            "validation_level": "competition_verified",
+            "verified_patches": ["A092"],
+        }
+    )
+    validator = RepositoryValidator()
+    real_load = RepositoryValidator().load_json
+
+    def load_json(path: str):
+        if str(path).replace("\\", "/") == "runtime_profiles/general.json":
+            return profile
+        return real_load(path)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(validator, "load_json", load_json)
+        validator.validate_profiles()
+    assert any("stable profile 只能导入 stable patch" in failure for failure in validator.failures)
+
+
+def test_stable_profile_requires_evidence_level_requirements() -> None:
+    """完整状态字段不能替代 Gate、负控、比赛证据和失败清理。"""
+    profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": True,
+            "validation_level": "competition_verified",
+            "verified_patches": [],
+            "known_failures": ["仍有未关闭问题"],
+        }
+    )
+    profile["validation"].update(
+        {
+            "gate_0_5": 0,
+            "negative_control": 0,
+            "evidence": [],
+        }
+    )
+    validator = RepositoryValidator()
+    real_load = RepositoryValidator().load_json
+
+    def load_json(path: str):
+        if str(path).replace("\\", "/") == "runtime_profiles/general.json":
+            return profile
+        return real_load(path)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(validator, "load_json", load_json)
+        validator.validate_profiles()
+
+    expected_messages = (
+        "至少需要 1 个 stable patch",
+        "gate_0_5 至少需要",
+        "negative_control 至少需要",
+        "validation.evidence 不能为空",
+        "competition_validation_records 至少需要",
+        "known_failures 必须为空",
+    )
+    for message in expected_messages:
+        assert any(message in failure for failure in validator.failures)
+
+
+def _validate_stable_profile_competition_fixture(
+    tmp_path: Path,
+    *,
+    candidate_patch_ids: list[str] | None = None,
+    exclude_patch_ids: list[str] | None = None,
+    mutate_manifest=None,
+    tamper_result_after_binding: bool = False,
+) -> RepositoryValidator:
+    """构造 Profile Stable 比赛证据并返回完成校验的 validator。"""
+    candidate_patch_ids = candidate_patch_ids or []
+    exclude_patch_ids = exclude_patch_ids or []
+    pack = build_pack("engineering_optimization", candidate_patch_ids, exclude_patch_ids)
+    runtime_manifest = build_manifest(
+        "engineering_optimization",
+        pack,
+        candidate_patch_ids,
+        exclude_patch_ids,
+    )
+    runtime_manifest["maturity"] = "stable"
+    for patch_entry in runtime_manifest["patches"]:
+        if patch_entry["patch_id"] in {"A092", "A127"}:
+            patch_entry["status"] = "stable"
+    if mutate_manifest is not None:
+        mutate_manifest(runtime_manifest)
+    runtime_manifest_path = tmp_path / "runtime_pack.manifest.json"
+    runtime_manifest_path.write_text(json.dumps(runtime_manifest), encoding="utf-8")
+    runtime_manifest_sha = hashlib.sha256(runtime_manifest_path.read_bytes()).hexdigest()
+    result_path = tmp_path / "result_record.json"
+    result = {
+        "result": "pass",
+        "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
+        "runtime_pack_manifest_sha256": runtime_manifest_sha,
+    }
+    result_path.write_text(json.dumps(result), encoding="utf-8")
+    result_record_sha = hashlib.sha256(result_path.read_bytes()).hexdigest()
+
+    profile = json.loads(
+        (ROOT / "runtime_profiles" / "engineering_optimization.json").read_text(encoding="utf-8")
+    )
+    profile.update(
+        {
+            "maturity": "stable",
+            "competition_verified": True,
+            "validation_level": "competition_verified",
+            "verified_patches": ["A092", "A127"],
+        }
+    )
+    profile["validation"].update(
+        {
+            "gate_0_5": 1,
+            "negative_control": 2,
+            "competition_validation_records": [
+                {
+                    "runtime_pack_manifest": "fixture/runtime_pack.manifest.json",
+                    "runtime_pack_manifest_sha256": runtime_manifest_sha,
+                    "result_record": "fixture/result_record.json",
+                    "result_record_sha256": result_record_sha,
+                }
+            ],
+        }
+    )
+    if tamper_result_after_binding:
+        result["comments"] = "tampered after profile approval"
+        result_path.write_text(json.dumps(result), encoding="utf-8")
+    patches = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text(encoding="utf-8"))
+    for patch in patches:
+        if patch["patch_id"] in {"A092", "A127"}:
+            patch["status"] = "stable"
+
+    validator = RepositoryValidator()
+    real_load = RepositoryValidator().load_json
+
+    def load_json(path: str):
+        normalized = str(path).replace("\\", "/")
+        if normalized == "runtime_profiles/engineering_optimization.json":
+            return profile
+        if normalized == "prompt_patches/patch_index.json":
+            return patches
+        return real_load(path)
+
+    def resolve_repo_path(self, raw: str) -> Path:
+        if raw == "fixture/runtime_pack.manifest.json":
+            return runtime_manifest_path
+        if raw == "fixture/result_record.json":
+            return result_path
+        return RepositoryValidator().resolve_repo_path(raw)
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(validator, "load_json", load_json)
+        monkeypatch.setattr(validator, "resolve_repo_path", resolve_repo_path.__get__(validator))
+        validator.validate_profiles()
+    return validator
+
+
+def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -> None:
+    """Stable Profile 的比赛状态必须由真实运行包和通过的结果记录证明。"""
+    validator = _validate_stable_profile_competition_fixture(tmp_path)
+    assert not validator.failures
+
+
+def test_stable_profile_rejects_candidate_experiment_and_extra_patch(tmp_path: Path) -> None:
+    """包含额外 candidate Patch 的实验包不能证明正式 Stable Profile。"""
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        candidate_patch_ids=["B311"],
+    )
+    assert any("Patch 集合不一致" in failure and "B311" in failure for failure in validator.failures)
+    assert any("不得来自 candidate experiment" in failure for failure in validator.failures)
+
+
+def test_stable_profile_rejects_exclusion_experiment(tmp_path: Path) -> None:
+    """排除正式 Patch 的隔离实验不能作为 Stable Profile 比赛证据。"""
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        exclude_patch_ids=["A127"],
+    )
+    assert any("Patch 集合不一致" in failure and "A127" in failure for failure in validator.failures)
+    assert any("不得来自 exclusion experiment" in failure for failure in validator.failures)
+
+
+def test_stable_profile_verifies_manifest_patch_content(tmp_path: Path) -> None:
+    """Manifest 中的 Patch 状态、路径和 SHA-256 必须与当前 Stable Patch 一致。"""
+    def mutate_manifest(manifest: dict[str, object]) -> None:
+        patch_entry = next(
+            item for item in manifest["patches"] if item["patch_id"] == "A092"
+        )
+        patch_entry["status"] = "candidate"
+        patch_entry["path"] = "prompt_patches/patch_A127_engineering_layout_optimization.md"
+        patch_entry["sha256"] = "0" * 64
+
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        mutate_manifest=mutate_manifest,
+    )
+    assert any("Patch A092 status 必须为 stable" in failure for failure in validator.failures)
+    assert any("Patch A092 path 与 patch_index.file 不一致" in failure for failure in validator.failures)
+    assert any("Patch A092 sha256 与当前文件不一致" in failure for failure in validator.failures)
+
+
+def test_stable_profile_binds_result_record_sha256(tmp_path: Path) -> None:
+    """Profile 批准后改写 result record 必须被内容哈希检测。"""
+    validator = _validate_stable_profile_competition_fixture(
+        tmp_path,
+        tamper_result_after_binding=True,
+    )
+    assert any("result_record SHA-256 不匹配" in failure for failure in validator.failures)
 
 
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:
@@ -185,6 +421,8 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     assert ready is True
     assert manifest["automatic_stable_update"] is False
     assert manifest["experiment_kind"] == "standard"
+    assert manifest["run_status"] == "initialized"
+    assert manifest["integrity_status"] == "unsealed"
     assert (run_dir / "runtime_pack.manifest.json").is_file()
     assert (run_dir / "patch_suggestions.md").is_file()
     # 新增：problem_manifest 记录材料文件哈希
@@ -207,7 +445,8 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     assert validator.validate_schema(evidence_manifest, "run_evidence_manifest.schema.json", "run evidence manifest")
     assert {item["role"] for item in evidence_manifest["artifacts"]} >= {
         "run_manifest", "request", "model_response", "runtime_pack", "runtime_pack_manifest",
-        "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review",
+        "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review", "transitions",
+        "gate_5_review", "score", "failure_labels",
     }
 
 
@@ -220,7 +459,7 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", pdf_data)]})
     args = Namespace(
         run_id="sealed_run", output_root=str(tmp_path / "runs"), problem="2024-C",
-        profile="engineering_optimization", gates="0-2", materials=str(materials),
+            profile="engineering_optimization", gates="0-5", materials=str(materials),
         candidate_patch=[], exclude_patch=[], material_file=[], promotion_evidence=False,
         experiment_group_id=None, experiment_role=None, target_patch=None,
     )
@@ -235,14 +474,58 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
     metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
 
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "test_reviewer", "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(
+            {
+                "target_gate": 5,
+                "reviewer": "test_reviewer",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+                "decision": "approved",
+                "final_acceptance": True,
+                "reason": "The Gate 5 checklist is complete.",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    mark_run_completed(run_dir, "test_reviewer")
+
     evidence = finalize_run_evidence(run_dir)
     required_artifacts = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))["run_evidence_requirements"]["ai_run_metadata_checks"]["required_artifacts"]
-    assert json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))["status"] == "sealed"
+    sealed_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert sealed_manifest["run_status"] == "completed"
+    assert sealed_manifest["integrity_status"] == "sealed"
     assert not validate_evidence_manifest(run_dir, evidence, required_artifacts)
 
     with (run_dir / "response.json").open("a", encoding="utf-8") as response:
         response.write("\n篡改")
     assert any("response.json" in error and "sha256" in error for error in validate_evidence_manifest(run_dir, evidence, required_artifacts))
+
+
+def test_finalize_run_evidence_rejects_incomplete_gate_workflow(tmp_path: Path) -> None:
+    """AI 调用完成不足以封存，运行必须先完成并通过 Gate 5。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    pdf_data = b"fake problem pdf"
+    (materials / "problem.pdf").write_bytes(pdf_data)
+    _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", pdf_data)]})
+    args = Namespace(
+        run_id="uncompleted_run", output_root=str(tmp_path / "runs"), problem="2024-C",
+        profile="engineering_optimization", gates="0-5", materials=str(materials),
+        candidate_patch=[], exclude_patch=[], material_file=[], promotion_evidence=False,
+        experiment_group_id=None, experiment_role=None, target_patch=None,
+    )
+    run_dir, ready = create_old_problem_run(args)
+    assert ready is True
+    metadata_path = run_dir / "ai_run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="run_status 必须为 completed"):
+        finalize_run_evidence(run_dir)
 
 
 def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None:
@@ -567,7 +850,8 @@ def test_verify_materials_to_dict_serializable(tmp_path: Path) -> None:
 def test_check_promotion_eligibility_produces_report() -> None:
     """Real policy + matrix + patch_index produce a valid report."""
     report, gaps = check_promotion_eligibility()
-    assert report["policy_version"] == "1.2.0"
+    policy = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))
+    assert report["policy_version"] == policy["policy_version"]
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
@@ -649,9 +933,124 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     # Gate 5 is terminal; not complete until mark_run_completed
     assert is_gate_complete(run_dir, 5) is False
 
-    # Mark completed → Gate 5 should now be complete
-    mark_run_completed(run_dir)
+    # Mark completed - Gate 5 should now be complete
+    (run_dir / "gate_5_review.json").write_text('{"target_gate": 5, "final_acceptance": true, "reviewer": "automated_test", "reviewed_at": "2024-01-01T00:00:00Z", "decision": "approved", "reason": "this is a valid reason"}', encoding="utf-8")
+    mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
+
+
+def test_gate_5_review_schema_requires_target_gate(tmp_path: Path) -> None:
+    """Gate 5 审核缺少 target_gate 时不得因默认值而通过。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
+        encoding="utf-8",
+    )
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(
+            {
+                "reviewer": "human",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+                "decision": "approved",
+                "final_acceptance": True,
+                "reason": "The final review is complete.",
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="target_gate"):
+        mark_run_completed(run_dir, "human")
+
+
+def _write_manual_completed_transition_log(
+    run_dir: Path,
+    review: dict[str, object],
+    *,
+    material_ready: bool,
+) -> None:
+    """构造绕过 API 的历史日志，验证 replay 本身仍会 fail-closed。"""
+    review_path = run_dir / "gate_5_review.json"
+    review_path.write_text(json.dumps(review), encoding="utf-8")
+    entries: list[dict[str, object]] = [
+        {
+            "from": None,
+            "to": None,
+            "state": "initialized",
+            "material_ready": material_ready,
+            "max_gate": 5,
+        }
+    ]
+    current: int | None = None
+    for gate in range(6):
+        entries.append(
+            {
+                "from": current,
+                "to": gate,
+                "state": f"entering_gate_{gate}",
+                "reviewer": "manual",
+                "decision": "approved",
+            }
+        )
+        current = gate
+    entries.append(
+        {
+            "from": 5,
+            "to": None,
+            "state": "completed",
+            "reviewer": review["reviewer"],
+            "decision": "approved",
+            "review_record": "gate_5_review.json",
+            "review_record_sha256": hashlib.sha256(review_path.read_bytes()).hexdigest(),
+            "reviewed_at": review["reviewed_at"],
+        }
+    )
+    (run_dir / "transitions.jsonl").write_text(
+        "".join(json.dumps(entry) + "\n" for entry in entries),
+        encoding="utf-8",
+    )
+
+
+def test_replay_rejects_forged_rejected_gate_5_review(tmp_path: Path) -> None:
+    """匹配 SHA-256 不能使被拒绝的 Gate 5 review 伪装成完成。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    _write_manual_completed_transition_log(
+        run_dir,
+        {
+            "target_gate": 5,
+            "reviewer": "manual",
+            "reviewed_at": "2026-07-11T00:00:00Z",
+            "decision": "rejected",
+            "final_acceptance": False,
+            "reason": "The final review explicitly rejected this run.",
+        },
+        material_ready=True,
+    )
+    with pytest.raises(ValueError, match="gate_5_review"):
+        replay_transition_log(run_dir)
+
+
+def test_replay_rejects_gate_entries_when_materials_are_not_ready(tmp_path: Path) -> None:
+    """直接篡改 JSONL 也不能绕过材料就绪门禁。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    _write_manual_completed_transition_log(
+        run_dir,
+        {
+            "target_gate": 5,
+            "reviewer": "manual",
+            "reviewed_at": "2026-07-11T00:00:00Z",
+            "decision": "approved",
+            "final_acceptance": True,
+            "reason": "The final review approved this complete run.",
+        },
+        material_ready=False,
+    )
+    with pytest.raises(ValueError, match="material_ready"):
+        replay_transition_log(run_dir)
 
 
 def test_forged_from_gate_rejected(tmp_path: Path) -> None:

@@ -4,9 +4,9 @@
   "artifacts": [
     {
       "path": "run_manifest.json",
-      "sha256": "9f8583d31819a93eb87a3b3c70b8d9c73f53b45d32961287e344e9b560afa752",
+      "sha256": "b29edb832a669e6e2ce3fe9344ac58ac0b22bf6a9eec831df4aa72ffeda65045",
       "media_type": "application/json",
-      "size_bytes": 256,
+      "size_bytes": 306,
       "role": "run_manifest"
     },
     {
