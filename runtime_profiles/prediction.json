@@ -2,18 +2,9 @@
   "profile_id": "prediction",
   "version": "0.1.0",
   "maturity": "draft",
-  "validation_level": "none",
-  "competition_verified": false,
   "base_version": "1.0.0",
   "plugin_version": null,
-  "verified_patches": [],
-  "validation": {
-    "gate_0_2": 0,
-    "gate_0_5": 0,
-    "negative_control": 0,
-    "mechanism_classes": [],
-    "evidence": []
-  },
+  "validation_records": [],
   "known_failures": ["尚未建立预测类 plugin 和旧题验证记录"],
-  "last_updated": "2026-07-10"
+  "last_updated": "2026-07-11"
 }

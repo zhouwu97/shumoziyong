@@ -8,7 +8,7 @@
 
 ## 职责边界
 
-本补丁只记录 B311 的可迁移经验和误用风险，不重复 base 的通用规则，不负责旧题闭环，不负责 stable 判定，不把单篇论文经验提升为通用规则。
+本补丁只记录 B311 的可迁移经验和误用风险，不重复 base 的通用规则，不负责旧题闭环，不负责 `competition_evidenced` 判定，不把单篇论文经验提升为通用规则。
 
 ## 核心经验
 
@@ -113,6 +113,5 @@ base 已经负责题目理解、子问题拆解、题型判断、输入输出链
 ## training_log 更新建议
 
 ```markdown
-| 2026-07-08 | B311 论文学习 | prompt_base_v1.0 + patch_B311_spatial_coverage_optimization |  |  | 论文学习 | 否 | 已生成学习卡片、知识卡片 JSON 和 patch 草案；不进入 stable |
+| 2026-07-08 | B311 论文学习 | prompt_base_v1.0 + patch_B311_spatial_coverage_optimization |  |  | 论文学习 | 否 | 已生成学习卡片、知识卡片 JSON 和 patch 草案；登记为 review_ready |
 ```
-

@@ -1,75 +1,67 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://shumo.local/schemas/runtime_profile.schema.json",
-  "title": "Runtime profile 状态",
+  "title": "Runtime Profile 证据引用状态",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "profile_id",
     "version",
     "maturity",
-    "validation_level",
-    "competition_verified",
     "base_version",
-    "verified_patches",
-    "validation",
+    "plugin_version",
+    "validation_records",
     "known_failures",
     "last_updated"
   ],
   "properties": {
     "profile_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
     "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
-    "maturity": {"enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
-    "validation_level": {"enum": ["none", "gate_0_2", "gate_0_5", "negative_control", "cross_mechanism", "competition_verified"]},
-    "competition_verified": {"type": "boolean"},
+    "maturity": {
+      "enum": ["draft", "assembled", "regression_verified", "competition_evidenced", "deprecated"]
+    },
     "base_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "plugin_version": {"type": ["string", "null"], "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
-    "verified_patches": {
+    "validation_records": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}
-    },
-    "validation": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["gate_0_2", "gate_0_5", "negative_control", "mechanism_classes", "evidence"],
-      "properties": {
-        "gate_0_2": {"type": "integer", "minimum": 0},
-        "gate_0_5": {"type": "integer", "minimum": 0},
-        "negative_control": {"type": "integer", "minimum": 0},
-        "mechanism_classes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "evidence": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
-        "competition_validation_records": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["runtime_pack_manifest", "runtime_pack_manifest_sha256", "result_record", "result_record_sha256"],
-            "properties": {
-              "runtime_pack_manifest": {"type": "string", "minLength": 1},
-              "runtime_pack_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-              "result_record": {"type": "string", "minLength": 1},
-              "result_record_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-            }
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["record_id", "kind", "path", "sha256"],
+        "properties": {
+          "record_id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["control_review", "full_run", "competition"]},
+          "control_type": {"enum": ["positive", "boundary", "negative"]},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"kind": {"const": "control_review"}}, "required": ["kind"]},
+            "then": {"required": ["control_type"]},
+            "else": {"not": {"required": ["control_type"]}}
           }
-        }
+        ]
       }
     },
     "known_failures": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "last_updated": {"type": "string", "format": "date"}
+    "last_updated": {"type": "string", "format": "date"},
+    "deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deprecated_at", "reason"],
+      "properties": {
+        "deprecated_at": {"type": "string", "format": "date"},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
   },
   "allOf": [
     {
-      "if": {
-        "properties": {"maturity": {"const": "stable"}},
-        "required": ["maturity"]
-      },
-      "then": {
-        "properties": {
-          "competition_verified": {"const": true},
-          "validation_level": {"const": "competition_verified"}
-        }
-      }
+      "if": {"properties": {"maturity": {"const": "deprecated"}}, "required": ["maturity"]},
+      "then": {"required": ["deprecation"]},
+      "else": {"not": {"required": ["deprecation"]}}
     }
   ]
 }

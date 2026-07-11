@@ -7,11 +7,16 @@ from typing import Any
 
 import yaml
 
+from evaluation_case_registry import (
+    EVALUATOR_VERSION,
+    find_authorized_case,
+    load_registry,
+    sha256_bytes,
+    substantive_assertion_count,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
-EVALUATOR_VERSION = "1.2.0"
-
-
 def get_path(data: dict[str, Any], dotted_path: str) -> tuple[bool, Any]:
     current: Any = data
     for part in dotted_path.split("."):
@@ -190,7 +195,27 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    case = load_case(ROOT / args.case, args.case_id)
+    case_path = ROOT / args.case
+    case = load_case(case_path, args.case_id)
+    case_sha256 = sha256_bytes(case_path.read_bytes())
+    authorized_case = None
+    if args.promotion_evidence:
+        registry = load_registry()
+        authorized_case = find_authorized_case(
+            registry,
+            case_id=case["case_id"],
+            case_file=repo_relative(case_path),
+            case_sha256=case_sha256,
+        )
+        if authorized_case is None:
+            raise ValueError("晋级评估用例未在 evaluation_case_registry.json 中授权")
+        assertion_count = substantive_assertion_count(case)
+        minimum = authorized_case["minimum_assertion_count"]
+        if assertion_count < minimum:
+            raise ValueError(
+                "晋级评估用例的实质断言不足："
+                f"当前 {assertion_count}，授权下限 {minimum}"
+            )
     response_text = (ROOT / args.response).read_text(encoding="utf-8")
     response = json.loads(response_text)
     errors = evaluate_case(case, response)
@@ -205,7 +230,6 @@ def main() -> None:
 
     if args.output:
         import hashlib, datetime
-        case_text = (ROOT / args.case).read_text(encoding="utf-8")
         out = {
             "case_id": case["case_id"],
             "case_file": repo_relative(ROOT / args.case) if "repo_relative" in globals() else str(args.case),
@@ -214,9 +238,18 @@ def main() -> None:
             "evaluated_at": datetime.datetime.now().astimezone().isoformat(),
             "evaluator_version": EVALUATOR_VERSION,
             "response_sha256": hashlib.sha256(response_text.encode("utf-8")).hexdigest(),
-            "case_sha256": hashlib.sha256(case_text.encode("utf-8")).hexdigest(),
+            "case_sha256": case_sha256,
             "manifest_sha256": hashlib.sha256(manifest_text.encode("utf-8")).hexdigest() if args.manifest else None
         }
+        if authorized_case is not None:
+            out.update(
+                {
+                    "case_registry_version": registry["registry_version"],
+                    "control_type": authorized_case["control_type"],
+                    "target_patch": authorized_case["target_patch"],
+                    "assertion_count": substantive_assertion_count(case),
+                }
+            )
         (ROOT / args.output).write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     if errors:

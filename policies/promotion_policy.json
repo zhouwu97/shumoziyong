@@ -2,6 +2,21 @@
   "policy_version": "1.5.0",
   "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。Schema 记录事实，policy 负责判定——两者不混。",
   "automatic_status_update_allowed": false,
+  "control_evidence_requirements": {
+    "active_matrix_version": "2.0.0",
+    "matrix_schema": "schemas/control_matrix.schema.json",
+    "comparison_review_schema": "schemas/comparison_review_v2.schema.json",
+    "required_controls": ["positive", "boundary", "negative"],
+    "required_evidence_fields": [
+      "baseline_run",
+      "treatment_run",
+      "comparison_review",
+      "baseline_evidence_manifest_sha256",
+      "treatment_evidence_manifest_sha256"
+    ],
+    "legacy_v1_active_promotion_allowed": false,
+    "note": "控制结果由运行证据、对照审核和 Policy 现场派生，矩阵不得保存 result。"
+  },
   "diagnosis_schema_requirements": {
     "minimum_schema_version": "2.0.0",
     "legacy_evidence_cutoff": "2026-07-10T18:00:00+08:00",
@@ -24,7 +39,7 @@
     "note": "仅 allowlist 中、截止时间前生成且路径未变的历史 A092/A127 证据可标记为 legacy_v1_grandfathered；其他晋级证据必须使用 diagnosis v2+ 并提供完整 AI 元数据与证据清单。"
   },
   "status_rules": {
-    "candidate": {
+    "review_ready": {
       "description": "单篇论文经验化为 patch，未经旧题闭环验证",
       "required_controls": [],
       "required_result": "any",
@@ -49,7 +64,7 @@
         "required_evidence_fields": []
       }
     },
-    "verified_candidate": {
+    "regression_verified": {
       "description": "至少正向+边界+负控各一次通过，且三道独立考题",
       "required_controls": [
         "positive",
@@ -89,7 +104,7 @@
         "note": "当前最低要求 1 次；建议至少 baseline×2 + treatment×3 以评估随机波动"
       }
     },
-    "stable": {
+    "competition_evidenced": {
       "description": "多年份、多机制、失败修复重测且比赛验证通过，人工最终确认",
       "required_controls": [
         "positive",
@@ -129,12 +144,28 @@
       },
       "repetition": {
         "min_negative_control_runs": 2,
-        "note": "stable 要求至少 2 次独立负控运行以降低随机性误判"
+        "note": "competition_evidenced 要求至少 2 次独立负控运行以降低随机性误判"
       },
       "stable_evidence": {
         "required": true,
         "requires_patch_level_competition_record": true,
         "requires_digest_bound_human_approval": true
+      }
+    },
+    "deprecated": {
+      "description": "人工弃用终态，不作为自动晋级目标",
+      "required_controls": [],
+      "required_result": "any",
+      "min_distinct_cases": 0,
+      "min_distinct_years": 0,
+      "mechanism_scope": "patch",
+      "min_distinct_mechanisms": 0,
+      "forbidden_failure_labels": [],
+      "forbidden_material_risks": [],
+      "negative_control": {
+        "requires_case": false,
+        "requires_structured_evidence": false,
+        "required_evidence_fields": []
       }
     }
   },
@@ -210,7 +241,7 @@
     "forbid_candidate_experiment": true,
     "forbid_exclusion_experiment": true,
     "require_result_record_sha256": true,
-    "note": "stable Profile 的负控次数复用 status_rules.stable.repetition.min_negative_control_runs；比赛验证必须通过可解析的 runtime manifest 和 result record 证明。"
+    "note": "competition_evidenced Profile 的负控次数复用对应 Patch 规则；比赛验证必须由可解析的 runtime manifest 和 result record 证明。"
   },
   "manual_controls": {
     "human_review_required": true,

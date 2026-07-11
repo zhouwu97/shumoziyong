@@ -4,11 +4,14 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+from atomic_io import atomic_write_bytes, atomic_write_text
 from export_runtime_pack import build_manifest, build_pack
+from model_validation import validate_model_and_execution
 from verify_materials import MaterialVerificationResult, verify_materials
 
 try:
@@ -26,13 +29,52 @@ def normalize_problem_dir(problem: str) -> str:
 
 
 def write_json(path: Path, data: object) -> None:
-    """以 UTF-8 和稳定缩进写入 JSON。"""
-    path.write_bytes((json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    """以临时文件、fsync 和 os.replace 原子写入 JSON，并回读确认。"""
+    content = (json.dumps(data, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    atomic_write_bytes(path, content)
 
 
 def sha256_bytes(content: bytes) -> str:
     """计算内容哈希。"""
     return hashlib.sha256(content).hexdigest()
+
+
+def chain_transition_event(
+    event: Mapping[str, Any], previous_event_sha256: str | None
+) -> dict[str, Any]:
+    """为转换事件绑定前序哈希并计算自身哈希。"""
+    chained = dict(event)
+    chained["previous_event_sha256"] = previous_event_sha256
+    chained.pop("event_sha256", None)
+    canonical = json.dumps(
+        chained, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    chained["event_sha256"] = sha256_bytes(canonical)
+    return chained
+
+
+def _validate_transition_hash_chain(entries: list[dict[str, Any]]) -> None:
+    previous: str | None = None
+    for index, entry in enumerate(entries, start=1):
+        expected = chain_transition_event(entry, previous)
+        if entry.get("previous_event_sha256") != previous:
+            raise ValueError(f"第 {index} 条转换记录 previous_event_sha256 不匹配")
+        if entry.get("event_sha256") != expected["event_sha256"]:
+            raise ValueError(f"第 {index} 条转换记录 event_sha256 不匹配")
+        previous = str(entry["event_sha256"])
+
+
+def _append_transition_event(path: Path, event: Mapping[str, Any]) -> None:
+    entries = _read_transition_entries(path) if path.is_file() else []
+    previous = entries[-1].get("event_sha256") if entries else None
+    if previous is not None and not isinstance(previous, str):
+        raise ValueError("上一条转换记录缺少合法 event_sha256")
+    chained = chain_transition_event(event, previous)
+    existing = path.read_text(encoding="utf-8") if path.is_file() else ""
+    atomic_write_text(
+        path,
+        existing + json.dumps(chained, ensure_ascii=False) + "\n",
+    )
 
 
 EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
@@ -49,6 +91,17 @@ EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("gate_5_review.json", "gate_5_review", "application/json"),
     ("score.json", "score", "application/json"),
     ("failure_labels.json", "failure_labels", "application/json"),
+)
+
+OPTIONAL_GATE_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
+    ("runtime_profile.snapshot.json", "runtime_profile_snapshot"),
+    ("patch_selection.snapshot.json", "patch_selection_snapshot"),
+    ("diagnosis.json", "gate_0_diagnosis"),
+    ("model_route.json", "gate_1_model_route"),
+    ("code_plan.json", "gate_2_code_plan"),
+    ("result_report.json", "gate_3_result_report"),
+    ("result_manifest.json", "gate_3_result_manifest"),
+    ("paper_claim_map.json", "gate_4_paper_claim_map"),
 )
 
 
@@ -74,6 +127,34 @@ def build_run_evidence_manifest(
                 "role": role,
             }
         )
+    gate_artifacts_dir = run_dir / "gate_artifacts"
+    for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS:
+        path = run_dir / filename
+        if not path.is_file():
+            continue
+        content = path.read_bytes()
+        artifacts.append(
+            {
+                "path": filename,
+                "sha256": sha256_bytes(content),
+                "media_type": "application/json",
+                "size_bytes": len(content),
+                "role": role,
+            }
+        )
+    if gate_artifacts_dir.is_dir():
+        for path in sorted(gate_artifacts_dir.glob("gate_*.manifest.json")):
+            content = path.read_bytes()
+            gate_name = path.name.removeprefix("gate_").removesuffix(".manifest.json")
+            artifacts.append(
+                {
+                    "path": path.relative_to(run_dir).as_posix(),
+                    "sha256": sha256_bytes(content),
+                    "media_type": "application/json",
+                    "size_bytes": len(content),
+                    "role": f"gate_{gate_name}_artifact_manifest",
+                }
+            )
     return {
         "evidence_manifest_version": "2.0.0",
         "run_id": run_id,
@@ -175,17 +256,36 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     # 隔离实验：--exclude-patch / --candidate-patch 透传给导出器。
     pack_content = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
     pack_manifest = build_manifest(args.profile, pack_content, args.candidate_patch, args.exclude_patch)
-    (run_dir / "runtime_pack.md").write_bytes(pack_content.encode("utf-8"))
+    atomic_write_text(run_dir / "runtime_pack.md", pack_content)
     write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
+    write_json(run_dir / "runtime_profile.snapshot.json", profile_state)
+    patch_selection_snapshot = {
+        "selected_patches": [item["patch_id"] for item in pack_manifest.get("patches", [])],
+        "candidate_patches": list(args.candidate_patch),
+        "excluded_patches": list(args.exclude_patch),
+    }
+    write_json(run_dir / "patch_selection.snapshot.json", patch_selection_snapshot)
 
     problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
     write_json(run_dir / "problem_manifest.json", problem_manifest)
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    run_status = "initialized" if material_verification.ready else "blocked"
+    initial_state = "initialized" if material_verification.ready else "blocked"
+    workflow = getattr(args, "workflow", "full_replay")
+    if workflow == "old_problem":
+        workflow = "full_replay"
+    mode = getattr(args, "mode", "standard")
+    confirmation_gates = {
+        "strict": [0, 1, 2, 3, 4, 5],
+        "standard": [0, 2, 5],
+        "emergency": [0, 5],
+    }[mode]
     manifest_data: dict[str, Any] = {
+        "manifest_version": "2.0.0",
         "run_id": run_id,
-        "workflow": "old_problem",
+        "workflow": workflow,
+        "mode": mode,
+        "human_confirmation_gates": confirmation_gates,
         "created_at": created_at,
         "problem_id": args.problem,
         "profile": args.profile,
@@ -200,9 +300,14 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "candidate_patches": args.candidate_patch,
         "excluded_patches": args.exclude_patch,
         "experiment_kind": _experiment_kind(args.candidate_patch, args.exclude_patch),
-        "run_status": run_status,
-        "integrity_status": "unsealed",
-        "automatic_stable_update": False,
+        "promotion_evidence": bool(getattr(args, "promotion_evidence", False)),
+        "initial_state": initial_state,
+        "runtime_profile_snapshot_sha256": sha256_bytes(
+            (run_dir / "runtime_profile.snapshot.json").read_bytes()
+        ),
+        "patch_selection_snapshot_sha256": sha256_bytes(
+            (run_dir / "patch_selection.snapshot.json").read_bytes()
+        ),
     }
 
     if getattr(args, "promotion_evidence", False):
@@ -217,9 +322,6 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         manifest_data["experiment_group_id"] = args.experiment_group_id
         manifest_data["experiment_role"] = args.experiment_role
         manifest_data["target_patch"] = args.target_patch
-        manifest_data["evidence_validity"] = "pending"
-        manifest_data["eligible_for_promotion"] = False
-
         target = args.target_patch
         excluded = args.exclude_patch
         if args.experiment_role == "baseline":
@@ -237,14 +339,15 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     write_json(run_dir / "material_review.json", material_report)
 
     material_status_text = "材料校验通过" if material_verification.ready else "材料校验失败，已阻塞"
-    (run_dir / "execution_plan.md").write_text(
+    atomic_write_text(
+        run_dir / "execution_plan.md",
         f"# 旧题闭环执行计划\n\n"
         f"- 题目：`{args.problem}`\n"
         f"- profile：`{args.profile}`（{profile_state['version']} / {profile_state['maturity']}）\n"
         f"- 闸门范围：Gate {args.gates}\n"
         f"- 材料：`{repo_relative(material_path)}`\n"
         f"- 材料清单：`{repo_relative(material_verification.manifest_path)}`\n"
-        f"- candidate patch：{args.candidate_patch or '无'}\n"
+        f"- review_ready 实验 patch：{args.candidate_patch or '无'}\n"
         f"- 排除 patch：{args.exclude_patch or '无'}\n"
         f"- 实验类型：{_experiment_kind(args.candidate_patch, args.exclude_patch)}\n"
         f"- 状态：{material_status_text}\n\n"
@@ -265,21 +368,36 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "7. 运行 `evaluate_prompt_response.py` 生成 `automatic_evaluation.json`。\n"
         "8. 人工填写 `human_review.md`、`score.json` 与 `failure_labels.json`。\n"
         "9. 只把升级建议写入 `patch_suggestions.md`，不得自动修改 patch 状态。\n",
-        encoding="utf-8",
     )
-    (run_dir / "diagnosis.md").write_text("# Gate 0：题目与材料诊断\n\n待执行。\n", encoding="utf-8")
+    atomic_write_text(run_dir / "diagnosis.md", "# Gate 0：题目与材料诊断\n\n待执行。\n")
     write_json(
         run_dir / "diagnosis.json",
         {"stage": "diagnosis", "_note": "待执行；完成后须符合 schemas/diagnosis.schema.json"},
     )
+    for filename, artifact_type in (
+        ("model_route.json", "model_route"),
+        ("code_plan.json", "code_plan"),
+        ("result_report.json", "result_report"),
+        ("result_manifest.json", "result_manifest"),
+        ("paper_claim_map.json", "paper_claim_map"),
+    ):
+        write_json(
+            run_dir / filename,
+            {
+                "artifact_type": artifact_type,
+                "_note": "待执行；离开对应 Gate 前必须替换为符合业务 Schema 的真实产物。",
+            },
+        )
+    (run_dir / "gate_artifacts").mkdir()
     write_json(run_dir / "score.json", {"total": None, "items": {}, "passed": None})
     write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
     write_json(
         run_dir / "gate_5_review.json",
         {"_note": "待 Gate 5 通过后填写；完成记录必须符合 schemas/gate_5_review.schema.json。"},
     )
-    (run_dir / "patch_suggestions.md").write_text(
-        "# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n", encoding="utf-8"
+    atomic_write_text(
+        run_dir / "patch_suggestions.md",
+        "# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n",
     )
     # 证据文件脚手架：由 AI 运行和人工审核填充。
     write_json(
@@ -293,7 +411,7 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
             "response_reference": None,
         },
     )
-    (run_dir / "response.md").write_text("# AI 输出（Markdown）\n\n待填写。\n", encoding="utf-8")
+    atomic_write_text(run_dir / "response.md", "# AI 输出（Markdown）\n\n待填写。\n")
     write_json(
         run_dir / "response.json",
         {"_note": "待填写：AI 结构化 JSON 输出，须符合 diagnosis.schema.json"},
@@ -302,14 +420,14 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         run_dir / "automatic_evaluation.json",
         {"_note": "待生成：由 evaluate_prompt_response.py 产出", "case_id": "", "errors": []},
     )
-    (run_dir / "human_review.md").write_text(
+    atomic_write_text(
+        run_dir / "human_review.md",
         "# 人工审核\n\n待填写。至少写明：\n"
         "- 是否出现 patch 特有机制\n"
         "- 是否改变正确题型\n"
         "- 是否相比 baseline 发生跑偏\n"
         "- 最终判定 pass/fail\n"
         "- 判断理由\n",
-        encoding="utf-8",
     )
     # AI 运行元数据脚手架：状态 pending，不含伪造时间戳或模型名
     write_json(
@@ -354,7 +472,32 @@ GATE_NAMES: dict[int, str] = {
     5: "最终验收",
 }
 
-VALID_TRANSITIONS: dict[int, set[int | None]] = {
+GATE_5_CHECKLIST_KEYS: tuple[str, ...] = (
+    "materials",
+    "diagnosis",
+    "model_route",
+    "code_reproduction",
+    "results",
+    "claim_evidence",
+    "risk_closure",
+    "final_acceptance",
+)
+
+GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
+    0: (("diagnosis.json", "diagnosis", "schemas/gate_business_artifact.schema.json", "1.0.0"),),
+    1: (("model_route.json", "model_route", "schemas/gate_business_artifact.schema.json", "1.0.0"),),
+    2: (("code_plan.json", "code_plan", "schemas/gate_business_artifact.schema.json", "1.0.0"),),
+    3: (
+        ("result_report.json", "result_report", "schemas/gate_business_artifact.schema.json", "1.0.0"),
+        ("result_manifest.json", "result_manifest", "schemas/gate_business_artifact.schema.json", "1.0.0"),
+    ),
+    4: (("paper_claim_map.json", "paper_claim_map", "schemas/gate_business_artifact.schema.json", "1.0.0"),),
+    5: (("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),),
+}
+
+TRANSITION_VERSION = "2.0.0"
+
+VALID_TRANSITIONS: dict[int | None, set[int]] = {
     # from_gate -> {valid to_gate}；None 表示只允许从初始状态进入
     None: {0},       # 只能从 initialized 进入 Gate 0
     0: {1},          # Gate 0 → Gate 1
@@ -369,22 +512,24 @@ VALID_TRANSITIONS: dict[int, set[int | None]] = {
 def _init_transitions(run_dir: Path, gate_range: str, material_ready: bool) -> None:
     """初始化 transitions.jsonl 并记录 initialized 状态。"""
     max_gate = int(gate_range.split("-")[1])
-    lines: list[str] = []
-    lines.append(
-        json.dumps(
-            {
-                "from": None,
-                "to": None,
-                "state": "initialized",
-                "material_ready": material_ready,
-                "max_gate": max_gate,
-                "note": "运行目录已创建；材料校验通过后才允许进入 Gate 0",
-            },
-            ensure_ascii=False,
-        )
-        + "\n"
+    initialized = chain_transition_event(
+        {
+            "transition_version": TRANSITION_VERSION,
+            "from": None,
+            "to": None,
+            "completed_gate": None,
+            "next_gate": 0,
+            "state": "initialized",
+            "material_ready": material_ready,
+            "max_gate": max_gate,
+            "note": "运行目录已创建；材料校验通过后才允许进入 Gate 0",
+        },
+        None,
     )
-    (run_dir / "transitions.jsonl").write_text("".join(lines), encoding="utf-8")
+    atomic_write_text(
+        run_dir / "transitions.jsonl",
+        json.dumps(initialized, ensure_ascii=False) + "\n",
+    )
 
 
 def _read_transition_entries(transitions_path: Path) -> list[dict[str, Any]]:
@@ -401,6 +546,97 @@ def _read_transition_entries(transitions_path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"transitions.jsonl 第 {line_no} 行必须是 JSON 对象")
         entries.append(entry)
     return entries
+
+
+def _replay_v2_transition_log(
+    run_dir: Path,
+    entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """回放 v2 Gate 日志：事件表达已完成 Gate 和下一 Gate。"""
+    _validate_transition_hash_chain(entries)
+    init_data = entries[0]
+    if init_data.get("completed_gate") is not None or init_data.get("next_gate") != 0:
+        raise ValueError("v2 initialized 记录必须声明 completed_gate=null、next_gate=0")
+
+    current: int | None = None
+    completed_gates: list[int] = []
+    completed = False
+    completed_entry: dict[str, Any] | None = None
+    for idx, entry in enumerate(entries[1:], start=2):
+        if entry.get("transition_version") != TRANSITION_VERSION:
+            raise ValueError(f"第 {idx} 条 Gate 记录 transition_version 不一致")
+        if completed:
+            raise ValueError("completed 终态之后不得再追加转换记录")
+        decision = entry.get("decision")
+        if decision not in ("approved", "rejected"):
+            raise ValueError(f"第 {idx} 条 Gate 记录 decision 非法：{decision!r}")
+        if not str(entry.get("reviewer", "")).strip():
+            raise ValueError(f"第 {idx} 条 Gate 记录 reviewer 不能为空")
+
+        state = entry.get("state")
+        completed_gate = entry.get("completed_gate")
+        next_gate = entry.get("next_gate")
+        if state == "started_gate_0":
+            if current is not None or completed_gate is not None or next_gate != 0:
+                raise ValueError("started_gate_0 只能从初始化状态进入 Gate 0")
+            if decision != "approved":
+                raise ValueError("started_gate_0 必须为 approved")
+            current = 0
+            continue
+
+        if state == "completed":
+            if current != 5 or completed_gate != 5 or next_gate is not None:
+                raise ValueError("completed 记录必须表达 completed_gate=5、next_gate=null")
+            if decision != "approved":
+                raise ValueError("completed 记录必须为 approved")
+            review_record = entry.get("review_record")
+            review_sha = entry.get("review_record_sha256")
+            if review_record != "gate_5_review.json":
+                raise ValueError("completed 记录必须绑定 gate_5_review.json")
+            if not isinstance(review_sha, str) or not re.fullmatch(r"[a-f0-9]{64}", review_sha):
+                raise ValueError("completed 记录缺少合法 review_record_sha256")
+            verify_gate_artifacts(run_dir, 5)
+            _, actual_review_sha = _load_and_validate_gate_5_review(
+                run_dir, str(entry["reviewer"])
+            )
+            if actual_review_sha != review_sha:
+                raise ValueError("completed 记录绑定的 gate_5_review.json SHA-256 不匹配")
+            completed_gates.append(5)
+            completed = True
+            completed_entry = entry
+            current = None
+            continue
+
+        if current is None:
+            raise ValueError(f"第 {idx} 条记录前尚未开始 Gate 0")
+        expected_next = current + 1
+        if completed_gate != current or next_gate != expected_next:
+            raise ValueError(
+                f"第 {idx} 条记录必须表达 completed_gate={current}、next_gate={expected_next}"
+            )
+        if next_gate > init_data["max_gate"]:
+            raise ValueError(f"第 {idx} 条 Gate 记录超过 initialized.max_gate")
+        if decision == "rejected":
+            if state != f"rejected_gate_{current}":
+                raise ValueError(f"第 {idx} 条拒绝记录 state 非法")
+            continue
+        if state != f"completed_gate_{current}":
+            raise ValueError(f"第 {idx} 条完成记录 state 非法")
+        verify_gate_artifacts(run_dir, current)
+        completed_gates.append(current)
+        current = next_gate
+
+    return {
+        "transition_version": TRANSITION_VERSION,
+        "initialized": init_data,
+        "current_gate": current,
+        "completed_gates": completed_gates,
+        "completed": completed,
+        "completed_entry": completed_entry,
+        "max_gate": init_data.get("max_gate"),
+        "material_ready": init_data.get("material_ready"),
+        "entries": entries,
+    }
 
 
 def replay_transition_log(run_dir: Path) -> dict[str, Any]:
@@ -427,10 +663,16 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
     init_data = entries[0]
     if init_data.get("from") is not None or init_data.get("to") is not None:
         raise ValueError("initialized 记录的 from/to 必须为 null")
-    if not isinstance(init_data.get("max_gate"), int) or init_data.get("max_gate") < 0 or init_data.get("max_gate") > 5:
+    max_gate = init_data.get("max_gate")
+    if not isinstance(max_gate, int) or max_gate < 0 or max_gate > 5:
         raise ValueError("initialized.max_gate 必须是 0-5 的整数")
     if init_data.get("material_ready") is not True and len(entries) > 1:
         raise ValueError("initialized.material_ready 不为 true，日志中不得出现 Gate 转换")
+    transition_version = init_data.get("transition_version")
+    if transition_version is not None:
+        if transition_version != TRANSITION_VERSION:
+            raise ValueError(f"不支持的 transition_version：{transition_version!r}")
+        return _replay_v2_transition_log(run_dir, entries)
 
     current: int | None = None
     completed = False
@@ -479,7 +721,7 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
             raise ValueError(f"第 {idx} 条 Gate 记录 from={from_gate!r} 与当前 Gate {current!r} 不一致")
         if to_gate not in GATE_NAMES:
             raise ValueError(f"第 {idx} 条 Gate 记录 to 非法：{to_gate!r}")
-        if to_gate > init_data.get("max_gate"):
+        if not isinstance(to_gate, int) or to_gate > max_gate:
             raise ValueError(f"第 {idx} 条 Gate 记录超过 initialized.max_gate")
         valid_next = VALID_TRANSITIONS.get(current, set())
         if to_gate not in valid_next:
@@ -492,12 +734,16 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
             current = to_gate
 
     return {
+        "transition_version": "1.0.0",
         "initialized": init_data,
         "current_gate": current,
         "completed": completed,
         "completed_entry": completed_entry,
         "max_gate": init_data.get("max_gate"),
         "material_ready": init_data.get("material_ready"),
+        "completed_gates": list(range(6)) if completed else (
+            list(range(current)) if current is not None else []
+        ),
         "entries": entries,
     }
 
@@ -533,6 +779,38 @@ def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, review
     if to_gate not in valid_next:
         expected = f"{{{', '.join(str(g) for g in sorted(valid_next))}}}" if valid_next else "（终点）"
         raise ValueError(f"Gate 转换非法：不能从 {real_current} 进入 Gate {to_gate}。允许的下一 Gate：{expected}。")
+
+    if state.get("transition_version") == TRANSITION_VERSION:
+        if real_current is None:
+            if decision != "approved":
+                raise ValueError("v2 工作流开始 Gate 0 时 decision 必须为 approved")
+            entry = {
+                "transition_version": TRANSITION_VERSION,
+                "completed_gate": None,
+                "next_gate": 0,
+                "state": "started_gate_0",
+                "gate_name": GATE_NAMES[0],
+                "reviewer": str(reviewer).strip(),
+                "decision": decision,
+            }
+        else:
+            if decision == "approved":
+                verify_gate_artifacts(run_dir, real_current)
+            entry = {
+                "transition_version": TRANSITION_VERSION,
+                "completed_gate": real_current,
+                "next_gate": to_gate,
+                "state": (
+                    f"completed_gate_{real_current}"
+                    if decision == "approved"
+                    else f"rejected_gate_{real_current}"
+                ),
+                "gate_name": GATE_NAMES[real_current],
+                "reviewer": str(reviewer).strip(),
+                "decision": decision,
+            }
+        _append_transition_event(run_dir / "transitions.jsonl", entry)
+        return
 
     entry = {
         "from": real_current,
@@ -595,6 +873,260 @@ def _validate_gate_5_review_schema(review: dict[str, Any]) -> None:
         raise ValueError(f"gate_5_review.json 不符合 Schema：{details}")
 
 
+def _load_json_object(path: Path, label: str) -> dict[str, Any]:
+    """读取运行现场 JSON 对象；缺失、损坏或非对象均按闭锁失败处理。"""
+    if not path.is_file():
+        raise FileNotFoundError(f"缺少{label}：{path}")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label}无法解析：{exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label}必须是 JSON 对象")
+    return value
+
+
+def _load_current_run_binding(run_dir: Path) -> dict[str, str]:
+    """从不可由审核文件替代的运行现场读取 Gate 5 身份绑定。"""
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    runtime_manifest = _load_json_object(
+        run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
+    )
+
+    binding: dict[str, Any] = {
+        "run_id": run_manifest.get("run_id"),
+        "problem_id": run_manifest.get("problem_id"),
+        "profile": run_manifest.get("profile"),
+        "runtime_version": run_manifest.get("runtime_version"),
+        "runtime_pack_sha256": runtime_manifest.get("runtime_pack_sha256"),
+    }
+    for field, value in binding.items():
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"当前运行现场缺少合法 {field}")
+
+    runtime_pack_sha = str(binding["runtime_pack_sha256"])
+    if not re.fullmatch(r"[a-f0-9]{64}", runtime_pack_sha):
+        raise ValueError("runtime_pack.manifest.json.runtime_pack_sha256 非法")
+    runtime_pack_path = run_dir / "runtime_pack.md"
+    if not runtime_pack_path.is_file():
+        raise FileNotFoundError(f"缺少 runtime_pack.md：{runtime_pack_path}")
+    actual_runtime_pack_sha = sha256_bytes(runtime_pack_path.read_bytes())
+    if actual_runtime_pack_sha != runtime_pack_sha:
+        raise ValueError("runtime_pack.md SHA-256 与 runtime_pack.manifest.json 不一致")
+
+    for field in ("profile", "runtime_version"):
+        declared = runtime_manifest.get(field)
+        if declared is not None and declared != binding[field]:
+            raise ValueError(
+                f"run_manifest.json.{field} 与 runtime_pack.manifest.json.{field} 不一致"
+            )
+    return {field: str(value) for field, value in binding.items()}
+
+
+def verify_run_seal(run_dir: Path) -> dict[str, Any]:
+    """验证 v2 封存记录与三个被封存文件的现场哈希。"""
+    seal = _load_json_object(run_dir / "seal_record.json", "seal_record.json")
+    _validate_json_schema(seal, "schemas/run_seal.schema.json", "seal_record.json")
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if seal.get("run_id") != run_manifest.get("run_id"):
+        raise ValueError("seal_record.run_id 与 run_manifest.run_id 不一致")
+
+    sealed_files = {
+        "run_manifest_sha256": run_dir / "run_manifest.json",
+        "transitions_sha256": run_dir / "transitions.jsonl",
+        "evidence_manifest_sha256": run_dir / "run_evidence_manifest.json",
+    }
+    for field, path in sealed_files.items():
+        if not path.is_file():
+            raise FileNotFoundError(f"seal_record 引用文件不存在：{path.name}")
+        actual = sha256_bytes(path.read_bytes())
+        if seal.get(field) != actual:
+            raise ValueError(f"seal_record.{field} 与现场文件不一致")
+    return seal
+
+
+def _validate_json_schema(data: dict[str, Any], schema_relative: str, label: str) -> None:
+    """按仓库内 Draft 2020-12 Schema 校验对象并汇总全部字段错误。"""
+    schema_path = ROOT / schema_relative
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    errors = sorted(
+        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(data),
+        key=lambda error: list(error.absolute_path),
+    )
+    if errors:
+        details = "；".join(
+            f"{'.'.join(str(part) for part in error.absolute_path) or '<root>'}：{error.message}"
+            for error in errors
+        )
+        raise ValueError(f"{label} 不符合 Schema：{details}")
+
+
+def _validate_gate_business_artifact(
+    run_dir: Path,
+    filename: str,
+    role: str,
+    schema_relative: str,
+    schema_version: str,
+    binding: Mapping[str, str],
+) -> bytes:
+    """校验单个 Gate 业务产物的结构、身份、类型和内容，返回原始字节。"""
+    path = run_dir / filename
+    raw = path.read_bytes() if path.is_file() else b""
+    if not raw:
+        raise ValueError(f"Gate 产物缺失或为空：{filename}")
+    try:
+        artifact = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Gate 产物 {filename} 无法解析：{exc}") from exc
+    if not isinstance(artifact, dict):
+        raise ValueError(f"Gate 产物 {filename} 必须是 JSON 对象")
+    _validate_json_schema(artifact, schema_relative, filename)
+
+    for field, expected in binding.items():
+        if artifact.get(field) != expected:
+            raise ValueError(f"{filename}.{field} 与当前运行现场不一致")
+    if role != "gate_5_review":
+        if artifact.get("artifact_type") != role:
+            raise ValueError(f"{filename}.artifact_type 必须为 {role}")
+        if artifact.get("schema_version") != schema_version:
+            raise ValueError(f"{filename}.schema_version 必须为 {schema_version}")
+    return raw
+
+
+def build_gate_artifact_manifest(
+    run_dir: Path,
+    gate: int,
+    *,
+    completed_at: str | None = None,
+) -> dict[str, Any]:
+    """从已完成业务产物构建单 Gate 身份与哈希清单。"""
+    if gate not in GATE_ARTIFACT_SPECS:
+        raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
+    binding = _load_current_run_binding(run_dir)
+    artifacts: list[dict[str, Any]] = []
+    for filename, role, schema_relative, schema_version in GATE_ARTIFACT_SPECS[gate]:
+        raw = _validate_gate_business_artifact(
+            run_dir,
+            filename,
+            role,
+            schema_relative,
+            schema_version,
+            binding,
+        )
+        artifacts.append(
+            {
+                "path": filename,
+                "role": role,
+                "schema": schema_relative,
+                "schema_version": schema_version,
+                "sha256": sha256_bytes(raw),
+                "size_bytes": len(raw),
+            }
+        )
+    return {
+        "manifest_version": "1.0.0",
+        "gate": gate,
+        "completed_at": completed_at
+        or datetime.now().astimezone().isoformat(timespec="seconds"),
+        **binding,
+        "artifacts": artifacts,
+    }
+
+
+def write_gate_artifact_manifest(
+    run_dir: Path,
+    gate: int,
+    *,
+    completed_at: str | None = None,
+) -> Path:
+    """校验业务内容后写入 gate_artifacts/gate_N.manifest.json。"""
+    manifest = build_gate_artifact_manifest(run_dir, gate, completed_at=completed_at)
+    manifest_path = run_dir / "gate_artifacts" / f"gate_{gate}.manifest.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(manifest_path, manifest)
+    return manifest_path
+
+
+def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
+    """验证 Gate 清单、精确文件集合、业务 Schema、运行身份及内容哈希。"""
+    if gate not in GATE_ARTIFACT_SPECS:
+        raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
+    manifest_path = run_dir / "gate_artifacts" / f"gate_{gate}.manifest.json"
+    manifest = _load_json_object(manifest_path, f"gate_{gate}.manifest.json")
+    _validate_json_schema(
+        manifest,
+        "schemas/gate_artifact_manifest.schema.json",
+        f"gate_{gate}.manifest.json",
+    )
+    if manifest.get("gate") != gate:
+        raise ValueError(f"gate_{gate}.manifest.json.gate 必须为 {gate}")
+
+    binding = _load_current_run_binding(run_dir)
+    for field, expected in binding.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"gate_{gate}.manifest.json.{field} 与当前运行现场不一致")
+
+    expected_specs = GATE_ARTIFACT_SPECS[gate]
+    expected_paths = {spec[0] for spec in expected_specs}
+    entries = manifest.get("artifacts", [])
+    actual_paths = [entry.get("path") for entry in entries if isinstance(entry, dict)]
+    if len(actual_paths) != len(set(actual_paths)):
+        raise ValueError(f"gate_{gate}.manifest.json.artifacts 存在重复路径")
+    if set(actual_paths) != expected_paths:
+        raise ValueError(
+            f"gate_{gate}.manifest.json 产物集合错误："
+            f"期望 {sorted(expected_paths)}，实际 {sorted(str(path) for path in actual_paths)}"
+        )
+    entries_by_path = {entry["path"]: entry for entry in entries}
+    for filename, role, schema_relative, schema_version in expected_specs:
+        entry = entries_by_path[filename]
+        expected_metadata = {
+            "role": role,
+            "schema": schema_relative,
+            "schema_version": schema_version,
+        }
+        for field, expected in expected_metadata.items():
+            if entry.get(field) != expected:
+                raise ValueError(f"gate_{gate}.manifest.json {filename}.{field} 不符合固定契约")
+        raw = _validate_gate_business_artifact(
+            run_dir,
+            filename,
+            role,
+            schema_relative,
+            schema_version,
+            binding,
+        )
+        if entry.get("sha256") != sha256_bytes(raw):
+            raise ValueError(f"Gate {gate} 产物 {filename} SHA-256 不匹配")
+        if entry.get("size_bytes") != len(raw):
+            raise ValueError(f"Gate {gate} 产物 {filename} size_bytes 不匹配")
+    if gate == 3:
+        result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
+        result_manifest = _load_json_object(
+            run_dir / "result_manifest.json", "result_manifest.json"
+        )
+        model_errors = validate_model_and_execution(
+            result_report, result_manifest, run_dir=run_dir
+        )
+        if model_errors:
+            raise ValueError("Gate 3 数学或复现检查失败：" + "；".join(model_errors))
+    if gate == 4:
+        result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
+        result_manifest = _load_json_object(
+            run_dir / "result_manifest.json", "result_manifest.json"
+        )
+        claim_map = _load_json_object(run_dir / "paper_claim_map.json", "paper_claim_map.json")
+        claim_errors = validate_model_and_execution(
+            result_report,
+            result_manifest,
+            run_dir=run_dir,
+            claim_map=claim_map,
+        )
+        if claim_errors:
+            raise ValueError("Gate 4 Claim-Result 检查失败：" + "；".join(claim_errors))
+    return manifest
+
+
 def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict[str, Any], str]:
     """读取并验证 Gate 5 人工审核记录，返回记录和 SHA-256。"""
     if not str(reviewer).strip():
@@ -611,6 +1143,13 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
         raise ValueError("gate_5_review.json 必须是 JSON 对象")
 
     _validate_gate_5_review_schema(review)
+    current_binding = _load_current_run_binding(run_dir)
+    for field, expected in current_binding.items():
+        if review.get(field) != expected:
+            raise ValueError(
+                f"gate_5_review.{field} 与当前运行现场不一致："
+                f"审核记录为 {review.get(field)!r}，当前运行为 {expected!r}"
+            )
     if review.get("target_gate") != 5:
         raise ValueError("gate_5_review.target_gate 必须为 5")
     if review.get("reviewer") != str(reviewer).strip():
@@ -622,13 +1161,12 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
         raise ValueError("gate_5_review.final_acceptance 必须为 true")
     if not isinstance(review.get("reason"), str) or len(review.get("reason", "").strip()) < 10:
         raise ValueError("gate_5_review.reason 至少需要 10 个字符")
-    checklist = review.get("checklist", {})
-    if checklist is not None:
-        if not isinstance(checklist, dict):
-            raise ValueError("gate_5_review.checklist 必须是对象")
-        failed = [key for key, value in checklist.items() if value is not True]
-        if failed:
-            raise ValueError(f"gate_5_review.checklist 存在未通过项：{', '.join(sorted(failed))}")
+    checklist = review["checklist"]
+    if set(checklist) != set(GATE_5_CHECKLIST_KEYS):
+        raise ValueError("gate_5_review.checklist 必须且只能包含固定八项")
+    failed = [key for key in GATE_5_CHECKLIST_KEYS if checklist.get(key) is not True]
+    if failed:
+        raise ValueError(f"gate_5_review.checklist 存在未通过项：{', '.join(failed)}")
     return review, sha256_bytes(raw)
 
 
@@ -643,66 +1181,262 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
         raise ValueError(f"当前不在 Gate 5（当前 Gate：{state['current_gate']}），无法完成运行。")
 
     review, review_sha = _load_and_validate_gate_5_review(run_dir, reviewer)
-    entry = {
-        "from": 5,
-        "to": None,
-        "state": "completed",
-        "reviewer": str(reviewer).strip(),
-        "decision": "approved",
-        "review_record": "gate_5_review.json",
-        "review_record_sha256": review_sha,
-        "reviewed_at": review["reviewed_at"],
-        "note": "Gate 5 通过，运行完成。",
-    }
-    with open(run_dir / "transitions.jsonl", "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    if state.get("transition_version") == TRANSITION_VERSION:
+        verify_gate_artifacts(run_dir, 5)
+        entry = {
+            "transition_version": TRANSITION_VERSION,
+            "completed_gate": 5,
+            "next_gate": None,
+            "state": "completed",
+            "reviewer": str(reviewer).strip(),
+            "decision": "approved",
+            "review_record": "gate_5_review.json",
+            "review_record_sha256": review_sha,
+            "reviewed_at": review["reviewed_at"],
+            "note": "Gate 5 业务产物与最终审核均通过，运行完成。",
+        }
+    else:
+        entry = {
+            "from": 5,
+            "to": None,
+            "state": "completed",
+            "reviewer": str(reviewer).strip(),
+            "decision": "approved",
+            "review_record": "gate_5_review.json",
+            "review_record_sha256": review_sha,
+            "reviewed_at": review["reviewed_at"],
+            "note": "Gate 5 通过，运行完成。",
+        }
+    if state.get("transition_version") == TRANSITION_VERSION:
+        _append_transition_event(run_dir / "transitions.jsonl", entry)
+    else:
+        transitions_path = run_dir / "transitions.jsonl"
+        atomic_write_text(
+            transitions_path,
+            transitions_path.read_text(encoding="utf-8")
+            + json.dumps(entry, ensure_ascii=False)
+            + "\n",
+        )
 
     manifest_path = run_dir / "run_manifest.json"
     if manifest_path.is_file():
         run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        run_manifest["run_status"] = "completed"
-        run_manifest.setdefault("integrity_status", "unsealed")
-        write_json(manifest_path, run_manifest)
+        if run_manifest.get("manifest_version") != "2.0.0":
+            run_manifest["run_status"] = "completed"
+            run_manifest.setdefault("integrity_status", "unsealed")
+            write_json(manifest_path, run_manifest)
+
+
+def create_prompt_regression_run(args: argparse.Namespace) -> Path:
+    """创建轻量 Prompt 回归目录；该流程不进入 Gate，也不能生成晋级证据。"""
+    run_id = args.run_id or f"{date.today().isoformat()}_{normalize_problem_dir(args.problem)}_prompt"
+    output_root = Path(args.output_root)
+    if not output_root.is_absolute():
+        output_root = ROOT / output_root
+    run_dir = output_root / run_id
+    if run_dir.exists():
+        raise FileExistsError(f"运行目录已存在：{run_dir}")
+    run_dir.mkdir(parents=True)
+
+    profile = json.loads(
+        (ROOT / "runtime_profiles" / f"{args.profile}.json").read_text(encoding="utf-8")
+    )
+    pack = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
+    pack_manifest = build_manifest(
+        args.profile, pack, args.candidate_patch, args.exclude_patch
+    )
+    atomic_write_text(run_dir / "runtime_pack.md", pack)
+    write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
+    write_json(run_dir / "runtime_profile.snapshot.json", profile)
+    write_json(
+        run_dir / "run_manifest.json",
+        {
+            "manifest_version": "2.0.0",
+            "run_id": run_id,
+            "workflow": "prompt_regression",
+            "problem_id": args.problem,
+            "profile": args.profile,
+            "runtime_version": profile["version"],
+            "runtime_pack_sha256": pack_manifest["runtime_pack_sha256"],
+            "initial_state": "initialized",
+            "eligible_for_promotion": False,
+            "evidence_validity": "prompt_behavior_only",
+        },
+    )
+    write_json(
+        run_dir / "request.json",
+        {"prompt": "", "model": "", "source": "pending", "response_reference": None},
+    )
+    write_json(run_dir / "response.json", {"_note": "待执行轻量提示词行为测试"})
+    return run_dir
+
+
+def advance_run(run_dir: Path, reviewer: str, decision: str = "approved") -> dict[str, Any]:
+    """推进一次 Gate；离开当前 Gate 时复用业务产物机器校验。"""
+    state = replay_transition_log(run_dir)
+    current = state["current_gate"]
+    if current is None:
+        record_transition(run_dir, None, 0, reviewer, decision)
+    elif current == 5:
+        raise ValueError("当前已在 Gate 5；请使用 complete 完成最终验收")
+    else:
+        record_transition(run_dir, current, current + 1, reviewer, decision)
+    return replay_transition_log(run_dir)
+
+
+def verify_run(run_dir: Path) -> dict[str, Any]:
+    """复核运行现场；部分 Gate 运行可返回状态，但不会被标记为晋级证据。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if manifest.get("workflow") == "prompt_regression":
+        return {
+            "run_id": manifest.get("run_id"),
+            "workflow": "prompt_regression",
+            "eligible_for_promotion": False,
+            "verified_gates": [],
+            "completed": False,
+            "sealed": False,
+        }
+    state = replay_transition_log(run_dir)
+    verified_gates: list[int] = []
+    for gate in state.get("completed_gates", []):
+        verify_gate_artifacts(run_dir, gate)
+        verified_gates.append(gate)
+    seal_errors: list[str] = []
+    try:
+        verify_run_seal(run_dir)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        seal_errors.append(str(exc))
+
+    promotion_errors = list(seal_errors)
+    if manifest.get("promotion_evidence") is not True:
+        promotion_errors.append("运行初始化时未声明为晋级证据")
+    if state.get("transition_version") != TRANSITION_VERSION:
+        promotion_errors.append("晋级证据必须使用 Gate 语义完成契约 v2")
+    if not state["completed"] or state["max_gate"] != 5:
+        promotion_errors.append("Gate 0-5 尚未完整完成")
+
+    if not promotion_errors:
+        try:
+            metadata = _load_json_object(run_dir / "ai_run_metadata.json", "ai_run_metadata.json")
+            _validate_json_schema(
+                metadata, "schemas/ai_run_metadata.schema.json", "ai_run_metadata.json"
+            )
+            if metadata.get("status") != "completed":
+                promotion_errors.append("ai_run_metadata.status 不是 completed")
+            request = _load_json_object(run_dir / "request.json", "request.json")
+            if request.get("source") != "real_ai_run":
+                promotion_errors.append("request.source 不是 real_ai_run")
+            automatic = _load_json_object(
+                run_dir / "automatic_evaluation.json", "automatic_evaluation.json"
+            )
+            if automatic.get("result") != "pass" or automatic.get("errors"):
+                promotion_errors.append("automatic_evaluation 未通过")
+
+            from finalize_run_evidence import load_policy, validate_evidence_manifest
+
+            policy = load_policy()
+            required = policy["run_evidence_requirements"]["ai_run_metadata_checks"][
+                "required_artifacts"
+            ]
+            evidence = _load_json_object(
+                run_dir / "run_evidence_manifest.json", "run_evidence_manifest.json"
+            )
+            promotion_errors.extend(validate_evidence_manifest(run_dir, evidence, required))
+        except (KeyError, OSError, ValueError, json.JSONDecodeError) as exc:
+            promotion_errors.append(str(exc))
+
+    return {
+        "run_id": manifest.get("run_id"),
+        "workflow": manifest.get("workflow"),
+        "mode": manifest.get("mode"),
+        "eligible_for_promotion": not promotion_errors,
+        "verified_gates": verified_gates,
+        "current_gate": state["current_gate"],
+        "completed": state["completed"],
+        "sealed": not seal_errors,
+        "promotion_readiness_errors": promotion_errors,
+    }
+
+
+def complete_and_seal_run(run_dir: Path, reviewer: str) -> dict[str, Any]:
+    """完成 Gate 5 并封存；中断后重复调用可从已完成转换处恢复。"""
+    state = replay_transition_log(run_dir)
+    if not state["completed"]:
+        mark_run_completed(run_dir, reviewer)
+
+    seal_path = run_dir / "seal_record.json"
+    if seal_path.is_file():
+        verify_run_seal(run_dir)
+    else:
+        from finalize_run_evidence import finalize_run_evidence
+
+        finalize_run_evidence(run_dir)
+    return verify_run(run_dir)
+
+
+def _add_init_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--workflow", required=True, choices=["prompt_regression", "full_replay", "new_problem"]
+    )
+    parser.add_argument("--problem", required=True, help="题号，例如 2024-C。")
+    parser.add_argument("--profile", default="engineering_optimization")
+    parser.add_argument("--mode", default="standard", choices=["strict", "standard", "emergency"])
+    parser.add_argument("--materials", help="材料根目录；new_problem 必须显式提供。")
+    parser.add_argument("--output-root", default="runs")
+    parser.add_argument("--run-id")
+    parser.add_argument("--candidate-patch", action="append", default=[], dest="candidate_patch")
+    parser.add_argument("--exclude-patch", action="append", default=[])
+    parser.add_argument("--promotion-evidence", action="store_true")
+    parser.add_argument("--experiment-group-id")
+    parser.add_argument("--experiment-role", choices=["baseline", "patch_only"])
+    parser.add_argument("--target-patch")
+    parser.set_defaults(material_file=[])
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="初始化可追溯的数学建模工作流运行目录。")
-    parser.add_argument("--workflow", required=True, choices=["old_problem"])
-    parser.add_argument("--problem", required=True, help="旧题编号，例如 2024-C。")
-    parser.add_argument("--profile", default="engineering_optimization")
-    parser.add_argument("--gates", default="0-2", choices=["0-2", "0-5"])
-    parser.add_argument("--materials", help="题面/附件根目录；默认从 official_materials/<题号> 推导。")
-    parser.add_argument("--output-root", default="runs")
-    parser.add_argument("--run-id", help="显式运行 ID，便于自动化测试或重跑隔离。")
-    parser.add_argument(
-        "--candidate-patch",
-        action="append",
-        default=[],
-        metavar="PATCH_ID",
-        dest="candidate_patch",
-        help="显式加入指定 candidate patch，可重复传入。",
-    )
-    parser.add_argument(
-        "--exclude-patch",
-        action="append",
-        default=[],
-        help="要排除的 patch_id（可多次指定）。",
-    )
-    parser.add_argument("--promotion-evidence", action="store_true", help="启用晋级评估模式。")
-    parser.add_argument("--experiment-group-id", help="实验组 ID。")
-    parser.add_argument("--experiment-role", choices=["baseline", "patch_only"], help="实验角色。")
-    parser.add_argument("--target-patch", help="目标 Patch ID。")
+    parser = argparse.ArgumentParser(description="可追溯数学建模工作流 CLI。")
+    commands = parser.add_subparsers(dest="command", required=True)
+    _add_init_arguments(commands.add_parser("init", help="冻结材料、Profile、Patch 和运行包"))
+    advance = commands.add_parser("advance", help="验证并推进一个 Gate")
+    advance.add_argument("--run-dir", required=True)
+    advance.add_argument("--reviewer", required=True)
+    advance.add_argument("--decision", default="approved", choices=["approved", "rejected"])
+    complete = commands.add_parser("complete", help="验证 Gate 5 并完成运行")
+    complete.add_argument("--run-dir", required=True)
+    complete.add_argument("--reviewer", required=True)
+    verify = commands.add_parser("verify", help="复核当前运行状态与已完成 Gate")
+    verify.add_argument("--run-dir", required=True)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run_dir, material_ready = create_old_problem_run(args)
-    print(f"已创建运行目录：{run_dir}")
-    if not material_ready:
-        print("[BLOCKED] 题面、附件、模板或 SHA-256 校验未通过；详见 material_review.json。")
-        raise SystemExit(2)
-    print("[READY] 题面、附件、模板和 SHA-256 校验通过；请完成人工材料等级与风险确认。")
+    try:
+        if args.command == "init":
+            if args.workflow == "prompt_regression":
+                run_dir = create_prompt_regression_run(args)
+                print(f"[READY] 已创建轻量 Prompt 回归：{run_dir}")
+                return
+            if args.workflow == "new_problem" and not args.materials:
+                raise ValueError("new_problem 必须显式提供 --materials")
+            args.gates = "0-5"
+            run_dir, material_ready = create_old_problem_run(args)
+            print(f"已创建运行目录：{run_dir}")
+            if not material_ready:
+                raise ValueError("题面、附件、模板或 SHA-256 校验未通过")
+            print("[READY] 材料与冻结快照已就绪；请从 Gate 0 开始。")
+        elif args.command == "advance":
+            state = advance_run(Path(args.run_dir), args.reviewer, args.decision)
+            print(json.dumps(state, ensure_ascii=False, indent=2))
+        elif args.command == "complete":
+            report = complete_and_seal_run(Path(args.run_dir), args.reviewer)
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            print("[SEALED] Gate 0-5 已完成并封存。")
+        elif args.command == "verify":
+            print(json.dumps(verify_run(Path(args.run_dir)), ensure_ascii=False, indent=2))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"[BLOCKED] {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
 
 
 if __name__ == "__main__":

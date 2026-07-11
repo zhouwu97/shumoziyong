@@ -11,9 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from export_runtime_pack import build_manifest, build_pack
+from evidence_validation import failure_fix_evidence_digest
 from finalize_run_evidence import finalize_run_evidence
 from promotion_engine import stable_evidence_digest
-from run_workflow import mark_run_completed, record_transition
+from run_workflow import GATE_5_CHECKLIST_KEYS, mark_run_completed, record_transition
 from validate_repository import RepositoryValidator
 
 
@@ -34,6 +35,9 @@ def _complete_and_seal_run(run_dir: Path) -> None:
     manifest = json.loads(manifest_path.read_text("utf-8"))
     manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
     manifest_path.write_text(json.dumps(manifest), "utf-8")
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text("utf-8")
+    )
     (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
     (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
     (run_dir / "transitions.jsonl").write_text(
@@ -45,12 +49,18 @@ def _complete_and_seal_run(run_dir: Path) -> None:
     (run_dir / "gate_5_review.json").write_text(
         json.dumps(
             {
+                "run_id": manifest["run_id"],
+                "problem_id": manifest["problem_id"],
+                "profile": manifest["profile"],
+                "runtime_version": manifest["runtime_version"],
+                "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
                 "target_gate": 5,
                 "reviewer": "fixture",
                 "reviewed_at": "2026-07-11T00:00:00Z",
                 "decision": "approved",
                 "final_acceptance": True,
                 "reason": "Fixture Gate 5 review is approved.",
+                "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
             }
         ),
         "utf-8",
@@ -96,15 +106,43 @@ def _retarget_fixture_patch(fix_dir: Path, patch_id: str) -> None:
     for run_name in ("treatment", "treatment2", "retest"):
         evaluation_path = fix_dir / run_name / "automatic_evaluation.json"
         evaluation = json.loads(evaluation_path.read_text("utf-8"))
-        evaluation["case_sha256"] = hashlib.sha256(
-            test_case_path.read_text("utf-8").encode("utf-8")
-        ).hexdigest()
+        evaluation["case_sha256"] = _sha256(test_case_path)
         evaluation_path.write_text(json.dumps(evaluation), "utf-8")
-    for record_name in ("failure_record.json", "fix_record.json"):
+    failure_id = f"F-{patch_id}-001"
+    for record_name in ("failure_record.json", "fix_record.json", "fix_review.json"):
         record_path = fix_dir / record_name
         record = json.loads(record_path.read_text("utf-8"))
-        record["patch_id"] = patch_id
+        record.pop("patch_id", None)
+        record["failure_id"] = failure_id
+        record["target_patch"] = patch_id
+        record["retest_run_id"] = "treatment"
         record_path.write_text(json.dumps(record), "utf-8")
+    fixture_index_path = fix_dir / "patch_index.json"
+    fixture_index = json.loads(fixture_index_path.read_text("utf-8"))
+    fixture_index[0]["stable_evidence"]["failure_fix_retests"][0][
+        "failure_id"
+    ] = failure_id
+    fixture_index_path.write_text(json.dumps(fixture_index), "utf-8")
+
+
+def _bind_failure_fix_chain(fix_dir: Path, patch_id: str) -> None:
+    """在重测封存后将审核记录绑定到修复文件和最终重测证据。"""
+    failure_id = f"F-{patch_id}-001"
+    failure_path = fix_dir / "failure_record.json"
+    fix_path = fix_dir / "fix_record.json"
+    retest_manifest = fix_dir / "retest" / "run_evidence_manifest.json"
+    review_path = fix_dir / "fix_review.json"
+    review = json.loads(review_path.read_text("utf-8"))
+    review["fix_record_sha256"] = _sha256(fix_path)
+    review["evidence_digest"] = failure_fix_evidence_digest(
+        failure_id=failure_id,
+        target_patch=patch_id,
+        retest_run_id="treatment",
+        failure_record_sha256=_sha256(failure_path),
+        fix_record_sha256=_sha256(fix_path),
+        retest_evidence_manifest_sha256=_sha256(retest_manifest),
+    )
+    review_path.write_text(json.dumps(review), "utf-8")
 
 
 def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
@@ -119,6 +157,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
         manifest = json.loads(manifest_path.read_text("utf-8"))
         manifest_path.write_text(json.dumps(manifest), "utf-8")
         _complete_and_seal_run(fix_dir / run_name)
+    _bind_failure_fix_chain(fix_dir, "A092")
 
     for review_name in ("comparison_review.json", "comparison_review_2.json"):
         review_path = fix_dir / review_name
@@ -128,6 +167,23 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
 
     pack = build_pack("engineering_optimization")
     competition_manifest = build_manifest("engineering_optimization", pack)
+    source_patch = next(
+        item
+        for item in json.loads(
+            (ROOT / "prompt_patches" / "patch_index.json").read_text("utf-8")
+        )
+        if item["patch_id"] == "A092"
+    )
+    competition_manifest["maturity"] = "competition_evidenced"
+    competition_manifest["validation_target_status"] = "competition_evidenced"
+    competition_manifest["patches"] = [
+        {
+            "patch_id": "A092",
+            "status": "regression_verified",
+            "path": source_patch["file"],
+            "sha256": _sha256(ROOT / source_patch["file"]),
+        }
+    ]
     competition_manifest_path = fix_dir / "comp_manifest.json"
     competition_manifest_path.write_text(json.dumps(competition_manifest), "utf-8")
     competition_result_path = fix_dir / "comp_result.json"
@@ -143,7 +199,7 @@ def test_fully_valid_stable_patch_passes_repository_validator(tmp_path):
     source_index = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text("utf-8"))
     policy_version = json.loads((ROOT / "policies" / "promotion_policy.json").read_text("utf-8"))["policy_version"]
     stable_patch = copy.deepcopy(next(item for item in source_index if item["patch_id"] == "A092"))
-    stable_patch["status"] = "stable"
+    stable_patch["status"] = "competition_evidenced"
     original_evidence = json.loads((fix_dir / "patch_index.json").read_text("utf-8"))[0]["stable_evidence"]
     for negative_run in original_evidence["negative_control_runs"]:
         negative_run["case"] = "2016-C"

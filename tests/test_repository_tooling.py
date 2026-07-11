@@ -20,16 +20,27 @@ from export_runtime_pack import (  # noqa: E402
     select_patches,
 )
 from run_workflow import (  # noqa: E402
+    GATE_5_CHECKLIST_KEYS,
     GATE_NAMES,
+    TRANSITION_VERSION,
     VALID_TRANSITIONS,
+    advance_run,
+    atomic_write_bytes,
+    chain_transition_event,
+    complete_and_seal_run,
     create_old_problem_run,
+    create_prompt_regression_run,
     get_current_gate,
     is_gate_complete,
     mark_run_completed,
     record_transition,
     replay_transition_log,
+    verify_gate_artifacts,
+    verify_run,
+    write_gate_artifact_manifest,
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
+from evidence_validation import validate_full_run  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
@@ -59,19 +70,312 @@ def _write_material_manifest(materials: Path, problem_id: str, files: dict[str, 
     (materials / "material_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), "utf-8")
 
 
+def _write_minimal_run_binding(
+    run_dir: Path,
+    *,
+    run_id: str = "test_run",
+    problem_id: str = "2024-C",
+    profile: str = "engineering_optimization",
+    runtime_version: str = "0.1.0",
+    runtime_pack: bytes = b"test runtime pack",
+) -> None:
+    """写入 Gate 5 绑定测试所需的最小、真实哈希运行现场。"""
+    (run_dir / "runtime_pack.md").write_bytes(runtime_pack)
+    runtime_pack_sha = hashlib.sha256(runtime_pack).hexdigest()
+    (run_dir / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "problem_id": problem_id,
+                "profile": profile,
+                "runtime_version": runtime_version,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "runtime_pack.manifest.json").write_text(
+        json.dumps(
+            {
+                "profile": profile,
+                "runtime_version": runtime_version,
+                "runtime_pack_sha256": runtime_pack_sha,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _gate_5_review(run_dir: Path, reviewer: str = "human") -> dict[str, object]:
+    """从运行现场生成仅用于测试的完整 Gate 5 审核记录。"""
+    run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+    )
+    return {
+        "run_id": run_manifest["run_id"],
+        "problem_id": run_manifest["problem_id"],
+        "profile": run_manifest["profile"],
+        "runtime_version": run_manifest["runtime_version"],
+        "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
+        "target_gate": 5,
+        "reviewer": reviewer,
+        "reviewed_at": "2026-07-11T00:00:00Z",
+        "decision": "approved",
+        "final_acceptance": True,
+        "reason": "The final Gate 5 review is complete and approved.",
+        "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
+    }
+
+
+def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
+    """写入最小但具备业务含义的 Gate 0-4 产物及对应哈希清单。"""
+    run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+    )
+    binding = {
+        "schema_version": "1.0.0",
+        "run_id": run_manifest["run_id"],
+        "problem_id": run_manifest["problem_id"],
+        "profile": run_manifest["profile"],
+        "runtime_version": run_manifest["runtime_version"],
+        "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
+    }
+    runtime_pack_sha = runtime_manifest["runtime_pack_sha256"]
+    payloads: dict[int, list[tuple[str, dict[str, object]]]] = {
+        0: [
+            (
+                "diagnosis.json",
+                {
+                    **binding,
+                    "artifact_type": "diagnosis",
+                    "problem_summary": "This fixture identifies the mathematical task and its evidence boundary.",
+                    "material_findings": ["All declared problem materials passed hash checks."],
+                    "objectives": ["Produce a reproducible and reviewable mathematical result."],
+                    "constraints": ["Use only the frozen input materials."],
+                    "risks": ["Unsupported assumptions may invalidate downstream claims."],
+                },
+            )
+        ],
+        1: [
+            (
+                "model_route.json",
+                {
+                    **binding,
+                    "artifact_type": "model_route",
+                    "selected_route": "Use a deterministic baseline followed by constrained validation.",
+                    "alternatives": ["A stochastic alternative was considered and rejected."],
+                    "assumptions": ["The frozen input data is representative of the stated task."],
+                    "validation_plan": ["Compare outputs against the declared constraints."],
+                },
+            )
+        ],
+        2: [
+            (
+                "code_plan.json",
+                {
+                    **binding,
+                    "artifact_type": "code_plan",
+                    "commands": ["python solve.py --input frozen.json"],
+                    "modules": ["solve.py implements the declared model route."],
+                    "inputs": ["frozen.json"],
+                    "outputs": ["result.json"],
+                    "verification_steps": ["Re-run the command and compare output hashes."],
+                },
+            )
+        ],
+        3: [
+            (
+                "result_report.json",
+                {
+                    **binding,
+                    "artifact_type": "result_report",
+                    "conclusions": ["The configured fixture checks completed successfully."],
+                    "metrics": [
+                        {"name": "fixture_score", "value": 1.0, "unit": None, "source": "result.json"}
+                    ],
+                    "limitations": ["This fixture result is not a universal correctness claim."],
+                    "model_contract": {
+                        "model_type": "descriptive",
+                        "variables": [
+                            {
+                                "name": "x",
+                                "definition": "Fixture decision value.",
+                                "unit": "1",
+                                "source": "problem statement",
+                            }
+                        ],
+                        "parameters": [
+                            {
+                                "name": "p",
+                                "definition": "Fixture parameter.",
+                                "unit": "1",
+                                "source": "frozen input",
+                            }
+                        ],
+                        "formulas": [
+                            {"formula_id": "F1", "expression": "x + p", "symbols": ["x", "p"]}
+                        ],
+                        "objectives": ["Explain the fixture result."],
+                        "constraints": ["x must remain finite."],
+                        "boundary_conditions": ["x equals zero at the fixture boundary."],
+                        "unit_checks": [{"expression": "x + p", "compatible": True}],
+                        "claim_result_bindings": [
+                            {"claim_id": "C001", "metric": "fixture_score"}
+                        ],
+                        "optimization_checks": {
+                            "configured": [],
+                            "passed": [],
+                            "not_applicable": {},
+                        },
+                    },
+                },
+            ),
+            (
+                "result_manifest.json",
+                {
+                    **binding,
+                    "artifact_type": "result_manifest",
+                    "executions": [
+                        {
+                            "command": "python solve.py --input frozen.json",
+                            "exit_code": 0,
+                            "outputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                        }
+                    ],
+                    "inputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                    "outputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                    "environment": {
+                        "python": "3.12",
+                        "os": "test",
+                        "solver": None,
+                        "git_sha": "abcdef0",
+                        "dependencies": ["jsonschema==4"],
+                    },
+                    "random_seeds": [0],
+                    "tolerances": {"absolute": 0.0},
+                    "deterministic_expected": True,
+                    "repeated_runs": [
+                        {
+                            "execution_id": "fixture-repeat-1",
+                            "seed": 0,
+                            "started_at": "2026-07-11T00:00:00Z",
+                            "completed_at": "2026-07-11T00:00:01Z",
+                            "exit_code": 0,
+                            "output_sha256": runtime_pack_sha,
+                            "stdout_sha256": runtime_pack_sha,
+                            "environment_sha256": runtime_pack_sha,
+                        },
+                        {
+                            "execution_id": "fixture-repeat-2",
+                            "seed": 0,
+                            "started_at": "2026-07-11T00:00:02Z",
+                            "completed_at": "2026-07-11T00:00:03Z",
+                            "exit_code": 0,
+                            "output_sha256": runtime_pack_sha,
+                            "stdout_sha256": runtime_pack_sha,
+                            "environment_sha256": runtime_pack_sha,
+                        },
+                    ],
+                },
+            ),
+        ],
+        4: [
+            (
+                "paper_claim_map.json",
+                {
+                    **binding,
+                    "artifact_type": "paper_claim_map",
+                    "claims": [
+                        {
+                            "claim_id": "C001",
+                            "claim": "The configured fixture execution completed successfully.",
+                            "result_refs": ["result_report.json#/conclusions/0"],
+                            "evidence_refs": ["result_manifest.json#/executions/0"],
+                        }
+                    ],
+                },
+            )
+        ],
+    }
+    for filename, payload in payloads[gate]:
+        (run_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+    write_gate_artifact_manifest(run_dir, gate, completed_at="2026-07-11T00:00:00Z")
+
+
+def _ready_gate_5_run(
+    parent: Path,
+    name: str,
+    *,
+    run_id: str | None = None,
+    problem_id: str = "2024-C",
+) -> Path:
+    """构造已按顺序到达 Gate 5、尚未完成的最小运行。"""
+    run_dir = parent / name
+    run_dir.mkdir()
+    _write_minimal_run_binding(
+        run_dir,
+        run_id=run_id or name,
+        problem_id=problem_id,
+    )
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps(
+            {
+                "from": None,
+                "to": None,
+                "state": "initialized",
+                "material_ready": True,
+                "max_gate": 5,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
+    return run_dir
+
+
+def _v2_gate_0_run(parent: Path, name: str = "v2_run") -> Path:
+    """构造已启动 Gate 0 的 v2 运行，用于语义完成契约负向测试。"""
+    run_dir = parent / name
+    run_dir.mkdir()
+    _write_minimal_run_binding(run_dir, run_id=name)
+    (run_dir / "gate_artifacts").mkdir()
+    initialized = chain_transition_event(
+        {
+            "transition_version": TRANSITION_VERSION,
+            "from": None,
+            "to": None,
+            "completed_gate": None,
+            "next_gate": 0,
+            "state": "initialized",
+            "material_ready": True,
+            "max_gate": 5,
+        },
+        None,
+    )
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps(initialized) + "\n", encoding="utf-8"
+    )
+    record_transition(run_dir, None, 0, "human", "approved")
+    return run_dir
+
+
 def test_default_pack_excludes_candidate_patches() -> None:
     selected = select_patch_files("engineering_optimization")
-    assert "prompt_patches/patch_A092_engineering_optimization.md" in selected
-    assert "prompt_patches/patch_A127_engineering_layout_optimization.md" in selected
-    assert not any("B311" in path or "B477" in path for path in selected)
+    assert selected == []
 
 
 def test_manifest_hashes_pack_and_records_exclusions() -> None:
     pack = build_pack("engineering_optimization")
     manifest = build_manifest("engineering_optimization", pack)
     assert manifest["runtime_pack_sha256"]
-    assert {item["patch_id"] for item in manifest["patches"]} == {"A092", "A127"}
-    assert {item["patch_id"] for item in manifest["excluded_patches"]} == {"B311", "B477"}
+    assert manifest["validation_target_status"] is None
+    assert manifest["patches"] == []
+    assert {item["patch_id"] for item in manifest["excluded_patches"]} == {
+        "A092", "A127", "B311", "B477"
+    }
     # 新增：默认导出不启用实验标记
     assert manifest["candidate_experiment"]["enabled"] is False
     assert manifest["exclusion_experiment"]["enabled"] is False
@@ -79,12 +383,52 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
 
 
+def test_hashed_runtime_fixtures_keep_lf_bytes_after_checkout() -> None:
+    """Git checkout 不得把受 SHA-256 绑定的运行包改写为 CRLF。"""
+    attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert "*.md text eol=lf" in attributes
+    for runtime_pack in (ROOT / "tests" / "fixtures").glob("**/runtime_pack.md"):
+        assert b"\r\n" not in runtime_pack.read_bytes(), runtime_pack
+
+
+def test_build_identity_is_independent_from_generation_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pack = build_pack("engineering_optimization")
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1704067200")
+    first = build_manifest("engineering_optimization", pack)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1711929600")
+    second = build_manifest("engineering_optimization", pack)
+
+    assert first["generated_at"] != second["generated_at"]
+    assert first["build_identity"] == second["build_identity"]
+    changed = build_manifest("engineering_optimization", pack + "\nchanged")
+    assert changed["build_identity"] != first["build_identity"]
+
+
+def test_formal_export_rejects_unverified_handwritten_patch_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    forged_patch = {
+        "patch_id": "A999",
+        "status": "regression_verified",
+        "file": "prompt_patches/patch_A092_engineering_optimization.md",
+        "runtime_profiles": ["engineering_optimization"],
+        "validation_records": [],
+    }
+    monkeypatch.setattr("export_runtime_pack.read_patch_index", lambda: [forged_patch])
+
+    with pytest.raises(ValueError, match="现场证据"):
+        select_patches("engineering_optimization")
+
+
+@pytest.mark.skip(reason="旧 Profile 人工计数契约已由 test_profile_derivation.py 取代")
 def test_stable_profile_schema_requires_competition_validation() -> None:
     """Profile 标记 stable 时必须同时声明比赛验证完成。"""
     profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": False,
             "validation_level": "cross_mechanism",
         }
@@ -94,12 +438,13 @@ def test_stable_profile_schema_requires_competition_validation() -> None:
     assert any("True was expected" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="旧 verified_patches 缓存已删除")
 def test_stable_profile_rejects_non_stable_patch() -> None:
     """Stable Profile 只能导入已具备 Stable Evidence 的 patch。"""
     profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": True,
             "validation_level": "competition_verified",
             "verified_patches": ["A092"],
@@ -119,12 +464,13 @@ def test_stable_profile_rejects_non_stable_patch() -> None:
     assert any("stable profile 只能导入 stable patch" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="旧 Profile 人工计数契约已删除")
 def test_stable_profile_requires_evidence_level_requirements() -> None:
     """完整状态字段不能替代 Gate、负控、比赛证据和失败清理。"""
     profile = json.loads((ROOT / "runtime_profiles" / "general.json").read_text(encoding="utf-8"))
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": True,
             "validation_level": "competition_verified",
             "verified_patches": [],
@@ -180,10 +526,10 @@ def _validate_stable_profile_competition_fixture(
         candidate_patch_ids,
         exclude_patch_ids,
     )
-    runtime_manifest["maturity"] = "stable"
+    runtime_manifest["maturity"] = "competition_evidenced"
     for patch_entry in runtime_manifest["patches"]:
         if patch_entry["patch_id"] in {"A092", "A127"}:
-            patch_entry["status"] = "stable"
+            patch_entry["status"] = "competition_evidenced"
     if mutate_manifest is not None:
         mutate_manifest(runtime_manifest)
     runtime_manifest_path = tmp_path / "runtime_pack.manifest.json"
@@ -203,7 +549,7 @@ def _validate_stable_profile_competition_fixture(
     )
     profile.update(
         {
-            "maturity": "stable",
+            "maturity": "competition_evidenced",
             "competition_verified": True,
             "validation_level": "competition_verified",
             "verified_patches": ["A092", "A127"],
@@ -229,7 +575,7 @@ def _validate_stable_profile_competition_fixture(
     patches = json.loads((ROOT / "prompt_patches" / "patch_index.json").read_text(encoding="utf-8"))
     for patch in patches:
         if patch["patch_id"] in {"A092", "A127"}:
-            patch["status"] = "stable"
+            patch["status"] = "competition_evidenced"
 
     validator = RepositoryValidator()
     real_load = RepositoryValidator().load_json
@@ -256,12 +602,14 @@ def _validate_stable_profile_competition_fixture(
     return validator
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_validates_competition_evidence_records(tmp_path: Path) -> None:
     """Stable Profile 的比赛状态必须由真实运行包和通过的结果记录证明。"""
     validator = _validate_stable_profile_competition_fixture(tmp_path)
     assert not validator.failures
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_rejects_candidate_experiment_and_extra_patch(tmp_path: Path) -> None:
     """包含额外 candidate Patch 的实验包不能证明正式 Stable Profile。"""
     validator = _validate_stable_profile_competition_fixture(
@@ -272,6 +620,7 @@ def test_stable_profile_rejects_candidate_experiment_and_extra_patch(tmp_path: P
     assert any("不得来自 candidate experiment" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_rejects_exclusion_experiment(tmp_path: Path) -> None:
     """排除正式 Patch 的隔离实验不能作为 Stable Profile 比赛证据。"""
     validator = _validate_stable_profile_competition_fixture(
@@ -282,13 +631,14 @@ def test_stable_profile_rejects_exclusion_experiment(tmp_path: Path) -> None:
     assert any("不得来自 exclusion experiment" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_verifies_manifest_patch_content(tmp_path: Path) -> None:
     """Manifest 中的 Patch 状态、路径和 SHA-256 必须与当前 Stable Patch 一致。"""
     def mutate_manifest(manifest: dict[str, object]) -> None:
         patch_entry = next(
             item for item in manifest["patches"] if item["patch_id"] == "A092"
         )
-        patch_entry["status"] = "candidate"
+        patch_entry["status"] = "review_ready"
         patch_entry["path"] = "prompt_patches/patch_A127_engineering_layout_optimization.md"
         patch_entry["sha256"] = "0" * 64
 
@@ -301,6 +651,7 @@ def test_stable_profile_verifies_manifest_patch_content(tmp_path: Path) -> None:
     assert any("Patch A092 sha256 与当前文件不一致" in failure for failure in validator.failures)
 
 
+@pytest.mark.skip(reason="比赛证据改由结构化 validation_records 现场派生")
 def test_stable_profile_binds_result_record_sha256(tmp_path: Path) -> None:
     """Profile 批准后改写 result record 必须被内容哈希检测。"""
     validator = _validate_stable_profile_competition_fixture(
@@ -311,10 +662,10 @@ def test_stable_profile_binds_result_record_sha256(tmp_path: Path) -> None:
 
 
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:
-    """verified_candidate/stable 但未进入 verified_patches 的 patch 不得进入正式包。
+    """regression_verified/stable 但未进入 verified_patches 的 patch 不得进入正式包。
     当前 A092/A127 都在 verified_patches，故默认应包含；本测试确认 AND 条件不误伤已批准 patch。"""
     selected = select_patches("engineering_optimization")
-    assert {p["patch_id"] for p in selected} == {"A092", "A127"}
+    assert selected == []
 
 
 def test_candidate_patch_explicit_import() -> None:
@@ -323,17 +674,15 @@ def test_candidate_patch_explicit_import() -> None:
     ids = {p["patch_id"] for p in selected}
     assert "B311" in ids
     assert "B477" not in ids  # 不会一次导入全部 candidate
-    assert "A092" in ids and "A127" in ids  # 已批准 patch 仍保留
+    assert ids == {"B311"}
 
 
 def test_exclude_patch_isolation_runs() -> None:
     """隔离实验：baseline / A092-only / A127-only。"""
     baseline = select_patches("engineering_optimization", exclude_patch_ids=["A092", "A127"])
     assert [p["patch_id"] for p in baseline] == []
-    a092_only = select_patches("engineering_optimization", exclude_patch_ids=["A127"])
-    assert {p["patch_id"] for p in a092_only} == {"A092"}
-    a127_only = select_patches("engineering_optimization", exclude_patch_ids=["A092"])
-    assert {p["patch_id"] for p in a127_only} == {"A127"}
+    assert select_patches("engineering_optimization", exclude_patch_ids=["A127"]) == []
+    assert select_patches("engineering_optimization", exclude_patch_ids=["A092"]) == []
 
 
 def test_prompt_response_evaluator_field_level_forbidden() -> None:
@@ -419,10 +768,10 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     run_dir, ready = create_old_problem_run(args)
     manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     assert ready is True
-    assert manifest["automatic_stable_update"] is False
+    assert "automatic_stable_update" not in manifest
     assert manifest["experiment_kind"] == "standard"
-    assert manifest["run_status"] == "initialized"
-    assert manifest["integrity_status"] == "unsealed"
+    assert manifest["manifest_version"] == "2.0.0"
+    assert manifest["initial_state"] == "initialized"
     assert (run_dir / "runtime_pack.manifest.json").is_file()
     assert (run_dir / "patch_suggestions.md").is_file()
     # 新增：problem_manifest 记录材料文件哈希
@@ -450,6 +799,78 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     }
 
 
+def test_prompt_regression_never_creates_gate_or_promotion_evidence(tmp_path: Path) -> None:
+    args = Namespace(
+        run_id="prompt_only",
+        output_root=str(tmp_path / "runs"),
+        problem="2024-C",
+        profile="engineering_optimization",
+        candidate_patch=[],
+        exclude_patch=[],
+    )
+    run_dir = create_prompt_regression_run(args)
+
+    assert not (run_dir / "transitions.jsonl").exists()
+    assert not (run_dir / "gate_artifacts").exists()
+    report = verify_run(run_dir)
+    assert report["workflow"] == "prompt_regression"
+    assert report["eligible_for_promotion"] is False
+
+
+def test_modes_change_confirmation_points_not_machine_contract(tmp_path: Path) -> None:
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"fake problem pdf"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", problem)]})
+
+    run_dirs: list[Path] = []
+    for mode in ("strict", "emergency"):
+        args = Namespace(
+            workflow="new_problem",
+            mode=mode,
+            run_id=f"mode_{mode}",
+            output_root=str(tmp_path / "runs"),
+            problem="2024-C",
+            profile="engineering_optimization",
+            gates="0-5",
+            materials=str(materials),
+            candidate_patch=[],
+            exclude_patch=[],
+            material_file=[],
+            promotion_evidence=False,
+            experiment_group_id=None,
+            experiment_role=None,
+            target_patch=None,
+        )
+        run_dir, ready = create_old_problem_run(args)
+        assert ready is True
+        run_dirs.append(run_dir)
+
+    strict_manifest = json.loads((run_dirs[0] / "run_manifest.json").read_text("utf-8"))
+    emergency_manifest = json.loads((run_dirs[1] / "run_manifest.json").read_text("utf-8"))
+    assert strict_manifest["human_confirmation_gates"] == [0, 1, 2, 3, 4, 5]
+    assert emergency_manifest["human_confirmation_gates"] == [0, 5]
+    assert (run_dirs[0] / "runtime_pack.md").read_bytes() == (
+        run_dirs[1] / "runtime_pack.md"
+    ).read_bytes()
+    assert {path.name for path in run_dirs[0].glob("*.json")} == {
+        path.name for path in run_dirs[1].glob("*.json")
+    }
+
+
+def test_advance_and_verify_partial_v2_run(tmp_path: Path) -> None:
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+
+    state = advance_run(run_dir, "human")
+    report = verify_run(run_dir)
+
+    assert state["current_gate"] == 1
+    assert report["verified_gates"] == [0]
+    assert report["eligible_for_promotion"] is False
+
+
 def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(tmp_path: Path) -> None:
     """封存命令应重建最终哈希；随后篡改 response 必须可被校验器发现。"""
     materials = tmp_path / "materials"
@@ -474,33 +895,52 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
     metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
 
-    for gate in range(6):
-        record_transition(run_dir, gate - 1 if gate else None, gate, "test_reviewer", "approved")
+    record_transition(run_dir, None, 0, "test_reviewer", "approved")
+    for gate in range(5):
+        _write_valid_gate_artifact(run_dir, gate)
+        record_transition(run_dir, gate, gate + 1, "test_reviewer", "approved")
     (run_dir / "gate_5_review.json").write_text(
-        json.dumps(
-            {
-                "target_gate": 5,
-                "reviewer": "test_reviewer",
-                "reviewed_at": "2026-07-11T00:00:00Z",
-                "decision": "approved",
-                "final_acceptance": True,
-                "reason": "The Gate 5 checklist is complete.",
-            },
-            ensure_ascii=False,
-        ),
+        json.dumps(_gate_5_review(run_dir, "test_reviewer"), ensure_ascii=False),
         encoding="utf-8",
     )
+    write_gate_artifact_manifest(
+        run_dir, 5, completed_at="2026-07-11T00:00:00Z"
+    )
+    immutable_manifest_before = (run_dir / "run_manifest.json").read_bytes()
     mark_run_completed(run_dir, "test_reviewer")
+    preseal_report = verify_run(run_dir)
+    assert preseal_report["completed"] is True
+    assert preseal_report["sealed"] is False
+    assert preseal_report["eligible_for_promotion"] is False
 
-    evidence = finalize_run_evidence(run_dir)
+    report = complete_and_seal_run(run_dir, "test_reviewer")
+    evidence = json.loads(
+        (run_dir / "run_evidence_manifest.json").read_text(encoding="utf-8")
+    )
     required_artifacts = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))["run_evidence_requirements"]["ai_run_metadata_checks"]["required_artifacts"]
-    sealed_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
-    assert sealed_manifest["run_status"] == "completed"
-    assert sealed_manifest["integrity_status"] == "sealed"
+    assert (run_dir / "run_manifest.json").read_bytes() == immutable_manifest_before
+    seal = json.loads((run_dir / "seal_record.json").read_text(encoding="utf-8"))
+    validator = RepositoryValidator()
+    assert validator.validate_schema(seal, "run_seal.schema.json", "run seal")
+    assert seal["run_manifest_sha256"] == hashlib.sha256(immutable_manifest_before).hexdigest()
+    assert report["completed"] is True
+    assert report["sealed"] is True
+    assert report["eligible_for_promotion"] is False
+    assert complete_and_seal_run(run_dir, "test_reviewer")["sealed"] is True
     assert not validate_evidence_manifest(run_dir, evidence, required_artifacts)
+    policy = json.loads(
+        (ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8")
+    )
+    shared_outcome = validate_full_run(run_dir, policy)
+    assert not shared_outcome.valid
+    assert shared_outcome.identity["run_id"] == "sealed_run"
+    assert any("promotion_evidence" in error for error in shared_outcome.errors)
 
     with (run_dir / "response.json").open("a", encoding="utf-8") as response:
         response.write("\n篡改")
+    tampered_outcome = validate_full_run(run_dir, policy)
+    assert not tampered_outcome.valid
+    assert any("sha256" in error.lower() for error in tampered_outcome.errors)
     assert any("response.json" in error and "sha256" in error for error in validate_evidence_manifest(run_dir, evidence, required_artifacts))
 
 
@@ -524,7 +964,7 @@ def test_finalize_run_evidence_rejects_incomplete_gate_workflow(tmp_path: Path) 
     metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="run_status 必须为 completed"):
+    with pytest.raises(ValueError, match="仅允许封存已完成 Gate 0-5"):
         finalize_run_evidence(run_dir)
 
 
@@ -560,7 +1000,7 @@ def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None
     assert manifest["excluded_patches"] == ["A127"]
     pack_manifest = json.loads((run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8"))
     assert pack_manifest["exclusion_experiment"]["enabled"] is True
-    assert {p["patch_id"] for p in pack_manifest["patches"]} == {"A092"}
+    assert pack_manifest["patches"] == []
 
 def test_old_problem_cli_promotion_evidence_mode(tmp_path: Path) -> None:
     materials = tmp_path / "materials"
@@ -588,8 +1028,9 @@ def test_old_problem_cli_promotion_evidence_mode(tmp_path: Path) -> None:
     assert manifest["experiment_group_id"] == "GRP_A127"
     assert manifest["experiment_role"] == "baseline"
     assert manifest["target_patch"] == "A127"
-    assert manifest["evidence_validity"] == "pending"
-    assert manifest["eligible_for_promotion"] is False
+    assert manifest["promotion_evidence"] is True
+    assert "evidence_validity" not in manifest
+    assert "eligible_for_promotion" not in manifest
 
 
 # ====== verify_materials failure-scenario tests ======
@@ -855,11 +1296,11 @@ def test_check_promotion_eligibility_produces_report() -> None:
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
-    # A092 and A127 have all 3 controls passing and satisfy verified_candidate rules
+    # A092/A127 的 Legacy v1 已归档；新 v2 证据尚未重跑，必须现场派生为 pending。
     a092 = next(p for p in report["per_patch"] if p["patch_id"] == "A092")
-    assert a092["positive"] == "pass"
-    assert a092["boundary"] == "pass"
-    assert a092["negative"] == "pass"
+    assert a092["positive"] == "pending"
+    assert a092["boundary"] == "pending"
+    assert a092["negative"] == "pending"
     # With the stricter v1.2.0 policy (min_distinct_cases=3, min_distinct_years=2),
     # A092 still passes (2016-C/2023-B/2024-C = 3 cases, 2016+2023+2024 = 3 years)
     assert a092["current_status_valid"] is True
@@ -876,10 +1317,10 @@ def test_check_promotion_eligibility_gaps_is_list() -> None:
 
 def test_promotion_gap_str_contains_ids() -> None:
     """PromotionGap string representation includes patch_id and target."""
-    g = PromotionGap("A092", "stable", "需要人工确认")
+    g = PromotionGap("A092", "competition_evidenced", "需要人工确认")
     s = str(g)
     assert "A092" in s
-    assert "stable" in s
+    assert "competition_evidenced" in s
     assert "人工确认" in s
 
 
@@ -913,6 +1354,7 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     """Record gate transitions and read them back via get_current_gate."""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    _write_minimal_run_binding(run_dir)
     (run_dir / "transitions.jsonl").write_text(
         json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5, "note": "ok"}, ensure_ascii=False) + "\n",
         encoding="utf-8",
@@ -934,34 +1376,212 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     assert is_gate_complete(run_dir, 5) is False
 
     # Mark completed - Gate 5 should now be complete
-    (run_dir / "gate_5_review.json").write_text('{"target_gate": 5, "final_acceptance": true, "reviewer": "automated_test", "reviewed_at": "2024-01-01T00:00:00Z", "decision": "approved", "reason": "this is a valid reason"}', encoding="utf-8")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(_gate_5_review(run_dir, "automated_test")), encoding="utf-8"
+    )
     mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
+
+
+def test_v2_transition_records_completed_gate_and_next_gate(tmp_path: Path) -> None:
+    """v2 推进事件必须表达完成的 Gate，而不是只记录进入下一 Gate。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+
+    record_transition(run_dir, 0, 1, "human", "approved")
+
+    last = json.loads(
+        (run_dir / "transitions.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+    )
+    assert last["completed_gate"] == 0
+    assert last["next_gate"] == 1
+    assert last["state"] == "completed_gate_0"
+    assert "from" not in last and "to" not in last
+    assert replay_transition_log(run_dir)["completed_gates"] == [0]
+
+
+def test_v2_transition_hash_chain_rejects_event_tampering(tmp_path: Path) -> None:
+    run_dir = _v2_gate_0_run(tmp_path)
+    lines = (run_dir / "transitions.jsonl").read_text(encoding="utf-8").splitlines()
+    first = json.loads(lines[0])
+    first["note"] = "tampered without rebuilding the chain"
+    lines[0] = json.dumps(first)
+    (run_dir / "transitions.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="event_sha256 不匹配"):
+        replay_transition_log(run_dir)
+
+
+def test_atomic_write_preserves_original_on_replace_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "state.json"
+    target.write_bytes(b"original")
+
+    def fail_replace(source: Path, destination: Path) -> None:
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr("atomic_io.os.replace", fail_replace)
+    with pytest.raises(OSError, match="simulated replace failure"):
+        atomic_write_bytes(target, b"replacement")
+
+    assert target.read_bytes() == b"original"
+    assert list(tmp_path.glob(".state.json.*.tmp")) == []
+
+
+def test_atomic_write_cleans_stale_temp_file_before_recovery(tmp_path: Path) -> None:
+    target = tmp_path / "state.json"
+    stale = tmp_path / ".state.json.interrupted.tmp"
+    stale.write_bytes(b"partial")
+
+    atomic_write_bytes(target, b"recovered")
+
+    assert target.read_bytes() == b"recovered"
+    assert not stale.exists()
+
+
+def test_v2_missing_gate_manifest_cannot_advance(tmp_path: Path) -> None:
+    """未生成 Gate 清单时必须停留在当前 Gate。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+
+    with pytest.raises(FileNotFoundError, match="gate_0.manifest.json"):
+        record_transition(run_dir, 0, 1, "human", "approved")
+    assert replay_transition_log(run_dir)["current_gate"] == 0
+
+
+def test_v2_placeholder_business_artifact_cannot_build_manifest(tmp_path: Path) -> None:
+    """只有占位说明而无业务内容的文件不能被封装为 Gate 完成证据。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    (run_dir / "diagnosis.json").write_text(
+        json.dumps({"artifact_type": "diagnosis", "_note": "pending"}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="diagnosis.json 不符合 Schema"):
+        write_gate_artifact_manifest(run_dir, 0)
+
+
+def test_v2_artifact_identity_mismatch_is_fail_closed(tmp_path: Path) -> None:
+    """业务产物身份与当前运行不一致时不得生成可信清单。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+    diagnosis_path = run_dir / "diagnosis.json"
+    diagnosis = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    diagnosis["run_id"] = "copied_from_other_run"
+    diagnosis_path.write_text(json.dumps(diagnosis), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="diagnosis.json.run_id 与当前运行现场不一致"):
+        write_gate_artifact_manifest(run_dir, 0)
+
+
+def test_v2_tampered_artifact_hash_cannot_advance(tmp_path: Path) -> None:
+    """清单生成后篡改业务产物，即使 JSON 仍合法也不得离开 Gate。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+    diagnosis_path = run_dir / "diagnosis.json"
+    diagnosis = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    diagnosis["risks"].append("Tampering changed the reviewed business content.")
+    diagnosis_path.write_text(json.dumps(diagnosis), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="SHA-256 不匹配"):
+        record_transition(run_dir, 0, 1, "human", "approved")
+    assert replay_transition_log(run_dir)["current_gate"] == 0
+
+
+def test_partial_v2_run_can_be_verified_but_is_not_completed(tmp_path: Path) -> None:
+    """部分 Gate 可保存复核，但不会被状态机标记为完整运行。"""
+    run_dir = _v2_gate_0_run(tmp_path)
+    _write_valid_gate_artifact(run_dir, 0)
+
+    manifest = verify_gate_artifacts(run_dir, 0)
+    state = replay_transition_log(run_dir)
+
+    assert manifest["gate"] == 0
+    assert state["completed"] is False
+    assert state["completed_gates"] == []
 
 
 def test_gate_5_review_schema_requires_target_gate(tmp_path: Path) -> None:
     """Gate 5 审核缺少 target_gate 时不得因默认值而通过。"""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    _write_minimal_run_binding(run_dir)
     (run_dir / "transitions.jsonl").write_text(
         json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
         encoding="utf-8",
     )
     for gate in range(6):
         record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
-    (run_dir / "gate_5_review.json").write_text(
-        json.dumps(
-            {
-                "reviewer": "human",
-                "reviewed_at": "2026-07-11T00:00:00Z",
-                "decision": "approved",
-                "final_acceptance": True,
-                "reason": "The final review is complete.",
-            }
-        ),
-        encoding="utf-8",
-    )
+    review = _gate_5_review(run_dir)
+    review.pop("target_gate")
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
     with pytest.raises(ValueError, match="target_gate"):
+        mark_run_completed(run_dir, "human")
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256"],
+)
+def test_gate_5_review_requires_all_run_binding_fields(tmp_path: Path, field: str) -> None:
+    """Gate 5 审核缺少任一运行绑定字段时必须闭锁失败。"""
+    run_dir = _ready_gate_5_run(tmp_path, "missing_binding")
+    review = _gate_5_review(run_dir)
+    review.pop(field)
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=field):
+        mark_run_completed(run_dir, "human")
+
+
+@pytest.mark.parametrize(
+    ("field", "wrong_value"),
+    [
+        ("run_id", "other_run"),
+        ("problem_id", "2099-Z"),
+        ("profile", "other_profile"),
+        ("runtime_version", "9.9.9"),
+        ("runtime_pack_sha256", "f" * 64),
+    ],
+)
+def test_gate_5_review_rejects_wrong_run_binding(
+    tmp_path: Path, field: str, wrong_value: str
+) -> None:
+    """审核身份必须逐项等于当前运行现场，不能只依赖审核文件自身哈希。"""
+    run_dir = _ready_gate_5_run(tmp_path, f"wrong_{field}")
+    review = _gate_5_review(run_dir)
+    review[field] = wrong_value
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=f"{field} 与当前运行现场不一致"):
+        mark_run_completed(run_dir, "human")
+
+
+def test_gate_5_review_rejects_unknown_checklist_key(tmp_path: Path) -> None:
+    """Checklist 只能包含固定八项，额外自定义通过项不能混入。"""
+    run_dir = _ready_gate_5_run(tmp_path, "unknown_checklist")
+    review = _gate_5_review(run_dir)
+    review["checklist"]["custom_pass"] = True
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checklist"):
+        mark_run_completed(run_dir, "human")
+
+
+@pytest.mark.parametrize(("mode", "value"), [("missing", None), ("false", False)])
+def test_gate_5_review_requires_all_checklist_items_true(
+    tmp_path: Path, mode: str, value: bool | None
+) -> None:
+    """固定八项中缺项或任一项非 true 都不得完成运行。"""
+    run_dir = _ready_gate_5_run(tmp_path, f"checklist_{mode}")
+    review = _gate_5_review(run_dir)
+    if mode == "missing":
+        review["checklist"].pop("claim_evidence")
+    else:
+        review["checklist"]["claim_evidence"] = value
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checklist"):
         mark_run_completed(run_dir, "human")
 
 
@@ -1013,20 +1633,35 @@ def _write_manual_completed_transition_log(
     )
 
 
+def test_replay_rejects_cross_run_review_after_hash_recalculation(tmp_path: Path) -> None:
+    """复制审核到另一 Run 并重算转换日志哈希，仍必须因现场身份不符而失败。"""
+    source = _ready_gate_5_run(tmp_path, "source", run_id="run_A", problem_id="2024-C")
+    target = _ready_gate_5_run(tmp_path, "target", run_id="run_B", problem_id="2024-C")
+    copied_review = _gate_5_review(source, "manual")
+
+    # helper 会按目标目录中复制后的文件重新计算 review_record_sha256。
+    _write_manual_completed_transition_log(target, copied_review, material_ready=True)
+
+    with pytest.raises(ValueError, match="run_id 与当前运行现场不一致"):
+        replay_transition_log(target)
+
+
 def test_replay_rejects_forged_rejected_gate_5_review(tmp_path: Path) -> None:
     """匹配 SHA-256 不能使被拒绝的 Gate 5 review 伪装成完成。"""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
-    _write_manual_completed_transition_log(
-        run_dir,
+    _write_minimal_run_binding(run_dir)
+    review = _gate_5_review(run_dir, "manual")
+    review.update(
         {
-            "target_gate": 5,
-            "reviewer": "manual",
-            "reviewed_at": "2026-07-11T00:00:00Z",
             "decision": "rejected",
             "final_acceptance": False,
             "reason": "The final review explicitly rejected this run.",
-        },
+        }
+    )
+    _write_manual_completed_transition_log(
+        run_dir,
+        review,
         material_ready=True,
     )
     with pytest.raises(ValueError, match="gate_5_review"):
@@ -1037,16 +1672,10 @@ def test_replay_rejects_gate_entries_when_materials_are_not_ready(tmp_path: Path
     """直接篡改 JSONL 也不能绕过材料就绪门禁。"""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    _write_minimal_run_binding(run_dir)
     _write_manual_completed_transition_log(
         run_dir,
-        {
-            "target_gate": 5,
-            "reviewer": "manual",
-            "reviewed_at": "2026-07-11T00:00:00Z",
-            "decision": "approved",
-            "final_acceptance": True,
-            "reason": "The final review approved this complete run.",
-        },
+        _gate_5_review(run_dir, "manual"),
         material_ready=False,
     )
     with pytest.raises(ValueError, match="material_ready"):
@@ -1157,3 +1786,5 @@ def test_rejected_transition_not_advances(tmp_path: Path) -> None:
 def test_get_current_gate_no_file(tmp_path: Path) -> None:
     """No transitions file → None."""
     assert get_current_gate(tmp_path / "nonexistent") is None
+    advance_run,
+    create_prompt_regression_run,

@@ -7,6 +7,8 @@ tmp/
 # 忽略 Python 脚本运行和语法检查产生的缓存。
 __pycache__/
 *.py[cod]
+.coverage
+htmlcov/
 
 # 忽略自动下载的官方赛题包和附件原始文件，仅保留 README/manifest。
 official_materials/**

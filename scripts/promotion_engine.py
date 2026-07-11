@@ -32,11 +32,11 @@ def stable_evidence_digest(
 ) -> str:
     """计算稳定证据的摘要，供人工批准记录绑定。"""
     if not isinstance(policy_version, str) or not policy_version.strip():
-        raise ValueError("stable evidence digest 必须显式提供非空 policy_version")
+        raise ValueError("competition evidence digest 必须显式提供非空 policy_version")
     import json
     data = {
         "digest_schema_version": "2.0.0",
-        "target_status": "stable",
+        "target_status": "competition_evidenced",
         "policy_version": policy_version,
         "patch_id": patch.get("patch_id"),
         "patch_sha256": patch_sha256,
@@ -93,12 +93,12 @@ class FullEligibilityReport:
     current_status_valid: bool
     current_gaps: list[str]
     next_status: str | None
-    next_status_eligible: bool
+    next_status_eligible: bool | None
     gaps_to_next_status: list[str]
     details: dict[str, Any]
 
 
-STATUS_ORDER = ["draft", "candidate", "verified_candidate", "stable"]
+STATUS_ORDER = ["draft", "review_ready", "regression_verified", "competition_evidenced"]
 
 
 def _next_status(current: str) -> str | None:
@@ -293,8 +293,18 @@ def evaluate_status_eligibility(
     required_controls = rules.get("required_controls", [])
     passed_controls = 0
     control_results: dict[str, str] = {}
+    active_v2 = matrix_entry.get("_matrix_version") == "2.0.0" or any(
+        isinstance(matrix_entry.get(control), dict)
+        and "_derived_result" in matrix_entry[control]
+        for control in ("positive", "boundary", "negative")
+    )
     for control in ("positive", "boundary", "negative"):
-        result = matrix_entry.get(control, {}).get("result", "pending")
+        control_data = matrix_entry.get(control, {})
+        result = (
+            control_data.get("_derived_result", "pending")
+            if active_v2
+            else control_data.get("result", "pending")
+        )
         control_results[control] = result
         if control in required_controls and result != rules.get("required_result", "pass"):
             gaps.append(
@@ -330,9 +340,9 @@ def evaluate_status_eligibility(
         gaps.append("positive 和 boundary 必须使用不同考题")
 
     # 5) negative 必须为 out_of_scope
-    if rules.get("negative_must_be_out_of_scope") and matrix_entry.get("negative", {}).get("result") == "pass":
+    if rules.get("negative_must_be_out_of_scope") and control_results.get("negative") == "pass":
         if not _negative_is_out_of_scope(matrix_entry):
-            gaps.append("negative-control case 的 relation_to_patch 应标记为 negative_out_of_scope")
+            gaps.append("negative case 必须明确标记为 out-of-scope（negative_out_of_scope）")
 
     # 6) 机制类覆盖（patch 级别，不从 profile 继承）
     min_mechanisms = rules.get("min_distinct_mechanisms", 0)
@@ -356,8 +366,8 @@ def evaluate_status_eligibility(
     forbidden_gaps = _check_forbidden_labels(patch, rules)
     gaps.extend(forbidden_gaps)
 
-    # 9) stable 专属：stable 必须 fail-closed，policy 配错不能静默跳过门禁。
-    if target_status == "stable":
+    # 9) competition_evidenced 专属：Policy 配错时必须闭锁失败。
+    if target_status == "competition_evidenced":
         stable_reqs = rules.get("stable_evidence")
         if not isinstance(stable_reqs, dict):
             gaps.append("promotion policy 缺少 stable_evidence 配置")
@@ -367,7 +377,7 @@ def evaluate_status_eligibility(
 
         evidence = patch.get("stable_evidence")
         if not isinstance(evidence, dict):
-            gaps.append("stable 状态必须提供 stable_evidence 对象")
+            gaps.append("competition_evidenced 状态必须提供 stable_evidence 对象")
             evidence = {}
 
         min_nc_runs = rules.get("repetition", {}).get("min_negative_control_runs", 0)
@@ -377,9 +387,12 @@ def evaluate_status_eligibility(
             nc_runs = []
         group_ids = [item.get("experiment_group_id") for item in nc_runs if isinstance(item, dict)]
         if len(group_ids) != len(set(group_ids)) or any(not isinstance(gid, str) or not gid.strip() for gid in group_ids):
-            gaps.append("stable 负控必须使用唯一且非空的 experiment_group_id")
+            gaps.append("competition_evidenced 负控必须使用唯一且非空的 experiment_group_id")
         if len(set(group_ids)) < min_nc_runs:
-            gaps.append(f"stable 至少需要 {min_nc_runs} 组独立负控，当前 {len(set(group_ids))} 组")
+            gaps.append(
+                f"competition_evidenced 至少需要 {min_nc_runs} 组独立负控，"
+                f"当前 {len(set(group_ids))} 组"
+            )
 
         retests = evidence.get("failure_fix_retests")
         if rules.get("requires_failure_fix_retest") and (not isinstance(retests, list) or not retests):
@@ -397,7 +410,7 @@ def evaluate_status_eligibility(
             else:
                 policy_version = policy.get("policy_version")
                 if not isinstance(policy_version, str) or not policy_version.strip():
-                    gaps.append("promotion policy 缺少用于 stable evidence 的 policy_version")
+                    gaps.append("promotion policy 缺少用于 competition evidence 的 policy_version")
                     policy_version = "<missing>"
                 expected_digest = stable_evidence_digest(
                     patch,
@@ -409,8 +422,8 @@ def evaluate_status_eligibility(
                 reviewer = approval.get("reviewer", approval.get("approved_by", ""))
                 if approval.get("patch_id") not in (None, pid):
                     gaps.append("人工批准记录 patch_id 与当前 Patch 不一致")
-                if approval.get("target_status") not in (None, "stable"):
-                    gaps.append("人工批准记录 target_status 必须为 stable")
+                if approval.get("target_status") not in (None, "competition_evidenced"):
+                    gaps.append("人工批准记录 target_status 必须为 competition_evidenced")
                 if approval.get("policy_version") != policy_version:
                     gaps.append(
                         f"人工批准记录 policy_version 必须与当前策略一致（当前为 {policy_version}）"

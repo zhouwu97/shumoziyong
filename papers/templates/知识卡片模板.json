@@ -7,7 +7,9 @@
     "year": 2026,
     "page_refs": [],
     "evidence_quotes": [],
-    "extraction_date": "2026-01-01"
+    "extraction_date": "2026-01-01",
+    "verification_status": "unverified",
+    "claims": []
   },
   "problem_types": ["待填写"],
   "core_problem": "待填写",

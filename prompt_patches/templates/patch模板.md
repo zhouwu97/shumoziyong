@@ -6,11 +6,11 @@
 - 依赖：
 - 进入 base：否
 - 修改 plugin：否
-- stable：否
+- 初始状态：`review_ready`
 
 ## 职责边界
 
-本补丁只记录单篇论文的可迁移经验和误用风险，不重复 base/plugin 的通用规则，不负责旧题闭环，不负责 stable 判定，不把单篇论文经验提升为通用规则。
+本补丁只记录单篇论文的可迁移经验和误用风险，不重复 base/plugin 的通用规则，不负责旧题闭环，不负责 `competition_evidenced` 判定，不把单篇论文经验提升为通用规则。
 
 ## 这篇论文真正值得学的地方
 
@@ -97,5 +97,5 @@
 ## training_log 更新建议
 
 ```markdown
-| YYYY-MM-DD | {编号} 论文学习 | 学习卡片 + 知识卡片 + patch 草案 |  | 未验证 | 论文学习 | 否 | 只作为 candidate，不修改 base/plugin |
+| YYYY-MM-DD | {编号} 论文学习 | 学习卡片 + 知识卡片 + patch 草案 |  | 未验证 | 论文学习 | 否 | 登记为 review_ready，不修改 base/plugin |
 ```

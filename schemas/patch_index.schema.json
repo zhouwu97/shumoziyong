@@ -37,6 +37,7 @@
           "title",
           "year",
           "knowledge_card",
+          "claim_ids",
           "page_refs",
           "evidence_quotes"
         ],
@@ -57,6 +58,11 @@
           "knowledge_card": {
             "type": "string",
             "pattern": "^papers/.+\\.json$"
+          },
+          "claim_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}-C[0-9]{3}$"}
           },
           "page_refs": {
             "type": "array",
@@ -105,9 +111,9 @@
       "status": {
         "enum": [
           "draft",
-          "candidate",
-          "verified_candidate",
-          "stable",
+          "review_ready",
+          "regression_verified",
+          "competition_evidenced",
           "deprecated"
         ]
       },
@@ -197,12 +203,17 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "failure_id",
                 "failure_record",
                 "fix_record",
                 "retest_run",
                 "review_record"
               ],
               "properties": {
+                "failure_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
                 "failure_record": {
                   "$ref": "#/$defs/relativePath"
                 },
@@ -271,7 +282,7 @@
                 "pattern": "^[A-Z][0-9]{3}$"
               },
               "target_status": {
-                "const": "stable"
+                "const": "competition_evidenced"
               },
               "schema_version": {
                 "const": "1.0.0"
@@ -297,7 +308,7 @@
         "if": {
           "properties": {
             "status": {
-              "const": "stable"
+              "const": "competition_evidenced"
             }
           },
           "required": [

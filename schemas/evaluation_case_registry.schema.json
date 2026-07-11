@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/evaluation_case_registry.schema.json",
+  "title": "Promotion Evaluation Case Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["registry_version", "evaluator_version", "cases"],
+  "properties": {
+    "registry_version": {"const": "1.0.0"},
+    "evaluator_version": {"type": "string", "minLength": 1},
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "case_file", "case_sha256", "control_type", "target_patch", "minimum_assertion_count"],
+        "properties": {
+          "case_id": {"type": "string", "minLength": 1},
+          "case_file": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"},
+          "case_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "control_type": {"enum": ["baseline", "treatment", "full_run"]},
+          "target_patch": {"type": ["string", "null"], "pattern": "^[A-Z][0-9]{3}$"},
+          "minimum_assertion_count": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  }
+}

@@ -1,10 +1,24 @@
 {
+  "schema_version": "2.0.0",
   "run_id": "comp1",
-  "schema_version": "1.0.0",
-  "result": "pass",
+  "problem_id": "2016-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
   "target_patch": "A001",
   "runtime_pack_manifest": "tests/fixtures/valid_stable_evidence/comp_manifest.json",
   "runtime_pack_manifest_sha256": "b5298e2c0e451497af05f36add0fa75544f11b437287d2df1e6bdc120a42a49f",
-  "automatic_evaluation": {},
-  "manual_review": null
+  "automatic_evaluation_sha256": "cd4517740c2e007ac4d1a67501b7c772e817685a9ea1214c1b4906f2e2e902fc",
+  "automatic_evaluation_summary": {
+    "result": "pass",
+    "errors": [],
+    "response_sha256": "d206f39efa4acb58b6ff254fbc0b5ed8b9a4b60975c98868fd603a33fb97cc52",
+    "case_sha256": "84512c6b14e7a79213bbd5306ba94f452ca9b4651aeb3b14679885536fc85bee",
+    "evaluator_version": "1.2.0"
+  },
+  "manual_review": {
+    "decision": "approved",
+    "reviewer": "admin",
+    "conclusion": "夹具比赛结果通过。"
+  },
+  "result": "pass"
 }

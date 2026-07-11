@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_evidence.schema.json",
+  "title": "Profile 正式比赛证据",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_version",
+    "competition_id",
+    "run_id",
+    "profile",
+    "runtime_version",
+    "run_dir",
+    "runtime_pack_manifest",
+    "runtime_pack_manifest_sha256",
+    "result_record",
+    "result_record_sha256"
+  ],
+  "properties": {
+    "evidence_version": {"const": "1.0.0"},
+    "competition_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "run_dir": {"$ref": "#/$defs/relativePath"},
+    "runtime_pack_manifest": {"$ref": "#/$defs/relativePath"},
+    "runtime_pack_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "result_record": {"$ref": "#/$defs/relativePath"},
+    "result_record_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+    }
+  }
+}

@@ -1,10 +1,10 @@
-# stable 判定规则
+# `competition_evidenced` 判定规则
 
-stable 只用于旧题闭环，不用于论文学习流或新题执行流。
+文件名为兼容旧链接保留。`competition_evidenced` 表示已有正式比赛证据，不表示 Patch 已被普遍证明有效。
 
 ## 候选条件
 
-同一题型满足以下条件时，才允许建议进入 stable 候选：
+只有同时满足当前 `promotion_policy.json` 的回归、失败修复重测、比赛记录和人工批准要求，才允许建议进入 `competition_evidenced`：
 
 1. 至少通过 2 道不同题号的 T3/T4 官方旧题。
 2. 两次总控诊断均 >= 80。
@@ -12,11 +12,11 @@ stable 只用于旧题闭环，不用于论文学习流或新题执行流。
 4. 两次均未出现 M1/M2/M3/M5。
 5. 测试题不与当前 patch 来源论文同题、同附件或共享关键结果。
 6. 测试记录、闭环摘要和训练日志均完整。
-7. 已由人工确认是否正式标记 stable。
+7. 已由人工确认是否正式标记 `competition_evidenced`。
 
-## 禁止标记 stable
+## 禁止标记 `competition_evidenced`
 
-出现以下任一情况，不得标记 stable：
+出现以下任一情况，不得标记 `competition_evidenced`：
 
 - 只通过 1 道旧题。
 - 只跑了 T0/T1/T2。

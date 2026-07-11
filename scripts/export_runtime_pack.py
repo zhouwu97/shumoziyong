@@ -3,18 +3,24 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from atomic_io import atomic_write_bytes
+from evidence_validation import derive_v2_matrix_results, validate_formal_patch
+from profile_derivation import derive_profile_report
 
 
 ROOT = Path(__file__).resolve().parents[1]
 AUTO_PATCHES_MARKER = "__AUTO_PATCHES__"
-# 正式运行包只允许已批准的 patch：状态为 verified_candidate/stable
-# AND patch_id 必须出现在对应 runtime profile 的 verified_patches 列表中。
-VERIFIED_STATUSES = {"verified_candidate", "stable"}
-CANDIDATE_STATUS = "candidate"
+# 正式运行包只允许现场状态为 regression_verified/competition_evidenced 的 Patch。
+VERIFIED_STATUSES = {"regression_verified", "competition_evidenced"}
+CANDIDATE_STATUS = "review_ready"
 CANDIDATE_WARNING = "仅供旧题验证，不得直接比赛使用"
+POLICY_PATH = ROOT / "policies" / "promotion_policy.json"
+MATRIX_PATH = ROOT / "tests" / "prompt_regression" / "patch_negative_control_matrix.json"
 
 PROFILE_FILES = {
     "general": [
@@ -70,6 +76,14 @@ def sha256_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def build_timestamp() -> str:
+    """生成时间允许由 SOURCE_DATE_EPOCH 固定，但不参与 Build Identity。"""
+    source_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if source_epoch is not None:
+        return datetime.fromtimestamp(int(source_epoch), tz=timezone.utc).isoformat()
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
 def read_text(relative_path: str) -> str:
     path = ROOT / relative_path
     if not path.is_file():
@@ -95,6 +109,68 @@ def read_profile_state(profile: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _read_object(path: Path, label: str) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} 必须是 JSON 对象")
+    return value
+
+
+def _derive_profile_state(
+    profile: str, patches: list[dict[str, Any]]
+) -> tuple[dict[str, Any], str]:
+    """重算 Profile 成熟度，禁止手填 maturity 进入运行包。"""
+    profile_state = read_profile_state(profile)
+    policy = _read_object(POLICY_PATH, "promotion_policy.json")
+    report = derive_profile_report(
+        profile_state,
+        patches,
+        root=ROOT,
+        policy=policy,
+    )
+    computed = str(report["computed_maturity"])
+    if report["invalid_records"]:
+        raise ValueError(
+            f"Profile {profile} 现场证据无效：{report['invalid_records']}"
+        )
+    if profile_state.get("maturity") != computed:
+        raise ValueError(
+            f"Profile {profile} 手填 maturity 与现场证据不一致："
+            f"记录为 {profile_state.get('maturity')}，现场为 {computed}"
+        )
+    return profile_state, computed
+
+
+def _validate_formal_patches(patches: list[dict[str, Any]]) -> None:
+    """对所有正式 Patch 重算控制结论和晋级资格。"""
+    formal = [patch for patch in patches if patch.get("status") in VERIFIED_STATUSES]
+    if not formal:
+        return
+    policy = _read_object(POLICY_PATH, "promotion_policy.json")
+    matrix = _read_object(MATRIX_PATH, "patch_negative_control_matrix.json")
+    matrix, matrix_errors = derive_v2_matrix_results(matrix, policy, root=ROOT)
+    if matrix_errors:
+        raise ValueError("v2 控制现场证据无效：" + "；".join(matrix_errors))
+    matrix_by_id = {
+        item.get("patch_id"): item
+        for item in matrix.get("patches", [])
+        if isinstance(item, dict)
+    }
+    for patch in formal:
+        patch_id = str(patch.get("patch_id", "<unknown>"))
+        outcome = validate_formal_patch(
+            patch,
+            matrix_by_id.get(patch_id, {}),
+            policy,
+            root=ROOT,
+        )
+        if not outcome.valid:
+            raise ValueError(
+                f"正式 Patch {patch_id} 现场证据不满足 {patch.get('status')}："
+                + "；".join(outcome.errors)
+            )
+
+
 def select_patches(
     profile: str,
     candidate_patch_ids: list[str] | None = None,
@@ -102,24 +178,21 @@ def select_patches(
 ) -> list[dict[str, Any]]:
     """选择进入运行包的 patch。
 
-    正式 patch 必须同时满足三条件：
-      1. patch_index 中 status 属于 {verified_candidate, stable}；
-      2. patch_id 在 runtime_profiles/<profile>.json 的 verified_patches 中；
-      3. patch 的 runtime_profiles 包含当前 profile。
+    正式 Patch 必须同时满足两个条件：状态已通过回归或比赛证据验证，且声明支持当前 Profile。
 
-    candidate patch 必须显式按 ID 传入，且每个都必须：
-      存在于 patch_index；状态为 candidate；runtime_profiles 包含当前 profile。
+    review_ready patch 必须显式按 ID 传入，且每个都必须：
+      存在于 patch_index；状态为 review_ready；runtime_profiles 包含当前 profile。
 
     exclude_patch_ids 用于隔离实验：从已批准集合中移除指定 patch（如负控 baseline）。
     """
-    state = read_profile_state(profile)
-    approved_ids = set(state.get("verified_patches", []))
     candidate_patch_ids = list(candidate_patch_ids or [])
     exclude_set = set(exclude_patch_ids or [])
 
-    patches_by_id = {patch["patch_id"]: patch for patch in read_patch_index()}
+    all_patches = read_patch_index()
+    _validate_formal_patches(all_patches)
+    patches_by_id = {patch["patch_id"]: patch for patch in all_patches}
 
-    # 校验显式 candidate patch
+    # 校验显式 review_ready 实验 patch
     for cid in candidate_patch_ids:
         patch = patches_by_id.get(cid)
         if patch is None:
@@ -140,19 +213,18 @@ def select_patches(
         if profile not in patch.get("runtime_profiles", []):
             raise ValueError(f"--exclude-patch {eid} 不支持 profile {profile}")
 
-    # 正式 patch：三条件 AND
+    # 正式 Patch：状态与 Profile 归属均从事实源现场判断。
     verified_selected = [
         patch
-        for patch in read_patch_index()
-        if patch.get("patch_id") in approved_ids
-        and profile in patch.get("runtime_profiles", [])
+        for patch in all_patches
+        if profile in patch.get("runtime_profiles", [])
         and patch.get("status") in VERIFIED_STATUSES
         and patch.get("file")
     ]
     # 隔离实验：从已批准集合中移除显式排除项
     verified_selected = [p for p in verified_selected if p["patch_id"] not in exclude_set]
 
-    # 显式 candidate patch（按传入顺序保留，随后排序统一处理）
+    # 显式 review_ready 实验 patch（按传入顺序保留，随后排序统一处理）
     candidate_selected = [patches_by_id[cid] for cid in candidate_patch_ids]
 
     selected = verified_selected + candidate_selected
@@ -190,21 +262,28 @@ def build_pack(
     profile: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
+    validation_target_status: str | None = None,
 ) -> str:
     files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
-    profile_state = read_profile_state(profile)
+    all_patches = read_patch_index()
+    profile_state, computed_maturity = _derive_profile_state(profile, all_patches)
     parts = [
         "# 数模比赛运行规则包\n\n",
         f"- profile：`{profile}`\n",
         f"- runtime version：`{profile_state['version']}`\n",
-        f"- maturity：`{profile_state['maturity']}`\n",
+        f"- maturity：`{computed_maturity}`\n",
         "- 用途：复制到比赛工作目录的 `rules/runtime_pack.md`，供 MathModelAgent 执行前读取。\n",
         "- 原则：先诊断，后建模；先确认路线，后代码；先验证结果，后论文。\n",
     ]
     if candidate_patch_ids:
-        parts.append(f"- 警告：本次显式包含 candidate patch（{', '.join(candidate_patch_ids)}），{CANDIDATE_WARNING}。\n")
+        parts.append(f"- 警告：本次显式包含 review_ready patch（{', '.join(candidate_patch_ids)}），{CANDIDATE_WARNING}。\n")
     if exclude_patch_ids:
         parts.append(f"- 警告：本次隔离实验排除已批准 patch（{', '.join(exclude_patch_ids)}），仅用于负控或对比测试。\n")
+    if validation_target_status:
+        parts.append(
+            f"- 晋级验证目标：`{validation_target_status}`；运行包记录的是执行时 Patch 当前状态，"
+            "不得预先手改状态。\n"
+        )
     parts.append("\n")
 
     for relative_path in files:
@@ -213,22 +292,18 @@ def build_pack(
     return "".join(parts)
 
 
-def _exclusion_reason(patch: dict[str, Any], profile: str, approved_ids: set[str],
-                      candidate_ids: list[str], exclude_set: set[str]) -> str:
+def _exclusion_reason(
+    patch: dict[str, Any], candidate_ids: list[str], exclude_set: set[str]
+) -> str:
     pid = patch.get("patch_id", "<unknown>")
     status = patch.get("status")
     reasons: list[str] = []
     if pid in exclude_set:
         reasons.append("显式排除（隔离实验）")
-    if status in VERIFIED_STATUSES and pid not in approved_ids:
-        reasons.append("状态为 verified 但未进入 profile.verified_patches")
     if status == CANDIDATE_STATUS and pid not in candidate_ids:
-        reasons.append("candidate patch 未显式指定导入")
+        reasons.append("review_ready patch 未显式指定导入")
     if status not in VERIFIED_STATUSES and status != CANDIDATE_STATUS:
         reasons.append(f"状态 {status} 不允许导出")
-    if not approved_ids and status in VERIFIED_STATUSES and pid in approved_ids:
-        # approved_ids empty branch safety (shouldn't reach)
-        pass
     return "；".join(reasons) if reasons else "状态未进入本次导出的允许集合"
 
 
@@ -237,19 +312,36 @@ def build_manifest(
     pack_content: str,
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
+    validation_target_status: str | None = None,
 ) -> dict[str, Any]:
     candidate_patch_ids = list(candidate_patch_ids or [])
     exclude_patch_ids = list(exclude_patch_ids or [])
     exclude_set = set(exclude_patch_ids)
+    if validation_target_status not in {None, "competition_evidenced"}:
+        raise ValueError("validation_target_status 仅允许 competition_evidenced")
+    if validation_target_status and (candidate_patch_ids or exclude_patch_ids):
+        raise ValueError("晋级验证运行不得混用 candidate 或 exclusion experiment")
 
     profile_state_path = f"runtime_profiles/{profile}.json"
-    profile_state = json.loads(read_text(profile_state_path))
-    approved_ids = set(profile_state.get("verified_patches", []))
-
+    all_patches = read_patch_index()
+    profile_state, computed_maturity = _derive_profile_state(profile, all_patches)
     selected_patches = select_patches(profile, candidate_patch_ids, exclude_patch_ids)
+    if validation_target_status:
+        if not selected_patches:
+            raise ValueError("晋级验证运行至少需要一个 regression_verified Patch")
+        non_regression = [
+            str(patch.get("patch_id"))
+            for patch in selected_patches
+            if patch.get("status") != "regression_verified"
+        ]
+        if non_regression:
+            raise ValueError(
+                "晋级验证运行只能包含当前状态为 regression_verified 的 Patch："
+                + ", ".join(sorted(non_regression))
+            )
     selected_ids = {patch["patch_id"] for patch in selected_patches}
     all_profile_patches = [
-        patch for patch in read_patch_index() if profile in patch.get("runtime_profiles", [])
+        patch for patch in all_patches if profile in patch.get("runtime_profiles", [])
     ]
     files = resolve_pack_files(profile, candidate_patch_ids, exclude_patch_ids)
 
@@ -257,12 +349,12 @@ def build_manifest(
         return [file_record(path) for path in files if path.startswith(prefix)]
 
     base_records = records("prompt_base/")
-    return {
+    manifest = {
         "manifest_version": "1.1.0",
         "runtime_version": profile_state["version"],
-        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "generated_at": build_timestamp(),
         "profile": profile,
-        "maturity": profile_state["maturity"],
+        "maturity": computed_maturity,
         "runtime_profile_state": file_record(profile_state_path),
         "patch_index": file_record("prompt_patches/patch_index.json"),
         "base": base_records[0] if base_records else None,
@@ -286,7 +378,7 @@ def build_manifest(
                 "patch_id": patch["patch_id"],
                 "status": patch["status"],
                 "reason": _exclusion_reason(
-                    patch, profile, approved_ids, candidate_patch_ids, exclude_set
+                    patch, candidate_patch_ids, exclude_set
                 ),
             }
             for patch in all_profile_patches
@@ -305,8 +397,21 @@ def build_manifest(
             "candidate_patches": candidate_patch_ids,
             "excluded_patches": exclude_patch_ids,
         },
+        "validation_target_status": validation_target_status,
         "runtime_pack_sha256": sha256_bytes(pack_content.encode("utf-8")),
     }
+    identity_payload = {
+        key: value for key, value in manifest.items() if key != "generated_at"
+    }
+    manifest["build_identity"] = sha256_bytes(
+        json.dumps(
+            identity_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    )
+    return manifest
 
 
 def parse_args() -> argparse.Namespace:
@@ -320,7 +425,7 @@ def parse_args() -> argparse.Namespace:
         default=[],
         metavar="PATCH_ID",
         dest="candidate_patch",
-        help="显式加入指定 candidate patch，可重复传入；每个必须存在于 patch_index、状态为 candidate、支持当前 profile。",
+        help="显式加入指定 review_ready patch，可重复传入；每个必须存在于 patch_index 且支持当前 profile。",
     )
     parser.add_argument(
         "--exclude-patch",
@@ -329,6 +434,11 @@ def parse_args() -> argparse.Namespace:
         metavar="PATCH_ID",
         dest="exclude_patch",
         help="显式排除已批准 patch（隔离实验用，如负控 baseline / A092-only / A127-only），可重复传入。",
+    )
+    parser.add_argument(
+        "--validation-target-status",
+        choices=["competition_evidenced"],
+        help="为比赛晋级生成验证运行包；包内保留 Patch 执行时的当前状态。",
     )
     return parser.parse_args()
 
@@ -341,14 +451,26 @@ def main() -> None:
         if args.manifest_output
         else output.with_suffix(".manifest.json")
     )
-    pack_content = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
-    manifest = build_manifest(args.profile, pack_content, args.candidate_patch, args.exclude_patch)
+    pack_content = build_pack(
+        args.profile,
+        args.candidate_patch,
+        args.exclude_patch,
+        args.validation_target_status,
+    )
+    manifest = build_manifest(
+        args.profile,
+        pack_content,
+        args.candidate_patch,
+        args.exclude_patch,
+        args.validation_target_status,
+    )
 
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest_output.parent.mkdir(parents=True, exist_ok=True)
     # 按 UTF-8 字节写入，避免 Windows 自动换行转换破坏 manifest 中的哈希。
-    output.write_bytes(pack_content.encode("utf-8"))
-    manifest_output.write_bytes(
+    atomic_write_bytes(output, pack_content.encode("utf-8"))
+    atomic_write_bytes(
+        manifest_output,
         (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     )
     print(f"已导出运行包：{output}")

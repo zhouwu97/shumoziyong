@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/gate_artifact_manifest.schema.json",
+  "title": "单 Gate 业务产物哈希清单",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "gate",
+    "completed_at",
+    "run_id",
+    "problem_id",
+    "profile",
+    "runtime_version",
+    "runtime_pack_sha256",
+    "artifacts"
+  ],
+  "properties": {
+    "manifest_version": {"const": "1.0.0"},
+    "gate": {"type": "integer", "minimum": 0, "maximum": 5},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "schema", "schema_version", "sha256", "size_bytes"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+\\.json$"},
+          "role": {
+            "enum": [
+              "diagnosis",
+              "model_route",
+              "code_plan",
+              "result_report",
+              "result_manifest",
+              "paper_claim_map",
+              "gate_5_review"
+            ]
+          },
+          "schema": {"type": "string", "pattern": "^schemas/[A-Za-z0-9_.-]+\\.json$"},
+          "schema_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "size_bytes": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

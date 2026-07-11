@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_repository import RepositoryValidator
 from finalize_run_evidence import finalize_run_evidence
-from run_workflow import mark_run_completed, record_transition
+from run_workflow import GATE_5_CHECKLIST_KEYS, mark_run_completed, record_transition
 from promotion_engine import evaluate_status_eligibility
 
 FIXTURE_DIR = ROOT / "tests/fixtures/valid_promotion_evidence"
@@ -47,6 +47,9 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     manifest = json.loads(manifest_path.read_text("utf-8"))
     manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
     manifest_path.write_text(json.dumps(manifest), "utf-8")
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text("utf-8")
+    )
     (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
     (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
     (run_dir / "transitions.jsonl").write_text(
@@ -58,12 +61,18 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     (run_dir / "gate_5_review.json").write_text(
         json.dumps(
             {
+                "run_id": manifest["run_id"],
+                "problem_id": manifest["problem_id"],
+                "profile": manifest["profile"],
+                "runtime_version": manifest["runtime_version"],
+                "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
                 "target_gate": 5,
                 "reviewer": "fixture",
                 "reviewed_at": "2026-07-11T00:00:00Z",
                 "decision": "approved",
                 "final_acceptance": True,
                 "reason": "Fixture Gate 5 review is approved.",
+                "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
             }
         ),
         "utf-8",
@@ -717,22 +726,62 @@ def test_evaluate_status_eligibility_stable_fail_closed():
     from promotion_engine import evaluate_status_eligibility
     
     # 1. Missing stable_evidence config in policy
-    policy_missing = {"status_rules": {"stable": {}}}
-    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_missing, "stable")
+    policy_missing = {"status_rules": {"competition_evidenced": {}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_missing, "competition_evidenced")
     assert not report.eligible
     assert any("缺少 stable_evidence 配置" in gap for gap in report.gaps)
     
     # 2. stable_evidence config required is False
-    policy_not_required = {"status_rules": {"stable": {"stable_evidence": {"required": False}}}}
-    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_not_required, "stable")
+    policy_not_required = {"status_rules": {"competition_evidenced": {"stable_evidence": {"required": False}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_not_required, "competition_evidenced")
     assert not report.eligible
     assert any("未启用 stable_evidence.required" in gap for gap in report.gaps)
     
     # 3. Patch missing stable_evidence
-    policy_valid = {"status_rules": {"stable": {"stable_evidence": {"required": True}}}}
-    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "stable")
+    policy_valid = {"status_rules": {"competition_evidenced": {"stable_evidence": {"required": True}}}}
+    report = evaluate_status_eligibility({"patch_id": "A"}, {}, policy_valid, "competition_evidenced")
     assert not report.eligible
     assert any("必须提供 stable_evidence 对象" in gap for gap in report.gaps)
+
+
+def test_deprecated_patch_is_a_valid_terminal_state():
+    policy = json.loads((ROOT / "policies/promotion_policy.json").read_text("utf-8"))
+    report = evaluate_status_eligibility(
+        {"patch_id": "A092", "status": "deprecated"},
+        {},
+        policy,
+        "deprecated",
+    )
+
+    assert report.eligible
+
+
+def test_negative_scope_uses_derived_v2_result() -> None:
+    policy = {
+        "status_rules": {
+            "regression_verified": {
+                "required_controls": ["negative"],
+                "required_result": "pass",
+                "negative_must_be_out_of_scope": True,
+            }
+        }
+    }
+    matrix = {
+        "negative": {
+            "_derived_result": "pass",
+            "case": "2024-B",
+            "case_metadata": {"relation_to_patch": "boundary_edge_scope"},
+        }
+    }
+    report = evaluate_status_eligibility(
+        {"patch_id": "A092", "status": "regression_verified"},
+        matrix,
+        policy,
+        "regression_verified",
+    )
+
+    assert not report.eligible
+    assert any("negative case 必须明确标记为 out-of-scope" in gap for gap in report.gaps)
 
 
 @pytest.mark.parametrize("risk", ["M1", "M2", "M3", "M5"])
@@ -747,9 +796,9 @@ def test_forbidden_material_risk_blocks_promotion(tmp_path, risk):
         encoding="utf-8",
     )
     report = evaluate_status_eligibility(
-        {"patch_id": "A001", "status": "candidate", "validation_records": [str(record_path)]},
+        {"patch_id": "A001", "status": "review_ready", "validation_records": [str(record_path)]},
         {},
-        {"status_rules": {"candidate": {"forbidden_material_risks": [risk]}}},
-        "candidate",
+        {"status_rules": {"review_ready": {"forbidden_material_risks": [risk]}}},
+        "review_ready",
     )
     assert any(f"禁止材料风险：{risk}" in gap for gap in report.gaps)

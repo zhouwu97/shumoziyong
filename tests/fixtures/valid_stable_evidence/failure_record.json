@@ -1,5 +1,7 @@
 {
-  "patch_id": "A001",
+  "failure_id": "F-A001-001",
+  "target_patch": "A001",
+  "retest_run_id": "treatment",
   "issue_description": "Failed something",
   "original_failure_snapshot": "tests/fixtures/valid_stable_evidence/baseline",
   "failure_label": "logic_error"

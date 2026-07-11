@@ -9,14 +9,14 @@
     "manifest_version", "runtime_version", "generated_at", "profile", "maturity",
     "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists",
     "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment",
-    "export_flags", "runtime_pack_sha256"
+    "export_flags", "validation_target_status", "runtime_pack_sha256", "build_identity"
   ],
   "properties": {
     "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
     "runtime_version": {"type": "string", "minLength": 1},
     "generated_at": {"type": "string", "format": "date-time"},
     "profile": {"type": "string", "minLength": 1},
-    "maturity": {"type": "string", "enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+    "maturity": {"type": "string", "enum": ["draft", "assembled", "regression_verified", "competition_evidenced", "deprecated"]},
     "runtime_profile_state": {"$ref": "#/$defs/fileRecord"},
     "patch_index": {"$ref": "#/$defs/fileRecord"},
     "base": {"anyOf": [{"$ref": "#/$defs/fileRecord"}, {"type": "null"}]},
@@ -28,7 +28,9 @@
     "candidate_experiment": {"$ref": "#/$defs/candidateExperiment"},
     "exclusion_experiment": {"$ref": "#/$defs/exclusionExperiment"},
     "export_flags": {"$ref": "#/$defs/exportFlags"},
-    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"}
+    "validation_target_status": {"type": ["string", "null"], "enum": [null, "competition_evidenced"]},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "build_identity": {"$ref": "#/$defs/sha256"}
   },
   "$defs": {
     "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"},
@@ -41,7 +43,7 @@
       "type": "object", "additionalProperties": false, "required": ["patch_id", "status", "path", "sha256"],
       "properties": {
         "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
-        "status": {"type": "string", "enum": ["candidate", "verified_candidate", "stable"]},
+        "status": {"type": "string", "enum": ["review_ready", "regression_verified", "competition_evidenced"]},
         "path": {"$ref": "#/$defs/relativePath"}, "sha256": {"$ref": "#/$defs/sha256"}
       }
     },
@@ -49,7 +51,7 @@
       "type": "object", "additionalProperties": false, "required": ["patch_id", "status", "reason"],
       "properties": {
         "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
-        "status": {"type": "string", "enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+        "status": {"type": "string", "enum": ["draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"]},
         "reason": {"type": "string", "minLength": 1}
       }
     },

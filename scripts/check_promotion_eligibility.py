@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from evidence_validation import derive_v2_matrix_results
 from promotion_engine import (
     PromotionGap,
     evaluate_full,
@@ -25,35 +26,27 @@ MATRIX_PATH = ROOT / "tests" / "prompt_regression" / "patch_negative_control_mat
 INDEX_PATH = ROOT / "prompt_patches" / "patch_index.json"
 
 
-class PromotionGap:
-    """一条不满足的条件。"""
-
-    def __init__(self, patch_id: str, target_status: str, condition: str) -> None:
-        self.patch_id = patch_id
-        self.target_status = target_status
-        self.condition = condition
-
-    def __str__(self) -> str:
-        return f"[{self.patch_id}] → {self.target_status}：{self.condition}"
-
-
 def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
     """返回 (report, gaps)。gaps 来自 promotion_engine 的统一评估。
 
     与上一版的关键区别：
-      - candidate patch 现在会报告"到 verified_candidate 还差什么"。
+      - review_ready patch 现在会报告“到 regression_verified 还差什么”。
       - 机制计数为 patch 级别，不从 profile 继承。
       - 真正检查 failure_labels.json 中的 P/M 标签。
     """
     policy = load_json(POLICY_PATH)
     matrix = load_json(MATRIX_PATH)
     patch_index = load_json(INDEX_PATH)
+    matrix, evidence_errors = derive_v2_matrix_results(matrix, policy, root=ROOT)
 
     matrix_by_id: dict[str, dict[str, Any]] = {
         item["patch_id"]: item for item in matrix.get("patches", [])
     }
 
-    all_gaps: list[PromotionGap] = []
+    all_gaps: list[PromotionGap] = [
+        PromotionGap("<evidence>", "regression_verified", error)
+        for error in evidence_errors
+    ]
     results: list[dict[str, Any]] = []
 
     for patch in patch_index:
@@ -67,15 +60,21 @@ def check_promotion_eligibility() -> tuple[dict[str, Any], list[PromotionGap]]:
         for g in full.current_gaps:
             all_gaps.append(PromotionGap(pid, current_status, g))
 
-        # 收集下一级状态的 gaps（candidate → verified_candidate 等）
+        # 收集下一级状态的 gaps（review_ready → regression_verified 等）
         for g in full.gaps_to_next_status:
             next_s = full.next_status or "?"
             all_gaps.append(PromotionGap(pid, next_s, g))
 
         # 按控制类型收集 pass/fail
         control_results: dict[str, str] = {}
+        active_v2 = matrix.get("matrix_version") == "2.0.0"
         for control in ("positive", "boundary", "negative"):
-            control_results[control] = entry.get(control, {}).get("result", "pending")
+            control_data = entry.get(control, {})
+            control_results[control] = (
+                control_data.get("_derived_result", "pending")
+                if active_v2
+                else control_data.get("result", "pending")
+            )
         passed_count = sum(1 for r in control_results.values() if r == "pass")
 
         results.append(
