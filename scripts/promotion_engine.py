@@ -294,7 +294,8 @@ def evaluate_status_eligibility(
     passed_controls = 0
     control_results: dict[str, str] = {}
     for control in ("positive", "boundary", "negative"):
-        result = matrix_entry.get(control, {}).get("result", "pending")
+        control_data = matrix_entry.get(control, {})
+        result = control_data.get("_derived_result", control_data.get("result", "pending"))
         control_results[control] = result
         if control in required_controls and result != rules.get("required_result", "pass"):
             gaps.append(

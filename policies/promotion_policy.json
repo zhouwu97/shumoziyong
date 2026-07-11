@@ -2,6 +2,21 @@
   "policy_version": "1.5.0",
   "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。Schema 记录事实，policy 负责判定——两者不混。",
   "automatic_status_update_allowed": false,
+  "control_evidence_requirements": {
+    "active_matrix_version": "2.0.0",
+    "matrix_schema": "schemas/control_matrix.schema.json",
+    "comparison_review_schema": "schemas/comparison_review_v2.schema.json",
+    "required_controls": ["positive", "boundary", "negative"],
+    "required_evidence_fields": [
+      "baseline_run",
+      "treatment_run",
+      "comparison_review",
+      "baseline_evidence_manifest_sha256",
+      "treatment_evidence_manifest_sha256"
+    ],
+    "legacy_v1_active_promotion_allowed": false,
+    "note": "控制结果由运行证据、对照审核和 Policy 现场派生，矩阵不得保存 result。"
+  },
   "diagnosis_schema_requirements": {
     "minimum_schema_version": "2.0.0",
     "legacy_evidence_cutoff": "2026-07-10T18:00:00+08:00",

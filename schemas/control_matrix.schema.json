@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/control_matrix.schema.json",
+  "title": "Patch 三类控制证据索引",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["matrix_version", "patches"],
+  "properties": {
+    "matrix_version": {"const": "2.0.0"},
+    "patches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["patch_id", "positive", "boundary", "negative"],
+        "properties": {
+          "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
+          "positive": {"$ref": "#/$defs/control"},
+          "boundary": {"$ref": "#/$defs/control"},
+          "negative": {"$ref": "#/$defs/control"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "caseMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["problem_id", "year", "mechanism_class", "relation_to_patch", "material_level"],
+      "properties": {
+        "problem_id": {"type": "string", "minLength": 1},
+        "year": {"type": "integer", "minimum": 2000},
+        "mechanism_class": {"type": "string", "minLength": 1},
+        "relation_to_patch": {
+          "enum": ["positive_in_scope", "boundary_edge_scope", "negative_out_of_scope"]
+        },
+        "material_level": {"enum": ["T0", "T1", "T2", "T3", "T4"]}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline_run",
+        "treatment_run",
+        "comparison_review",
+        "baseline_evidence_manifest_sha256",
+        "treatment_evidence_manifest_sha256"
+      ],
+      "properties": {
+        "baseline_run": {"type": "string", "minLength": 1},
+        "treatment_run": {"type": "string", "minLength": 1},
+        "comparison_review": {"type": "string", "minLength": 1},
+        "baseline_evidence_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "treatment_evidence_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case", "case_metadata", "expected_behavior", "evidence"],
+      "properties": {
+        "case": {"type": ["string", "null"], "minLength": 1},
+        "case_metadata": {"oneOf": [{"$ref": "#/$defs/caseMetadata"}, {"type": "null"}]},
+        "expected_behavior": {"type": ["string", "null"], "minLength": 10},
+        "evidence": {"oneOf": [{"$ref": "#/$defs/evidence"}, {"type": "null"}]}
+      }
+    }
+  }
+}

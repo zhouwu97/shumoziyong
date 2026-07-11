@@ -11,8 +11,9 @@ from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
+from control_evidence import derive_control_result
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
-from run_workflow import replay_transition_log
+from run_workflow import OPTIONAL_GATE_EVIDENCE_SPECS, replay_transition_log
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -404,6 +405,12 @@ class RepositoryValidator:
             return
         policy = pe_load_json(ROOT / "policies" / "promotion_policy.json")
 
+        matrix_is_v2 = matrix.get("matrix_version") == "2.0.0"
+        if matrix_is_v2 and not self.validate_schema(
+            matrix, "control_matrix.schema.json", "Patch 控制证据矩阵 v2"
+        ):
+            return
+
         matrix_by_id = {item.get("patch_id"): item for item in matrix.get("patches", [])}
         promotion_ok = True
 
@@ -522,7 +529,18 @@ class RepositoryValidator:
                     self.fail(f"{run_dir.name} run_evidence_manifest.path 重复：{raw_path}")
                     ok = False
                 seen_paths.add(raw_path)
-                expected_path = required_artifacts.get(role_name)
+                optional_artifacts = {
+                    role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS
+                }
+                optional_artifacts.update(
+                    {
+                        f"gate_{gate}_artifact_manifest": f"gate_artifacts/gate_{gate}.manifest.json"
+                        for gate in range(6)
+                    }
+                )
+                expected_path = required_artifacts.get(
+                    role_name, optional_artifacts.get(role_name)
+                )
                 if expected_path is None:
                     self.fail(f"{run_dir.name} run_evidence_manifest 包含未知证据角色：{role_name}")
                     ok = False
@@ -591,6 +609,9 @@ class RepositoryValidator:
                             ok = False
                         if state["max_gate"] != 5:
                             self.fail(f"{run_dir.name} 晋级证据必须来自 Gate 0-5 完整运行")
+                            ok = False
+                        if matrix_is_v2 and state.get("transition_version") != "2.0.0":
+                            self.fail(f"{run_dir.name} 晋级证据必须使用 Gate 语义完成契约 v2")
                             ok = False
 
                 request = json.loads((run_dir / "request.json").read_text(encoding="utf-8"))
@@ -952,6 +973,114 @@ class RepositoryValidator:
 
             return ok
 
+        def _derive_v2_control_result(
+            patch_id: str,
+            control_type: str,
+            control_data: dict[str, Any],
+        ) -> str:
+            """现场验证一组 v2 baseline/treatment 证据并派生控制结论。"""
+            evidence = control_data.get("evidence")
+            if evidence is None:
+                control_data["_derived_result"] = "pending"
+                return "pending"
+            if not isinstance(evidence, dict):
+                self.fail(f"{patch_id} {control_type} evidence 必须为对象或 null")
+                control_data["_derived_result"] = "invalid"
+                return "invalid"
+
+            ok = True
+            review: dict[str, Any] | None = None
+            try:
+                baseline_dir = self.resolve_repo_path(evidence["baseline_run"])
+                treatment_dir = self.resolve_repo_path(evidence["treatment_run"])
+                review_path = self.resolve_repo_path(evidence["comparison_review"])
+                baseline_evidence_path = baseline_dir / "run_evidence_manifest.json"
+                treatment_evidence_path = treatment_dir / "run_evidence_manifest.json"
+
+                for label, path, expected_sha in (
+                    (
+                        "baseline",
+                        baseline_evidence_path,
+                        evidence.get("baseline_evidence_manifest_sha256"),
+                    ),
+                    (
+                        "treatment",
+                        treatment_evidence_path,
+                        evidence.get("treatment_evidence_manifest_sha256"),
+                    ),
+                ):
+                    if not path.is_file():
+                        self.fail(f"{patch_id} {control_type} 缺少 {label} Evidence Manifest")
+                        ok = False
+                    elif hashlib.sha256(path.read_bytes()).hexdigest() != expected_sha:
+                        self.fail(f"{patch_id} {control_type} {label} Evidence Manifest SHA-256 不匹配")
+                        ok = False
+
+                if not _verify_real_run(
+                    baseline_dir, patch_id, "baseline", allow_legacy=False
+                ):
+                    ok = False
+                if not _verify_real_run(
+                    treatment_dir, patch_id, "patch_only", allow_legacy=False
+                ):
+                    ok = False
+                if not verify_experiment_pair(baseline_dir, treatment_dir, patch_id):
+                    ok = False
+
+                review = json.loads(review_path.read_text(encoding="utf-8"))
+                if not self.validate_schema(
+                    review,
+                    "comparison_review_v2.schema.json",
+                    f"{patch_id} {control_type} comparison review v2",
+                ):
+                    ok = False
+                expected_review_fields = {
+                    "control_type": control_type,
+                    "target_patch": patch_id,
+                    "baseline_run": evidence["baseline_run"],
+                    "treatment_run": evidence["treatment_run"],
+                    "baseline_evidence_manifest_sha256": evidence[
+                        "baseline_evidence_manifest_sha256"
+                    ],
+                    "treatment_evidence_manifest_sha256": evidence[
+                        "treatment_evidence_manifest_sha256"
+                    ],
+                }
+                for field, expected in expected_review_fields.items():
+                    if review.get(field) != expected:
+                        self.fail(
+                            f"{patch_id} {control_type} comparison_review.{field} 与矩阵不一致"
+                        )
+                        ok = False
+
+                baseline_manifest = json.loads(
+                    (baseline_dir / "run_manifest.json").read_text(encoding="utf-8")
+                )
+                treatment_manifest = json.loads(
+                    (treatment_dir / "run_manifest.json").read_text(encoding="utf-8")
+                )
+                case = control_data.get("case")
+                if case not in {
+                    baseline_manifest.get("problem_id"),
+                    treatment_manifest.get("problem_id"),
+                } or baseline_manifest.get("problem_id") != treatment_manifest.get("problem_id"):
+                    self.fail(f"{patch_id} {control_type} case 与 baseline/treatment 题号不一致")
+                    ok = False
+                group_id = baseline_manifest.get("experiment_group_id")
+                if (
+                    group_id != treatment_manifest.get("experiment_group_id")
+                    or group_id != review.get("experiment_group_id")
+                ):
+                    self.fail(f"{patch_id} {control_type} experiment_group_id 不一致")
+                    ok = False
+            except (KeyError, OSError, json.JSONDecodeError, ValueError) as exc:
+                self.fail(f"{patch_id} {control_type} v2 控制证据无法验证：{exc}")
+                ok = False
+
+            result = derive_control_result(control_data, review, evidence_valid=ok)
+            control_data["_derived_result"] = result
+            return result
+
         def _collect_stable_inner_hashes(patch: dict[str, Any]) -> dict[str, str]:
             """现场计算 stable 证据组件哈希，禁止把路径文字当作内容绑定。"""
             patch_id = patch.get("patch_id", "<unknown>")
@@ -1053,6 +1182,21 @@ class RepositoryValidator:
                 patch["_resolved_patch_sha256"] = hashlib.sha256(patch_file.read_bytes()).hexdigest()
             if status == "stable":
                 patch["_resolved_inner_sha256s"] = _collect_stable_inner_hashes(patch)
+
+            if matrix_is_v2:
+                for control_type in ("positive", "boundary", "negative"):
+                    control_data = entry.get(control_type)
+                    if not isinstance(control_data, dict):
+                        self.fail(f"{patch_id} {control_type} 控制记录缺失或不是对象")
+                        promotion_ok = False
+                        continue
+                    derived = _derive_v2_control_result(
+                        patch_id, control_type, control_data
+                    )
+                    if derived != "pass" and control_type in policy.get(
+                        "control_evidence_requirements", {}
+                    ).get("required_controls", []):
+                        promotion_ok = False
 
             # 委托给 promotion_engine（promotion_policy.json 唯一事实源）
             report = evaluate_status_eligibility(
