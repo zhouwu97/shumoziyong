@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from export_runtime_pack import build_manifest, build_pack
+from model_validation import validate_model_and_execution
 from verify_materials import MaterialVerificationResult, verify_materials
 
 try:
@@ -1039,6 +1040,30 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             raise ValueError(f"Gate {gate} 产物 {filename} SHA-256 不匹配")
         if entry.get("size_bytes") != len(raw):
             raise ValueError(f"Gate {gate} 产物 {filename} size_bytes 不匹配")
+    if gate == 3:
+        result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
+        result_manifest = _load_json_object(
+            run_dir / "result_manifest.json", "result_manifest.json"
+        )
+        model_errors = validate_model_and_execution(
+            result_report, result_manifest, run_dir=run_dir
+        )
+        if model_errors:
+            raise ValueError("Gate 3 数学或复现检查失败：" + "；".join(model_errors))
+    if gate == 4:
+        result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
+        result_manifest = _load_json_object(
+            run_dir / "result_manifest.json", "result_manifest.json"
+        )
+        claim_map = _load_json_object(run_dir / "paper_claim_map.json", "paper_claim_map.json")
+        claim_errors = validate_model_and_execution(
+            result_report,
+            result_manifest,
+            run_dir=run_dir,
+            claim_map=claim_map,
+        )
+        if claim_errors:
+            raise ValueError("Gate 4 Claim-Result 检查失败：" + "；".join(claim_errors))
     return manifest
 
 

@@ -191,6 +191,40 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
                         {"name": "fixture_score", "value": 1.0, "unit": None, "source": "result.json"}
                     ],
                     "limitations": ["This fixture result is not a universal correctness claim."],
+                    "model_contract": {
+                        "model_type": "descriptive",
+                        "variables": [
+                            {
+                                "name": "x",
+                                "definition": "Fixture decision value.",
+                                "unit": "1",
+                                "source": "problem statement",
+                            }
+                        ],
+                        "parameters": [
+                            {
+                                "name": "p",
+                                "definition": "Fixture parameter.",
+                                "unit": "1",
+                                "source": "frozen input",
+                            }
+                        ],
+                        "formulas": [
+                            {"formula_id": "F1", "expression": "x + p", "symbols": ["x", "p"]}
+                        ],
+                        "objectives": ["Explain the fixture result."],
+                        "constraints": ["x must remain finite."],
+                        "boundary_conditions": ["x equals zero at the fixture boundary."],
+                        "unit_checks": [{"expression": "x + p", "compatible": True}],
+                        "claim_result_bindings": [
+                            {"claim_id": "C001", "metric": "fixture_score"}
+                        ],
+                        "optimization_checks": {
+                            "configured": [],
+                            "passed": [],
+                            "not_applicable": {},
+                        },
+                    },
                 },
             ),
             (
@@ -207,6 +241,20 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
                     ],
                     "inputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
                     "outputs": [{"path": "runtime_pack.md", "sha256": runtime_pack_sha}],
+                    "environment": {
+                        "python": "3.12",
+                        "os": "test",
+                        "solver": None,
+                        "git_sha": "abcdef0",
+                        "dependencies": ["jsonschema==4"],
+                    },
+                    "random_seeds": [0],
+                    "tolerances": {"absolute": 0.0},
+                    "deterministic_expected": True,
+                    "repeated_runs": [
+                        {"seed": 0, "exit_code": 0, "output_sha256": runtime_pack_sha},
+                        {"seed": 0, "exit_code": 0, "output_sha256": runtime_pack_sha},
+                    ],
                 },
             ),
         ],

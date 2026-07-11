@@ -82,9 +82,72 @@
             }
           }
         },
-        "limitations": {"$ref": "#/$defs/nonEmptyStrings"}
+        "limitations": {"$ref": "#/$defs/nonEmptyStrings"},
+        "model_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_type", "variables", "parameters", "formulas", "objectives",
+            "constraints", "boundary_conditions", "unit_checks",
+            "claim_result_bindings", "optimization_checks"
+          ],
+          "properties": {
+            "model_type": {"enum": ["descriptive", "prediction", "continuous_optimization", "mip", "nonlinear_optimization", "heuristic", "simulation", "other"]},
+            "variables": {"$ref": "#/$defs/symbolDefinitions"},
+            "parameters": {"$ref": "#/$defs/symbolDefinitions"},
+            "formulas": {
+              "type": "array", "minItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["formula_id", "expression", "symbols"],
+                "properties": {
+                  "formula_id": {"type": "string", "minLength": 1},
+                  "expression": {"type": "string", "minLength": 1},
+                  "symbols": {"$ref": "#/$defs/nonEmptyStrings"}
+                }
+              }
+            },
+            "objectives": {"$ref": "#/$defs/nonEmptyStrings"},
+            "constraints": {"$ref": "#/$defs/nonEmptyStrings"},
+            "boundary_conditions": {"$ref": "#/$defs/nonEmptyStrings"},
+            "unit_checks": {
+              "type": "array", "minItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["expression", "compatible"],
+                "properties": {
+                  "expression": {"type": "string", "minLength": 1},
+                  "compatible": {"type": "boolean"}
+                }
+              }
+            },
+            "claim_result_bindings": {
+              "type": "array", "minItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["claim_id", "metric"],
+                "properties": {
+                  "claim_id": {"type": "string", "pattern": "^C[0-9]{3,}$"},
+                  "metric": {"type": "string", "minLength": 1}
+                }
+              }
+            },
+            "optimization_checks": {
+              "type": "object", "additionalProperties": false,
+              "required": ["configured", "passed", "not_applicable"],
+              "properties": {
+                "configured": {"$ref": "#/$defs/optimizationCheckNames"},
+                "passed": {"$ref": "#/$defs/optimizationCheckNames"},
+                "not_applicable": {
+                  "type": "object",
+                  "additionalProperties": {"type": "string", "minLength": 10}
+                }
+              }
+            }
+          }
+        }
       },
-      "required": ["conclusions", "metrics", "limitations"]
+      "required": ["conclusions", "metrics", "limitations", "model_contract"]
     },
     {
       "properties": {
@@ -104,9 +167,38 @@
           }
         },
         "inputs": {"$ref": "#/$defs/hashedFiles"},
-        "outputs": {"$ref": "#/$defs/hashedFiles"}
+        "outputs": {"$ref": "#/$defs/hashedFiles"},
+        "environment": {
+          "type": "object", "additionalProperties": false,
+          "required": ["python", "os", "solver", "git_sha", "dependencies"],
+          "properties": {
+            "python": {"type": "string", "minLength": 1},
+            "os": {"type": "string", "minLength": 1},
+            "solver": {"type": ["string", "null"]},
+            "git_sha": {"type": "string", "pattern": "^[a-f0-9]{7,40}$"},
+            "dependencies": {"$ref": "#/$defs/nonEmptyStrings"}
+          }
+        },
+        "random_seeds": {"type": "array", "minItems": 1, "items": {"type": "integer"}},
+        "tolerances": {
+          "type": "object", "minProperties": 1,
+          "additionalProperties": {"type": "number", "minimum": 0}
+        },
+        "deterministic_expected": {"type": "boolean"},
+        "repeated_runs": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["seed", "exit_code", "output_sha256"],
+            "properties": {
+              "seed": {"type": "integer"},
+              "exit_code": {"const": 0},
+              "output_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
       },
-      "required": ["executions", "inputs", "outputs"]
+      "required": ["executions", "inputs", "outputs", "environment", "random_seeds", "tolerances", "deterministic_expected", "repeated_runs"]
     },
     {
       "properties": {
@@ -137,6 +229,25 @@
       "type": "array",
       "minItems": 1,
       "items": {"type": "string", "minLength": 1}
+    },
+    "symbolDefinitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "definition", "unit", "source"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]*$"},
+          "definition": {"type": "string", "minLength": 1},
+          "unit": {"type": "string", "minLength": 1},
+          "source": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "optimizationCheckNames": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["baseline", "feasibility", "constraint_residual", "mip_gap", "kkt", "multi_start", "bounds", "sensitivity"]}
     },
     "hashedFiles": {
       "type": "array",
