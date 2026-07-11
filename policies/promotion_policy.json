@@ -1,11 +1,27 @@
 {
-  "policy_version": "1.1.0",
+  "policy_version": "1.2.0",
   "description": "Patch 晋级资格的机器可读统一策略。任何自动检查只能给出资格结论，不得自动修改 patch_index 状态。Schema 记录事实，policy 负责判定——两者不混。",
   "automatic_status_update_allowed": false,
   "diagnosis_schema_requirements": {
     "minimum_schema_version": "2.0.0",
     "legacy_evidence_cutoff": "2026-07-10T18:00:00+08:00",
-    "note": "cutoff 之后新生成的晋级证据必须使用 diagnosis v2+。现有 A092/A127 旧证据标记为 legacy_v1_grandfathered。"
+    "legacy_evidence_allowlist": [
+      "nc_A092_2016C_20260710_01",
+      "nc_A127_2024B_20260710_02"
+    ],
+    "legacy_evidence_paths": {
+      "nc_A092_2016C_20260710_01": {
+        "baseline_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/baseline",
+        "treatment_run": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/treatment",
+        "comparison_review": "output/negative_controls/real/A092/nc_A092_2016C_20260710_01/comparison_review.json"
+      },
+      "nc_A127_2024B_20260710_02": {
+        "baseline_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/baseline",
+        "treatment_run": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/treatment",
+        "comparison_review": "output/negative_controls/real/A127/nc_A127_2024B_20260710_02/comparison_review.json"
+      }
+    },
+    "note": "仅 allowlist 中、截止时间前生成且路径未变的历史 A092/A127 证据可标记为 legacy_v1_grandfathered；其他晋级证据必须使用 diagnosis v2+ 并提供完整 AI 元数据与证据清单。"
   },
   "status_rules": {
     "candidate": {
@@ -83,10 +99,12 @@
       "run_manifest.json",
       "problem_manifest.json",
       "runtime_pack.manifest.json",
+      "runtime_pack.md",
       "request.json",
       "response.json",
       "automatic_evaluation.json",
-      "ai_run_metadata.json"
+      "ai_run_metadata.json",
+      "run_evidence_manifest.json"
     ],
     "ai_run_metadata_checks": {
       "schema": "schemas/ai_run_metadata.schema.json",
@@ -99,7 +117,9 @@
       "require_problem_material_digest_match": true,
       "reject_completed_before_started": true,
       "reject_absolute_paths_in_note": true,
-      "baseline_treatment_must_match": ["provider", "model", "model_snapshot", "reasoning_effort", "client"]
+      "baseline_treatment_must_match": ["provider", "model", "model_snapshot", "reasoning_effort", "client", "client_version", "temperature", "seed", "tool_permissions", "working_directory_mode"],
+      "run_evidence_manifest_schema": "schemas/run_evidence_manifest.schema.json",
+      "required_artifact_roles": ["request", "model_response", "runtime_pack", "runtime_pack_manifest", "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review"]
     }
   },
   "manual_controls": {

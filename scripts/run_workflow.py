@@ -30,6 +30,39 @@ def sha256_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def build_run_evidence_manifest(run_dir: Path, run_id: str) -> dict[str, Any]:
+    """为运行目录中的晋级证据生成可验证的路径、大小和内容哈希清单。"""
+    artifact_specs = [
+        ("request.json", "request", "application/json"),
+        ("response.json", "model_response", "application/json"),
+        ("runtime_pack.md", "runtime_pack", "text/markdown"),
+        ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
+        ("problem_manifest.json", "problem_manifest", "application/json"),
+        ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
+        ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
+        ("human_review.md", "human_review", "text/markdown"),
+    ]
+    artifacts: list[dict[str, Any]] = []
+    for filename, role, media_type in artifact_specs:
+        path = run_dir / filename
+        content = path.read_bytes()
+        artifacts.append(
+            {
+                "path": filename,
+                "sha256": sha256_bytes(content),
+                "media_type": media_type,
+                "size_bytes": len(content),
+                "role": role,
+                "generated_by": "run_workflow.py",
+            }
+        )
+    return {
+        "evidence_manifest_version": "1.0.0",
+        "run_id": run_id,
+        "artifacts": artifacts,
+    }
+
+
 def repo_relative(path: Path) -> str:
     """优先记录仓库相对路径；外部材料目录保留绝对路径以确保可追溯。"""
     try:
@@ -260,23 +293,28 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         run_dir / "ai_run_metadata.json",
         {
             "metadata_version": "1.0.0",
-            "_note": "待填写：AI 模型调用的完整元数据。所有字段必须如实记录，不得伪造。",
-            "provider": "",
-            "model": "",
+            "status": "pending",
+            "note": "待填写真实运行数据；pending 元数据不能作为晋级证据。",
+            "provider": None,
+            "model": None,
             "model_snapshot": None,
-            "client": "",
+            "client": None,
             "client_version": None,
-            "reasoning_effort": "none",
+            "reasoning_effort": None,
             "temperature": None,
             "seed": None,
-            "started_at": "",
+            "started_at": None,
             "completed_at": None,
-            "prompt_sha256": "",
-            "runtime_pack_sha256": "",
-            "problem_material_digest": "",
-            "tool_permissions": [],
-            "working_directory_mode": "unknown",
+            "prompt_sha256": None,
+            "runtime_pack_sha256": None,
+            "problem_material_digest": None,
+            "tool_permissions": None,
+            "working_directory_mode": None,
         },
+    )
+    write_json(
+        run_dir / "run_evidence_manifest.json",
+        build_run_evidence_manifest(run_dir, run_id),
     )
     # 闸门转换日志：记录每次阶段推进
     _init_transitions(run_dir, args.gates, material_verification.ready)

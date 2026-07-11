@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 import hashlib
+from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
@@ -14,6 +15,7 @@ from promotion_engine import evaluate_status_eligibility, load_json as pe_load_j
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
+    from referencing import Registry, Resource
     import yaml
 except ImportError as exc:  # pragma: no cover - 只在依赖缺失时触发
     raise SystemExit("缺少 jsonschema 或 PyYAML，请先执行：pip install -r requirements.txt") from exc
@@ -54,13 +56,20 @@ class RepositoryValidator:
 
     def validate_schema(self, data: Any, schema_name: str, display_name: str) -> bool:
         """Validate JSON against schema, return True if ok."""
-        from jsonschema import Draft202012Validator, FormatChecker
         schema = self.load_json(f"schemas/{schema_name}")
         if schema is None:
             return False
+        # 所有 Schema 都从仓库本地注册，$ref 不允许退化为外部网络请求。
+        registry = Registry()
+        for candidate in SCHEMA_DIR.glob("*.json"):
+            candidate_schema = json.loads(candidate.read_text(encoding="utf-8"))
+            schema_id = candidate_schema.get("$id")
+            if isinstance(schema_id, str):
+                registry = registry.with_resource(schema_id, Resource.from_contents(candidate_schema))
         errors = sorted(
             Draft202012Validator(
                 schema,
+                registry=registry,
                 format_checker=FormatChecker(),
             ).iter_errors(data),
             key=lambda error: list(error.absolute_path),
@@ -194,10 +203,121 @@ class RepositoryValidator:
                 for line in text.replace("\r\n", "\n").replace("\r", "\n").strip().split("\n")
             )
 
+        def parse_iso8601(value: str) -> datetime:
+            """解析带时区的 ISO 8601 时间，避免按字符串比较不同时区时间。"""
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                raise ValueError("时间戳必须包含时区")
+            return parsed
+
+        def _is_legacy_evidence(
+            run_dir: Path,
+            target_patch: str,
+            role: str,
+            run_manifest: dict[str, Any],
+            policy: dict[str, Any],
+        ) -> bool:
+            """仅放行政策中固定的历史证据，禁止新证据伪造 legacy 标记绕过门禁。"""
+            neg_entry = matrix_by_id.get(target_patch, {}).get("negative", {})
+            evidence = neg_entry.get("evidence") if isinstance(neg_entry.get("evidence"), dict) else {}
+            if evidence.get("schema_generation") != "legacy_v1_grandfathered":
+                return False
+
+            requirements = policy.get("diagnosis_schema_requirements", {})
+            group_id = run_manifest.get("experiment_group_id")
+            allowlist = requirements.get("legacy_evidence_allowlist", [])
+            expected_paths = requirements.get("legacy_evidence_paths", {}).get(group_id, {})
+            valid = True
+            if group_id not in allowlist:
+                self.fail(f"{run_dir.name} legacy 证据组不在 allowlist：{group_id!r}")
+                valid = False
+            if evidence.get(f"{role}_run") != expected_paths.get(f"{role}_run"):
+                self.fail(f"{run_dir.name} legacy 证据路径不是政策登记的历史路径")
+                valid = False
+            if evidence.get("comparison_review") != expected_paths.get("comparison_review"):
+                self.fail(f"{run_dir.name} legacy comparison_review 路径不是政策登记的历史路径")
+                valid = False
+
+            cutoff = requirements.get("legacy_evidence_cutoff")
+            created_at = run_manifest.get("created_at")
+            try:
+                if not cutoff or not created_at or parse_iso8601(created_at) > parse_iso8601(cutoff):
+                    self.fail(f"{run_dir.name} legacy 证据创建时间不早于 cutoff：{created_at!r}")
+                    valid = False
+            except (TypeError, ValueError):
+                self.fail(f"{run_dir.name} legacy 证据 created_at/cutoff 不是合法带时区 ISO 8601 时间")
+                valid = False
+            return valid
+
+        def _verify_run_evidence_manifest(
+            run_dir: Path,
+            run_manifest: dict[str, Any],
+            policy: dict[str, Any],
+        ) -> bool:
+            """验证证据引用的角色、路径、字节数和 SHA-256，形成可执行证据契约。"""
+            ok = True
+            reqs = policy.get("run_evidence_requirements", {}).get("ai_run_metadata_checks", {})
+            manifest_path = run_dir / "run_evidence_manifest.json"
+            if not manifest_path.is_file():
+                self.fail(f"{run_dir.name} 缺少 run_evidence_manifest.json")
+                return False
+            try:
+                evidence_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                self.fail(f"{run_dir.name} run_evidence_manifest.json 无法解析: {exc}")
+                return False
+
+            schema_name = Path(reqs.get("run_evidence_manifest_schema", "schemas/run_evidence_manifest.schema.json")).name
+            if not self.validate_schema(evidence_manifest, schema_name, f"{run_dir.name} run_evidence_manifest"):
+                ok = False
+            if evidence_manifest.get("run_id") != run_manifest.get("run_id"):
+                self.fail(f"{run_dir.name} run_evidence_manifest.run_id 与 run_manifest 不一致")
+                ok = False
+
+            required_roles = set(reqs.get("required_artifact_roles", []))
+            seen_roles: set[str] = set()
+            run_root = run_dir.resolve()
+            for artifact in evidence_manifest.get("artifacts", []):
+                if not isinstance(artifact, dict):
+                    continue
+                role_name = artifact.get("role")
+                if role_name in seen_roles:
+                    self.fail(f"{run_dir.name} run_evidence_manifest.role 重复：{role_name}")
+                    ok = False
+                if isinstance(role_name, str):
+                    seen_roles.add(role_name)
+                raw_path = artifact.get("path")
+                if not isinstance(raw_path, str):
+                    continue
+                artifact_path = (run_dir / raw_path).resolve()
+                if not artifact_path.is_relative_to(run_root):
+                    self.fail(f"{run_dir.name} run_evidence_manifest 路径位于运行目录外：{raw_path}")
+                    ok = False
+                    continue
+                if not artifact_path.is_file():
+                    self.fail(f"{run_dir.name} run_evidence_manifest 引用文件不存在：{raw_path}")
+                    ok = False
+                    continue
+                actual_size = artifact_path.stat().st_size
+                if artifact.get("size_bytes") != actual_size:
+                    self.fail(f"{run_dir.name} run_evidence_manifest.size_bytes 不匹配：{raw_path}")
+                    ok = False
+                actual_sha = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+                if artifact.get("sha256") != actual_sha:
+                    self.fail(f"{run_dir.name} run_evidence_manifest.sha256 不匹配：{raw_path}")
+                    ok = False
+
+            missing_roles = required_roles - seen_roles
+            if missing_roles:
+                self.fail(f"{run_dir.name} run_evidence_manifest 缺少证据角色：{', '.join(sorted(missing_roles))}")
+                ok = False
+            return ok
+
         def _verify_real_run(run_dir: Path, target_patch: str, role: str) -> bool:
             ok = True
             try:
                 run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+                legacy = _is_legacy_evidence(run_dir, target_patch, role, run_manifest, policy)
                 if not run_manifest.get("eligible_for_promotion"):
                     self.fail(f"{run_dir.name} eligible_for_promotion 为 false")
                     ok = False
@@ -237,17 +357,6 @@ class RepositoryValidator:
                 min_version = diag_req.get("minimum_schema_version", "1.0.0")
                 cutoff = diag_req.get("legacy_evidence_cutoff", "")
                 if not schema_version.startswith("2.") and min_version.startswith("2."):
-                    # 检查该证据是否为 legacy grandfathered
-                    neg_entry = matrix_by_id.get(target_patch, {}).get("negative", {})
-                    legacy = False
-                    evidence = neg_entry.get("evidence") if isinstance(neg_entry.get("evidence"), dict) else {}
-                    if evidence.get("schema_generation") == "legacy_v1_grandfathered":
-                        legacy = True
-                    # 也检查该 run 的 run_manifest 中是否在 cutoff 之前
-                    created_at = run_manifest.get("created_at", "")
-                    if cutoff and created_at and created_at < cutoff:
-                        legacy = True
-
                     if not legacy:
                         self.fail(
                             f"{run_dir.name} 使用 diagnosis v1（schema_version={schema_version}），"
@@ -295,23 +404,32 @@ class RepositoryValidator:
                     ok = False
 
                 # ===== AI 运行元数据校验 =====
-                ok = _verify_ai_run_metadata(run_dir, policy, target_patch, role) and ok
+                if not legacy:
+                    required_files = policy.get("run_evidence_requirements", {}).get("required_run_files", [])
+                    for required_file in required_files:
+                        if not (run_dir / required_file).is_file():
+                            self.fail(f"{run_dir.name} 缺少必需晋级证据文件：{required_file}")
+                            ok = False
+                ok = _verify_ai_run_metadata(run_dir, policy, target_patch, role, legacy) and ok
+                if not legacy:
+                    ok = _verify_run_evidence_manifest(run_dir, run_manifest, policy) and ok
 
             except Exception as e:
                 self.fail(f"读取 {run_dir} 证据时出错: {e}")
                 ok = False
             return ok
 
-        def _verify_ai_run_metadata(run_dir: Path, policy: dict[str, Any], target_patch: str, role: str) -> bool:
+        def _verify_ai_run_metadata(
+            run_dir: Path,
+            policy: dict[str, Any],
+            target_patch: str,
+            role: str,
+            legacy: bool,
+        ) -> bool:
             """校验 ai_run_metadata.json：Schema、哈希一致性、合法性。"""
             ok = True
             meta_path = run_dir / "ai_run_metadata.json"
             reqs = policy.get("run_evidence_requirements", {}).get("ai_run_metadata_checks", {})
-
-            # 检查是否为 legacy grandfathered
-            neg_entry = matrix_by_id.get(target_patch, {}).get("negative", {})
-            evidence = neg_entry.get("evidence") if isinstance(neg_entry.get("evidence"), dict) else {}
-            legacy = evidence.get("schema_generation") == "legacy_v1_grandfathered"
 
             if not meta_path.is_file():
                 if legacy:
@@ -327,6 +445,25 @@ class RepositoryValidator:
 
             # Schema
             if not self.validate_schema(meta, "ai_run_metadata.schema.json", f"{run_dir.name} ai_run_metadata"):
+                ok = False
+
+            if meta.get("status") != "completed":
+                self.fail(f"{run_dir.name} ai_run_metadata.status 必须为 completed 才可作为晋级证据")
+                ok = False
+
+            # metadata_version_minimum 必须真实执行，不能只写在政策中。
+            minimum_version = reqs.get("metadata_version_minimum")
+            try:
+                current_version = tuple(int(part) for part in str(meta.get("metadata_version", "")).split("."))
+                minimum = tuple(int(part) for part in str(minimum_version).split("."))
+                if len(current_version) != 3 or len(minimum) != 3 or current_version < minimum:
+                    self.fail(
+                        f"{run_dir.name} ai_run_metadata.metadata_version {meta.get('metadata_version')!r} "
+                        f"低于政策最低版本 {minimum_version}"
+                    )
+                    ok = False
+            except ValueError:
+                self.fail(f"{run_dir.name} ai_run_metadata.metadata_version 不是合法 SemVer")
                 ok = False
 
             # 非空 provider/model
@@ -347,9 +484,16 @@ class RepositoryValidator:
                 started = meta.get("started_at", "")
                 completed = meta.get("completed_at")
                 if isinstance(completed, str) and completed and isinstance(started, str) and started:
-                    if completed < started:
-                        self.fail(f"{run_dir.name} ai_run_metadata.completed_at ({completed}) 早于 started_at ({started})")
+                    try:
+                        completed_at = parse_iso8601(completed)
+                        started_at = parse_iso8601(started)
+                    except ValueError:
+                        self.fail(f"{run_dir.name} ai_run_metadata 时间不是合法带时区 ISO 8601")
                         ok = False
+                    else:
+                        if completed_at < started_at:
+                            self.fail(f"{run_dir.name} ai_run_metadata.completed_at ({completed}) 早于 started_at ({started})")
+                            ok = False
 
             # prompt_sha256 匹配
             if reqs.get("require_prompt_sha256_match"):
@@ -371,28 +515,53 @@ class RepositoryValidator:
             # runtime_pack_sha256 匹配
             if reqs.get("require_runtime_pack_sha256_match"):
                 expected = meta.get("runtime_pack_sha256", "")
-                if expected:
-                    rp_path = run_dir / "runtime_pack.manifest.json"
-                    if rp_path.is_file():
-                        actual_sha = hashlib.sha256(rp_path.read_bytes()).hexdigest()
-                        if actual_sha != expected:
-                            self.fail(f"{run_dir.name} ai_run_metadata.runtime_pack_sha256 不匹配（期望 {expected}，实际 {actual_sha}）")
+                rp_path = run_dir / "runtime_pack.md"
+                manifest_path = run_dir / "runtime_pack.manifest.json"
+                if not rp_path.is_file():
+                    self.fail(f"{run_dir.name} 缺少 runtime_pack.md")
+                    ok = False
+                else:
+                    actual_sha = hashlib.sha256(rp_path.read_bytes()).hexdigest()
+                    if expected != actual_sha:
+                        self.fail(f"{run_dir.name} ai_run_metadata.runtime_pack_sha256 不匹配（期望 {expected}，实际 {actual_sha}）")
+                        ok = False
+                    if not manifest_path.is_file():
+                        self.fail(f"{run_dir.name} 缺少 runtime_pack.manifest.json")
+                        ok = False
+                    else:
+                        try:
+                            runtime_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                            manifest_sha = runtime_manifest.get("runtime_pack_sha256")
+                            if manifest_sha != actual_sha:
+                                self.fail(f"{run_dir.name} runtime_pack.manifest.json.runtime_pack_sha256 与 runtime_pack.md 不一致")
+                                ok = False
+                            if manifest_sha != expected:
+                                self.fail(f"{run_dir.name} runtime_pack.manifest.json.runtime_pack_sha256 与 ai_run_metadata 不一致")
+                                ok = False
+                        except (OSError, json.JSONDecodeError) as exc:
+                            self.fail(f"{run_dir.name} runtime_pack.manifest.json 无法解析: {exc}")
                             ok = False
 
             # problem_material_digest 匹配
             if reqs.get("require_problem_material_digest_match"):
                 expected = meta.get("problem_material_digest", "")
-                if expected:
-                    pm_path = run_dir / "problem_manifest.json"
-                    if pm_path.is_file():
-                        try:
-                            pm = json.loads(pm_path.read_text(encoding="utf-8"))
-                            actual = pm.get("content_digest", "")
-                            if actual and actual != expected:
-                                self.fail(f"{run_dir.name} ai_run_metadata.problem_material_digest 不匹配（期望 {expected}，实际 {actual}）")
-                                ok = False
-                        except (OSError, json.JSONDecodeError):
-                            pass
+                pm_path = run_dir / "problem_manifest.json"
+                if not pm_path.is_file():
+                    self.fail(f"{run_dir.name} 缺少 problem_manifest.json")
+                    ok = False
+                else:
+                    try:
+                        pm = json.loads(pm_path.read_text(encoding="utf-8"))
+                        actual = pm.get("content_digest")
+                        if not actual:
+                            self.fail(f"{run_dir.name} problem_manifest.content_digest 缺失")
+                            ok = False
+                        elif actual != expected:
+                            self.fail(f"{run_dir.name} ai_run_metadata.problem_material_digest 不匹配（期望 {expected}，实际 {actual}）")
+                            ok = False
+                    except (OSError, json.JSONDecodeError) as exc:
+                        self.fail(f"{run_dir.name} problem_manifest.json 无法解析: {exc}")
+                        ok = False
 
             # 绝对路径拒绝
             if reqs.get("reject_absolute_paths_in_note"):

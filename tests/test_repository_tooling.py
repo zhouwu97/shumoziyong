@@ -26,6 +26,7 @@ from run_workflow import (  # noqa: E402
     mark_run_completed,
     record_transition,
 )
+from validate_repository import RepositoryValidator  # noqa: E402
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
 
@@ -196,6 +197,17 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     assert (run_dir / "response.json").is_file()
     assert (run_dir / "automatic_evaluation.json").is_file()
     assert (run_dir / "human_review.md").is_file()
+    metadata = json.loads((run_dir / "ai_run_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["status"] == "pending"
+    assert metadata["provider"] is None
+    validator = RepositoryValidator()
+    assert validator.validate_schema(metadata, "ai_run_metadata.schema.json", "pending metadata")
+    evidence_manifest = json.loads((run_dir / "run_evidence_manifest.json").read_text(encoding="utf-8"))
+    assert validator.validate_schema(evidence_manifest, "run_evidence_manifest.schema.json", "run evidence manifest")
+    assert {item["role"] for item in evidence_manifest["artifacts"]} >= {
+        "request", "model_response", "runtime_pack", "runtime_pack_manifest",
+        "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review",
+    }
 
 
 def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None:
@@ -520,7 +532,7 @@ def test_verify_materials_to_dict_serializable(tmp_path: Path) -> None:
 def test_check_promotion_eligibility_produces_report() -> None:
     """Real policy + matrix + patch_index produce a valid report."""
     report, gaps = check_promotion_eligibility()
-    assert report["policy_version"] == "1.1.0"
+    assert report["policy_version"] == "1.2.0"
     assert report["total_patches"] == 4
     assert "per_patch" in report
     assert "verdict" in report
@@ -529,7 +541,7 @@ def test_check_promotion_eligibility_produces_report() -> None:
     assert a092["positive"] == "pass"
     assert a092["boundary"] == "pass"
     assert a092["negative"] == "pass"
-    # With the stricter v1.1.0 policy (min_distinct_cases=3, min_distinct_years=2),
+    # With the stricter v1.2.0 policy (min_distinct_cases=3, min_distinct_years=2),
     # A092 still passes (2016-C/2023-B/2024-C = 3 cases, 2016+2023+2024 = 3 years)
     assert a092["current_status_valid"] is True
     # Check that per_patch format uses new fields
