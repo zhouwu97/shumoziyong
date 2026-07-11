@@ -1,0 +1,10 @@
+* text=auto
+
+# 证据哈希绑定原始字节；跨平台 checkout 必须保持统一 LF。
+*.json text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.txt text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf

@@ -363,6 +363,14 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
 
 
+def test_hashed_runtime_fixtures_keep_lf_bytes_after_checkout() -> None:
+    """Git checkout 不得把受 SHA-256 绑定的运行包改写为 CRLF。"""
+    attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert "*.md text eol=lf" in attributes
+    for runtime_pack in (ROOT / "tests" / "fixtures").glob("**/runtime_pack.md"):
+        assert b"\r\n" not in runtime_pack.read_bytes(), runtime_pack
+
+
 def test_build_identity_is_independent_from_generation_time(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
