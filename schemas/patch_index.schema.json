@@ -37,6 +37,7 @@
           "title",
           "year",
           "knowledge_card",
+          "claim_ids",
           "page_refs",
           "evidence_quotes"
         ],
@@ -57,6 +58,11 @@
           "knowledge_card": {
             "type": "string",
             "pattern": "^papers/.+\\.json$"
+          },
+          "claim_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}-C[0-9]{3}$"}
           },
           "page_refs": {
             "type": "array",

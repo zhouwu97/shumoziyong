@@ -7,6 +7,7 @@
       "title": "定日镜场的优化设计",
       "year": 2023,
       "knowledge_card": "papers/2023_A092_知识卡片.json",
+      "claim_ids": [],
       "page_refs": [],
       "evidence_quotes": []
     },
@@ -32,6 +33,7 @@
       "title": "定日镜场的输出功率优化",
       "year": 2023,
       "knowledge_card": "papers/2023_A127_知识卡片.json",
+      "claim_ids": [],
       "page_refs": [],
       "evidence_quotes": []
     },
@@ -57,6 +59,7 @@
       "title": "基于主要目标法的测线设计问题",
       "year": 2023,
       "knowledge_card": "papers/2023_B311_知识卡片.json",
+      "claim_ids": [],
       "page_refs": [],
       "evidence_quotes": []
     },
@@ -81,6 +84,7 @@
       "title": "多波束测深合理探测方案的设计及效果分析",
       "year": 2023,
       "knowledge_card": "papers/2023_B477_知识卡片.json",
+      "claim_ids": [],
       "page_refs": [],
       "evidence_quotes": []
     },

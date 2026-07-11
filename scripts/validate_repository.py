@@ -121,6 +121,26 @@ class RepositoryValidator:
             knowledge_card = patch.get("source", {}).get("knowledge_card")
             if knowledge_card and not (ROOT / knowledge_card).is_file():
                 self.fail(f"{patch_id} 的知识卡片不存在：{knowledge_card}")
+            claim_ids = patch.get("source", {}).get("claim_ids", [])
+            if knowledge_card and (ROOT / knowledge_card).is_file():
+                card = self.load_json(knowledge_card)
+                source = card.get("source", {}) if isinstance(card, dict) else {}
+                available_claims = {
+                    claim.get("claim_id")
+                    for claim in source.get("claims", [])
+                    if isinstance(claim, dict)
+                }
+                missing_claims = set(claim_ids) - available_claims
+                if missing_claims:
+                    self.fail(f"{patch_id} 引用了知识卡片中不存在的 Claim ID：{sorted(missing_claims)}")
+                if patch.get("status") in {
+                    "regression_verified",
+                    "competition_evidenced",
+                }:
+                    if source.get("verification_status") != "verified" or not claim_ids:
+                        self.fail(
+                            f"{patch_id} 进入 {patch.get('status')} 前必须引用已验证 Claim ID"
+                        )
             records = patch.get("validation_records", [])
             for record in records:
                 if not (ROOT / record).is_file():
