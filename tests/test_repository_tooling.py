@@ -4,6 +4,7 @@ import hashlib
 import json
 import sys
 from argparse import Namespace
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -46,6 +47,8 @@ from evidence_validation import validate_full_run  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
+from export_runtime_pack import parse_args as parse_export_runtime_pack_args  # noqa: E402
+import run_workflow as run_workflow_module  # noqa: E402
 
 
 def _write_material_manifest(materials: Path, problem_id: str, files: dict[str, list[tuple[str, bytes]]]) -> None:
@@ -1022,6 +1025,90 @@ def test_gate_workflows_fail_closed_without_material_manifest(tmp_path: Path, wo
     assert ready is False
     state = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     assert state["initial_state"] == "blocked"
+
+
+def test_automatic_run_id_is_unique_and_new_problem_defaults_to_general(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """同秒同题连续创建比赛 Run 时，随机尾缀必须避免覆盖且默认 Profile 为 general。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"competition problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2026-A", {"problem": [("problem.pdf", problem)]})
+    monkeypatch.setattr(
+        run_workflow_module,
+        "_run_id_clock",
+        lambda: datetime(2026, 7, 12, 15, 30, 45),
+    )
+    tokens = iter(("a31f2c", "b42e3d"))
+    monkeypatch.setattr(run_workflow_module, "_run_id_token", lambda: next(tokens))
+    common = {
+        "run_id": None,
+        "output_root": str(tmp_path / "runs"),
+        "problem": "2026-A",
+        "profile": None,
+        "gates": "0-5",
+        "materials": str(materials),
+        "candidate_patch": [],
+        "exclude_patch": [],
+        "material_file": [],
+        "promotion_evidence": False,
+        "experiment_group_id": None,
+        "experiment_role": None,
+        "target_patch": None,
+        "workflow": "new_problem",
+        "mode": "standard",
+    }
+
+    first, first_ready = create_new_problem_run(Namespace(**common))
+    second, second_ready = create_new_problem_run(Namespace(**common))
+    assert first_ready is True and second_ready is True
+    assert first.name == "20260712_153045_2026-A_new_problem_general_a31f2c"
+    assert second.name == "20260712_153045_2026-A_new_problem_general_b42e3d"
+    assert json.loads((first / "run_manifest.json").read_text(encoding="utf-8"))["profile"] == "general"
+
+
+def test_profile_requirements_and_explicit_run_id_collisions_fail_closed(tmp_path: Path) -> None:
+    """训练与回归必须显式 Profile，重复显式 Run ID 和未知 Profile 均不得覆盖。"""
+    with pytest.raises(ValueError, match="full_replay 必须显式提供 --profile"):
+        create_full_replay_run(Namespace(profile=None))
+    with pytest.raises(ValueError, match="prompt_regression 必须显式提供 --profile"):
+        create_prompt_regression_run(Namespace(profile=None))
+    with pytest.raises(FileNotFoundError, match="runtime profile"):
+        run_workflow_module.resolve_profile_for_workflow(Namespace(profile="unknown"), "new_problem")
+
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"competition problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2026-A", {"problem": [("problem.pdf", problem)]})
+    args = Namespace(
+        run_id="explicit_run",
+        output_root=str(tmp_path / "runs"),
+        problem="2026-A",
+        profile="general",
+        gates="0-5",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow="new_problem",
+        mode="standard",
+    )
+    create_new_problem_run(args)
+    with pytest.raises(FileExistsError, match="运行目录已存在"):
+        create_new_problem_run(Namespace(**vars(args)))
+
+
+def test_export_runtime_pack_defaults_to_general(monkeypatch: pytest.MonkeyPatch) -> None:
+    """独立导出命令未传 Profile 时必须生成 general 运行包。"""
+    monkeypatch.setattr(sys, "argv", ["export_runtime_pack.py"])
+    assert parse_export_runtime_pack_args().profile == "general"
 
 
 def test_prompt_regression_never_creates_gate_or_promotion_evidence(tmp_path: Path) -> None:

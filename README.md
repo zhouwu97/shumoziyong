@@ -29,7 +29,7 @@ python scripts/validate_repository.py
 ### 2. 导出比赛运行包
 
 ```bash
-python scripts/export_runtime_pack.py --profile engineering_optimization
+python scripts/export_runtime_pack.py
 python scripts/check_runtime_manifest.py
 ```
 
@@ -53,7 +53,15 @@ python scripts/check_runtime_manifest.py
 
 成功标准：AI 输出题目理解、子问题拆解、数据需求、候选路线、图表计划和人工确认项，并停在 Gate 前。若 AI 越过 Gate，停止当前输出，重新附上禁止项；不要把越权生成的代码或结论计入正式结果。
 
-### 4. 初始化旧题回归
+### 4. 初始化工作流
+
+比赛新题默认使用保守的 `general` Profile：
+
+```bash
+python scripts/run_workflow.py init --workflow new_problem --problem 2026-A --materials competition/problem
+```
+
+旧题回归必须显式选择专项 Profile：
 
 ```bash
 python scripts/run_workflow.py init --workflow full_replay --problem 2024-C --profile engineering_optimization --materials official_materials/2024_C

@@ -416,7 +416,7 @@ def build_manifest(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导出可复现的数模比赛运行规则包和 manifest。")
-    parser.add_argument("--profile", default="engineering_optimization", choices=sorted(PROFILE_FILES))
+    parser.add_argument("--profile", default="general", choices=sorted(PROFILE_FILES))
     parser.add_argument("--output", default="export/cumcm_runtime_pack.md")
     parser.add_argument("--manifest-output", help="manifest 路径；默认与运行包同名并加 .manifest.json。")
     parser.add_argument(

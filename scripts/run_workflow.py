@@ -4,8 +4,9 @@ import argparse
 import hashlib
 import json
 import re
+import secrets
 import sys
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -286,16 +287,73 @@ def _experiment_kind(candidate_patches: list[str], excluded_patches: list[str]) 
     return "standard"
 
 
-def _resolve_run_directory(args: argparse.Namespace) -> tuple[str, Path]:
-    """解析当前阶段的运行目录；显式重复 ID 必须立即阻断。"""
-    run_id = args.run_id or f"{date.today().isoformat()}_{normalize_problem_dir(args.problem)}_gate{args.gates}"
+RUN_ID_MAX_ATTEMPTS = 8
+
+
+def _run_id_clock() -> datetime:
+    """提供可替换的时钟，确保 Run ID 的时间来源可测试。"""
+    return datetime.now()
+
+
+def _run_id_token() -> str:
+    """提供可替换的安全随机尾缀，避免同秒初始化覆盖运行目录。"""
+    return secrets.token_hex(3)
+
+
+def _normalize_run_id_problem(problem: str) -> str:
+    """生成只含安全字符的 Run ID 题号片段，同时保留常见题号连字符。"""
+    return re.sub(r"[^A-Za-z0-9-]+", "_", problem).strip("_-")
+
+
+def build_automatic_run_id(problem: str, workflow: str, profile: str) -> str:
+    """生成秒级、可追溯且带随机尾缀的自动 Run ID。"""
+    token = _run_id_token()
+    if not re.fullmatch(r"[A-Za-z0-9]{6,8}", token):
+        raise ValueError("Run ID 随机尾缀必须为 6-8 位安全字母数字字符")
+    return (
+        f"{_run_id_clock().strftime('%Y%m%d_%H%M%S')}_"
+        f"{_normalize_run_id_problem(problem)}_{workflow}_{profile}_{token}"
+    )
+
+
+def resolve_profile_for_workflow(args: argparse.Namespace, workflow: str) -> str:
+    """按 workflow 解析 Profile；只有比赛新题允许保守默认 general。"""
+    raw_profile = getattr(args, "profile", None)
+    profile = str(raw_profile).strip() if isinstance(raw_profile, str) else ""
+    if workflow == "new_problem" and not profile:
+        profile = "general"
+    if workflow in {"full_replay", "prompt_regression"} and not profile:
+        raise ValueError(f"{workflow} 必须显式提供 --profile")
+    if not profile:
+        raise ValueError("Profile 不能为空")
+    _load_profile_state(profile)
+    args.profile = profile
+    return profile
+
+
+def _resolve_run_directory(
+    args: argparse.Namespace,
+    *,
+    workflow: str,
+    profile: str,
+) -> tuple[str, Path]:
+    """解析当前阶段的运行目录；显式重复 ID 失败，自动 ID 有限重试。"""
     output_root = Path(args.output_root)
     if not output_root.is_absolute():
         output_root = ROOT / output_root
-    run_dir = output_root / run_id
-    if run_dir.exists():
-        raise FileExistsError(f"运行目录已存在：{run_dir}")
-    return run_id, run_dir
+    explicit_run_id = getattr(args, "run_id", None)
+    if explicit_run_id:
+        run_id = str(explicit_run_id)
+        run_dir = output_root / run_id
+        if run_dir.exists():
+            raise FileExistsError(f"运行目录已存在：{run_dir}")
+        return run_id, run_dir
+    for _attempt in range(RUN_ID_MAX_ATTEMPTS):
+        run_id = build_automatic_run_id(args.problem, workflow, profile)
+        run_dir = output_root / run_id
+        if not run_dir.exists():
+            return run_id, run_dir
+    raise FileExistsError(f"自动 Run ID 连续 {RUN_ID_MAX_ATTEMPTS} 次冲突，已拒绝覆盖：{output_root}")
 
 
 def _resolve_material_path(args: argparse.Namespace) -> Path:
@@ -412,17 +470,18 @@ def create_gate_run_core(
         raise ValueError("不再支持 --material-file：旧题运行必须校验完整材料清单，不能用子集绕过附件或模板检查")
     if workflow not in {"full_replay", "new_problem"}:
         raise ValueError(f"不支持的 Gate workflow：{workflow!r}")
-    run_id, run_dir = _resolve_run_directory(args)
+    profile = resolve_profile_for_workflow(args, workflow)
+    run_id, run_dir = _resolve_run_directory(args, workflow=workflow, profile=profile)
     material_path = _resolve_material_path(args)
     material_verification = verify_materials(
         material_path,
         expected_problem_id=args.problem,
     )
-    profile_state = _load_profile_state(args.profile)
+    profile_state = _load_profile_state(profile)
     candidate_patches = list(getattr(args, "candidate_patch", []))
     excluded_patches = list(getattr(args, "exclude_patch", []))
-    pack_content = build_pack(args.profile, candidate_patches, excluded_patches)
-    pack_manifest = build_manifest(args.profile, pack_content, candidate_patches, excluded_patches)
+    pack_content = build_pack(profile, candidate_patches, excluded_patches)
+    pack_manifest = build_manifest(profile, pack_content, candidate_patches, excluded_patches)
 
     run_dir.mkdir(parents=True)
     atomic_write_text(run_dir / "runtime_pack.md", pack_content)
@@ -454,7 +513,7 @@ def create_gate_run_core(
         "human_confirmation_gates": confirmation_gates,
         "created_at": created_at,
         "problem_id": args.problem,
-        "profile": args.profile,
+        "profile": profile,
         "runtime_version": profile_state["version"],
         "runtime_pack_sha256": pack_manifest["runtime_pack_sha256"],
         "gates": args.gates,
@@ -1393,21 +1452,18 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
 
 def create_prompt_regression_run(args: argparse.Namespace) -> Path:
     """创建轻量 Prompt 回归目录；该流程不进入 Gate，也不能生成晋级证据。"""
-    run_id = args.run_id or f"{date.today().isoformat()}_{normalize_problem_dir(args.problem)}_prompt"
-    output_root = Path(args.output_root)
-    if not output_root.is_absolute():
-        output_root = ROOT / output_root
-    run_dir = output_root / run_id
-    if run_dir.exists():
-        raise FileExistsError(f"运行目录已存在：{run_dir}")
+    profile_name = resolve_profile_for_workflow(args, "prompt_regression")
+    run_id, run_dir = _resolve_run_directory(
+        args,
+        workflow="prompt_regression",
+        profile=profile_name,
+    )
     run_dir.mkdir(parents=True)
 
-    profile = json.loads(
-        (ROOT / "runtime_profiles" / f"{args.profile}.json").read_text(encoding="utf-8")
-    )
-    pack = build_pack(args.profile, args.candidate_patch, args.exclude_patch)
+    profile = _load_profile_state(profile_name)
+    pack = build_pack(profile_name, args.candidate_patch, args.exclude_patch)
     pack_manifest = build_manifest(
-        args.profile, pack, args.candidate_patch, args.exclude_patch
+        profile_name, pack, args.candidate_patch, args.exclude_patch
     )
     atomic_write_text(run_dir / "runtime_pack.md", pack)
     write_json(run_dir / "runtime_pack.manifest.json", pack_manifest)
@@ -1419,7 +1475,7 @@ def create_prompt_regression_run(args: argparse.Namespace) -> Path:
             "run_id": run_id,
             "workflow": "prompt_regression",
             "problem_id": args.problem,
-            "profile": args.profile,
+            "profile": profile_name,
             "runtime_version": profile["version"],
             "runtime_pack_sha256": pack_manifest["runtime_pack_sha256"],
             "initial_state": "initialized",
@@ -1567,7 +1623,7 @@ def _add_init_arguments(parser: argparse.ArgumentParser) -> None:
         "--workflow", required=True, choices=["prompt_regression", "full_replay", "new_problem"]
     )
     parser.add_argument("--problem", required=True, help="题号，例如 2024-C。")
-    parser.add_argument("--profile", default="engineering_optimization")
+    parser.add_argument("--profile", help="Runtime Profile；new_problem 未提供时使用 general。")
     parser.add_argument("--mode", default="standard", choices=["strict", "standard", "emergency"])
     parser.add_argument("--materials", help="材料根目录；new_problem 必须显式提供。")
     parser.add_argument("--output-root", default="runs")
