@@ -649,8 +649,9 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     # Gate 5 is terminal; not complete until mark_run_completed
     assert is_gate_complete(run_dir, 5) is False
 
-    # Mark completed → Gate 5 should now be complete
-    mark_run_completed(run_dir)
+    # Mark completed - Gate 5 should now be complete
+    (run_dir / "gate_5_review.json").write_text('{"final_acceptance": true}', encoding="utf-8")
+    mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
 
 

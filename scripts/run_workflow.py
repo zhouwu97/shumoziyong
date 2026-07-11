@@ -504,15 +504,45 @@ def get_current_gate(run_dir: Path) -> int | None:
     return current
 
 
-def mark_run_completed(run_dir: Path) -> None:
+def mark_run_completed(run_dir: Path, reviewer: str) -> None:
     """将运行标记为 completed 终态（Gate 5 通过后调用）。"""
     transitions_path = run_dir / "transitions.jsonl"
     if not transitions_path.is_file():
         raise FileNotFoundError(f"缺少 transitions.jsonl：{transitions_path}")
+    
+    init_data = {}
+    current = None
+    completed = False
+    for line in transitions_path.read_text(encoding="utf-8").strip().splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        if entry.get("state") == "initialized":
+            init_data = entry
+        elif entry.get("state") == "completed":
+            completed = True
+        elif entry.get("to") is not None and entry.get("decision") == "approved":
+            current = entry.get("to")
+            
+    if completed:
+        raise ValueError("运行已标记为 completed，不能重复标记。")
+        
+    max_gate = init_data.get("max_gate", 5)
+    if max_gate < 5:
+        raise ValueError(f"最大 Gate 为 {max_gate}，0-4 的运行不得被标记为 completed。")
+        
+    if current != 5:
+        raise ValueError(f"当前不在 Gate 5（当前 Gate：{current}），无法完成运行。")
+        
+    gate_5_review = run_dir / "gate_5_review.json"
+    if not gate_5_review.is_file():
+        raise FileNotFoundError(f"缺少 Gate 5 人工审核记录：{gate_5_review}")
+
     entry = {
         "from": 5,
         "to": None,
         "state": "completed",
+        "reviewer": reviewer,
         "note": "Gate 5 通过，运行完成。",
     }
     with open(transitions_path, "a", encoding="utf-8") as fh:

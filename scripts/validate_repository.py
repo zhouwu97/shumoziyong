@@ -185,6 +185,7 @@ class RepositoryValidator:
 
     def validate_patch_promotion(self) -> None:
         """晋级规则强制校验：委托给 promotion_engine（promotion_policy.json 的唯一事实源）。"""
+        policy = self.load_json("policies/promotion_policy.json")
         matrix = self.load_json("tests/prompt_regression/patch_negative_control_matrix.json")
         patch_index = self.load_json("prompt_patches/patch_index.json") or []
         if matrix is None:
@@ -811,6 +812,84 @@ class RepositoryValidator:
                     except Exception as e:
                         self.fail(f"校验 {patch_id} 证据时出错: {e}")
                         promotion_ok = False
+
+        def _verify_stable_evidence(patch: dict[str, Any]) -> bool:
+            """深度验证 stable 的路径事实，避免把手填布尔值当成晋级依据。"""
+            patch_id = patch.get("patch_id", "<unknown>")
+            evidence = patch.get("stable_evidence")
+            if not isinstance(evidence, dict):
+                self.fail(f"{patch_id} 缺失 stable_evidence 对象")
+                return False
+                
+            ok = True
+            
+            # 1. 负控 experiment_group_id 唯一，并且路径存在
+            seen_groups = set()
+            for nc in evidence.get("negative_control_runs", []):
+                group_id = nc.get("experiment_group_id")
+                if not group_id:
+                    self.fail(f"{patch_id} stable_evidence 负控缺少 experiment_group_id")
+                    ok = False
+                elif group_id in seen_groups:
+                    self.fail(f"{patch_id} stable_evidence 存在重复的负控组 {group_id}")
+                    ok = False
+                else:
+                    seen_groups.add(group_id)
+                
+                # Verify paths
+                for k in ("baseline_run", "treatment_run", "comparison_review"):
+                    path_str = nc.get(k)
+                    if not path_str or not self.resolve_repo_path(path_str).exists():
+                        self.fail(f"{patch_id} stable_evidence 负控 {k} 路径无效: {path_str}")
+                        ok = False
+
+            # 2. 失败重测证据存在
+            for fix in evidence.get("failure_fix_retests", []):
+                for k in ("failure_record", "fix_record", "retest_run", "review_record"):
+                    path_str = fix.get(k)
+                    if not path_str or not self.resolve_repo_path(path_str).exists():
+                        self.fail(f"{patch_id} stable_evidence 失败重测 {k} 路径无效: {path_str}")
+                        ok = False
+                        
+            # 3. 比赛 runtime manifest 中 Patch 确实 active 且 sha256 一致
+            for comp in evidence.get("competition_validation_records", []):
+                manifest_path = comp.get("runtime_pack_manifest")
+                if not manifest_path:
+                    self.fail(f"{patch_id} stable_evidence 缺少比赛 manifest 路径")
+                    ok = False
+                    continue
+                    
+                resolved_man = self.resolve_repo_path(manifest_path)
+                if not resolved_man.is_file():
+                    self.fail(f"{patch_id} stable_evidence 比赛 manifest 不存在: {manifest_path}")
+                    ok = False
+                    continue
+                    
+                try:
+                    import hashlib
+                    man_data = json.loads(resolved_man.read_text(encoding="utf-8"))
+                    active = man_data.get("active_patches", [])
+                    found = False
+                    for p in active:
+                        if p.get("patch_id") == patch_id:
+                            found = True
+                            if comp.get("runtime_pack_manifest_sha256") and comp.get("runtime_pack_manifest_sha256") != hashlib.sha256(resolved_man.read_bytes()).hexdigest():
+                                self.fail(f"{patch_id} stable_evidence 比赛 manifest SHA256 不匹配")
+                                ok = False
+                            break
+                    if not found:
+                        self.fail(f"{patch_id} stable_evidence 声明参加比赛，但在 manifest 中未处于 active 状态: {manifest_path}")
+                        ok = False
+                except (OSError, json.JSONDecodeError):
+                    self.fail(f"{patch_id} stable_evidence 比赛 manifest 无法解析")
+                    ok = False
+                    
+            return ok
+
+        for patch in patch_index:
+            if patch.get("status") == "stable":
+                if not _verify_stable_evidence(patch):
+                    promotion_ok = False
 
         if promotion_ok:
             self.pass_("patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）")
