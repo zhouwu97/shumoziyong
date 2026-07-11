@@ -20,6 +20,7 @@ from export_runtime_pack import (  # noqa: E402
     select_patches,
 )
 from run_workflow import (  # noqa: E402
+    GATE_5_CHECKLIST_KEYS,
     GATE_NAMES,
     VALID_TRANSITIONS,
     create_old_problem_run,
@@ -57,6 +58,96 @@ def _write_material_manifest(materials: Path, problem_id: str, files: dict[str, 
         },
     }
     (materials / "material_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), "utf-8")
+
+
+def _write_minimal_run_binding(
+    run_dir: Path,
+    *,
+    run_id: str = "test_run",
+    problem_id: str = "2024-C",
+    profile: str = "engineering_optimization",
+    runtime_version: str = "0.1.0",
+    runtime_pack: bytes = b"test runtime pack",
+) -> None:
+    """写入 Gate 5 绑定测试所需的最小、真实哈希运行现场。"""
+    (run_dir / "runtime_pack.md").write_bytes(runtime_pack)
+    runtime_pack_sha = hashlib.sha256(runtime_pack).hexdigest()
+    (run_dir / "run_manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "problem_id": problem_id,
+                "profile": profile,
+                "runtime_version": runtime_version,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "runtime_pack.manifest.json").write_text(
+        json.dumps(
+            {
+                "profile": profile,
+                "runtime_version": runtime_version,
+                "runtime_pack_sha256": runtime_pack_sha,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _gate_5_review(run_dir: Path, reviewer: str = "human") -> dict[str, object]:
+    """从运行现场生成仅用于测试的完整 Gate 5 审核记录。"""
+    run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+    )
+    return {
+        "run_id": run_manifest["run_id"],
+        "problem_id": run_manifest["problem_id"],
+        "profile": run_manifest["profile"],
+        "runtime_version": run_manifest["runtime_version"],
+        "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
+        "target_gate": 5,
+        "reviewer": reviewer,
+        "reviewed_at": "2026-07-11T00:00:00Z",
+        "decision": "approved",
+        "final_acceptance": True,
+        "reason": "The final Gate 5 review is complete and approved.",
+        "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
+    }
+
+
+def _ready_gate_5_run(
+    parent: Path,
+    name: str,
+    *,
+    run_id: str | None = None,
+    problem_id: str = "2024-C",
+) -> Path:
+    """构造已按顺序到达 Gate 5、尚未完成的最小运行。"""
+    run_dir = parent / name
+    run_dir.mkdir()
+    _write_minimal_run_binding(
+        run_dir,
+        run_id=run_id or name,
+        problem_id=problem_id,
+    )
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps(
+            {
+                "from": None,
+                "to": None,
+                "state": "initialized",
+                "material_ready": True,
+                "max_gate": 5,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
+    return run_dir
 
 
 def test_default_pack_excludes_candidate_patches() -> None:
@@ -477,17 +568,7 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     for gate in range(6):
         record_transition(run_dir, gate - 1 if gate else None, gate, "test_reviewer", "approved")
     (run_dir / "gate_5_review.json").write_text(
-        json.dumps(
-            {
-                "target_gate": 5,
-                "reviewer": "test_reviewer",
-                "reviewed_at": "2026-07-11T00:00:00Z",
-                "decision": "approved",
-                "final_acceptance": True,
-                "reason": "The Gate 5 checklist is complete.",
-            },
-            ensure_ascii=False,
-        ),
+        json.dumps(_gate_5_review(run_dir, "test_reviewer"), ensure_ascii=False),
         encoding="utf-8",
     )
     mark_run_completed(run_dir, "test_reviewer")
@@ -913,6 +994,7 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     """Record gate transitions and read them back via get_current_gate."""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    _write_minimal_run_binding(run_dir)
     (run_dir / "transitions.jsonl").write_text(
         json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5, "note": "ok"}, ensure_ascii=False) + "\n",
         encoding="utf-8",
@@ -934,7 +1016,9 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     assert is_gate_complete(run_dir, 5) is False
 
     # Mark completed - Gate 5 should now be complete
-    (run_dir / "gate_5_review.json").write_text('{"target_gate": 5, "final_acceptance": true, "reviewer": "automated_test", "reviewed_at": "2024-01-01T00:00:00Z", "decision": "approved", "reason": "this is a valid reason"}', encoding="utf-8")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(_gate_5_review(run_dir, "automated_test")), encoding="utf-8"
+    )
     mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
 
@@ -943,25 +1027,83 @@ def test_gate_5_review_schema_requires_target_gate(tmp_path: Path) -> None:
     """Gate 5 审核缺少 target_gate 时不得因默认值而通过。"""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    _write_minimal_run_binding(run_dir)
     (run_dir / "transitions.jsonl").write_text(
         json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
         encoding="utf-8",
     )
     for gate in range(6):
         record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
-    (run_dir / "gate_5_review.json").write_text(
-        json.dumps(
-            {
-                "reviewer": "human",
-                "reviewed_at": "2026-07-11T00:00:00Z",
-                "decision": "approved",
-                "final_acceptance": True,
-                "reason": "The final review is complete.",
-            }
-        ),
-        encoding="utf-8",
-    )
+    review = _gate_5_review(run_dir)
+    review.pop("target_gate")
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
     with pytest.raises(ValueError, match="target_gate"):
+        mark_run_completed(run_dir, "human")
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256"],
+)
+def test_gate_5_review_requires_all_run_binding_fields(tmp_path: Path, field: str) -> None:
+    """Gate 5 审核缺少任一运行绑定字段时必须闭锁失败。"""
+    run_dir = _ready_gate_5_run(tmp_path, "missing_binding")
+    review = _gate_5_review(run_dir)
+    review.pop(field)
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=field):
+        mark_run_completed(run_dir, "human")
+
+
+@pytest.mark.parametrize(
+    ("field", "wrong_value"),
+    [
+        ("run_id", "other_run"),
+        ("problem_id", "2099-Z"),
+        ("profile", "other_profile"),
+        ("runtime_version", "9.9.9"),
+        ("runtime_pack_sha256", "f" * 64),
+    ],
+)
+def test_gate_5_review_rejects_wrong_run_binding(
+    tmp_path: Path, field: str, wrong_value: str
+) -> None:
+    """审核身份必须逐项等于当前运行现场，不能只依赖审核文件自身哈希。"""
+    run_dir = _ready_gate_5_run(tmp_path, f"wrong_{field}")
+    review = _gate_5_review(run_dir)
+    review[field] = wrong_value
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=f"{field} 与当前运行现场不一致"):
+        mark_run_completed(run_dir, "human")
+
+
+def test_gate_5_review_rejects_unknown_checklist_key(tmp_path: Path) -> None:
+    """Checklist 只能包含固定八项，额外自定义通过项不能混入。"""
+    run_dir = _ready_gate_5_run(tmp_path, "unknown_checklist")
+    review = _gate_5_review(run_dir)
+    review["checklist"]["custom_pass"] = True
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checklist"):
+        mark_run_completed(run_dir, "human")
+
+
+@pytest.mark.parametrize(("mode", "value"), [("missing", None), ("false", False)])
+def test_gate_5_review_requires_all_checklist_items_true(
+    tmp_path: Path, mode: str, value: bool | None
+) -> None:
+    """固定八项中缺项或任一项非 true 都不得完成运行。"""
+    run_dir = _ready_gate_5_run(tmp_path, f"checklist_{mode}")
+    review = _gate_5_review(run_dir)
+    if mode == "missing":
+        review["checklist"].pop("claim_evidence")
+    else:
+        review["checklist"]["claim_evidence"] = value
+    (run_dir / "gate_5_review.json").write_text(json.dumps(review), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checklist"):
         mark_run_completed(run_dir, "human")
 
 
@@ -1013,20 +1155,35 @@ def _write_manual_completed_transition_log(
     )
 
 
+def test_replay_rejects_cross_run_review_after_hash_recalculation(tmp_path: Path) -> None:
+    """复制审核到另一 Run 并重算转换日志哈希，仍必须因现场身份不符而失败。"""
+    source = _ready_gate_5_run(tmp_path, "source", run_id="run_A", problem_id="2024-C")
+    target = _ready_gate_5_run(tmp_path, "target", run_id="run_B", problem_id="2024-C")
+    copied_review = _gate_5_review(source, "manual")
+
+    # helper 会按目标目录中复制后的文件重新计算 review_record_sha256。
+    _write_manual_completed_transition_log(target, copied_review, material_ready=True)
+
+    with pytest.raises(ValueError, match="run_id 与当前运行现场不一致"):
+        replay_transition_log(target)
+
+
 def test_replay_rejects_forged_rejected_gate_5_review(tmp_path: Path) -> None:
     """匹配 SHA-256 不能使被拒绝的 Gate 5 review 伪装成完成。"""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
-    _write_manual_completed_transition_log(
-        run_dir,
+    _write_minimal_run_binding(run_dir)
+    review = _gate_5_review(run_dir, "manual")
+    review.update(
         {
-            "target_gate": 5,
-            "reviewer": "manual",
-            "reviewed_at": "2026-07-11T00:00:00Z",
             "decision": "rejected",
             "final_acceptance": False,
             "reason": "The final review explicitly rejected this run.",
-        },
+        }
+    )
+    _write_manual_completed_transition_log(
+        run_dir,
+        review,
         material_ready=True,
     )
     with pytest.raises(ValueError, match="gate_5_review"):
@@ -1037,16 +1194,10 @@ def test_replay_rejects_gate_entries_when_materials_are_not_ready(tmp_path: Path
     """直接篡改 JSONL 也不能绕过材料就绪门禁。"""
     run_dir = tmp_path / "run"
     run_dir.mkdir()
+    _write_minimal_run_binding(run_dir)
     _write_manual_completed_transition_log(
         run_dir,
-        {
-            "target_gate": 5,
-            "reviewer": "manual",
-            "reviewed_at": "2026-07-11T00:00:00Z",
-            "decision": "approved",
-            "final_acceptance": True,
-            "reason": "The final review approved this complete run.",
-        },
+        _gate_5_review(run_dir, "manual"),
         material_ready=False,
     )
     with pytest.raises(ValueError, match="material_ready"):

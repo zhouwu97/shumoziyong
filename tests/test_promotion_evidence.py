@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_repository import RepositoryValidator
 from finalize_run_evidence import finalize_run_evidence
-from run_workflow import mark_run_completed, record_transition
+from run_workflow import GATE_5_CHECKLIST_KEYS, mark_run_completed, record_transition
 from promotion_engine import evaluate_status_eligibility
 
 FIXTURE_DIR = ROOT / "tests/fixtures/valid_promotion_evidence"
@@ -47,6 +47,9 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     manifest = json.loads(manifest_path.read_text("utf-8"))
     manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
     manifest_path.write_text(json.dumps(manifest), "utf-8")
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text("utf-8")
+    )
     (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
     (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
     (run_dir / "transitions.jsonl").write_text(
@@ -58,12 +61,18 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     (run_dir / "gate_5_review.json").write_text(
         json.dumps(
             {
+                "run_id": manifest["run_id"],
+                "problem_id": manifest["problem_id"],
+                "profile": manifest["profile"],
+                "runtime_version": manifest["runtime_version"],
+                "runtime_pack_sha256": runtime_manifest["runtime_pack_sha256"],
                 "target_gate": 5,
                 "reviewer": "fixture",
                 "reviewed_at": "2026-07-11T00:00:00Z",
                 "decision": "approved",
                 "final_acceptance": True,
                 "reason": "Fixture Gate 5 review is approved.",
+                "checklist": {key: True for key in GATE_5_CHECKLIST_KEYS},
             }
         ),
         "utf-8",

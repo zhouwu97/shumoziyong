@@ -354,6 +354,17 @@ GATE_NAMES: dict[int, str] = {
     5: "最终验收",
 }
 
+GATE_5_CHECKLIST_KEYS: tuple[str, ...] = (
+    "materials",
+    "diagnosis",
+    "model_route",
+    "code_reproduction",
+    "results",
+    "claim_evidence",
+    "risk_closure",
+    "final_acceptance",
+)
+
 VALID_TRANSITIONS: dict[int, set[int | None]] = {
     # from_gate -> {valid to_gate}；None 表示只允许从初始状态进入
     None: {0},       # 只能从 initialized 进入 Gate 0
@@ -595,6 +606,56 @@ def _validate_gate_5_review_schema(review: dict[str, Any]) -> None:
         raise ValueError(f"gate_5_review.json 不符合 Schema：{details}")
 
 
+def _load_json_object(path: Path, label: str) -> dict[str, Any]:
+    """读取运行现场 JSON 对象；缺失、损坏或非对象均按闭锁失败处理。"""
+    if not path.is_file():
+        raise FileNotFoundError(f"缺少{label}：{path}")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{label}无法解析：{exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label}必须是 JSON 对象")
+    return value
+
+
+def _load_current_run_binding(run_dir: Path) -> dict[str, str]:
+    """从不可由审核文件替代的运行现场读取 Gate 5 身份绑定。"""
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    runtime_manifest = _load_json_object(
+        run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
+    )
+
+    binding: dict[str, Any] = {
+        "run_id": run_manifest.get("run_id"),
+        "problem_id": run_manifest.get("problem_id"),
+        "profile": run_manifest.get("profile"),
+        "runtime_version": run_manifest.get("runtime_version"),
+        "runtime_pack_sha256": runtime_manifest.get("runtime_pack_sha256"),
+    }
+    for field, value in binding.items():
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"当前运行现场缺少合法 {field}")
+
+    runtime_pack_sha = str(binding["runtime_pack_sha256"])
+    if not re.fullmatch(r"[a-f0-9]{64}", runtime_pack_sha):
+        raise ValueError("runtime_pack.manifest.json.runtime_pack_sha256 非法")
+    runtime_pack_path = run_dir / "runtime_pack.md"
+    if not runtime_pack_path.is_file():
+        raise FileNotFoundError(f"缺少 runtime_pack.md：{runtime_pack_path}")
+    actual_runtime_pack_sha = sha256_bytes(runtime_pack_path.read_bytes())
+    if actual_runtime_pack_sha != runtime_pack_sha:
+        raise ValueError("runtime_pack.md SHA-256 与 runtime_pack.manifest.json 不一致")
+
+    for field in ("profile", "runtime_version"):
+        declared = runtime_manifest.get(field)
+        if declared is not None and declared != binding[field]:
+            raise ValueError(
+                f"run_manifest.json.{field} 与 runtime_pack.manifest.json.{field} 不一致"
+            )
+    return {field: str(value) for field, value in binding.items()}
+
+
 def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict[str, Any], str]:
     """读取并验证 Gate 5 人工审核记录，返回记录和 SHA-256。"""
     if not str(reviewer).strip():
@@ -611,6 +672,13 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
         raise ValueError("gate_5_review.json 必须是 JSON 对象")
 
     _validate_gate_5_review_schema(review)
+    current_binding = _load_current_run_binding(run_dir)
+    for field, expected in current_binding.items():
+        if review.get(field) != expected:
+            raise ValueError(
+                f"gate_5_review.{field} 与当前运行现场不一致："
+                f"审核记录为 {review.get(field)!r}，当前运行为 {expected!r}"
+            )
     if review.get("target_gate") != 5:
         raise ValueError("gate_5_review.target_gate 必须为 5")
     if review.get("reviewer") != str(reviewer).strip():
@@ -622,13 +690,12 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
         raise ValueError("gate_5_review.final_acceptance 必须为 true")
     if not isinstance(review.get("reason"), str) or len(review.get("reason", "").strip()) < 10:
         raise ValueError("gate_5_review.reason 至少需要 10 个字符")
-    checklist = review.get("checklist", {})
-    if checklist is not None:
-        if not isinstance(checklist, dict):
-            raise ValueError("gate_5_review.checklist 必须是对象")
-        failed = [key for key, value in checklist.items() if value is not True]
-        if failed:
-            raise ValueError(f"gate_5_review.checklist 存在未通过项：{', '.join(sorted(failed))}")
+    checklist = review["checklist"]
+    if set(checklist) != set(GATE_5_CHECKLIST_KEYS):
+        raise ValueError("gate_5_review.checklist 必须且只能包含固定八项")
+    failed = [key for key in GATE_5_CHECKLIST_KEYS if checklist.get(key) is not True]
+    if failed:
+        raise ValueError(f"gate_5_review.checklist 存在未通过项：{', '.join(failed)}")
     return review, sha256_bytes(raw)
 
 

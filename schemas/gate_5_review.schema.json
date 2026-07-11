@@ -3,9 +3,26 @@
   "title": "Gate 5 最终人工审核记录",
   "type": "object",
   "additionalProperties": false,
-  "required": ["target_gate", "reviewer", "reviewed_at", "decision", "final_acceptance", "reason"],
+  "required": [
+    "run_id",
+    "problem_id",
+    "profile",
+    "runtime_version",
+    "runtime_pack_sha256",
+    "target_gate",
+    "reviewer",
+    "reviewed_at",
+    "decision",
+    "final_acceptance",
+    "reason",
+    "checklist"
+  ],
   "properties": {
     "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "target_gate": {"const": 5},
     "reviewer": {"type": "string", "minLength": 1},
     "reviewed_at": {"type": "string", "format": "date-time"},
@@ -14,7 +31,27 @@
     "reason": {"type": "string", "minLength": 10},
     "checklist": {
       "type": "object",
-      "additionalProperties": {"const": true}
+      "additionalProperties": false,
+      "required": [
+        "materials",
+        "diagnosis",
+        "model_route",
+        "code_reproduction",
+        "results",
+        "claim_evidence",
+        "risk_closure",
+        "final_acceptance"
+      ],
+      "properties": {
+        "materials": {"const": true},
+        "diagnosis": {"const": true},
+        "model_route": {"const": true},
+        "code_reproduction": {"const": true},
+        "results": {"const": true},
+        "claim_evidence": {"const": true},
+        "risk_closure": {"const": true},
+        "final_acceptance": {"const": true}
+      }
     }
   }
 }
