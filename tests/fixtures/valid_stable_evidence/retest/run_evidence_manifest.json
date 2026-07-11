@@ -1,0 +1,69 @@
+{
+  "evidence_manifest_version": "1.0.0",
+  "run_id": "treatment",
+  "artifacts": [
+    {
+      "path": "run_manifest.json",
+      "sha256": "9f8583d31819a93eb87a3b3c70b8d9c73f53b45d32961287e344e9b560afa752",
+      "media_type": "application/json",
+      "size_bytes": 256,
+      "role": "run_manifest"
+    },
+    {
+      "path": "request.json",
+      "sha256": "d38e77c46fdaf30f7b9ac0a4ca795856f3f5d7138f8ada5aa66745a22640066c",
+      "media_type": "application/json",
+      "size_bytes": 137,
+      "role": "request"
+    },
+    {
+      "path": "response.json",
+      "sha256": "8438be20df2d964e7f56ac9d9407a007d23374971485ab14c6d78b72e4998604",
+      "media_type": "application/json",
+      "size_bytes": 954,
+      "role": "model_response"
+    },
+    {
+      "path": "runtime_pack.md",
+      "sha256": "cbc5afebbf86ea5e259613f2b4754ff5477ebb05386ed0b55a9fe0d7590c6048",
+      "media_type": "text/markdown",
+      "size_bytes": 72,
+      "role": "runtime_pack"
+    },
+    {
+      "path": "runtime_pack.manifest.json",
+      "sha256": "f10784a9feb0253e71a5df863c38960e4fabf17c335dd1b6cba54f3a673b1620",
+      "media_type": "application/json",
+      "size_bytes": 128,
+      "role": "runtime_pack_manifest"
+    },
+    {
+      "path": "problem_manifest.json",
+      "sha256": "4ce3165febd2a0286b6d81c457d0af129e3eee2b64f99c274d888316fd2a18f8",
+      "media_type": "application/json",
+      "size_bytes": 178,
+      "role": "problem_manifest"
+    },
+    {
+      "path": "automatic_evaluation.json",
+      "sha256": "0f63b6c2e2fd0639fb32169dc68d82500569adc8e6b6885ba764af23a0a9e848",
+      "media_type": "application/json",
+      "size_bytes": 372,
+      "role": "automatic_evaluation"
+    },
+    {
+      "path": "ai_run_metadata.json",
+      "sha256": "e9111abc6dd43554cdc639b097d9fc4d0218b062bd68dc2481e98c6f487e8fb3",
+      "media_type": "application/json",
+      "size_bytes": 680,
+      "role": "ai_run_metadata"
+    },
+    {
+      "path": "human_review.md",
+      "sha256": "1128723625447316d39f6d9cd2c876cef95486f56bc78237f7655344c9938547",
+      "media_type": "text/markdown",
+      "size_bytes": 73,
+      "role": "human_review"
+    }
+  ]
+}

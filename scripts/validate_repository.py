@@ -729,6 +729,10 @@ class RepositoryValidator:
                 promotion_ok = False
                 continue
 
+            patch_file = self.resolve_repo_path(str(patch.get("file", "")))
+            if patch_file.is_file():
+                patch["_resolved_patch_sha256"] = hashlib.sha256(patch_file.read_bytes()).hexdigest()
+
             # 委托给 promotion_engine（promotion_policy.json 唯一事实源）
             report = evaluate_status_eligibility(
                 patch, entry, policy, status,
@@ -1096,7 +1100,12 @@ class RepositoryValidator:
             if not isinstance(approval, dict):
                 self.fail(f"{patch_id} stable_evidence 缺少 human_approval_record")
                 return False
-            expected_digest = stable_evidence_digest(patch, evidence)
+            expected_digest = stable_evidence_digest(
+                patch, 
+                evidence, 
+                patch_sha256=patch.get("_resolved_patch_sha256", ""),
+                inner_component_sha256s=patch.get("_resolved_inner_sha256s", {})
+            )
             if approval.get("evidence_digest") != expected_digest:
                 self.fail(f"{patch_id} stable_evidence 人工批准 evidence_digest 与当前证据不匹配")
                 ok = False

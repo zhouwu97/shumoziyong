@@ -1,0 +1,10 @@
+{
+  "run_id": "comp1",
+  "schema_version": "1.0.0",
+  "result": "pass",
+  "target_patch": "A001",
+  "runtime_pack_manifest": "tests/fixtures/valid_stable_evidence/comp_manifest.json",
+  "runtime_pack_manifest_sha256": "b5298e2c0e451497af05f36add0fa75544f11b437287d2df1e6bdc120a42a49f",
+  "automatic_evaluation": {},
+  "manual_review": null
+}

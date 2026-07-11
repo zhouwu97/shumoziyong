@@ -1,0 +1,11 @@
+{
+  "run_id": "treatment",
+  "eligible_for_promotion": true,
+  "evidence_validity": "real_ai_run",
+  "experiment_group_id": "test_group",
+  "experiment_role": "patch_only",
+  "problem_id": "2016-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "target_patch": "A001"
+}

@@ -1,0 +1,14 @@
+{
+  "manifest_version": "1.0.0",
+  "runtime_version": "1.0.0",
+  "profile": "default",
+  "patches": [
+    {
+      "patch_id": "A001",
+      "path": "tests/fixtures/valid_stable_evidence/test.patch",
+      "status": "verified_candidate",
+      "sha256": "418dcf3de387d9a9153d9250193fc5fc54be4b9fb699ecb2856421ffc2ba96f0"
+    }
+  ],
+  "runtime_pack_sha256": "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259"
+}

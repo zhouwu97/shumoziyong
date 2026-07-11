@@ -1,0 +1,6 @@
+{
+  "patch_id": "A001",
+  "issue_description": "Failed something",
+  "original_failure_snapshot": "tests/fixtures/valid_stable_evidence/baseline",
+  "failure_label": "logic_error"
+}
