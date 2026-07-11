@@ -305,6 +305,29 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
     write_gate_artifact_manifest(run_dir, gate, completed_at="2026-07-11T00:00:00Z")
 
 
+def _prepare_completed_gate_run(run_dir: Path, reviewer: str = "test_reviewer") -> None:
+    """填充最小完整 Gate 0-5 现场，但不执行 Seal，供 workflow 契约测试复用。"""
+    request_path = run_dir / "request.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    request.update({"prompt": "真实运行提示词", "model": "TestModel", "source": "real_ai_run"})
+    request_path.write_text(json.dumps(request, ensure_ascii=False), encoding="utf-8")
+    metadata_path = run_dir / "ai_run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
+
+    record_transition(run_dir, None, 0, reviewer, "approved")
+    for gate in range(5):
+        _write_valid_gate_artifact(run_dir, gate)
+        record_transition(run_dir, gate, gate + 1, reviewer, "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(_gate_5_review(run_dir, reviewer), ensure_ascii=False),
+        encoding="utf-8",
+    )
+    write_gate_artifact_manifest(run_dir, 5, completed_at="2026-07-11T00:00:00Z")
+    mark_run_completed(run_dir, reviewer)
+
+
 def _ready_gate_5_run(
     parent: Path,
     name: str,
@@ -860,6 +883,115 @@ def test_new_problem_initialization_uses_competition_artifacts_only(tmp_path: Pa
     assert "competition_process_review" in roles
     assert "score" not in roles
     assert "failure_labels" not in roles
+
+
+def test_new_problem_seals_without_training_artifacts_and_never_promotes(tmp_path: Path) -> None:
+    """比赛运行可独立完整封存，且现场派生的晋级资格恒为 false。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"competition problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2026-B", {"problem": [("problem.pdf", problem)]})
+    args = Namespace(
+        run_id="sealed_competition",
+        output_root=str(tmp_path / "runs"),
+        problem="2026-B",
+        profile="general",
+        gates="0-5",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow="new_problem",
+        mode="standard",
+    )
+    run_dir, ready = create_new_problem_run(args)
+    assert ready is True
+    _prepare_completed_gate_run(run_dir)
+
+    report = complete_and_seal_run(run_dir, "test_reviewer")
+    assert report["completed"] is True
+    assert report["sealed"] is True
+    assert report["eligible_for_promotion"] is False
+    assert not (run_dir / "score.json").exists()
+    assert not (run_dir / "failure_labels.json").exists()
+    assert not (run_dir / "patch_suggestions.md").exists()
+
+    (run_dir / "competition_process_review.md").unlink()
+    assert verify_run(run_dir)["sealed"] is False
+
+
+def test_workflow_and_evidence_purpose_cannot_be_relabelled(tmp_path: Path) -> None:
+    """比赛目录即使同时改 workflow 与 evidence_purpose，也缺少训练合同而不能通过 verify。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"competition problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2026-C", {"problem": [("problem.pdf", problem)]})
+    args = Namespace(
+        run_id="relabeled_competition",
+        output_root=str(tmp_path / "runs"),
+        problem="2026-C",
+        profile="general",
+        gates="0-5",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow="new_problem",
+        mode="standard",
+    )
+    run_dir, _ready = create_new_problem_run(args)
+    manifest_path = run_dir / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["workflow"] = "full_replay"
+    manifest["evidence_purpose"] = "training_validation"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = verify_run(run_dir)
+    assert report["sealed"] is False
+    assert any("score" in error or "failure_labels" in error for error in report["promotion_readiness_errors"])
+
+
+def test_full_replay_seal_requires_training_specific_artifacts(tmp_path: Path) -> None:
+    """旧题训练运行缺少评分文件时，完成态不得借用比赛合同完成 Seal。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    problem = b"training problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2024-D", {"problem": [("problem.pdf", problem)]})
+    args = Namespace(
+        run_id="missing_training_artifact",
+        output_root=str(tmp_path / "runs"),
+        problem="2024-D",
+        profile="general",
+        gates="0-5",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow="full_replay",
+        mode="standard",
+    )
+    run_dir, ready = create_full_replay_run(args)
+    assert ready is True
+    _prepare_completed_gate_run(run_dir)
+    (run_dir / "score.json").unlink()
+
+    with pytest.raises(ValueError, match="score.json"):
+        complete_and_seal_run(run_dir, "test_reviewer")
 
 
 @pytest.mark.parametrize("workflow", ["full_replay", "new_problem"])

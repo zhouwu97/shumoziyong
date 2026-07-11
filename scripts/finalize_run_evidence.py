@@ -15,7 +15,10 @@ from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
     ROOT,
     build_run_evidence_manifest,
+    evidence_artifact_specs_for_workflow,
+    evidence_required_artifacts_for_workflow,
     replay_transition_log,
+    validate_workflow_evidence_purpose,
     write_json,
 )
 
@@ -26,6 +29,15 @@ OPTIONAL_EVIDENCE_ARTIFACTS = {
 OPTIONAL_EVIDENCE_ARTIFACTS.update(
     {f"gate_{gate}_artifact_manifest": f"gate_artifacts/gate_{gate}.manifest.json" for gate in range(6)}
 )
+
+KNOWN_EVIDENCE_ARTIFACTS = dict(OPTIONAL_EVIDENCE_ARTIFACTS)
+for _workflow in ("full_replay", "new_problem"):
+    KNOWN_EVIDENCE_ARTIFACTS.update(
+        {
+            role: filename
+            for filename, role, _media_type in evidence_artifact_specs_for_workflow(_workflow)
+        }
+    )
 
 
 def load_policy() -> dict[str, Any]:
@@ -64,7 +76,7 @@ def validate_evidence_manifest(
         if path_text in seen_paths:
             errors.append(f"run_evidence_manifest.path 重复：{path_text}")
         seen_paths.add(path_text)
-        expected_path = required_artifacts.get(role, OPTIONAL_EVIDENCE_ARTIFACTS.get(role))
+        expected_path = required_artifacts.get(role, KNOWN_EVIDENCE_ARTIFACTS.get(role))
         if expected_path is None:
             errors.append(f"run_evidence_manifest 包含未知证据角色：{role}")
         elif path_text != expected_path:
@@ -100,34 +112,16 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     if not run_dir.is_dir():
         raise ValueError(f"运行目录不存在：{run_dir}")
 
-    policy = load_policy()
-    checks = policy["run_evidence_requirements"]["ai_run_metadata_checks"]
-    required_artifacts = checks.get("required_artifacts")
-    if not isinstance(required_artifacts, dict) or not all(
-        isinstance(role, str) and isinstance(path, str)
-        for role, path in required_artifacts.items()
-    ):
-        raise ValueError("promotion policy required_artifacts 必须是角色到文件路径的对象")
-
-    required_files = set(policy["run_evidence_requirements"].get("required_run_files", []))
-    required_files.discard("run_evidence_manifest.json")
-    required_files.update(required_artifacts.values())
-    missing_files = [
-        filename
-        for filename in sorted(required_files)
-        if not (run_dir / filename).is_file()
-    ]
-    if missing_files:
-        raise ValueError(f"缺少必需晋级证据文件：{', '.join(missing_files)}")
-
-    metadata = json.loads((run_dir / "ai_run_metadata.json").read_text(encoding="utf-8"))
-    if metadata.get("status") != "completed":
-        raise ValueError("ai_run_metadata.status 必须为 completed 才能封存证据")
-
     run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     run_id = run_manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("run_manifest.run_id 不能为空")
+    purpose_error = validate_workflow_evidence_purpose(run_manifest)
+    if purpose_error:
+        raise ValueError(purpose_error)
+    workflow = run_manifest.get("workflow")
+    assert isinstance(workflow, str)
+    required_artifacts = evidence_required_artifacts_for_workflow(workflow, completed=True)
     immutable_manifest = run_manifest.get("manifest_version") == "2.0.0"
     if immutable_manifest:
         if run_manifest.get("initial_state") != "initialized":
@@ -145,6 +139,15 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         raise ValueError(f"Gate 状态机记录无效，不能封存证据：{exc}") from exc
     if not state["completed"] or state["max_gate"] != 5:
         raise ValueError("仅允许封存已完成 Gate 0-5 全流程的运行")
+    missing_files = [
+        filename for filename in sorted(set(required_artifacts.values())) if not (run_dir / filename).is_file()
+    ]
+    if missing_files:
+        raise ValueError(f"缺少 workflow 必需证据文件：{', '.join(missing_files)}")
+
+    metadata = json.loads((run_dir / "ai_run_metadata.json").read_text(encoding="utf-8"))
+    if metadata.get("status") != "completed":
+        raise ValueError("ai_run_metadata.status 必须为 completed 才能封存证据")
 
     if immutable_manifest:
         run_manifest_bytes = (run_dir / "run_manifest.json").read_bytes()

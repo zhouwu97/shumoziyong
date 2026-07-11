@@ -79,10 +79,14 @@ def _append_transition_event(path: Path, event: Mapping[str, Any]) -> None:
 
 COMMON_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("run_manifest.json", "run_manifest", "application/json"),
+    ("material_review.json", "material_review", "application/json"),
     ("request.json", "request", "application/json"),
     ("response.json", "model_response", "application/json"),
+    ("response.md", "model_response_markdown", "text/markdown"),
     ("runtime_pack.md", "runtime_pack", "text/markdown"),
     ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
+    ("runtime_profile.snapshot.json", "runtime_profile_snapshot", "application/json"),
+    ("patch_selection.snapshot.json", "patch_selection_snapshot", "application/json"),
     ("problem_manifest.json", "problem_manifest", "application/json"),
     ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
     ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
@@ -94,15 +98,19 @@ COMMON_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
 FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("score.json", "score", "application/json"),
     ("failure_labels.json", "failure_labels", "application/json"),
+    ("patch_suggestions.md", "patch_suggestions", "text/markdown"),
 )
 
 NEW_PROBLEM_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("competition_process_review.md", "competition_process_review", "text/markdown"),
 )
 
+WORKFLOW_EVIDENCE_PURPOSES = {
+    "full_replay": "training_validation",
+    "new_problem": "competition_execution",
+}
+
 OPTIONAL_GATE_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
-    ("runtime_profile.snapshot.json", "runtime_profile_snapshot"),
-    ("patch_selection.snapshot.json", "patch_selection_snapshot"),
     ("diagnosis.json", "gate_0_diagnosis"),
     ("model_route.json", "gate_1_model_route"),
     ("code_plan.json", "gate_2_code_plan"),
@@ -110,6 +118,49 @@ OPTIONAL_GATE_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
     ("result_manifest.json", "gate_3_result_manifest"),
     ("paper_claim_map.json", "gate_4_paper_claim_map"),
 )
+
+
+def evidence_artifact_specs_for_workflow(workflow: str) -> tuple[tuple[str, str, str], ...]:
+    """返回某个 Gate workflow 的固定基础证据集合。"""
+    if workflow == "full_replay":
+        return COMMON_EVIDENCE_ARTIFACT_SPECS + FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS
+    if workflow == "new_problem":
+        return COMMON_EVIDENCE_ARTIFACT_SPECS + NEW_PROBLEM_EVIDENCE_ARTIFACT_SPECS
+    raise ValueError(f"Gate 运行不支持的 workflow：{workflow!r}")
+
+
+def evidence_required_artifacts_for_workflow(
+    workflow: str,
+    *,
+    completed: bool,
+) -> dict[str, str]:
+    """从 workflow 派生不可手填的证据角色合同；完成态额外要求 Gate 0-5。"""
+    required = {role: filename for filename, role, _media_type in evidence_artifact_specs_for_workflow(workflow)}
+    if completed:
+        required.update({role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS})
+        required.update(
+            {
+                f"gate_{gate}_artifact_manifest": f"gate_artifacts/gate_{gate}.manifest.json"
+                for gate in range(6)
+            }
+        )
+    return required
+
+
+def validate_workflow_evidence_purpose(manifest: Mapping[str, Any]) -> str | None:
+    """验证 workflow 与证据用途的一对一绑定，防止通过手改字段改变证据资格。"""
+    workflow = manifest.get("workflow")
+    if not isinstance(workflow, str):
+        return f"run_manifest.workflow 非法：{workflow!r}"
+    expected = WORKFLOW_EVIDENCE_PURPOSES.get(workflow)
+    if expected is None:
+        return f"run_manifest.workflow 非法：{workflow!r}"
+    if manifest.get("evidence_purpose") != expected:
+        return (
+            "run_manifest.evidence_purpose 与 workflow 不一致："
+            f"{workflow} 必须为 {expected!r}"
+        )
+    return None
 
 
 def build_run_evidence_manifest(
@@ -123,13 +174,7 @@ def build_run_evidence_manifest(
         workflow = json.loads(run_manifest_path.read_text(encoding="utf-8")).get("workflow")
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"无法确定运行工作流：{run_manifest_path}（{exc}）") from exc
-    artifact_specs = list(COMMON_EVIDENCE_ARTIFACT_SPECS)
-    if workflow == "full_replay":
-        artifact_specs.extend(FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS)
-    elif workflow == "new_problem":
-        artifact_specs.extend(NEW_PROBLEM_EVIDENCE_ARTIFACT_SPECS)
-    else:
-        raise ValueError(f"Gate 运行不支持的 workflow：{workflow!r}")
+    artifact_specs = evidence_artifact_specs_for_workflow(workflow)
 
     artifacts: list[dict[str, Any]] = []
     for filename, role, media_type in artifact_specs:
@@ -1416,6 +1461,28 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             "sealed": False,
         }
     state = replay_transition_log(run_dir)
+    evidence_errors: list[str] = []
+    purpose_error = validate_workflow_evidence_purpose(manifest)
+    if purpose_error:
+        evidence_errors.append(purpose_error)
+    else:
+        try:
+            from finalize_run_evidence import validate_evidence_manifest
+
+            workflow = manifest.get("workflow")
+            assert isinstance(workflow, str)
+            evidence = _load_json_object(
+                run_dir / "run_evidence_manifest.json", "run_evidence_manifest.json"
+            )
+            required_artifacts = evidence_required_artifacts_for_workflow(
+                workflow,
+                completed=bool(state.get("completed")),
+            )
+            evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
+            if evidence.get("run_id") != manifest.get("run_id"):
+                evidence_errors.append("run_evidence_manifest.run_id 与 run_manifest 不一致")
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            evidence_errors.append(str(exc))
     verified_gates: list[int] = []
     for gate in state.get("completed_gates", []):
         verify_gate_artifacts(run_dir, gate)
@@ -1426,7 +1493,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         seal_errors.append(str(exc))
 
-    promotion_errors = list(seal_errors)
+    promotion_errors = list(seal_errors) + evidence_errors
+    if manifest.get("workflow") == "new_problem":
+        promotion_errors.append("new_problem 的 competition_execution 运行不具备 Patch 晋级资格")
     if manifest.get("promotion_evidence") is not True:
         promotion_errors.append("运行初始化时未声明为晋级证据")
     if state.get("transition_version") != TRANSITION_VERSION:
@@ -1472,7 +1541,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "verified_gates": verified_gates,
         "current_gate": state["current_gate"],
         "completed": state["completed"],
-        "sealed": not seal_errors,
+        "sealed": not seal_errors and not evidence_errors,
         "promotion_readiness_errors": promotion_errors,
     }
 
