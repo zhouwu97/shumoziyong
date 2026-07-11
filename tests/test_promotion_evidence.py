@@ -9,6 +9,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_repository import RepositoryValidator
+from finalize_run_evidence import finalize_run_evidence
+from run_workflow import mark_run_completed, record_transition
 
 FIXTURE_DIR = ROOT / "tests/fixtures/valid_promotion_evidence"
 
@@ -37,14 +39,64 @@ def modify_json(path: Path, updates: dict):
     data.update(updates)
     path.write_text(json.dumps(data), "utf-8")
 
-def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index):
+
+def _complete_and_seal_fixture_run(run_dir: Path) -> None:
+    """用真实 Gate API 构造可用于晋级验证的完整运行证据。"""
+    manifest_path = run_dir / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text("utf-8"))
+    manifest.update({"run_status": "initialized", "integrity_status": "unsealed"})
+    manifest_path.write_text(json.dumps(manifest), "utf-8")
+    (run_dir / "score.json").write_text('{"total": 100, "passed": true}', "utf-8")
+    (run_dir / "failure_labels.json").write_text('{"labels": [], "reviewed": true}', "utf-8")
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
+        "utf-8",
+    )
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "fixture", "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(
+            {
+                "target_gate": 5,
+                "reviewer": "fixture",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+                "decision": "approved",
+                "final_acceptance": True,
+                "reason": "Fixture Gate 5 review is approved.",
+            }
+        ),
+        "utf-8",
+    )
+    mark_run_completed(run_dir, "fixture")
+    finalize_run_evidence(run_dir)
+
+def test_valid_evidence_passes(validator, valid_matrix, valid_patch_index, tmp_path):
+    fix_dir = _copy_fixture(tmp_path)
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
     with patch.object(validator, 'load_json', side_effect=mock_load_json(valid_matrix, valid_patch_index)):
-        validator.validate_patch_promotion()
-        assert not validator.failures
-        assert (
-            "patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）"
-            in validator.passes
-        )
+        with patch.object(RepositoryValidator, 'resolve_repo_path', new=lambda self, raw: Path(raw).resolve()):
+            validator.validate_patch_promotion()
+            assert not validator.failures
+            assert (
+                "patch 晋级规则（promotion_policy.json 统一评估 + 负控证据验证）"
+                in validator.passes
+            )
+
+
+def test_incomplete_gate_log_cannot_be_promotion_evidence(validator, valid_matrix, valid_patch_index, tmp_path):
+    """仅有 ready 文本的 transitions 不能伪装成完成的 Gate 0-5 运行。"""
+    fix_dir = _copy_fixture(tmp_path)
+    _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
+    (fix_dir / "baseline" / "transitions.jsonl").write_text('{"state": "ready"}\n', "utf-8")
+
+    with patch.object(validator, "load_json", side_effect=mock_load_json(valid_matrix, valid_patch_index)):
+        with patch.object(RepositoryValidator, "resolve_repo_path", new=lambda self, raw: Path(raw).resolve()):
+            validator.validate_patch_promotion()
+            assert any("Gate 状态机记录无效" in failure for failure in validator.failures)
 
 def test_negative_case_mismatch_fails(validator, valid_matrix, valid_patch_index):
     valid_matrix["patches"][0]["negative"]["case"] = "WRONG-CASE"
@@ -273,6 +325,8 @@ def test_ai_metadata_valid_passes(validator, valid_matrix, valid_patch_index, tm
     """Valid ai_run_metadata on both baseline and treatment passes."""
     fix_dir = _copy_fixture(tmp_path)
     _setup_fixture_paths(fix_dir, valid_matrix)
+    _complete_and_seal_fixture_run(fix_dir / "baseline")
+    _complete_and_seal_fixture_run(fix_dir / "treatment")
 
     def mock_resolve(self, raw):
         return Path(raw).resolve()

@@ -6,6 +6,8 @@ import sys
 from argparse import Namespace
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -72,6 +74,8 @@ def test_manifest_hashes_pack_and_records_exclusions() -> None:
     # 新增：默认导出不启用实验标记
     assert manifest["candidate_experiment"]["enabled"] is False
     assert manifest["exclusion_experiment"]["enabled"] is False
+    validator = RepositoryValidator()
+    assert validator.validate_schema(manifest, "runtime_pack_manifest.schema.json", "真实 exporter manifest")
 
 
 def test_verified_patches_and_condition_prevents_dangling_verified_export() -> None:
@@ -185,6 +189,8 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     assert ready is True
     assert manifest["automatic_stable_update"] is False
     assert manifest["experiment_kind"] == "standard"
+    assert manifest["run_status"] == "initialized"
+    assert manifest["integrity_status"] == "unsealed"
     assert (run_dir / "runtime_pack.manifest.json").is_file()
     assert (run_dir / "patch_suggestions.md").is_file()
     # 新增：problem_manifest 记录材料文件哈希
@@ -207,7 +213,8 @@ def test_old_problem_cli_creates_traceable_run(tmp_path: Path) -> None:
     assert validator.validate_schema(evidence_manifest, "run_evidence_manifest.schema.json", "run evidence manifest")
     assert {item["role"] for item in evidence_manifest["artifacts"]} >= {
         "run_manifest", "request", "model_response", "runtime_pack", "runtime_pack_manifest",
-        "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review",
+        "problem_manifest", "automatic_evaluation", "ai_run_metadata", "human_review", "transitions",
+        "gate_5_review", "score", "failure_labels",
     }
 
 
@@ -220,7 +227,7 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", pdf_data)]})
     args = Namespace(
         run_id="sealed_run", output_root=str(tmp_path / "runs"), problem="2024-C",
-        profile="engineering_optimization", gates="0-2", materials=str(materials),
+            profile="engineering_optimization", gates="0-5", materials=str(materials),
         candidate_patch=[], exclude_patch=[], material_file=[], promotion_evidence=False,
         experiment_group_id=None, experiment_role=None, target_patch=None,
     )
@@ -235,14 +242,58 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
     metadata_path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
 
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "test_reviewer", "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(
+            {
+                "target_gate": 5,
+                "reviewer": "test_reviewer",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+                "decision": "approved",
+                "final_acceptance": True,
+                "reason": "The Gate 5 checklist is complete.",
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    mark_run_completed(run_dir, "test_reviewer")
+
     evidence = finalize_run_evidence(run_dir)
     required_artifacts = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))["run_evidence_requirements"]["ai_run_metadata_checks"]["required_artifacts"]
-    assert json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))["status"] == "sealed"
+    sealed_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    assert sealed_manifest["run_status"] == "completed"
+    assert sealed_manifest["integrity_status"] == "sealed"
     assert not validate_evidence_manifest(run_dir, evidence, required_artifacts)
 
     with (run_dir / "response.json").open("a", encoding="utf-8") as response:
         response.write("\n篡改")
     assert any("response.json" in error and "sha256" in error for error in validate_evidence_manifest(run_dir, evidence, required_artifacts))
+
+
+def test_finalize_run_evidence_rejects_incomplete_gate_workflow(tmp_path: Path) -> None:
+    """AI 调用完成不足以封存，运行必须先完成并通过 Gate 5。"""
+    materials = tmp_path / "materials"
+    materials.mkdir()
+    pdf_data = b"fake problem pdf"
+    (materials / "problem.pdf").write_bytes(pdf_data)
+    _write_material_manifest(materials, "2024-C", {"problem": [("problem.pdf", pdf_data)]})
+    args = Namespace(
+        run_id="uncompleted_run", output_root=str(tmp_path / "runs"), problem="2024-C",
+        profile="engineering_optimization", gates="0-5", materials=str(materials),
+        candidate_patch=[], exclude_patch=[], material_file=[], promotion_evidence=False,
+        experiment_group_id=None, experiment_role=None, target_patch=None,
+    )
+    run_dir, ready = create_old_problem_run(args)
+    assert ready is True
+    metadata_path = run_dir / "ai_run_metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update({"status": "completed", "provider": "test", "model": "TestModel"})
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="run_status 必须为 completed"):
+        finalize_run_evidence(run_dir)
 
 
 def test_old_problem_cli_isolation_run_records_exclusion(tmp_path: Path) -> None:
@@ -650,9 +701,35 @@ def test_record_and_read_transitions(tmp_path: Path) -> None:
     assert is_gate_complete(run_dir, 5) is False
 
     # Mark completed - Gate 5 should now be complete
-    (run_dir / "gate_5_review.json").write_text('{"final_acceptance": true, "reviewer": "automated_test", "reviewed_at": "2024-01-01T00:00:00Z", "decision": "approved", "reason": "this is a valid reason"}', encoding="utf-8")
+    (run_dir / "gate_5_review.json").write_text('{"target_gate": 5, "final_acceptance": true, "reviewer": "automated_test", "reviewed_at": "2024-01-01T00:00:00Z", "decision": "approved", "reason": "this is a valid reason"}', encoding="utf-8")
     mark_run_completed(run_dir, "automated_test")
     assert is_gate_complete(run_dir, 5) is True
+
+
+def test_gate_5_review_schema_requires_target_gate(tmp_path: Path) -> None:
+    """Gate 5 审核缺少 target_gate 时不得因默认值而通过。"""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "transitions.jsonl").write_text(
+        json.dumps({"from": None, "to": None, "state": "initialized", "material_ready": True, "max_gate": 5}) + "\n",
+        encoding="utf-8",
+    )
+    for gate in range(6):
+        record_transition(run_dir, gate - 1 if gate else None, gate, "human", "approved")
+    (run_dir / "gate_5_review.json").write_text(
+        json.dumps(
+            {
+                "reviewer": "human",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+                "decision": "approved",
+                "final_acceptance": True,
+                "reason": "The final review is complete.",
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="target_gate"):
+        mark_run_completed(run_dir, "human")
 
 
 def test_forged_from_gate_rejected(tmp_path: Path) -> None:

@@ -2,63 +2,78 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://shumo.local/schemas/runtime_pack_manifest.schema.json",
   "title": "Runtime Pack Manifest",
+  "description": "scripts/export_runtime_pack.py 的 build_manifest() 唯一输出契约。",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "manifest_version",
-    "profile",
-    "runtime_version",
-    "patches",
-    "runtime_pack_sha256"
+    "manifest_version", "runtime_version", "generated_at", "profile", "maturity",
+    "runtime_profile_state", "patch_index", "base", "plugins", "patches", "checklists",
+    "other_files", "excluded_patches", "candidate_experiment", "exclusion_experiment",
+    "export_flags", "runtime_pack_sha256"
   ],
   "properties": {
-    "manifest_version": {
-      "type": "string"
+    "manifest_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "profile": {"type": "string", "minLength": 1},
+    "maturity": {"type": "string", "enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+    "runtime_profile_state": {"$ref": "#/$defs/fileRecord"},
+    "patch_index": {"$ref": "#/$defs/fileRecord"},
+    "base": {"anyOf": [{"$ref": "#/$defs/fileRecord"}, {"type": "null"}]},
+    "plugins": {"type": "array", "items": {"$ref": "#/$defs/fileRecord"}},
+    "patches": {"type": "array", "items": {"$ref": "#/$defs/patchRecord"}},
+    "checklists": {"type": "array", "items": {"$ref": "#/$defs/fileRecord"}},
+    "other_files": {"type": "array", "items": {"$ref": "#/$defs/fileRecord"}},
+    "excluded_patches": {"type": "array", "items": {"$ref": "#/$defs/excludedPatch"}},
+    "candidate_experiment": {"$ref": "#/$defs/candidateExperiment"},
+    "exclusion_experiment": {"$ref": "#/$defs/exclusionExperiment"},
+    "export_flags": {"$ref": "#/$defs/exportFlags"},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fileRecord": {
+      "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+      "properties": {"path": {"$ref": "#/$defs/relativePath"}, "sha256": {"$ref": "#/$defs/sha256"}}
     },
-    "profile": {
-      "type": "string",
-      "minLength": 1
+    "patchRecord": {
+      "type": "object", "additionalProperties": false, "required": ["patch_id", "status", "path", "sha256"],
+      "properties": {
+        "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
+        "status": {"type": "string", "enum": ["candidate", "verified_candidate", "stable"]},
+        "path": {"$ref": "#/$defs/relativePath"}, "sha256": {"$ref": "#/$defs/sha256"}
+      }
     },
-    "runtime_version": {
-      "type": "string",
-      "minLength": 1
+    "excludedPatch": {
+      "type": "object", "additionalProperties": false, "required": ["patch_id", "status", "reason"],
+      "properties": {
+        "patch_id": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"},
+        "status": {"type": "string", "enum": ["draft", "candidate", "verified_candidate", "stable", "deprecated"]},
+        "reason": {"type": "string", "minLength": 1}
+      }
     },
-    "runtime_pack_sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+    "candidateExperiment": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "patch_ids", "warning"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "patch_ids": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}, "uniqueItems": true},
+        "warning": {"type": ["string", "null"]}
+      }
     },
-    "patches": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": true,
-        "required": [
-          "patch_id",
-          "status",
-          "path",
-          "sha256"
-        ],
-        "properties": {
-          "patch_id": {
-            "type": "string",
-            "pattern": "^[A-Z][0-9]{3}$"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["candidate", "verified_candidate", "stable"]
-          },
-          "path": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
-          },
-          "sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          }
-        }
-      },
-      "uniqueItems": true
+    "exclusionExperiment": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "patch_ids"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "patch_ids": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}, "uniqueItems": true}
+      }
+    },
+    "exportFlags": {
+      "type": "object", "additionalProperties": false, "required": ["candidate_patches", "excluded_patches"],
+      "properties": {
+        "candidate_patches": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}},
+        "excluded_patches": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z][0-9]{3}$"}}
+      }
     }
   }
 }

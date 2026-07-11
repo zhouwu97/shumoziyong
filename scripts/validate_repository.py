@@ -12,6 +12,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
+from run_workflow import replay_transition_log
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -364,6 +365,25 @@ class RepositoryValidator:
                 if run_manifest.get("evidence_validity") != "real_ai_run":
                     self.fail(f"{run_dir.name} evidence_validity 不是 real_ai_run")
                     ok = False
+                if not legacy:
+                    if run_manifest.get("run_status") != "completed":
+                        self.fail(f"{run_dir.name} run_status 必须为 completed 才可作为晋级证据")
+                        ok = False
+                    if run_manifest.get("integrity_status") != "sealed":
+                        self.fail(f"{run_dir.name} integrity_status 必须为 sealed 才可作为晋级证据")
+                        ok = False
+                    try:
+                        state = replay_transition_log(run_dir)
+                    except (OSError, ValueError, json.JSONDecodeError) as exc:
+                        self.fail(f"{run_dir.name} Gate 状态机记录无效：{exc}")
+                        ok = False
+                    else:
+                        if not state["completed"]:
+                            self.fail(f"{run_dir.name} Gate 状态机未完成")
+                            ok = False
+                        if state["max_gate"] != 5:
+                            self.fail(f"{run_dir.name} 晋级证据必须来自 Gate 0-5 完整运行")
+                            ok = False
 
                 request = json.loads((run_dir / "request.json").read_text(encoding="utf-8"))
                 if not request.get("prompt"):
@@ -724,6 +744,91 @@ class RepositoryValidator:
 
             return ok
 
+        def _collect_stable_inner_hashes(patch: dict[str, Any]) -> dict[str, str]:
+            """现场计算 stable 证据组件哈希，禁止把路径文字当作内容绑定。"""
+            patch_id = patch.get("patch_id", "<unknown>")
+            evidence = patch.get("stable_evidence")
+            if not isinstance(evidence, dict):
+                return {}
+
+            hashes: dict[str, str] = {}
+
+            def add_file(key: str, raw_path: Any, label: str) -> None:
+                if isinstance(raw_path, Path):
+                    path = raw_path
+                else:
+                    if not isinstance(raw_path, str) or not raw_path:
+                        self.fail(f"{patch_id} stable_evidence 缺少 {label}，无法生成内容摘要")
+                        return
+                    try:
+                        path = self.resolve_repo_path(raw_path)
+                    except ValueError as exc:
+                        self.fail(f"{patch_id} stable_evidence {label} 路径无效：{exc}")
+                        return
+                if not path.is_file():
+                    self.fail(f"{patch_id} stable_evidence {label} 文件不存在：{raw_path}")
+                    return
+                hashes[key] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+            for index, item in enumerate(evidence.get("negative_control_runs", [])):
+                if not isinstance(item, dict):
+                    continue
+                for role, field in (("baseline", "baseline_run"), ("treatment", "treatment_run")):
+                    raw_run = item.get(field)
+                    if not isinstance(raw_run, str) or not raw_run:
+                        self.fail(f"{patch_id} stable_evidence 负控缺少 {field}，无法生成内容摘要")
+                        continue
+                    try:
+                        run_dir = self.resolve_repo_path(raw_run)
+                    except ValueError as exc:
+                        self.fail(f"{patch_id} stable_evidence {field} 路径无效：{exc}")
+                        continue
+                    add_file(
+                        f"negative_control_runs/{index}/{role}/run_evidence_manifest.json",
+                        run_dir / "run_evidence_manifest.json",
+                        f"{field} 的 run_evidence_manifest.json",
+                    )
+                add_file(
+                    f"negative_control_runs/{index}/comparison_review",
+                    item.get("comparison_review"),
+                    "comparison_review",
+                )
+
+            for index, item in enumerate(evidence.get("failure_fix_retests", [])):
+                if not isinstance(item, dict):
+                    continue
+                for key in ("failure_record", "fix_record", "review_record"):
+                    add_file(f"failure_fix_retests/{index}/{key}", item.get(key), key)
+                raw_run = item.get("retest_run")
+                if isinstance(raw_run, str) and raw_run:
+                    try:
+                        run_dir = self.resolve_repo_path(raw_run)
+                    except ValueError as exc:
+                        self.fail(f"{patch_id} stable_evidence retest_run 路径无效：{exc}")
+                    else:
+                        add_file(
+                            f"failure_fix_retests/{index}/retest_evidence_manifest.json",
+                            run_dir / "run_evidence_manifest.json",
+                            "retest_run 的 run_evidence_manifest.json",
+                        )
+                else:
+                    self.fail(f"{patch_id} stable_evidence 缺少 retest_run，无法生成内容摘要")
+
+            for index, item in enumerate(evidence.get("competition_validation_records", [])):
+                if not isinstance(item, dict):
+                    continue
+                add_file(
+                    f"competition_validation_records/{index}/runtime_pack_manifest",
+                    item.get("runtime_pack_manifest"),
+                    "runtime_pack_manifest",
+                )
+                add_file(
+                    f"competition_validation_records/{index}/result_record",
+                    item.get("result_record"),
+                    "result_record",
+                )
+            return dict(sorted(hashes.items()))
+
         for patch in patch_index:
             patch_id = patch.get("patch_id", "<unknown>")
             status = patch.get("status")
@@ -738,6 +843,8 @@ class RepositoryValidator:
             patch_file = self.resolve_repo_path(str(patch.get("file", "")))
             if patch_file.is_file():
                 patch["_resolved_patch_sha256"] = hashlib.sha256(patch_file.read_bytes()).hexdigest()
+            if status == "stable":
+                patch["_resolved_inner_sha256s"] = _collect_stable_inner_hashes(patch)
 
             # 委托给 promotion_engine（promotion_policy.json 唯一事实源）
             report = evaluate_status_eligibility(

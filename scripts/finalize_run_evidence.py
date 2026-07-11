@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
-from run_workflow import ROOT, build_run_evidence_manifest, write_json
+from run_workflow import ROOT, build_run_evidence_manifest, replay_transition_log, write_json
 
 
 def load_policy() -> dict[str, Any]:
@@ -112,7 +112,18 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     run_id = run_manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("run_manifest.run_id 不能为空")
-    run_manifest["status"] = "sealed"
+    if run_manifest.get("run_status") != "completed":
+        raise ValueError("run_manifest.run_status 必须为 completed 才能封存证据")
+    if run_manifest.get("integrity_status") != "unsealed":
+        raise ValueError("run_manifest.integrity_status 必须为 unsealed 才能封存证据")
+    try:
+        state = replay_transition_log(run_dir)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Gate 状态机记录无效，不能封存证据：{exc}") from exc
+    if not state["completed"] or state["max_gate"] != 5:
+        raise ValueError("仅允许封存已完成 Gate 0-5 全流程的运行")
+
+    run_manifest["integrity_status"] = "sealed"
     run_manifest_bytes = (json.dumps(run_manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     overrides = {"run_manifest.json": run_manifest_bytes}
     evidence_manifest = build_run_evidence_manifest(run_dir, run_id, overrides)

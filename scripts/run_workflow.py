@@ -11,6 +11,11 @@ from typing import Any, Mapping
 from export_runtime_pack import build_manifest, build_pack
 from verify_materials import MaterialVerificationResult, verify_materials
 
+try:
+    from jsonschema import Draft202012Validator, FormatChecker
+except ImportError as exc:  # pragma: no cover - 依赖缺失时由命令行明确报告
+    raise SystemExit("缺少 jsonschema，请先执行：python -m pip install -r requirements.txt") from exc
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -41,6 +46,9 @@ EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
     ("human_review.md", "human_review", "text/markdown"),
     ("transitions.jsonl", "transitions", "application/jsonlines"),
+    ("gate_5_review.json", "gate_5_review", "application/json"),
+    ("score.json", "score", "application/json"),
+    ("failure_labels.json", "failure_labels", "application/json"),
 )
 
 
@@ -174,7 +182,7 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     write_json(run_dir / "problem_manifest.json", problem_manifest)
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
-    status = "initialized" if material_verification.ready else "blocked"
+    run_status = "initialized" if material_verification.ready else "blocked"
     manifest_data: dict[str, Any] = {
         "run_id": run_id,
         "workflow": "old_problem",
@@ -192,7 +200,8 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "candidate_patches": args.candidate_patch,
         "excluded_patches": args.exclude_patch,
         "experiment_kind": _experiment_kind(args.candidate_patch, args.exclude_patch),
-        "status": status,
+        "run_status": run_status,
+        "integrity_status": "unsealed",
         "automatic_stable_update": False,
     }
 
@@ -265,6 +274,10 @@ def create_old_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
     )
     write_json(run_dir / "score.json", {"total": None, "items": {}, "passed": None})
     write_json(run_dir / "failure_labels.json", {"labels": [], "evidence": {}, "reviewed": False})
+    write_json(
+        run_dir / "gate_5_review.json",
+        {"_note": "待 Gate 5 通过后填写；完成记录必须符合 schemas/gate_5_review.schema.json。"},
+    )
     (run_dir / "patch_suggestions.md").write_text(
         "# Patch 建议\n\n待复盘后填写；不得自动升级状态。\n", encoding="utf-8"
     )
@@ -558,6 +571,22 @@ def _parse_datetime(value: Any, field: str) -> None:
         raise ValueError(f"gate_5_review.{field} 不是合法 ISO 8601 时间") from exc
 
 
+def _validate_gate_5_review_schema(review: dict[str, Any]) -> None:
+    """以唯一 Schema 契约校验 Gate 5 审核记录，避免手工规则漂移。"""
+    schema_path = ROOT / "schemas" / "gate_5_review.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    errors = sorted(
+        Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(review),
+        key=lambda error: list(error.absolute_path),
+    )
+    if errors:
+        details = "；".join(
+            f"{'.'.join(str(part) for part in error.absolute_path) or '<root>'}：{error.message}"
+            for error in errors
+        )
+        raise ValueError(f"gate_5_review.json 不符合 Schema：{details}")
+
+
 def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict[str, Any], str]:
     """读取并验证 Gate 5 人工审核记录，返回记录和 SHA-256。"""
     if not str(reviewer).strip():
@@ -573,11 +602,8 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
     if not isinstance(review, dict):
         raise ValueError("gate_5_review.json 必须是 JSON 对象")
 
-    allowed = {"run_id", "target_gate", "reviewer", "reviewed_at", "decision", "final_acceptance", "reason", "checklist"}
-    extra = set(review) - allowed
-    if extra:
-        raise ValueError(f"gate_5_review.json 包含未知字段：{', '.join(sorted(extra))}")
-    if review.get("target_gate", 5) != 5:
+    _validate_gate_5_review_schema(review)
+    if review.get("target_gate") != 5:
         raise ValueError("gate_5_review.target_gate 必须为 5")
     if review.get("reviewer") != str(reviewer).strip():
         raise ValueError("gate_5_review.reviewer 必须与 mark_run_completed 参数一致")
@@ -622,6 +648,13 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
     }
     with open(run_dir / "transitions.jsonl", "a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    manifest_path = run_dir / "run_manifest.json"
+    if manifest_path.is_file():
+        run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        run_manifest["run_status"] = "completed"
+        run_manifest.setdefault("integrity_status", "unsealed")
+        write_json(manifest_path, run_manifest)
 
 
 def parse_args() -> argparse.Namespace:
