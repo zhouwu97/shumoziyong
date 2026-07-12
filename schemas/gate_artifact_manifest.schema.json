@@ -31,15 +31,26 @@
     "gate_artifact_contract_version": {"const": "1.0.0"},
     "formal_result": {
       "type": "object", "additionalProperties": false,
-      "required": ["formal_result_id", "envelope_path", "envelope_file_sha256", "envelope_semantic_sha256", "formal_result_activation_status", "formal_result_eligible"],
+      "required": ["formal_result_id", "envelope_path", "envelope_file_sha256", "envelope_semantic_sha256", "formal_result_activation_status", "sandboxie_environment_verified", "formal_result_eligible"],
       "properties": {
         "formal_result_id": {"type": "string", "minLength": 1},
         "envelope_path": {"type": "string", "pattern": "^formal_results/[A-Za-z0-9._-]+/formal_result_envelope\\.json$"},
         "envelope_file_sha256": {"$ref": "#/$defs/sha256"},
         "envelope_semantic_sha256": {"$ref": "#/$defs/sha256"},
-        "formal_result_activation_status": {"const": "code_complete_candidate"},
-        "formal_result_eligible": {"const": false}
-      }
+        "formal_result_activation_status": {"enum": ["code_complete_candidate", "sandboxie_environment_verified"]},
+        "sandboxie_environment_verified": {"type": "boolean"},
+        "formal_result_eligible": {"type": "boolean"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"formal_result_activation_status": {"const": "code_complete_candidate"}}, "required": ["formal_result_activation_status"]},
+          "then": {"properties": {"sandboxie_environment_verified": {"const": false}, "formal_result_eligible": {"const": false}}}
+        },
+        {
+          "if": {"properties": {"formal_result_activation_status": {"const": "sandboxie_environment_verified"}}, "required": ["formal_result_activation_status"]},
+          "then": {"properties": {"sandboxie_environment_verified": {"const": true}, "formal_result_eligible": {"const": true}}}
+        }
+      ]
     },
     "artifacts": {
       "type": "array",

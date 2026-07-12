@@ -17,6 +17,7 @@ from .path_safety import (
     validate_execution_spec_paths,
 )
 from .schema import validate_schema
+from .sandboxie_environment import load_and_verify_sandboxie_environment_report
 
 
 CORE_RELATIVE_PATHS = (
@@ -208,7 +209,7 @@ def _verify_provenance_manifests(
     execution_spec: dict[str, Any],
     execution_spec_semantic_sha256: str,
     values: dict[str, dict[str, Any]],
-) -> None:
+) -> dict[str, Any]:
     """复核 Attestation 所引用的输入、代码和环境来源清单。"""
     expected_binding = {"execution_spec.json": execution_spec_semantic_sha256}
     for relative, artifact_type in EXPECTED_PROVENANCE_ARTIFACTS.items():
@@ -263,12 +264,40 @@ def _verify_provenance_manifests(
         raise FormalResultVerificationError("Code Manifest 未覆盖全部 Execution Spec 入口文件")
 
     environment_payload = values["environment_manifest.json"].get("payload", {})
-    if environment_payload.get("formal_result_activation_status") != "code_complete_candidate":
-        raise FormalResultVerificationError("Environment Manifest 激活状态非法")
-    if environment_payload.get("formal_result_eligible") is not False:
-        raise FormalResultVerificationError(
-            "Environment Manifest 在 Sandboxie 激活前必须 formal_result_eligible=false"
-        )
+    activation_status = environment_payload.get("formal_result_activation_status")
+    eligible = environment_payload.get("formal_result_eligible")
+    verified = environment_payload.get("sandboxie_environment_verified")
+    if activation_status == "code_complete_candidate":
+        if eligible is not False or verified is not False:
+            raise FormalResultVerificationError(
+                "Environment Manifest 在 Sandboxie 激活前必须保持环境验证和 eligibility 为 false"
+            )
+        if "sandboxie_environment_report" in environment_payload:
+            raise FormalResultVerificationError("未激活 Environment Manifest 禁止引用 Sandboxie 报告")
+        return {
+            "formal_result_activation_status": activation_status,
+            "sandboxie_environment_verified": False,
+            "formal_result_eligible": False,
+        }
+    if activation_status != "sandboxie_environment_verified" or eligible is not True or verified is not True:
+        raise FormalResultVerificationError("Environment Manifest 的 Sandboxie 激活状态组合非法")
+
+    binding = environment_payload.get("sandboxie_environment_report")
+    if not isinstance(binding, dict) or binding.get("path") != "sandboxie_environment_report.json":
+        raise FormalResultVerificationError("Environment Manifest 缺少固定 Sandboxie 报告路径绑定")
+    report_path = _safe_relative(run_root, str(binding["path"]), "Sandboxie 环境报告路径")
+    summary = load_and_verify_sandboxie_environment_report(report_path)
+    expected = {
+        "path": "sandboxie_environment_report.json",
+        "report_id": summary["report_id"],
+        "file_sha256": summary["report_file_sha256"],
+        "semantic_sha256": summary["report_semantic_sha256"],
+        "configuration_backup_path": summary["configuration_backup_path"],
+        "configuration_backup_sha256": summary["configuration_backup_sha256"],
+    }
+    if binding != expected:
+        raise FormalResultVerificationError("Environment Manifest 的 Sandboxie 报告绑定不匹配")
+    return {**summary, "report_path": "sandboxie_environment_report.json"}
 
 
 def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dict[str, Any]:
@@ -374,7 +403,7 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         verified[relative] = item
 
     _verify_domain_contract(domain, descriptors, values)
-    _verify_provenance_manifests(
+    environment_summary = _verify_provenance_manifests(
         run_root,
         execution_spec,
         envelope["execution_spec_semantic_sha256"],
@@ -451,12 +480,14 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         "domain_manifest_path": domain_path.relative_to(run_root).as_posix(),
         "domain_manifest_file_sha256": file_sha256(domain_path),
         "domain_manifest_semantic_sha256": semantic_sha256(domain),
-        "formal_result_activation_status": values["environment_manifest.json"]["payload"][
+        "formal_result_activation_status": environment_summary[
             "formal_result_activation_status"
         ],
-        "formal_result_eligible": values["environment_manifest.json"]["payload"][
-            "formal_result_eligible"
+        "sandboxie_environment_verified": environment_summary[
+            "sandboxie_environment_verified"
         ],
+        "formal_result_eligible": environment_summary["formal_result_eligible"],
+        "sandboxie_environment": environment_summary,
         "artifacts": verified,
         "identity": identity,
     }

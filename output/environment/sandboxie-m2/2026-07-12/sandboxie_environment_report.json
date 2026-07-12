@@ -1,0 +1,226 @@
+{
+  "schema_version": "1.0.0",
+  "report_id": "sandboxie-env-20260712T211811p0800-465d9145c3ee",
+  "generated_at": "2026-07-12T21:18:11+08:00",
+  "verification_status": "passed",
+  "sandboxie_environment_verified": true,
+  "platform": {
+    "system": "Windows",
+    "caption": "Microsoft Windows 11 家庭版 中文版",
+    "version": "10.0.26200",
+    "build": "26200",
+    "architecture": "64 位"
+  },
+  "installation": {
+    "product": "Sandboxie-Plus",
+    "product_version": "1.17.9",
+    "install_root": "C:\\Program Files\\Sandboxie-Plus",
+    "origin": "preexisting",
+    "components": [
+      {
+        "role": "start_exe",
+        "path": "C:\\Program Files\\Sandboxie-Plus\\Start.exe",
+        "file_sha256": "b4ffbffc31bc20148c2821d3d0a5d4a0e71d979f96062bcbd8701fa178a9ddf4",
+        "size_bytes": 362408,
+        "file_version": "5.72.9",
+        "signature_status": "Valid",
+        "signer_subject": "CN=NOVASYNC LABS PTE. LTD., O=NOVASYNC LABS PTE. LTD., STREET=\"10 Selegie Road, #01-45, Selegie House\", L=SINGAPORE, S=SINGAPORE, C=SG, OID.1.3.6.1.4.1.311.60.2.1.3=SG, SERIALNUMBER=202406244E, OID.2.5.4.15=Private Organization"
+      },
+      {
+        "role": "service_exe",
+        "path": "C:\\Program Files\\Sandboxie-Plus\\SbieSvc.exe",
+        "file_sha256": "6477319be3bf6d33dc84cb1faea48107d402dbf4f0809621438848dc770b6ec3",
+        "size_bytes": 459688,
+        "file_version": "5.72.9",
+        "signature_status": "Valid",
+        "signer_subject": "CN=NOVASYNC LABS PTE. LTD., O=NOVASYNC LABS PTE. LTD., STREET=\"10 Selegie Road, #01-45, Selegie House\", L=SINGAPORE, S=SINGAPORE, C=SG, OID.1.3.6.1.4.1.311.60.2.1.3=SG, SERIALNUMBER=202406244E, OID.2.5.4.15=Private Organization"
+      },
+      {
+        "role": "driver_sys",
+        "path": "C:\\Program Files\\Sandboxie-Plus\\SbieDrv.sys",
+        "file_sha256": "fc1ed485eeb22a1a60862e4ade6851f006368abe5b1f3c5b675901a322f02c55",
+        "size_bytes": 272576,
+        "file_version": "5.72.8",
+        "signature_status": "Valid",
+        "signer_subject": "CN=Microsoft Windows Hardware Compatibility Publisher, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+      }
+    ],
+    "service": {
+      "name": "SbieSvc",
+      "state": "Running",
+      "start_mode": "Auto",
+      "path": "C:\\Program Files\\Sandboxie-Plus\\SbieSvc.exe"
+    },
+    "driver": {
+      "name": "SbieDrv",
+      "state": "Running",
+      "start_mode": "Manual",
+      "path": "C:\\Program Files\\Sandboxie-Plus\\SbieDrv.sys"
+    }
+  },
+  "configuration_backup": {
+    "method": "sbieini_export",
+    "path": "sandboxie_config_backup.txt",
+    "file_sha256": "5d67157d5b1b9a83449bfc853669ed700172f6951cb12c9b142e97e3952bd7d7",
+    "size_bytes": 240,
+    "preexisting_sections": [
+      "GlobalSettings"
+    ]
+  },
+  "sandbox": {
+    "box_name": "ShumoM2465d9145c3ee",
+    "start_exit_code": 0,
+    "settings": [
+      "Enabled=y",
+      "AutoDelete=n",
+      "DropAdminRights=y",
+      "BlockNetworkFiles=y",
+      "NotifyInternetAccessDenied=n",
+      "ClosedFilePath=C:\\Users\\haha\\AppData\\Local\\Temp\\shumo-m2-host-psieqwgf\\protected",
+      "ClosedKeyPath=HKEY_CURRENT_USER\\Software\\ShumoM2Probe_465d9145c3ee",
+      "ClosedFilePath=\\Device\\Afd*",
+      "ClosedFilePath=\\Device\\Tcp*",
+      "ClosedFilePath=\\Device\\RawIp"
+    ],
+    "settings_sha256": "e04ce9f35488792d19727ef950136eb901fdf4de702bb9da4d3c592e0b838a2d",
+    "sandbox_marker_detected": true,
+    "protected_host_state_intact": true
+  },
+  "negative_controls": [
+    {
+      "control_id": "blocked_file_read",
+      "status": "passed",
+      "expected": "host file read denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_file_write",
+      "status": "passed",
+      "expected": "host file write denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_file_delete",
+      "status": "passed",
+      "expected": "host file delete denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_directory_enumeration",
+      "status": "passed",
+      "expected": "host directory enumeration denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_registry_read",
+      "status": "passed",
+      "expected": "host registry read denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_registry_write",
+      "status": "passed",
+      "expected": "host registry write denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_registry_delete",
+      "status": "passed",
+      "expected": "host registry delete denied",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "dropped_admin_token",
+      "status": "passed",
+      "expected": "administrator token absent",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "child_blocked_file_read",
+      "status": "passed",
+      "expected": "child process inherits file denial",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_tcp_endpoint_1",
+      "status": "passed",
+      "expected": "sandbox TCP denied for endpoint 1",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_tcp_endpoint_2",
+      "status": "passed",
+      "expected": "sandbox TCP denied for endpoint 2",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    },
+    {
+      "control_id": "blocked_tcp_endpoint_3",
+      "status": "passed",
+      "expected": "sandbox TCP denied for endpoint 3",
+      "observed": "sandbox operation denied as expected",
+      "exit_code": 0
+    }
+  ],
+  "network_probes": {
+    "minimum_successful_dns": 2,
+    "minimum_successful_tcp": 2,
+    "dns": [
+      {
+        "endpoint": "www.baidu.com",
+        "status": "passed",
+        "latency_ms": 15,
+        "observed": "198.18.2.230"
+      },
+      {
+        "endpoint": "www.microsoft.com",
+        "status": "passed",
+        "latency_ms": 1,
+        "observed": "198.18.1.99"
+      },
+      {
+        "endpoint": "www.python.org",
+        "status": "passed",
+        "latency_ms": 1,
+        "observed": "198.18.2.231"
+      }
+    ],
+    "tcp": [
+      {
+        "endpoint": "www.baidu.com:443",
+        "status": "passed",
+        "latency_ms": 20,
+        "observed": "connected"
+      },
+      {
+        "endpoint": "www.microsoft.com:443",
+        "status": "passed",
+        "latency_ms": 15,
+        "observed": "connected"
+      },
+      {
+        "endpoint": "www.python.org:443",
+        "status": "passed",
+        "latency_ms": 15,
+        "observed": "connected"
+      }
+    ]
+  },
+  "cleanup": {
+    "processes_terminated": true,
+    "new_controller_processes_terminated": true,
+    "sandbox_content_deleted": true,
+    "box_configuration_removed": true,
+    "preexisting_configuration_restored": true
+  }
+}

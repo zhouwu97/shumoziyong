@@ -18,13 +18,17 @@ from formal_result.errors import FormalResultVerificationError
 from formal_result.hashing import file_sha256, semantic_sha256
 from formal_result.path_safety import validate_contract_relative_path
 from formal_result.verifier import verify_formal_result_bundle
-from formal_result_fixtures import write_formal_result_bundle
+from formal_result_fixtures import (
+    write_formal_result_bundle,
+    write_sandboxie_environment_report,
+)
 from executor_core import execute_spec
 from run_workflow import (
     advance_run,
     build_run_evidence_manifest,
     create_new_problem_run,
     evidence_artifact_specs_for_workflow,
+    verify_run_seal,
 )
 from test_repository_tooling import _v2_gate_0_run, _write_material_manifest
 
@@ -135,6 +139,85 @@ def test_required_bundle_verifies_and_binds_file_and_semantic_hashes(tmp_path: P
     assert summary["envelope_file_sha256"] != summary["envelope_semantic_sha256"]
     assert summary["formal_result_activation_status"] == "code_complete_candidate"
     assert summary["formal_result_eligible"] is False
+
+
+def test_verified_sandboxie_report_activates_and_enters_evidence_and_seal(
+    tmp_path: Path,
+) -> None:
+    run_dir = _v2_gate_0_run(tmp_path)
+    report_path = write_sandboxie_environment_report(run_dir)
+    envelope = write_formal_result_bundle(run_dir, sandboxie_report=report_path)
+    summary = verify_formal_result_bundle(run_dir, envelope)
+    assert summary["formal_result_activation_status"] == "sandboxie_environment_verified"
+    assert summary["sandboxie_environment_verified"] is True
+    assert summary["formal_result_eligible"] is True
+
+    run_manifest = _load(run_dir / "run_manifest.json")
+    workflow = str(run_manifest["workflow"])
+    for relative, _role, _media_type in evidence_artifact_specs_for_workflow(workflow):
+        path = run_dir / relative
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}\n", encoding="utf-8")
+    evidence = build_run_evidence_manifest(run_dir, str(run_manifest["run_id"]))
+    roles = {item["role"] for item in evidence["artifacts"]}
+    assert "sandboxie_environment_report" in roles
+    assert "sandboxie_configuration_backup" in roles
+    assert evidence["sandboxie_environment_verified"] is True
+    assert evidence["formal_result_eligible"] is True
+
+    transitions_path = run_dir / "transitions.jsonl"
+    transitions_path.write_text("{}\n", encoding="utf-8")
+    evidence_path = run_dir / "run_evidence_manifest.json"
+    _write(evidence_path, evidence)
+    environment = summary["sandboxie_environment"]
+    seal = {
+        "seal_version": "1.0.0",
+        "run_id": run_manifest["run_id"],
+        "sealed_at": "2026-07-12T12:00:00+08:00",
+        "run_manifest_sha256": file_sha256(run_dir / "run_manifest.json"),
+        "transitions_sha256": file_sha256(transitions_path),
+        "evidence_manifest_sha256": file_sha256(evidence_path),
+        **{
+            field: run_manifest[field]
+            for field in (
+                "formal_result_policy",
+                "execution_contract_version",
+                "formal_result_contract_version",
+                "canonicalization_version",
+                "gate_artifact_contract_version",
+            )
+        },
+        "formal_result_id": summary["formal_result_id"],
+        "formal_result_envelope_sha256": summary["envelope_file_sha256"],
+        "formal_result_envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+        "formal_result_activation_status": summary["formal_result_activation_status"],
+        "sandboxie_environment_verified": True,
+        "formal_result_eligible": True,
+        "sandboxie_environment_report_id": environment["report_id"],
+        "sandboxie_environment_report_sha256": environment["report_file_sha256"],
+        "sandboxie_environment_report_semantic_sha256": environment[
+            "report_semantic_sha256"
+        ],
+        "sandboxie_configuration_backup_sha256": environment[
+            "configuration_backup_sha256"
+        ],
+    }
+    _write(run_dir / "seal_record.json", seal)
+    assert verify_run_seal(run_dir)["sandboxie_environment_verified"] is True
+
+    report_path.write_text(report_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(FormalResultVerificationError, match="报告绑定"):
+        verify_run_seal(run_dir)
+
+
+def test_sandboxie_configuration_backup_tampering_blocks_activation(tmp_path: Path) -> None:
+    run_dir = _v2_gate_0_run(tmp_path)
+    report_path = write_sandboxie_environment_report(run_dir)
+    envelope = write_formal_result_bundle(run_dir, sandboxie_report=report_path)
+    (run_dir / "sandboxie_config_backup.txt").write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(FormalResultVerificationError, match="配置备份"):
+        verify_formal_result_bundle(run_dir, envelope)
 
 
 def test_formal_result_id_rejects_windows_reserved_name(tmp_path: Path) -> None:

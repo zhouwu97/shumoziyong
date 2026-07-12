@@ -311,6 +311,24 @@ def build_run_evidence_manifest(
                         item.get("semantic_sha256"),
                     )
                 )
+            environment = summary["sandboxie_environment"]
+            if environment["sandboxie_environment_verified"]:
+                formal_specs.extend(
+                    [
+                        (
+                            environment["report_path"],
+                            "sandboxie_environment_report",
+                            "application/json",
+                            environment["report_semantic_sha256"],
+                        ),
+                        (
+                            environment["configuration_backup_path"],
+                            "sandboxie_configuration_backup",
+                            "text/plain",
+                            None,
+                        ),
+                    ]
+                )
             for filename, role, media_type, semantic_hash in formal_specs:
                 path = run_dir / filename
                 content = path.read_bytes()
@@ -334,6 +352,9 @@ def build_run_evidence_manifest(
             {
                 "formal_result_activation_status": formal_summary[
                     "formal_result_activation_status"
+                ],
+                "sandboxie_environment_verified": formal_summary[
+                    "sandboxie_environment_verified"
                 ],
                 "formal_result_eligible": formal_summary["formal_result_eligible"],
             }
@@ -885,6 +906,12 @@ def extend_formal_result_evidence_requirements(
     for relative, item in summary["artifacts"].items():
         role = f"formal_result_{relative.replace('/', '_').removesuffix('.json').removesuffix('.log')}"
         required[role] = str(item["path"])
+    environment = summary["sandboxie_environment"]
+    if environment["sandboxie_environment_verified"]:
+        required["sandboxie_environment_report"] = str(environment["report_path"])
+        required["sandboxie_configuration_backup"] = str(
+            environment["configuration_backup_path"]
+        )
     return summary
 
 
@@ -1446,8 +1473,27 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
             "formal_result_activation_status": summary[
                 "formal_result_activation_status"
             ],
+            "sandboxie_environment_verified": summary[
+                "sandboxie_environment_verified"
+            ],
             "formal_result_eligible": summary["formal_result_eligible"],
         }
+        environment = summary["sandboxie_environment"]
+        if environment["sandboxie_environment_verified"]:
+            expected_formal.update(
+                {
+                    "sandboxie_environment_report_id": environment["report_id"],
+                    "sandboxie_environment_report_sha256": environment[
+                        "report_file_sha256"
+                    ],
+                    "sandboxie_environment_report_semantic_sha256": environment[
+                        "report_semantic_sha256"
+                    ],
+                    "sandboxie_configuration_backup_sha256": environment[
+                        "configuration_backup_sha256"
+                    ],
+                }
+            )
         for field, expected in expected_formal.items():
             if seal.get(field) != expected:
                 raise ValueError(f"seal_record.{field} 与当前 Formal Result 不一致")
@@ -1565,6 +1611,9 @@ def build_gate_artifact_manifest(
                 "formal_result_activation_status": summary[
                     "formal_result_activation_status"
                 ],
+                "sandboxie_environment_verified": summary[
+                    "sandboxie_environment_verified"
+                ],
                 "formal_result_eligible": summary["formal_result_eligible"],
             }
     return manifest
@@ -1652,6 +1701,9 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
                 "formal_result_activation_status": summary[
                     "formal_result_activation_status"
+                ],
+                "sandboxie_environment_verified": summary[
+                    "sandboxie_environment_verified"
                 ],
                 "formal_result_eligible": summary["formal_result_eligible"],
             }
@@ -2556,6 +2608,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             "completed": False,
             "sealed": False,
             "formal_result_activation_status": None,
+            "sandboxie_environment_verified": False,
             "formal_result_eligible": False,
         }
     state = replay_transition_log(run_dir)
@@ -2656,6 +2709,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             for item in _find_parent_transactions(run_dir.parent, run_dir.name)
         )
     formal_result_activation_status: str | None = None
+    sandboxie_environment_verified = False
     formal_result_eligible = False
     if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         try:
@@ -2663,6 +2717,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             formal_result_activation_status = formal_summary[
                 "formal_result_activation_status"
             ]
+            sandboxie_environment_verified = bool(
+                formal_summary["sandboxie_environment_verified"]
+            )
             formal_result_eligible = bool(formal_summary["formal_result_eligible"])
         except (OSError, ValueError, json.JSONDecodeError):
             pass
@@ -2681,6 +2738,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "advance_allowed": advance_allowed,
         "complete_allowed": advance_allowed and state.get("current_gate") == 5,
         "formal_result_activation_status": formal_result_activation_status,
+        "sandboxie_environment_verified": sandboxie_environment_verified,
         "formal_result_eligible": formal_result_eligible,
         "promotion_readiness_errors": promotion_errors,
     }

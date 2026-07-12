@@ -294,6 +294,9 @@ python scripts/export_runtime_pack.py --context full_replay --profile engineerin
 - 当前工程优化 runtime：版本 `0.2.0`，现场派生成熟度为 `assembled`。
 - A092、A127、B311、B477 当前均为 `review_ready`；旧证据不参与主动晋级。
 - A092/A127 的正向、边界、负控矩阵已迁移为 v2，但真实重跑证据仍为空，因此未宣称 `regression_verified` 或 `competition_evidenced`。
+- Sandboxie 真实环境激活使用 `scripts/verify_sandboxie_environment.py`；报告合同、12 项负控、
+  DNS/TCP 多端点门槛及 Evidence/Seal 绑定见
+  `docs/roadmap/SANDBOXIE_ENVIRONMENT_VERIFICATION.md`。环境激活不等于 Executor 或 Profile 资格。
 - 建议比赛时默认使用本状态对应的 `export/cumcm_runtime_pack.md`；后续大改应另开分支，不直接在当前验证结构上重写。
 
 ## 使用原则

@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/sandboxie_environment_report.schema.json",
+  "title": "Sandboxie 真实环境验证报告 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_id",
+    "generated_at",
+    "verification_status",
+    "sandboxie_environment_verified",
+    "platform",
+    "installation",
+    "configuration_backup",
+    "sandbox",
+    "negative_controls",
+    "network_probes",
+    "cleanup"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "report_id": {"type": "string", "pattern": "^sandboxie-env-[A-Za-z0-9._-]{8,96}$"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "verification_status": {"enum": ["passed", "failed"]},
+    "sandboxie_environment_verified": {"type": "boolean"},
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "caption", "version", "build", "architecture"],
+      "properties": {
+        "system": {"const": "Windows"},
+        "caption": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "build": {"type": "string", "pattern": "^[0-9]{4,6}$"},
+        "architecture": {"type": "string", "minLength": 1}
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product", "product_version", "install_root", "origin", "components", "service", "driver"],
+      "properties": {
+        "product": {"const": "Sandboxie-Plus"},
+        "product_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+        "install_root": {"$ref": "#/$defs/windows_path"},
+        "origin": {"enum": ["preexisting", "managed_install"]},
+        "components": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "path", "file_sha256", "size_bytes", "file_version", "signature_status", "signer_subject"],
+            "properties": {
+              "role": {"enum": ["start_exe", "service_exe", "driver_sys"]},
+              "path": {"$ref": "#/$defs/windows_path"},
+              "file_sha256": {"$ref": "#/$defs/sha256"},
+              "size_bytes": {"type": "integer", "minimum": 1},
+              "file_version": {"type": "string", "minLength": 1},
+              "signature_status": {"type": "string", "minLength": 1},
+              "signer_subject": {"type": "string"}
+            }
+          }
+        },
+        "service": {"$ref": "#/$defs/runtime_component"},
+        "driver": {"$ref": "#/$defs/runtime_component"}
+      }
+    },
+    "configuration_backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "path", "file_sha256", "size_bytes", "preexisting_sections"],
+      "properties": {
+        "method": {"const": "sbieini_export"},
+        "path": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.txt$"},
+        "file_sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "preexisting_sections": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["box_name", "start_exit_code", "settings", "settings_sha256", "sandbox_marker_detected", "protected_host_state_intact"],
+      "properties": {
+        "box_name": {"type": "string", "pattern": "^ShumoM2[A-Za-z0-9_]{8,32}$"},
+        "start_exit_code": {"type": "integer", "minimum": 0},
+        "settings": {"type": "array", "minItems": 5, "items": {"type": "string", "minLength": 3}, "uniqueItems": true},
+        "settings_sha256": {"$ref": "#/$defs/sha256"},
+        "sandbox_marker_detected": {"type": "boolean"},
+        "protected_host_state_intact": {"type": "boolean"}
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["control_id", "status", "expected", "observed", "exit_code"],
+        "properties": {
+          "control_id": {"enum": [
+            "blocked_file_read", "blocked_file_write", "blocked_file_delete", "blocked_directory_enumeration",
+            "blocked_registry_read", "blocked_registry_write", "blocked_registry_delete", "dropped_admin_token",
+            "child_blocked_file_read", "blocked_tcp_endpoint_1", "blocked_tcp_endpoint_2", "blocked_tcp_endpoint_3"
+          ]},
+          "status": {"enum": ["passed", "failed"]},
+          "expected": {"type": "string", "minLength": 1},
+          "observed": {"type": "string", "minLength": 1},
+          "exit_code": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "network_probes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_successful_dns", "minimum_successful_tcp", "dns", "tcp"],
+      "properties": {
+        "minimum_successful_dns": {"const": 2},
+        "minimum_successful_tcp": {"const": 2},
+        "dns": {"$ref": "#/$defs/network_results"},
+        "tcp": {"$ref": "#/$defs/network_results"}
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["processes_terminated", "new_controller_processes_terminated", "sandbox_content_deleted", "box_configuration_removed", "preexisting_configuration_restored"],
+      "properties": {
+        "processes_terminated": {"type": "boolean"},
+        "new_controller_processes_terminated": {"type": "boolean"},
+        "sandbox_content_deleted": {"type": "boolean"},
+        "box_configuration_removed": {"type": "boolean"},
+        "preexisting_configuration_restored": {"type": "boolean"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"sandboxie_environment_verified": {"const": true}}, "required": ["sandboxie_environment_verified"]},
+      "then": {"properties": {"verification_status": {"const": "passed"}}}
+    },
+    {
+      "if": {"properties": {"verification_status": {"const": "passed"}}, "required": ["verification_status"]},
+      "then": {"properties": {"sandboxie_environment_verified": {"const": true}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "windows_path": {"type": "string", "pattern": "^[A-Za-z]:\\\\[^\\r\\n]+$"},
+    "runtime_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "state", "start_mode", "path"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "state": {"type": "string", "minLength": 1},
+        "start_mode": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/windows_path"}
+      }
+    },
+    "network_results": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["endpoint", "status", "latency_ms", "observed"],
+        "properties": {
+          "endpoint": {"type": "string", "minLength": 1},
+          "status": {"enum": ["passed", "failed"]},
+          "latency_ms": {"type": "integer", "minimum": 0},
+          "observed": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

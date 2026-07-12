@@ -118,6 +118,20 @@ def test_maturity_is_derived_from_complete_evidence() -> None:
     assert "深验证" in result["missing_requirements"][0]
 
 
+def test_verified_sandboxie_summary_activates_without_overstating_maturity() -> None:
+    environment_summary = {
+        "formal_result_activation_status": "sandboxie_environment_verified",
+        "sandboxie_environment_verified": True,
+        "formal_result_eligible": True,
+    }
+    result = derive_maturity(_evidence(), _policy(), environment_summary)
+    assert result["formal_result_activation_status"] == "sandboxie_environment_verified"
+    assert result["sandboxie_environment_verified"] is True
+    assert result["formal_result_eligible"] is True
+    assert result["derived_maturity"] == "foundation"
+    assert result["next_status"] == "runtime_trusted"
+
+
 def test_capability_evidence_cannot_self_activate_formal_results() -> None:
     evidence = _evidence()
     evidence["formal_result_eligible"] = True

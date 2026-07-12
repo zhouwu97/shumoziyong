@@ -4,10 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
 from formal_result.hashing import file_sha256, semantic_sha256
+from formal_result.sandboxie_environment import (
+    NEGATIVE_CONTROL_IDS,
+    load_and_verify_sandboxie_environment_report,
+)
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:
@@ -15,7 +20,128 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-test-001") -> Path:
+def write_sandboxie_environment_report(directory: Path) -> Path:
+    """生成与真实报告同合同的跨平台测试证据。"""
+    directory.mkdir(parents=True, exist_ok=True)
+    backup = directory / "sandboxie_config_backup.txt"
+    backup.write_text("[GlobalSettings]\nTemplate=Test\n", encoding="utf-8")
+    report_path = directory / "sandboxie_environment_report.json"
+    sha = "a" * 64
+    components = [
+        {
+            "role": role,
+            "path": rf"C:\\Program Files\\Sandboxie-Plus\\{filename}",
+            "file_sha256": sha,
+            "size_bytes": 1,
+            "file_version": "1.0.0",
+            "signature_status": "Valid",
+            "signer_subject": "CN=Sandboxie Test Signer",
+        }
+        for role, filename in (
+            ("start_exe", "Start.exe"),
+            ("service_exe", "SbieSvc.exe"),
+            ("driver_sys", "SbieDrv.sys"),
+        )
+    ]
+    controls = [
+        {
+            "control_id": control_id,
+            "status": "passed",
+            "expected": "operation denied",
+            "observed": "sandbox operation denied as expected",
+            "exit_code": 0,
+        }
+        for control_id in sorted(NEGATIVE_CONTROL_IDS)
+    ]
+    settings = [
+        "Enabled=y",
+        "AutoDelete=n",
+        "DropAdminRights=y",
+        "BlockNetworkFiles=y",
+        "NotifyInternetAccessDenied=n",
+        "ClosedFilePath=C:\\protected",
+        "ClosedKeyPath=HKEY_CURRENT_USER\\Software\\Test",
+        "ClosedFilePath=\\Device\\Afd*",
+        "ClosedFilePath=\\Device\\Tcp*",
+        "ClosedFilePath=\\Device\\RawIp",
+    ]
+    report = {
+        "schema_version": "1.0.0",
+        "report_id": "sandboxie-env-20260712T120000p0800-test",
+        "generated_at": "2026-07-12T12:00:00+08:00",
+        "verification_status": "passed",
+        "sandboxie_environment_verified": True,
+        "platform": {
+            "system": "Windows",
+            "caption": "Windows Test",
+            "version": "10.0.26200",
+            "build": "26200",
+            "architecture": "x64",
+        },
+        "installation": {
+            "product": "Sandboxie-Plus",
+            "product_version": "1.17.9",
+            "install_root": "C:\\Program Files\\Sandboxie-Plus",
+            "origin": "preexisting",
+            "components": components,
+            "service": {
+                "name": "SbieSvc",
+                "state": "Running",
+                "start_mode": "Auto",
+                "path": "C:\\Program Files\\Sandboxie-Plus\\SbieSvc.exe",
+            },
+            "driver": {
+                "name": "SbieDrv",
+                "state": "Running",
+                "start_mode": "Manual",
+                "path": "C:\\Program Files\\Sandboxie-Plus\\SbieDrv.sys",
+            },
+        },
+        "configuration_backup": {
+            "method": "sbieini_export",
+            "path": backup.name,
+            "file_sha256": file_sha256(backup),
+            "size_bytes": backup.stat().st_size,
+            "preexisting_sections": ["GlobalSettings"],
+        },
+        "sandbox": {
+            "box_name": "ShumoM2TestBox01",
+            "start_exit_code": 0,
+            "settings": settings,
+            "settings_sha256": hashlib.sha256("\n".join(settings).encode()).hexdigest(),
+            "sandbox_marker_detected": True,
+            "protected_host_state_intact": True,
+        },
+        "negative_controls": controls,
+        "network_probes": {
+            "minimum_successful_dns": 2,
+            "minimum_successful_tcp": 2,
+            "dns": [
+                {"endpoint": f"dns-{index}.example", "status": "passed", "latency_ms": 1, "observed": "127.0.0.1"}
+                for index in range(3)
+            ],
+            "tcp": [
+                {"endpoint": f"tcp-{index}.example:443", "status": "passed", "latency_ms": 1, "observed": "connected"}
+                for index in range(3)
+            ],
+        },
+        "cleanup": {
+            "processes_terminated": True,
+            "new_controller_processes_terminated": True,
+            "sandbox_content_deleted": True,
+            "box_configuration_removed": True,
+            "preexisting_configuration_restored": True,
+        },
+    }
+    _write_json(report_path, report)
+    return report_path
+
+
+def write_formal_result_bundle(
+    run_dir: Path,
+    formal_result_id: str = "formal-test-001",
+    sandboxie_report: Path | None = None,
+) -> Path:
     run = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     identity = {
         field: run[field]
@@ -89,6 +215,33 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
     }
     for name, value in core_values.items():
         _write_json(formal / name, value)
+    environment_payload: dict[str, Any] = {
+        "formal_result_activation_status": "code_complete_candidate",
+        "sandboxie_environment_verified": False,
+        "formal_result_eligible": False,
+    }
+    if sandboxie_report is not None:
+        target_report = run_dir / "sandboxie_environment_report.json"
+        target_backup = run_dir / "sandboxie_config_backup.txt"
+        if sandboxie_report.resolve() != target_report.resolve():
+            report = json.loads(sandboxie_report.read_text(encoding="utf-8"))
+            source_backup = sandboxie_report.parent / report["configuration_backup"]["path"]
+            shutil.copyfile(sandboxie_report, target_report)
+            shutil.copyfile(source_backup, target_backup)
+        summary = load_and_verify_sandboxie_environment_report(target_report)
+        environment_payload = {
+            "formal_result_activation_status": "sandboxie_environment_verified",
+            "sandboxie_environment_verified": True,
+            "formal_result_eligible": True,
+            "sandboxie_environment_report": {
+                "path": "sandboxie_environment_report.json",
+                "report_id": summary["report_id"],
+                "file_sha256": summary["report_file_sha256"],
+                "semantic_sha256": summary["report_semantic_sha256"],
+                "configuration_backup_path": summary["configuration_backup_path"],
+                "configuration_backup_sha256": summary["configuration_backup_sha256"],
+            },
+        }
     provenance_values = {
         "input_manifest.json": {
             **common,
@@ -116,10 +269,7 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
             **common,
             "artifact_type": "environment_manifest",
             "bindings": {"execution_spec.json": execution_semantic},
-            "payload": {
-                "formal_result_activation_status": "code_complete_candidate",
-                "formal_result_eligible": False,
-            },
+            "payload": environment_payload,
         },
     }
     for name, value in provenance_values.items():

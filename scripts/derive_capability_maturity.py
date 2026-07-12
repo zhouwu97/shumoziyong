@@ -9,12 +9,12 @@ from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
+from formal_result.sandboxie_environment import load_and_verify_sandboxie_environment_report
+
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "policies" / "capability_maturity_policy.json"
 SCHEMA_PATH = ROOT / "schemas" / "capability_evidence.schema.json"
-FORMAL_RESULT_ACTIVATION_STATUS = "code_complete_candidate"
-FORMAL_RESULT_ELIGIBLE = False
 CAPABILITY_DEEP_VALIDATION_ENABLED = False
 
 
@@ -32,6 +32,8 @@ def _missing_for_status(
     status: str,
     evidence: Mapping[str, Any],
     policy: Mapping[str, Any],
+    *,
+    formal_result_eligible: bool,
 ) -> list[str]:
     """返回某一成熟度缺少的可审计事实，不接受人工声明替代事实。"""
     config = policy[status]
@@ -65,7 +67,7 @@ def _missing_for_status(
             item["fabrication_detected"] for item in evidence["execution_cycles"]
         ):
             issues.append("存在执行结果伪造记录")
-        if not FORMAL_RESULT_ELIGIBLE:
+        if not formal_result_eligible:
             issues.append(
                 "Formal Result 真实环境尚未激活：缺少已验证的 Sandboxie Capability Bundle"
             )
@@ -174,13 +176,29 @@ def _missing_for_status(
 
 
 def derive_maturity(
-    evidence: Mapping[str, Any], policy: Mapping[str, Any]
+    evidence: Mapping[str, Any],
+    policy: Mapping[str, Any],
+    environment_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """按顺序派生最高连续成熟度，并返回下一阶段缺口。"""
+    activation_status = "code_complete_candidate"
+    sandboxie_environment_verified = False
+    formal_result_eligible = False
+    if environment_summary is not None:
+        activation_status = str(environment_summary["formal_result_activation_status"])
+        sandboxie_environment_verified = bool(
+            environment_summary["sandboxie_environment_verified"]
+        )
+        formal_result_eligible = bool(environment_summary["formal_result_eligible"])
     achieved: list[str] = []
     first_missing: list[str] = []
     for status in policy["ordered_statuses"]:
-        missing = _missing_for_status(status, evidence, policy)
+        missing = _missing_for_status(
+            status,
+            evidence,
+            policy,
+            formal_result_eligible=formal_result_eligible,
+        )
         if missing:
             first_missing = missing
             break
@@ -189,8 +207,9 @@ def derive_maturity(
         "evidence_id": evidence["evidence_id"],
         "scope": evidence["scope"],
         "profile": evidence.get("profile"),
-        "formal_result_activation_status": FORMAL_RESULT_ACTIVATION_STATUS,
-        "formal_result_eligible": FORMAL_RESULT_ELIGIBLE,
+        "formal_result_activation_status": activation_status,
+        "sandboxie_environment_verified": sandboxie_environment_verified,
+        "formal_result_eligible": formal_result_eligible,
         "derived_maturity": achieved[-1] if achieved else None,
         "satisfied_statuses": achieved,
         "next_status": policy["ordered_statuses"][len(achieved)]
@@ -224,10 +243,20 @@ def validate_evidence(evidence: Mapping[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="从能力证据派生成熟度，不接受手填状态")
     parser.add_argument("--evidence", required=True, type=Path, help="capability_evidence JSON 文件")
+    parser.add_argument(
+        "--sandboxie-report",
+        type=Path,
+        help="已通过验证的 Sandboxie 环境报告；省略时严格保持未激活",
+    )
     args = parser.parse_args()
     evidence = _load_json(args.evidence)
     validate_evidence(evidence)
-    result = derive_maturity(evidence, _load_json(POLICY_PATH))
+    environment_summary = (
+        load_and_verify_sandboxie_environment_report(args.sandboxie_report.resolve())
+        if args.sandboxie_report is not None
+        else None
+    )
+    result = derive_maturity(evidence, _load_json(POLICY_PATH), environment_summary)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
