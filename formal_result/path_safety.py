@@ -109,11 +109,8 @@ def validate_execution_command_bindings(spec: Mapping[str, Any], run_root: Path)
     for task in spec["tasks"]:
         label = f"任务 {task['task_id']}"
         argv = task["argv"]
-        runner_name = Path(argv[0]).name.casefold()
-        if task.get("runner") != "python" or not re.fullmatch(
-            r"python(?:3(?:\.\d+)?)?(?:\.exe)?", runner_name
-        ):
-            raise ValueError(f"{label} runner 不是受支持的 Python 解释器")
+        if task.get("runner") != "python" or argv[0] != "python":
+            raise ValueError(f"{label} runner token 必须严格等于 python")
         index = task.get("entrypoint_arg_index")
         if index != 1 or len(argv) <= index:
             raise ValueError(f"{label} 缺少受绑定的 entrypoint 参数")

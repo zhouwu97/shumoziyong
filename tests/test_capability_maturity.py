@@ -221,7 +221,7 @@ def test_executor_runs_candidate_and_requires_collector(tmp_path: Path) -> None:
                 "runner": "python",
                 "entrypoint": "code/task.py",
                 "entrypoint_arg_index": 1,
-                "argv": [sys.executable, "code/task.py"],
+                "argv": ["python", "code/task.py"],
                 "working_directory": "workspace",
                 "inputs": [],
                 "required_outputs": [{"path": "workspace/output/result.json", "media_type": "application/json"}],
@@ -255,5 +255,9 @@ def test_executor_runs_candidate_and_requires_collector(tmp_path: Path) -> None:
 
     assert record["status"] == "completed"
     assert record["formal_result_authority"] == "collector_required"
+    assert record["environment"]["runner_token"] == "python"
+    assert Path(record["environment"]["resolved_runner"]).resolve() == Path(sys.executable).resolve()
+    assert len(record["environment"]["resolved_runner_sha256"]) == 64
+    assert record["environment"]["python_version"]
     assert (run_dir / "candidate_execution_record.json").is_file()
     assert not (run_dir / "executor_blocker.json").exists()

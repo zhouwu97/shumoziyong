@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import platform
-import re
 import subprocess
 import sys
 import uuid
@@ -103,11 +102,8 @@ def _resolve_approved_command(
 ) -> Path:
     """确认 Python 命令实际解析到合同批准的唯一入口文件。"""
     argv = task["argv"]
-    runner_name = Path(argv[0]).name.casefold()
-    if task.get("runner") != "python" or not re.fullmatch(
-        r"python(?:3(?:\.\d+)?)?(?:\.exe)?", runner_name
-    ):
-        raise ValueError(f"任务 {task['task_id']} runner 不是受支持的 Python 解释器")
+    if task.get("runner") != "python" or argv[0] != "python":
+        raise ValueError(f"任务 {task['task_id']} runner token 必须严格等于 python")
     entrypoint_index = task.get("entrypoint_arg_index")
     if entrypoint_index != 1 or len(argv) <= entrypoint_index:
         raise ValueError(f"任务 {task['task_id']} 缺少受绑定的 entrypoint 参数")
@@ -229,6 +225,8 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
     validate_execution_spec_paths(spec)
     validate_execution_command_bindings(spec, run_dir)
     spec_sha256 = _sha256_bytes(spec_raw)
+    resolved_runner = Path(sys.executable).resolve(strict=True)
+    resolved_runner_sha256 = _sha256_bytes(resolved_runner.read_bytes())
 
     manifest_path = run_dir / "run_manifest.json"
     if not manifest_path.is_file():
@@ -276,8 +274,9 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
             environment["PYTHONHASHSEED"] = str(seed)
             environment["SHUMO_EXECUTION_SEED"] = str(seed)
             try:
+                # 合同只授权固定 runner token；实际解释器由 Executor 自身绑定。
                 completed = subprocess.run(
-                    task["argv"],
+                    [str(resolved_runner), *task["argv"][1:]],
                     cwd=cwd,
                     env=environment,
                     capture_output=True,
@@ -401,6 +400,10 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
         "completed_at": _utc_now(),
         "environment": {
             "python": sys.version,
+            "runner_token": "python",
+            "resolved_runner": str(resolved_runner),
+            "resolved_runner_sha256": resolved_runner_sha256,
+            "python_version": platform.python_version(),
             "platform": platform.platform(),
             "cwd": str(run_dir),
         },

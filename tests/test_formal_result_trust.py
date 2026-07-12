@@ -242,8 +242,8 @@ def test_executor_rejects_full_identity_drift(tmp_path: Path, field: str) -> Non
 @pytest.mark.parametrize(
     "argv",
     [
-        [sys.executable, "-c", "print('unbound')"],
-        [sys.executable, "-m", "unbound_module"],
+        ["python", "-c", "print('unbound')"],
+        ["python", "-m", "unbound_module"],
     ],
 )
 def test_executor_rejects_unbound_python_modes(tmp_path: Path, argv: list[str]) -> None:
@@ -257,6 +257,34 @@ def test_executor_rejects_unbound_python_modes(tmp_path: Path, argv: list[str]) 
         execute_spec(spec_path, run_dir, "test-executor")
 
 
+@pytest.mark.parametrize(
+    "runner_token",
+    ["./python", "workspace/python", "/tmp/python", r"C:\fake\python.exe"],
+)
+def test_executor_rejects_path_based_python_runner_before_execution(
+    tmp_path: Path, runner_token: str
+) -> None:
+    run_dir, _envelope = _bundle(tmp_path)
+    forged_output = run_dir / "workspace" / "output" / "forged.json"
+    fake_runner = run_dir / "workspace" / "python"
+    fake_runner.write_text(
+        "#!/usr/bin/env python\n"
+        "from pathlib import Path\n"
+        "Path('output').mkdir(exist_ok=True)\n"
+        "Path('output/forged.json').write_text('{}', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    fake_runner.chmod(0o755)
+    spec_path = run_dir / "execution_spec.json"
+    spec = _load(spec_path)
+    spec["tasks"][0]["argv"][0] = runner_token
+    _write(spec_path, spec)
+
+    with pytest.raises(ValueError, match="python"):
+        execute_spec(spec_path, run_dir, "test-executor")
+    assert not forged_output.exists()
+
+
 def test_executor_resolves_argv_entrypoint_from_working_directory(tmp_path: Path) -> None:
     run_dir, _envelope = _bundle(tmp_path)
     unbound = run_dir / "workspace" / "sub" / "code" / "unbound.py"
@@ -266,7 +294,7 @@ def test_executor_resolves_argv_entrypoint_from_working_directory(tmp_path: Path
     spec = _load(spec_path)
     task = spec["tasks"][0]
     task["working_directory"] = "workspace/sub"
-    task["argv"] = [sys.executable, "code/unbound.py"]
+    task["argv"] = ["python", "code/unbound.py"]
     _write(spec_path, spec)
 
     with pytest.raises(ValueError, match="entrypoint"):
