@@ -1941,25 +1941,38 @@ def _staged_child_path(run_root: Path, transaction: Mapping[str, Any]) -> Path:
     return staging_root / str(transaction["child_run_id"])
 
 
-def _verify_published_child_for_resume(
+def _verify_fork_child_for_resume(
     child_run: Path,
     transaction: Mapping[str, Any],
+    *,
+    label: str,
+    parent_run: Path,
 ) -> None:
-    """恢复发布步骤前重验子 Run 的目录、Fork 身份和 Gate 0 核心证据。"""
+    """恢复发布步骤前重验子 Run、父级绑定和 Gate 0 核心证据。"""
     if child_run.is_symlink() or not child_run.is_dir():
-        raise ValueError("已发布子 Run 必须是非符号链接目录")
-    record = _load_json_object(_fork_record_path(child_run), "published child fork_record.json")
+        raise ValueError(f"{label}必须是非符号链接目录")
+    record = _load_json_object(_fork_record_path(child_run), f"{label} fork_record.json")
     for field, expected in {
         "fork_transaction_id": transaction["fork_transaction_id"],
         "parent_run_id": transaction["parent_run_id"],
         "child_run_id": transaction["child_run_id"],
         "selected_profile": transaction["selected_profile"],
         "parent_problem_material_digest": transaction["parent_material_digest"],
+        "profile_selection_reason": transaction["reason"],
+        "reviewer": transaction["reviewer"],
+        "lineage_type": "profile_fork",
+        "parent_gate_0_manifest": "gate_artifacts/gate_0.manifest.json",
     }.items():
         if record.get(field) != expected:
-            raise ValueError(f"已发布子 Run 的 fork_record.{field} 与事务不一致")
+            raise ValueError(f"{label}的 fork_record.{field} 与事务不一致")
     if record.get("status") not in {"prepared", "committed"}:
-        raise ValueError("已发布子 Run 的 fork_record.status 非法")
+        raise ValueError(f"{label}的 fork_record.status 非法")
+    for field, path in {
+        "parent_gate_0_manifest_sha256": parent_run / "gate_artifacts" / "gate_0.manifest.json",
+        "parent_diagnosis_sha256": parent_run / "diagnosis.json",
+    }.items():
+        if not path.is_file() or record.get(field) != sha256_bytes(path.read_bytes()):
+            raise ValueError(f"{label}的 fork_record.{field} 与当前父 Run 不一致")
 
     run_manifest = _load_json_object(child_run / "run_manifest.json", "run_manifest.json")
     for field, expected in {
@@ -1968,41 +1981,57 @@ def _verify_published_child_for_resume(
         "workflow": "new_problem",
     }.items():
         if run_manifest.get(field) != expected:
-            raise ValueError(f"已发布子 Run 的 run_manifest.json.{field} 与事务不一致")
+            raise ValueError(f"{label}的 run_manifest.json.{field} 与事务不一致")
     problem_manifest = _load_json_object(
         child_run / "problem_manifest.json", "problem_manifest.json"
     )
     if problem_manifest.get("content_digest") != transaction["parent_material_digest"]:
-        raise ValueError("已发布子 Run 的 problem_manifest.content_digest 与父材料摘要不一致")
+        raise ValueError(f"{label}的 problem_manifest.content_digest 与父材料摘要不一致")
 
     verify_gate_artifacts(child_run, 0)
     evidence = _load_json_object(
         child_run / "run_evidence_manifest.json", "run_evidence_manifest.json"
     )
     if evidence.get("evidence_manifest_version") != "2.0.0":
-        raise ValueError("已发布子 Run 的 run_evidence_manifest 版本不支持")
+        raise ValueError(f"{label}的 run_evidence_manifest 版本不支持")
     if evidence.get("run_id") != transaction["child_run_id"]:
-        raise ValueError("已发布子 Run 的 run_evidence_manifest.run_id 与事务不一致")
+        raise ValueError(f"{label}的 run_evidence_manifest.run_id 与事务不一致")
     from finalize_run_evidence import validate_evidence_manifest
 
     required = evidence_required_artifacts_for_workflow("new_problem", completed=False)
     evidence_errors = validate_evidence_manifest(child_run, evidence, required)
     if evidence_errors:
-        raise ValueError("已发布子 Run 证据清单无效：" + "；".join(evidence_errors))
+        raise ValueError(f"{label}证据清单无效：" + "；".join(evidence_errors))
 
 
 def _publish_staged_child(run_root: Path, transaction: Mapping[str, Any]) -> Path:
     """原子发布已完整验证的临时子 Run。"""
     staged_child = _staged_child_path(run_root, transaction)
     final_child = run_root / str(transaction["child_run_id"])
+    parent_run = run_root / str(transaction["parent_run_id"])
     if final_child.exists():
         if staged_child.exists():
             raise FileExistsError("临时子 Run 与正式子 Run 同时存在，拒绝推断事务状态")
-        _verify_published_child_for_resume(final_child, transaction)
+        _verify_fork_child_for_resume(
+            final_child,
+            transaction,
+            label="已发布子 Run",
+            parent_run=parent_run,
+        )
         return final_child
-    if not staged_child.is_dir():
-        raise ValueError("prepared 事务缺少可恢复的临时子 Run")
+    _verify_fork_child_for_resume(
+        staged_child,
+        transaction,
+        label="临时子 Run",
+        parent_run=parent_run,
+    )
     staged_child.replace(final_child)
+    _verify_fork_child_for_resume(
+        final_child,
+        transaction,
+        label="已发布子 Run",
+        parent_run=parent_run,
+    )
     try:
         staged_child.parent.rmdir()
         staged_child.parent.parent.rmdir()
