@@ -16,7 +16,7 @@
 - Formal Result 核心文件进入 Run Evidence Manifest，Seal 再绑定该 Evidence 与 Envelope。
 - 删除、替换、改名、格式哈希混用、策略降级和合同版本漂移均失败即关闭。
 - Execution Spec 所有路径统一拒绝绝对路径、空段、`.`、`..`、反斜杠、盘符和 Windows 设备名；Spec 本身也拒绝 symlink/hardlink。
-- Executor 只读取 Run Root 的 `execution_spec.json`，校验完整不可变身份，并强制 Python `argv` 解析到批准的 entrypoint。
+- Executor 只读取 Run Root 的 `execution_spec.json`，校验完整不可变身份，并强制 Python `argv[0]` 为固定 token `python`、`argv[1]` 解析到批准的 entrypoint；实际执行绑定 Executor 自身的 `sys.executable`，并记录解释器路径、SHA-256 和版本。
 - 文件名、`artifact_type`、状态、Schema、指标、不变量、最优性声明和负控要求由公共 verifier 交叉绑定。
 - Collector Attestation 的输入、代码、环境、Spec、日志、负控报告和固定输出集合均现场复算；候选输出访问标志必须为 `true`。
 - Eligibility 显式进入 Verifier Summary、Gate 3、Run Evidence、Seal 和 `verify_run()` 输出。
@@ -29,18 +29,25 @@
 - Milestone 3 的双 Collector、空目录复现和封闭 Reproduction Bundle。
 - Milestone 4 的 Capability Bundle、Reviewer 外部治理、资格题、盲测与模拟赛。
 
-## 已确认的远程验证
+## 最终合入与验证状态
 
-- 上一轮独立复审冻结 HEAD：`3e24e15f434362e245f58c66d83b1583179d7474`
-- 本轮修复代码有效 HEAD：`4e80b72becf353dea302c1eb56829ef16d4398b6`
-- 本轮代码最新验证 GitHub Actions Run：`29189481081`
+- 原冻结 Head / 最终代码合入点：`02a445f67eaf052bda9e3c82a7a4150771f7f14f`
+- 合入方式：PR #7 经独立复审后 fast-forward 到 `main`。
+- PR 冻结验证 GitHub Actions Run：`29191042358`。
+- `main` 合入验证 GitHub Actions Run：`29192344320`。
 - 验证矩阵：Ubuntu / Windows × Python 3.11 / 3.12 全部通过。
-- 冻结对象当时的本地全量回归：`269 passed, 10 skipped`，覆盖率 `82%`。
-- 本次可信收口工作树：`286 passed, 10 skipped`，覆盖率 `82%`；Ruff、Pyright、仓库验证和确定性构建均通过。
+- 本地全量回归：`290 passed, 10 skipped`，覆盖率 `82%`。
+- Ruff、Pyright、仓库验证 `40/40` 和确定性构建均通过。
+- 最终独立审查分级：`P0=0`，合并阻断 `P1=0`。
 
-该记录只确认上述提交的代码质量门，不代替独立审查，也不授权提前合入 `main`、
-打正式 Tag 或声明 Sandboxie 环境已经验证。
+保留的后续 P1 是完整源码依赖集合尚未由 Code Manifest 精确封存；该项属于
+Milestone 3 的完整代码包、空目录复现、双 Collector 和 Reproduction Bundle，
+不改变 Milestone 1 已合入结论。
+
+该记录确认上述代码合入点通过 Milestone 1 独立审查与质量门，但不声明真实
+Sandboxie 环境、Executor 资格或建模能力已经验证。
 
 因此当前最高允许表述为：
 
-> Formal Result 合同和 Seal 绑定已完成代码收口候选，真实 Sandboxie 环境尚未激活。
+> Formal Result 合同与 Seal 的代码信任收口已经完成；真实 Sandboxie 环境、Executor
+> 资格和建模能力尚未完成证明。
