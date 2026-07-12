@@ -762,6 +762,9 @@ def collect_report(
         "file_sha256": _sha256(public_backup_path),
         "size_bytes": public_backup_path.stat().st_size,
     }
+    public_report["sandbox"]["settings_sha256"] = _sha256_bytes(
+        "\n".join(public_report["sandbox"]["settings"]).encode("utf-8")
+    )
     public_report["collector"]["environment_fingerprint"] = environment_fingerprint(public_report)
     public_output.write_text(
         json.dumps(public_report, ensure_ascii=False, indent=2) + "\n",
