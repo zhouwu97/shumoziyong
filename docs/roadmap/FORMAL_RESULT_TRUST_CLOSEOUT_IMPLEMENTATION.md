@@ -22,7 +22,16 @@
 - Milestone 2 的真实 Sandboxie 环境绑定与 12 项负控。
 - Milestone 3 的双 Collector、空目录复现和封闭 Reproduction Bundle。
 - Milestone 4 的 Capability Bundle、Reviewer 外部治理、资格题、盲测与模拟赛。
-- 远程 Ubuntu/Windows × Python 3.11/3.12 CI 独立确认。
+
+## 已确认的远程验证
+
+- 代码提交：`c7ee0be102c0842873358084e60826be77a6bb4e`
+- GitHub Actions Run：`29187149736`
+- 验证矩阵：Ubuntu / Windows × Python 3.11 / 3.12 全部通过。
+- 本地全量回归：`243 passed, 10 skipped`，覆盖率 `82%`。
+
+该记录只确认上述提交的代码质量门，不代替独立审查，也不授权提前合入 `main`、
+打正式 Tag 或声明 Sandboxie 环境已经验证。
 
 因此当前最高允许表述为：
 
