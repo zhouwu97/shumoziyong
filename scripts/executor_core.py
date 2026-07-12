@@ -16,6 +16,8 @@ from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from formal_result.path_safety import validate_execution_spec_paths
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_SCHEMA_PATH = ROOT / "schemas" / "execution_spec.schema.json"
@@ -62,6 +64,25 @@ def _inside(root: Path, candidate: Path) -> Path:
     except ValueError as exc:
         raise ValueError(f"路径越出 Run 目录：{candidate}") from exc
     return resolved
+
+
+def _safe_spec_file(spec_path: Path, run_dir: Path) -> Path:
+    """在解析链接前确认 Execution Spec 是 Run 内唯一的普通文件。"""
+    absolute = spec_path.absolute()
+    try:
+        relative = absolute.relative_to(run_dir)
+    except ValueError as exc:
+        raise ValueError(f"Execution Spec 越出 Run 目录：{spec_path}") from exc
+    cursor = run_dir
+    for part in relative.parts:
+        cursor = cursor / part
+        if cursor.is_symlink():
+            raise ValueError(f"Execution Spec 禁止符号链接：{spec_path}")
+    if not absolute.is_file():
+        raise ValueError(f"Execution Spec 不存在：{spec_path}")
+    if os.stat(absolute, follow_symlinks=False).st_nlink != 1:
+        raise ValueError(f"Execution Spec 禁止 hardlink：{spec_path}")
+    return absolute.resolve()
 
 
 def _file_ref(path: Path, run_dir: Path) -> dict[str, Any]:
@@ -153,11 +174,11 @@ def _build_blocker(
 def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, Any]:
     """执行候选任务；不会修改 Gate、结果报告或已批准的执行合同。"""
     run_dir = run_dir.resolve()
-    spec_path = spec_path.resolve()
-    _inside(run_dir, spec_path)
+    spec_path = _safe_spec_file(spec_path, run_dir)
     spec_raw = spec_path.read_bytes()
     spec = _load_object(spec_path)
     _validate(spec, SPEC_SCHEMA_PATH, "execution_spec")
+    validate_execution_spec_paths(spec)
     spec_sha256 = _sha256_bytes(spec_raw)
 
     manifest_path = run_dir / "run_manifest.json"

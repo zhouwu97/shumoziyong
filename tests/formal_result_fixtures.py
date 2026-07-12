@@ -41,6 +41,9 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
         }]
     }
     _write_json(run_dir / "execution_spec.json", execution_spec)
+    code_path = run_dir / "workspace" / "code" / "solve.py"
+    code_path.parent.mkdir(parents=True, exist_ok=True)
+    code_path.write_text("print('formal test')\n", encoding="utf-8")
 
     formal = run_dir / "formal_results" / formal_result_id
     (formal / "logs").mkdir(parents=True)
@@ -55,7 +58,10 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
     validation_value = {
         **common, "artifact_type": "optimization_validation", "status": "passed",
         "bindings": {"decision_variables.json": semantic_sha256(decision_value)},
-        "payload": {"max_residual": 0},
+        "payload": {
+            "metrics": {"objective": 1.0},
+            "invariant_checks": {"capacity": {"status": "passed", "value": 0.0}},
+        },
     }
     core_values = {
         "decision_variables.json": decision_value,
@@ -67,22 +73,63 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
         },
         "negative_tests.json": {
             **common, "artifact_type": "negative_tests", "status": "passed",
-            "bindings": {"execution_spec.json": execution_semantic}, "payload": {"cases_passed": 3},
+            "bindings": {"execution_spec.json": execution_semantic},
+            "payload": {
+                "results": [
+                    {"test_id": "missing-input", "status": "passed"},
+                    {"test_id": "tampered-output", "status": "passed"},
+                ]
+            },
         },
     }
     for name, value in core_values.items():
         _write_json(formal / name, value)
+    provenance_values = {
+        "input_manifest.json": {
+            **common,
+            "artifact_type": "input_manifest",
+            "bindings": {"execution_spec.json": execution_semantic},
+            "payload": {"inputs": []},
+        },
+        "code_manifest.json": {
+            **common,
+            "artifact_type": "code_manifest",
+            "bindings": {"execution_spec.json": execution_semantic},
+            "payload": {
+                "files": [
+                    {"path": "workspace/code/solve.py", "sha256": file_sha256(code_path)}
+                ]
+            },
+        },
+        "environment_manifest.json": {
+            **common,
+            "artifact_type": "environment_manifest",
+            "bindings": {"execution_spec.json": execution_semantic},
+            "payload": {
+                "formal_result_activation_status": "code_complete_candidate",
+                "formal_result_eligible": False,
+            },
+        },
+    }
+    for name, value in provenance_values.items():
+        _write_json(formal / name, value)
     attestation = {
         **common, "artifact_type": "collector_attestation", "collector_id": "test-collector",
         "collector_version": "1.0.0", "source_commit": "abcdef0",
-        "input_manifest_sha256": "1" * 64, "code_manifest_sha256": "2" * 64,
+        "input_manifest_sha256": file_sha256(formal / "input_manifest.json"),
+        "code_manifest_sha256": file_sha256(formal / "code_manifest.json"),
         "execution_spec_sha256": file_sha256(run_dir / "execution_spec.json"),
-        "environment_manifest_sha256": "3" * 64, "sandbox_policy": "manifest-only-test",
+        "environment_manifest_sha256": file_sha256(formal / "environment_manifest.json"),
+        "sandbox_policy": "manifest-only-test",
         "candidate_access_assurance": "manifest_isolation", "candidate_output_access_not_detected": True,
         "started_at": "2026-07-12T10:00:00Z", "completed_at": "2026-07-12T10:00:01Z", "exit_code": 0,
         "stdout_sha256": file_sha256(formal / "logs" / "stdout.log"),
         "stderr_sha256": file_sha256(formal / "logs" / "stderr.log"),
-        "output_file_set": ["decision_variables.json", "optimization_validation.json"],
+        "output_file_set": [
+            "decision_variables.json",
+            "optimization_validation.json",
+            "optimality_certificate.json",
+        ],
         "undeclared_write_check": "passed",
         "negative_test_report_sha256": file_sha256(formal / "negative_tests.json"),
     }
@@ -90,7 +137,8 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
 
     bound_names = [
         "decision_variables.json", "optimization_validation.json", "optimality_certificate.json",
-        "collector_attestation.json", "negative_tests.json",
+        "collector_attestation.json", "negative_tests.json", "input_manifest.json",
+        "code_manifest.json", "environment_manifest.json",
     ]
     bound_semantic = {
         name: semantic_sha256(json.loads((formal / name).read_text(encoding="utf-8")))
@@ -111,6 +159,8 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
             "semantic_sha256": semantic_sha256(value),
             "schema": "formal_result_bundle_manifest.schema.json" if name == "formal_result_manifest.json"
             else "collector_attestation.schema.json" if name == "collector_attestation.json"
+            else "formal_result_decision_variables.schema.json" if name == "decision_variables.json"
+            else "formal_result_provenance_manifest.schema.json" if name in provenance_values
             else "formal_result_core_artifact.schema.json",
         })
     for name in ("logs/stdout.log", "logs/stderr.log"):
@@ -120,9 +170,16 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
         **common, "artifact_type": "domain_manifest", "domain": "engineering_optimization", "mechanism": "mip",
         "validator_id": "test-validator", "validator_version": "1.0.0", "required_artifacts": descriptors,
         "required_certificates": ["optimality_certificate.json"],
-        "decision_schema": "decision_variables.schema.json", "metric_schema": {"objective": "number"},
+        "decision_schema": "formal_result_decision_variables.schema.json",
+        "metric_schema": {"objective": "number"},
         "invariant_checks": ["capacity"], "optimality_claim_level": "optimal",
-        "negative_test_requirements": ["missing-input", "tampered-output"], "semantic_hashes": semantic_hashes,
+        "negative_test_requirements": ["missing-input", "tampered-output"],
+        "output_file_set": [
+            "decision_variables.json",
+            "optimization_validation.json",
+            "optimality_certificate.json",
+        ],
+        "semantic_hashes": semantic_hashes,
     }
     _write_json(formal / "domain_manifest.json", domain)
     envelope = {

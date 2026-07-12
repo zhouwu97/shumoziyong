@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_provenance_manifest.schema.json",
+  "title": "Formal Result 来源清单 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version", "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version", "formal_result_id", "bindings", "payload"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"enum": ["input_manifest", "code_manifest", "environment_manifest"]},
+    "run_id": {"$ref": "#/$defs/id"}, "problem_id": {"$ref": "#/$defs/id"}, "profile": {"$ref": "#/$defs/id"},
+    "runtime_version": {"$ref": "#/$defs/id"}, "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"}, "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"}, "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"}, "formal_result_id": {"$ref": "#/$defs/id"},
+    "bindings": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/sha"}},
+    "payload": {"type": "object", "minProperties": 1}
+  },
+  "$defs": {"id": {"type": "string", "minLength": 1}, "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

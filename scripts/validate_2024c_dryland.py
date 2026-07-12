@@ -10,7 +10,11 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from openpyxl import load_workbook
 
-from canonical_json import CANONICALIZATION_PRECISION, CANONICALIZATION_VERSION, canonical_sha256
+from canonical_json import (
+    CANONICALIZATION_PRECISION,
+    CANONICALIZATION_VERSION,
+    result_equivalence_sha256,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,7 +101,7 @@ def validate_decision(
     report = {
         "schema_version": "1.0.0",
         "validator": "optimization_validation_v1",
-        "decision_variables_sha256": canonical_sha256(decision),
+        "decision_variables_sha256": result_equivalence_sha256(decision),
         "material_manifest_sha256": _sha256(material_manifest),
         "objective_reported": float(decision["objective_reported"]),
         "objective_recomputed": recomputed,

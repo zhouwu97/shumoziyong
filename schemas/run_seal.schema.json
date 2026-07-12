@@ -19,5 +19,24 @@
     "formal_result_id": {"type": "string", "minLength": 1},
     "formal_result_envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "formal_result_envelope_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"formal_result_policy": {"const": "required_v1"}},
+        "required": ["formal_result_policy"]
+      },
+      "then": {
+        "required": [
+          "execution_contract_version",
+          "formal_result_contract_version",
+          "canonicalization_version",
+          "gate_artifact_contract_version",
+          "formal_result_id",
+          "formal_result_envelope_sha256",
+          "formal_result_envelope_semantic_sha256"
+        ]
+      }
+    }
+  ]
 }

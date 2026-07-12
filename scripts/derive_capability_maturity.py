@@ -13,6 +13,8 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / "policies" / "capability_maturity_policy.json"
 SCHEMA_PATH = ROOT / "schemas" / "capability_evidence.schema.json"
+FORMAL_RESULT_ACTIVATION_STATUS = "code_complete_candidate"
+FORMAL_RESULT_ELIGIBLE = False
 
 
 def _passed(items: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
@@ -59,6 +61,10 @@ def _missing_for_status(
             item["fabrication_detected"] for item in evidence["execution_cycles"]
         ):
             issues.append("存在执行结果伪造记录")
+        if not FORMAL_RESULT_ELIGIBLE:
+            issues.append(
+                "Formal Result 真实环境尚未激活：缺少已验证的 Sandboxie Capability Bundle"
+            )
         return issues
 
     if status == "profile_qualified":
@@ -179,6 +185,8 @@ def derive_maturity(
         "evidence_id": evidence["evidence_id"],
         "scope": evidence["scope"],
         "profile": evidence.get("profile"),
+        "formal_result_activation_status": FORMAL_RESULT_ACTIVATION_STATUS,
+        "formal_result_eligible": FORMAL_RESULT_ELIGIBLE,
         "derived_maturity": achieved[-1] if achieved else None,
         "satisfied_statuses": achieved,
         "next_status": policy["ordered_statuses"][len(achieved)]

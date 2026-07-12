@@ -293,6 +293,12 @@ def build_run_evidence_manifest(
                     "application/json",
                     summary["envelope_semantic_sha256"],
                 ),
+                (
+                    summary["domain_manifest_path"],
+                    "formal_result_domain_manifest",
+                    "application/json",
+                    summary["domain_manifest_semantic_sha256"],
+                ),
             ]
             for relative, item in summary["artifacts"].items():
                 formal_specs.append(
@@ -863,6 +869,7 @@ def extend_formal_result_evidence_requirements(
     summary = _verify_required_formal_result(run_dir)
     required["formal_execution_spec"] = "execution_spec.json"
     required["formal_result_envelope"] = str(summary["envelope_path"])
+    required["formal_result_domain_manifest"] = str(summary["domain_manifest_path"])
     for relative, item in summary["artifacts"].items():
         role = f"formal_result_{relative.replace('/', '_').removesuffix('.json').removesuffix('.log')}"
         required[role] = str(item["path"])

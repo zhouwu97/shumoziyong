@@ -18,7 +18,13 @@ from formal_result.errors import FormalResultVerificationError
 from formal_result.hashing import file_sha256, semantic_sha256
 from formal_result.verifier import verify_formal_result_bundle
 from formal_result_fixtures import write_formal_result_bundle
-from run_workflow import advance_run, create_new_problem_run
+from executor_core import execute_spec
+from run_workflow import (
+    advance_run,
+    build_run_evidence_manifest,
+    create_new_problem_run,
+    evidence_artifact_specs_for_workflow,
+)
 from test_repository_tooling import _v2_gate_0_run, _write_material_manifest
 
 
@@ -46,11 +52,56 @@ def _rebind_domain(envelope_path: Path) -> None:
     _write(envelope_path, envelope)
 
 
+def _rebind_artifact(envelope_path: Path, relative: str) -> None:
+    formal = envelope_path.parent
+    artifact_path = formal / relative
+    artifact = _load(artifact_path)
+    domain_path = formal / "domain_manifest.json"
+    domain = _load(domain_path)
+    descriptor = next(item for item in domain["required_artifacts"] if item["path"] == relative)
+    descriptor["file_sha256"] = file_sha256(artifact_path)
+    descriptor["semantic_sha256"] = semantic_sha256(artifact)
+
+    manifest_path = formal / "formal_result_manifest.json"
+    manifest = _load(manifest_path)
+    manifest["semantic_hashes"][relative] = semantic_sha256(artifact)
+    _write(manifest_path, manifest)
+    manifest_descriptor = next(
+        item for item in domain["required_artifacts"] if item["path"] == "formal_result_manifest.json"
+    )
+    manifest_descriptor["file_sha256"] = file_sha256(manifest_path)
+    manifest_descriptor["semantic_sha256"] = semantic_sha256(manifest)
+    domain["semantic_hashes"] = {
+        item["path"]: item["semantic_sha256"]
+        for item in domain["required_artifacts"]
+        if "semantic_sha256" in item
+    }
+    _write(domain_path, domain)
+
+    envelope = _load(envelope_path)
+    envelope["domain_manifest_file_sha256"] = file_sha256(domain_path)
+    envelope["domain_manifest_semantic_sha256"] = semantic_sha256(domain)
+    envelope["formal_result_manifest_file_sha256"] = file_sha256(manifest_path)
+    envelope["formal_result_manifest_semantic_sha256"] = semantic_sha256(manifest)
+    if relative == "collector_attestation.json":
+        envelope["collector_attestation_semantic_sha256"] = semantic_sha256(artifact)
+    _write(envelope_path, envelope)
+
+
+def _rebind_execution_spec(run_dir: Path, envelope_path: Path) -> None:
+    spec_path = run_dir / "execution_spec.json"
+    spec = _load(spec_path)
+    envelope = _load(envelope_path)
+    envelope["execution_spec_file_sha256"] = file_sha256(spec_path)
+    envelope["execution_spec_semantic_sha256"] = semantic_sha256(spec)
+    _write(envelope_path, envelope)
+
+
 def test_canonicalization_separates_semantics_from_format_and_preserves_array_order() -> None:
     left = {"b": 1.0, "a": [{"x": 1}, {"x": 2}]}
     same = {"a": [{"x": 1}, {"x": 2}], "b": 1.0000000001}
     reordered = {"a": [{"x": 2}, {"x": 1}], "b": 1.0}
-    assert canonical_bytes(left) == canonical_bytes(same)
+    assert canonical_bytes(left) != canonical_bytes(same)
     assert canonical_bytes(left) != canonical_bytes(reordered)
     assert not canonical_bytes(left).endswith(b"\n")
     with pytest.raises(ValueError, match="NaN"):
@@ -92,6 +143,84 @@ def test_required_bundle_rejects_hardlinked_core_file(tmp_path: Path) -> None:
     os.link(external_path, decision_path)
 
     with pytest.raises(FormalResultVerificationError, match="禁止 hardlink"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_required_bundle_rejects_hardlinked_execution_spec(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    spec_path = run_dir / "execution_spec.json"
+    external_path = tmp_path / "external_execution_spec.json"
+    external_path.write_bytes(spec_path.read_bytes())
+    spec_path.unlink()
+    os.link(external_path, spec_path)
+
+    with pytest.raises(FormalResultVerificationError, match="禁止 hardlink"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_required_bundle_rejects_symlinked_execution_spec(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    spec_path = run_dir / "execution_spec.json"
+    external_path = tmp_path / "external_execution_spec.json"
+    external_path.write_bytes(spec_path.read_bytes())
+    spec_path.unlink()
+    try:
+        spec_path.symlink_to(external_path)
+    except OSError as exc:
+        pytest.skip(f"当前平台不允许创建测试 symlink：{exc}")
+
+    with pytest.raises(FormalResultVerificationError, match="禁止符号链接"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+@pytest.mark.parametrize("link_kind", ["hardlink", "symlink"])
+def test_executor_rejects_linked_execution_spec(tmp_path: Path, link_kind: str) -> None:
+    run_dir, _envelope = _bundle(tmp_path)
+    spec_path = run_dir / "execution_spec.json"
+    external_path = tmp_path / "linked_execution_spec.json"
+    external_path.write_bytes(spec_path.read_bytes())
+    spec_path.unlink()
+    try:
+        if link_kind == "hardlink":
+            os.link(external_path, spec_path)
+        else:
+            spec_path.symlink_to(external_path)
+    except OSError as exc:
+        pytest.skip(f"当前平台不允许创建测试 {link_kind}：{exc}")
+
+    with pytest.raises(ValueError, match="禁止"):
+        execute_spec(spec_path, run_dir, "test-executor")
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("declared_workspace", "workspace/.."),
+        ("working_directory", "workspace/.."),
+        ("entrypoint", "code/../x.py"),
+        ("input", "problem/../x"),
+        ("output", "workspace/output/../../x"),
+    ],
+)
+def test_execution_spec_path_traversal_fails_closed(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    spec_path = run_dir / "execution_spec.json"
+    spec = _load(spec_path)
+    task = spec["tasks"][0]
+    if field == "declared_workspace":
+        spec[field] = value
+    elif field == "input":
+        task["inputs"] = [{"path": value, "sha256": "a" * 64}]
+    elif field == "output":
+        task["required_outputs"][0]["path"] = value
+    else:
+        task[field] = value
+    _write(spec_path, spec)
+    _rebind_execution_spec(run_dir, envelope)
+
+    with pytest.raises(FormalResultVerificationError):
         verify_formal_result_bundle(run_dir, envelope)
 
 
@@ -157,6 +286,163 @@ def test_semantic_change_with_same_filename_is_rejected(tmp_path: Path) -> None:
     _rebind_domain(envelope)
     with pytest.raises(FormalResultVerificationError, match="semantic_sha256"):
         verify_formal_result_bundle(run_dir, envelope)
+
+
+@pytest.mark.parametrize(
+    ("relative", "field", "value", "message"),
+    [
+        (
+            "decision_variables.json",
+            "artifact_type",
+            "negative_tests",
+            "artifact_type",
+        ),
+        (
+            "optimization_validation.json",
+            "status",
+            "feasible",
+            "status",
+        ),
+        ("negative_tests.json", "status", "feasible", "status"),
+    ],
+)
+def test_filename_type_and_status_are_fixed(
+    tmp_path: Path, relative: str, field: str, value: str, message: str
+) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    artifact_path = envelope.parent / relative
+    artifact = _load(artifact_path)
+    artifact[field] = value
+    _write(artifact_path, artifact)
+    _rebind_artifact(envelope, relative)
+
+    with pytest.raises(FormalResultVerificationError, match=message):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_decision_schema_must_match_descriptor(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    domain_path = envelope.parent / "domain_manifest.json"
+    domain = _load(domain_path)
+    descriptor = next(
+        item for item in domain["required_artifacts"] if item["path"] == "decision_variables.json"
+    )
+    descriptor["schema"] = "formal_result_core_artifact.schema.json"
+    _write(domain_path, domain)
+    _rebind_domain(envelope)
+
+    with pytest.raises(FormalResultVerificationError, match="decision_schema"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_optimality_claim_must_match_certificate(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    domain_path = envelope.parent / "domain_manifest.json"
+    domain = _load(domain_path)
+    domain["optimality_claim_level"] = "feasible"
+    _write(domain_path, domain)
+    _rebind_domain(envelope)
+
+    with pytest.raises(FormalResultVerificationError, match="optimality_claim_level"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_invariant_and_negative_test_requirements_are_executable(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    validation_path = envelope.parent / "optimization_validation.json"
+    validation = _load(validation_path)
+    validation["payload"]["invariant_checks"]["capacity"]["status"] = "failed"
+    _write(validation_path, validation)
+    _rebind_artifact(envelope, "optimization_validation.json")
+    with pytest.raises(FormalResultVerificationError, match="领域不变量未通过"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+    negative_root = tmp_path / "negative"
+    negative_root.mkdir()
+    run_dir, envelope = _bundle(negative_root)
+    negative_path = envelope.parent / "negative_tests.json"
+    negative = _load(negative_path)
+    negative["payload"]["results"].pop()
+    _write(negative_path, negative)
+    _rebind_artifact(envelope, "negative_tests.json")
+    with pytest.raises(FormalResultVerificationError, match="negative_test_requirements"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "input_manifest_sha256",
+        "code_manifest_sha256",
+        "execution_spec_sha256",
+        "environment_manifest_sha256",
+        "stdout_sha256",
+        "stderr_sha256",
+        "negative_test_report_sha256",
+    ],
+)
+def test_attestation_hashes_are_recomputed(tmp_path: Path, field: str) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    attestation_path = envelope.parent / "collector_attestation.json"
+    attestation = _load(attestation_path)
+    attestation[field] = "f" * 64
+    _write(attestation_path, attestation)
+    _rebind_artifact(envelope, "collector_attestation.json")
+
+    with pytest.raises(FormalResultVerificationError, match=field):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_attestation_requires_no_candidate_access_and_exact_outputs(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    attestation_path = envelope.parent / "collector_attestation.json"
+    attestation = _load(attestation_path)
+    attestation["candidate_output_access_not_detected"] = False
+    _write(attestation_path, attestation)
+    _rebind_artifact(envelope, "collector_attestation.json")
+    with pytest.raises(FormalResultVerificationError, match="candidate_output_access_not_detected"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+    output_root = tmp_path / "outputs"
+    output_root.mkdir()
+    run_dir, envelope = _bundle(output_root)
+    attestation_path = envelope.parent / "collector_attestation.json"
+    attestation = _load(attestation_path)
+    attestation["output_file_set"].append("undeclared.json")
+    _write(attestation_path, attestation)
+    _rebind_artifact(envelope, "collector_attestation.json")
+    with pytest.raises(FormalResultVerificationError, match="output_file_set"):
+        verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_domain_manifest_has_independent_evidence_role(tmp_path: Path) -> None:
+    run_dir, _envelope = _bundle(tmp_path)
+    run_manifest = _load(run_dir / "run_manifest.json")
+    workflow = str(run_manifest["workflow"])
+    for relative, _role, _media_type in evidence_artifact_specs_for_workflow(workflow):
+        path = run_dir / relative
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}\n", encoding="utf-8")
+    evidence = build_run_evidence_manifest(run_dir, str(run_manifest["run_id"]))
+    roles = {item["role"] for item in evidence["artifacts"]}
+    assert "formal_result_domain_manifest" in roles
+
+
+def test_required_v1_seal_schema_requires_formal_result_binding() -> None:
+    from jsonschema import Draft202012Validator
+
+    schema = _load(ROOT / "schemas" / "run_seal.schema.json")
+    incomplete = {
+        "seal_version": "1.0.0",
+        "run_id": "run-1",
+        "sealed_at": "2026-07-12T10:00:00Z",
+        "run_manifest_sha256": "a" * 64,
+        "transitions_sha256": "b" * 64,
+        "evidence_manifest_sha256": "c" * 64,
+        "formal_result_policy": "required_v1",
+    }
+    assert list(Draft202012Validator(schema).iter_errors(incomplete))
 
 
 def test_legacy_policy_cannot_advance(tmp_path: Path) -> None:

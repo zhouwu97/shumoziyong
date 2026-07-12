@@ -111,8 +111,18 @@ def test_maturity_is_derived_from_complete_evidence() -> None:
     evidence = _evidence()
     validate_evidence(evidence)
     result = derive_maturity(evidence, _policy())
-    assert result["derived_maturity"] == "national_award_competitive"
-    assert result["next_status"] is None
+    assert result["derived_maturity"] == "contract_ready"
+    assert result["next_status"] == "executor_validated"
+    assert result["formal_result_activation_status"] == "code_complete_candidate"
+    assert result["formal_result_eligible"] is False
+    assert "Sandboxie Capability Bundle" in result["missing_requirements"][0]
+
+
+def test_capability_evidence_cannot_self_activate_formal_results() -> None:
+    evidence = _evidence()
+    evidence["formal_result_eligible"] = True
+    with pytest.raises(ValueError, match="不符合 Schema"):
+        validate_evidence(evidence)
 
 
 def test_fabrication_blocks_executor_and_higher_maturity() -> None:

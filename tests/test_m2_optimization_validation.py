@@ -10,7 +10,7 @@ from openpyxl import Workbook
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from canonical_json import canonical_sha256  # noqa: E402
+from canonical_json import result_equivalence_sha256  # noqa: E402
 from validate_2024c_dryland import validate_decision  # noqa: E402
 
 
@@ -74,5 +74,7 @@ def test_validator_rejects_invalid_assignment_without_using_reported_metrics(tmp
     assert report["invalid_assignment_count"] == 1
 
 
-def test_canonical_hash_ignores_object_key_order_and_rounds_float_noise() -> None:
-    assert canonical_sha256({"b": 1.0000000001, "a": 2}) == canonical_sha256({"a": 2, "b": 1.0})
+def test_result_equivalence_digest_ignores_key_order_and_rounds_float_noise() -> None:
+    assert result_equivalence_sha256({"b": 1.0000000001, "a": 2}) == result_equivalence_sha256(
+        {"a": 2, "b": 1.0}
+    )

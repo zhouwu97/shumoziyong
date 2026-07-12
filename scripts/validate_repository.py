@@ -1473,6 +1473,8 @@ class RepositoryValidator:
             "domain_manifest.schema.json",
             "formal_result_bundle_manifest.schema.json",
             "formal_result_core_artifact.schema.json",
+            "formal_result_decision_variables.schema.json",
+            "formal_result_provenance_manifest.schema.json",
             "collector_attestation.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
