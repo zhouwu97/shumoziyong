@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "formal_result_payload_manifest",
+  "run_id": "m3a_fixture_run_20260713",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "execution_id": "sandboxie-exec-84fe69e93acf43ab84ec41c6fd9cbb35",
+  "run_output_manifest_sha256": "742a4767c5faddc9101c7e4c619295f49c54ab67a37f07ed86ad7ce100145183",
+  "formal_core_semantic_sha256": {
+    "decision_variables.json": "9b04b3c92ba16e5f85ee15b5b34847d00bf6ecccdc74789f85f123d4bcb2827c",
+    "optimization_validation.json": "b244e4e80bdb47508a5d7dcd70d44c3cc69d37112d1d364a57f69cbfabae5c0a",
+    "optimality_certificate.json": "10bc6b18595122db9bf593249b84c2f24617b2669bceca9444155a895640a368",
+    "negative_tests.json": "ee17bab2efcfff33cc8971f8cf9e8a02255e5db4eb5929170a332add0b228fe0"
+  },
+  "formal_result_core_digest": "9c16788bf3e63bab3b48b9289d9a797ee25726e5c3995da533d12e7a1fbe21ef",
+  "result_derivation_contract": {
+    "contract_version": "1.0.0",
+    "raw_output_path": "result.json",
+    "mappings": [
+      {
+        "source_pointer": "/objective",
+        "target_artifact": "decision_variables.json",
+        "target_pointer": "/payload/x"
+      },
+      {
+        "source_pointer": "/objective",
+        "target_artifact": "optimization_validation.json",
+        "target_pointer": "/payload/metrics/objective"
+      }
+    ]
+  },
+  "collector_derivation_attestation_sha256": "a5e9843a59fd10aa1deca4a6828201b95663a1c5cf4dac106e048e369a0ea0f4"
+}

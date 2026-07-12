@@ -1,18 +1,22 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "sandboxie_run_execution_record",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "formal_result_id": "formal-m3a-fixture-001",
-  "execution_id": "sandboxie-exec-586ab048c159467aaf7ed30948d115ee",
-  "sandboxie_box_name": "ShumoM3Acf27fc02a30d",
-  "sandbox_policy_sha256": "cea6600fbfc1c9e5df91ce5e518fc3dd82638b6032ad9be00e1bb397fb3da5a1",
+  "execution_id": "sandboxie-exec-84fe69e93acf43ab84ec41c6fd9cbb35",
+  "sandboxie_box_name": "ShumoM3A3d06c0cf47fb",
+  "sandbox_policy_sha256": "96df8d8baf433fc5c279c3cc2a6033aca28e3775fb92237d7359bde2f4675500",
   "sandbox_policy_settings": [
     "Enabled=y",
     "AutoDelete=n",
     "DropAdminRights=y",
     "BlockNetworkFiles=y",
+    "HideMessage=2203",
     "NotifyInternetAccessDenied=n",
     "ClosedFilePath=%RUN_ROOT%",
+    "ClosedFilePath=%REPO_SENTINEL%",
+    "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
+    "ClosedFilePath=%USER_HOME_SENTINEL%",
     "ReadFilePath=%EXECUTION_ROOT%\\code",
     "ReadFilePath=%EXECUTION_ROOT%\\input",
     "ReadFilePath=%EXECUTION_ROOT%\\execution_spec.json",
@@ -22,14 +26,104 @@
     "ClosedFilePath=\\Device\\Tcp*",
     "ClosedFilePath=\\Device\\RawIp"
   ],
-  "launch_command_sha256": "dda0c700d45e970ab455640eb5103193bdf64401798c1158f1a053cdf2fc8f92",
-  "started_at": "2026-07-13T00:19:42+08:00",
-  "completed_at": "2026-07-13T00:19:48+08:00",
-  "challenge_nonce": "d6f7f518f0b426e1c11cf4441dc9f96c92759992e2d80de727705500e9b922fc",
+  "resolved_argv": [
+    "python",
+    "code/solve.py",
+    "--mode",
+    "validated"
+  ],
+  "resolved_working_directory": ".",
+  "seed": 0,
+  "environment_overrides": {
+    "PYTHONHASHSEED": "0",
+    "SHUMO_EXECUTION_SEED": "0",
+    "SHUMO_EXECUTION_CHALLENGE": "36bd076d9a4fc9cc5fd3cfa0b2f2db0e3b6a68c130d32223d37f25d412d15041",
+    "SHUMO_RUN_ID": "m3a_fixture_run_20260713",
+    "SHUMO_EXECUTION_ID": "sandboxie-exec-84fe69e93acf43ab84ec41c6fd9cbb35"
+  },
+  "acceptance_results": [
+    {
+      "check_id": "result",
+      "status": "passed"
+    }
+  ],
+  "read_negative_controls": [
+    {
+      "control_id": "blocked_read_original_run",
+      "target_class": "original_run",
+      "status": "passed",
+      "exit_code": 0,
+      "attempt_exit_codes": [
+        0
+      ],
+      "command_sha256": "d463c688c7b357b59c8381c69d2ad79f4969bf0e8ed209b414dab13c3c941fa5"
+    },
+    {
+      "control_id": "blocked_read_repo_unlisted",
+      "target_class": "repo_unlisted",
+      "status": "passed",
+      "exit_code": 0,
+      "attempt_exit_codes": [
+        1073807364,
+        0
+      ],
+      "command_sha256": "037aefc1a2061bd0345dd3ee29a9fcfcda786f2bdbd66bd59156fa165728cf7e"
+    },
+    {
+      "control_id": "blocked_read_other_temp",
+      "target_class": "other_temp",
+      "status": "passed",
+      "exit_code": 0,
+      "attempt_exit_codes": [
+        0
+      ],
+      "command_sha256": "7f6cb637303a95137f60fc18c48013b5d7aeefdf8dcbd40ebfd47d50b544561e"
+    },
+    {
+      "control_id": "blocked_read_user_home",
+      "target_class": "user_home",
+      "status": "passed",
+      "exit_code": 0,
+      "attempt_exit_codes": [
+        1073807364,
+        0
+      ],
+      "command_sha256": "26cd69f7d2ad4d15e9c9d3daa40de395ef0fa6e99c919a73412ee2ff28c35253"
+    }
+  ],
+  "candidate_attempt_exit_codes": [
+    0
+  ],
+  "cleanup": {
+    "terminate_exit_code": 0,
+    "delete_exit_code": 0,
+    "box_processes_after": [],
+    "sandbox_paths_after": [],
+    "controller_pids_before": [
+      15672
+    ],
+    "new_controller_pids_after": [],
+    "configuration_remove_exit_code": 0,
+    "box_configuration_removed": true,
+    "preexisting_configuration_sections": [
+      "GlobalSettings",
+      "UserSettings_07F00193"
+    ],
+    "configuration_sections_after": [
+      "GlobalSettings",
+      "UserSettings_07F00193"
+    ],
+    "preexisting_configuration_restored": true
+  },
+  "launch_command_sha256": "752bd8f33591c3747ee856f12fd23b80320cc4b29b114f044450ce51828c7f63",
+  "started_at": "2026-07-13T01:26:03+08:00",
+  "completed_at": "2026-07-13T01:26:25+08:00",
+  "challenge_nonce": "36bd076d9a4fc9cc5fd3cfa0b2f2db0e3b6a68c130d32223d37f25d412d15041",
   "exit_code": 0,
-  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "cdc03cdba187883689cd12d5019c48041109e51a7ff69a0ea84d41ab43567cb3",
   "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "start_exe_sha256": "b4ffbffc31bc20148c2821d3d0a5d4a0e71d979f96062bcbd8701fa178a9ddf4",
+  "execution_challenge_sha256": "67cc674b1bc90b80a449ac6d00ac35f203a60eba77261336c7f2dd35e4941750",
   "sandboxie_marker_detected": true,
   "undeclared_write_count": 0,
   "code_unchanged": true,

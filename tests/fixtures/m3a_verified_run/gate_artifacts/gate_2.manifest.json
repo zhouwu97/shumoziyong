@@ -2,7 +2,7 @@
   "manifest_version": "1.0.0",
   "gate": 2,
   "completed_at": "2026-07-11T00:00:00Z",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -13,7 +13,7 @@
       "role": "code_plan",
       "schema": "schemas/gate_business_artifact.schema.json",
       "schema_version": "1.0.0",
-      "sha256": "7bc0e98404d088bf65866439768ad0fbbb8647edd9774cc37b6933886285a71b",
+      "sha256": "16df0afb7be711da86561fc4440b42b7a16de346dd4ff74644ff4f401028c65d",
       "size_bytes": 520
     }
   ],

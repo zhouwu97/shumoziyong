@@ -14,7 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from formal_result.errors import FormalResultVerificationError
-from formal_result.run_execution_attestation import verify_run_execution_attestation
+from formal_result.execution_contract import compile_execution_command
+from formal_result.run_execution_attestation import (
+    validate_execution_time_window,
+    verify_run_execution_attestation,
+)
 from formal_result.verifier import verify_formal_result_bundle
 from run_workflow import verify_run
 
@@ -147,7 +151,7 @@ def test_output_set_must_match_exactly(tmp_path: Path, operation: str) -> None:
         (output / "undeclared.json").write_text("{}\n", encoding="utf-8")
     else:
         (output / "result.json").unlink()
-    with pytest.raises(FormalResultVerificationError, match="Output Manifest"):
+    with pytest.raises(FormalResultVerificationError, match="Output Manifest|raw output"):
         verify_run_execution_attestation(run, FORMAL_RESULT_ID)
 
 
@@ -224,4 +228,145 @@ def test_probe_sha_is_recomputed_from_source_commit(tmp_path: Path) -> None:
     with pytest.raises(FormalResultVerificationError, match="source_commit"):
         load_and_verify_sandboxie_environment_report(
             report_path, run / "sandboxie_environment_attestation.json"
+        )
+
+
+def test_execution_command_compiler_preserves_args_working_directory_and_seed(
+    tmp_path: Path,
+) -> None:
+    spec = _load(FIXTURE / "execution_spec.json")
+    task = spec["tasks"][0]
+    task["working_directory"] = "workspace/sub"
+    task["argv"] = ["python", "../code/solve.py", "--mode", "validated"]
+    task["seed_policy"]["seeds"] = [37]
+    compiled = compile_execution_command(
+        spec,
+        tmp_path,
+        execution_id="sandboxie-exec-command-test",
+        challenge_nonce="a" * 64,
+    )
+    assert compiled["resolved_argv"] == [
+        "python", "../code/solve.py", "--mode", "validated"
+    ]
+    assert compiled["resolved_working_directory"] == "sub"
+    assert compiled["seed"] == 37
+    assert compiled["environment_overrides"]["PYTHONHASHSEED"] == "37"
+    assert compiled["environment_overrides"]["SHUMO_EXECUTION_CHALLENGE"] == "a" * 64
+
+
+def test_execution_command_compiler_rejects_unsupported_acceptance_check(
+    tmp_path: Path,
+) -> None:
+    spec = _load(FIXTURE / "execution_spec.json")
+    spec["tasks"][0]["acceptance_checks"][0]["kind"] = "custom"
+    with pytest.raises(FormalResultVerificationError, match="file_exists"):
+        compile_execution_command(
+            spec,
+            tmp_path,
+            execution_id="sandboxie-exec-command-test",
+            challenge_nonce="b" * 64,
+        )
+
+
+def test_formal_result_must_derive_from_raw_sandbox_output(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    raw_path = run / "workspace" / "output" / "result.json"
+    raw = _load(raw_path)
+    raw["objective"] = 999
+    _write(raw_path, raw)
+    with pytest.raises(FormalResultVerificationError, match="raw output|Output Manifest"):
+        verify_run_execution_attestation(run, FORMAL_RESULT_ID)
+
+
+def test_decision_variables_change_breaks_derivation_binding(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    decision_path = (
+        run / "formal_results" / FORMAL_RESULT_ID / "decision_variables.json"
+    )
+    decision = _load(decision_path)
+    decision["payload"]["x"] = 999
+    _write(decision_path, decision)
+    with pytest.raises(FormalResultVerificationError, match="core|raw output"):
+        verify_run_execution_attestation(run, FORMAL_RESULT_ID)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("resolved_argv", ["python", "code/solve.py"], "execution_record_sha256|Execution Spec"),
+        ("resolved_working_directory", "wrong", "execution_record_sha256|Execution Spec"),
+        ("seed", 999, "execution_record_sha256|Execution Spec"),
+        ("read_negative_controls", [], "execution_record_sha256|负控"),
+        ("cleanup", {}, "execution_record_sha256|清理"),
+        ("acceptance_results", [], "execution_record_sha256|acceptance"),
+    ],
+)
+def test_execution_record_security_claims_cannot_drift(
+    tmp_path: Path, field: str, value: object, message: str
+) -> None:
+    run = _copy(tmp_path)
+    record_path = run / "sandboxie_run_execution_record.json"
+    record = _load(record_path)
+    record[field] = value
+    _write(record_path, record)
+    with pytest.raises(FormalResultVerificationError, match=message):
+        verify_run_execution_attestation(run, FORMAL_RESULT_ID)
+
+
+def test_execution_time_must_be_inside_environment_window(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    attestation_path = run / "sandboxie_run_execution_attestation.json"
+    attestation = _load(attestation_path)
+    attestation["started_at"] = "2026-07-01T00:00:00+08:00"
+    _write(attestation_path, attestation)
+    with pytest.raises(FormalResultVerificationError, match="started_at|时间窗口|绑定"):
+        verify_run_execution_attestation(run, FORMAL_RESULT_ID)
+
+
+def test_challenge_echo_is_required(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    challenge_path = run / "workspace" / "output" / "execution_challenge.json"
+    challenge = _load(challenge_path)
+    challenge["challenge_nonce"] = "f" * 64
+    _write(challenge_path, challenge)
+    with pytest.raises(FormalResultVerificationError, match="challenge|Output Manifest"):
+        verify_run_execution_attestation(run, FORMAL_RESULT_ID)
+
+
+def test_fixture_contains_real_child_stdout() -> None:
+    stdout = FIXTURE / "execution_sandbox" / "output" / "stdout.log"
+    assert stdout.read_text(encoding="utf-8").strip() == "formal test"
+
+
+def test_fixture_binds_host_read_controls_and_cleanup() -> None:
+    record = _load(FIXTURE / "sandboxie_run_execution_record.json")
+    assert {
+        item["control_id"] for item in record["read_negative_controls"]
+    } == {
+        "blocked_read_original_run",
+        "blocked_read_repo_unlisted",
+        "blocked_read_other_temp",
+        "blocked_read_user_home",
+    }
+    assert all(item["status"] == "passed" for item in record["read_negative_controls"])
+    assert record["cleanup"]["preexisting_configuration_restored"] is True
+    assert record["cleanup"]["sandbox_paths_after"] == []
+
+
+@pytest.mark.parametrize(
+    ("started_at", "completed_at"),
+    [
+        ("2026-07-12T10:00:00+08:00", "2026-07-12T23:00:00+08:00"),
+        ("2026-07-13T00:20:00+08:00", "2026-07-20T00:00:00+08:00"),
+    ],
+)
+def test_execution_time_window_rejects_before_generation_or_after_expiry(
+    started_at: str, completed_at: str
+) -> None:
+    with pytest.raises(FormalResultVerificationError, match="时间窗口"):
+        validate_execution_time_window(
+            "2026-07-12T22:57:58+08:00",
+            started_at,
+            completed_at,
+            "2026-07-19T22:57:58+08:00",
         )

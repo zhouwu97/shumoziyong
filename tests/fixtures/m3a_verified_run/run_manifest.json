@@ -1,6 +1,6 @@
 {
   "manifest_version": "2.0.0",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "workflow": "full_replay",
   "evidence_purpose": "training_validation",
   "problem_id": "2024-C",

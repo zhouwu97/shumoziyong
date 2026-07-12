@@ -11,6 +11,12 @@ from typing import Any, Mapping
 from .canonicalization import canonical_bytes
 from .errors import FormalResultVerificationError
 from .hashing import file_sha256, semantic_sha256
+from .derivation import verify_formal_result_derivation
+from .execution_contract import (
+    compile_execution_command,
+    launch_command_sha256,
+    sandbox_policy_sha256,
+)
 from .sandboxie_environment import (
     TRUST_REGISTRY_PATH,
     _parse_time,
@@ -23,6 +29,7 @@ from .schema import validate_schema
 ATTESTATION_FILENAME = "sandboxie_run_execution_attestation.json"
 OUTPUT_MANIFEST_FILENAME = "run_output_manifest.json"
 EXECUTION_RECORD_FILENAME = "sandboxie_run_execution_record.json"
+TRANSIENT_START_EXIT = 0x40010004
 
 
 def _load_object(path: Path, label: str) -> dict[str, Any]:
@@ -88,8 +95,23 @@ def _relative_items(items: Any, prefix: str, label: str) -> list[dict[str, str]]
         path = item["path"]
         if not path.startswith(marker):
             raise FormalResultVerificationError(f"{label} 文件不在 {prefix} 下：{path}")
-        converted.append({"path": path.removeprefix(marker), "sha256": item.get("sha256")})
+        sha256 = item.get("sha256")
+        if not isinstance(sha256, str):
+            raise FormalResultVerificationError(f"{label} 文件缺少 SHA-256：{path}")
+        converted.append({"path": path.removeprefix(marker), "sha256": sha256})
     return converted
+
+
+def validate_execution_time_window(
+    generated_at: str, started_at: str, completed_at: str, valid_until: str
+) -> None:
+    """要求 Run 从开始到完成都落入环境证明有效窗口。"""
+    generated = _parse_time(generated_at, "environment.generated_at")
+    started = _parse_time(started_at, "started_at")
+    completed = _parse_time(completed_at, "completed_at")
+    valid = _parse_time(valid_until, "environment.valid_until")
+    if not generated <= started <= completed <= valid:
+        raise FormalResultVerificationError("Run 执行时间窗口非法")
 
 
 def verify_run_execution_attestation(
@@ -129,6 +151,7 @@ def verify_run_execution_attestation(
     spec = _load_object(paths["execution_spec"], "execution_spec.json")
     record = _load_object(paths["execution_record"], EXECUTION_RECORD_FILENAME)
     output_manifest = _load_object(paths["output_manifest"], OUTPUT_MANIFEST_FILENAME)
+    derivation_summary = verify_formal_result_derivation(run_root, formal_result_id)
     formal_root = run_root / "formal_results" / formal_result_id
     code_manifest_path = formal_root / "code_manifest.json"
     input_manifest_path = formal_root / "input_manifest.json"
@@ -144,6 +167,13 @@ def verify_run_execution_attestation(
         "input_manifest_sha256": file_sha256(input_manifest_path),
         "output_manifest_sha256": file_sha256(paths["output_manifest"]),
         "execution_record_sha256": file_sha256(paths["execution_record"]),
+        "formal_result_payload_manifest_sha256": derivation_summary[
+            "payload_manifest_sha256"
+        ],
+        "collector_derivation_attestation_sha256": derivation_summary[
+            "collector_derivation_attestation_sha256"
+        ],
+        "formal_result_core_digest": derivation_summary["formal_result_core_digest"],
         "environment_report_sha256": summary["report_file_sha256"],
         "environment_attestation_sha256": summary["attestation_file_sha256"],
         "trusted_registry_sha256": summary["trusted_registry_sha256"],
@@ -165,6 +195,8 @@ def verify_run_execution_attestation(
         raise FormalResultVerificationError("Run ID 不匹配")
     if record.get("formal_result_id") != formal_result_id:
         raise FormalResultVerificationError("Formal Result ID 不匹配")
+    if record.get("execution_id") != derivation_summary["execution_id"]:
+        raise FormalResultVerificationError("执行记录与 Formal Result 派生 execution_id 不匹配")
     for field in (
         "execution_id", "sandboxie_box_name", "sandbox_policy_sha256", "launch_command_sha256", "started_at",
         "completed_at", "exit_code", "stdout_sha256", "stderr_sha256", "start_exe_sha256",
@@ -174,8 +206,52 @@ def verify_run_execution_attestation(
             raise FormalResultVerificationError(f"执行记录绑定不匹配：{field}")
     if record.get("sandboxie_marker_detected") is not True:
         raise FormalResultVerificationError("未证明进程在 Sandboxie 内执行")
+    compiled = compile_execution_command(
+        spec,
+        run_root / "execution_sandbox",
+        execution_id=attestation["execution_id"],
+        challenge_nonce=attestation["challenge_nonce"],
+    )
+    for field in (
+        "resolved_argv",
+        "resolved_working_directory",
+        "seed",
+        "environment_overrides",
+    ):
+        if record.get(field) != compiled[field]:
+            raise FormalResultVerificationError(f"执行记录未遵循 Execution Spec：{field}")
+    policy_settings = record.get("sandbox_policy_settings")
+    if not isinstance(policy_settings, list) or not all(
+        isinstance(item, str) for item in policy_settings
+    ):
+        raise FormalResultVerificationError("Sandboxie 策略记录非法")
+    recomputed_policy_sha = sandbox_policy_sha256(policy_settings)
+    if record.get("sandbox_policy_sha256") != recomputed_policy_sha or attestation.get(
+        "sandbox_policy_sha256"
+    ) != recomputed_policy_sha:
+        raise FormalResultVerificationError("sandbox_policy_sha256 无法由实际策略复算")
+    python_sha = record.get("python_sha256")
+    if not isinstance(python_sha, str) or len(python_sha) != 64:
+        raise FormalResultVerificationError("执行记录缺少 Python 解释器 SHA-256")
+    requirements_lock = Path(__file__).resolve().parents[1] / "requirements.lock"
+    if record.get("requirements_lock_sha256") != file_sha256(requirements_lock):
+        raise FormalResultVerificationError("执行记录 requirements.lock SHA-256 不匹配")
+    recomputed_launch_sha = launch_command_sha256(
+        compiled,
+        start_exe_sha256=attestation["start_exe_sha256"],
+        python_sha256=python_sha,
+        sandboxie_box_name=attestation["sandboxie_box_name"],
+    )
+    if record.get("launch_command_sha256") != recomputed_launch_sha or attestation.get(
+        "launch_command_sha256"
+    ) != recomputed_launch_sha:
+        raise FormalResultVerificationError("launch_command_sha256 未绑定 Execution Spec 编译结果")
     required_policy = {
         "ClosedFilePath=%RUN_ROOT%",
+        "ClosedFilePath=%REPO_SENTINEL%",
+        "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
+        "ClosedFilePath=%USER_HOME_SENTINEL%",
+        "HideMessage=2203",
         "ReadFilePath=%EXECUTION_ROOT%\\code",
         "ReadFilePath=%EXECUTION_ROOT%\\input",
         "ReadFilePath=%EXECUTION_ROOT%\\execution_spec.json",
@@ -183,19 +259,88 @@ def verify_run_execution_attestation(
         "OpenFilePath=%EXECUTION_ROOT%\\tmp",
     }
     if not required_policy.issubset(set(record.get("sandbox_policy_settings", []))):
-        raise FormalResultVerificationError("Sandboxie 策略未形成 Run 白名单读写边界")
+        raise FormalResultVerificationError("Sandboxie 策略未形成批准目录与宿主读取负控边界")
+    controls = record.get("read_negative_controls")
+    required_controls = {
+        "blocked_read_original_run",
+        "blocked_read_repo_unlisted",
+        "blocked_read_other_temp",
+        "blocked_read_user_home",
+    }
+    if not isinstance(controls, list) or {
+        item.get("control_id") for item in controls if isinstance(item, Mapping)
+    } != required_controls or any(
+        not isinstance(item, Mapping)
+        or item.get("status") != "passed"
+        or item.get("exit_code") != 0
+        or not isinstance(item.get("attempt_exit_codes"), list)
+        or not item["attempt_exit_codes"]
+        or item["attempt_exit_codes"][-1] != 0
+        or any(code != TRANSIENT_START_EXIT for code in item["attempt_exit_codes"][:-1])
+        for item in controls
+    ):
+        raise FormalResultVerificationError("Run 外宿主读取负控未精确通过")
+    candidate_attempts = record.get("candidate_attempt_exit_codes")
+    if not isinstance(candidate_attempts, list) or not candidate_attempts or (
+        candidate_attempts[-1] != 0
+        or any(code != TRANSIENT_START_EXIT for code in candidate_attempts[:-1])
+    ):
+        raise FormalResultVerificationError("候选命令启动尝试记录非法")
+    cleanup = record.get("cleanup")
+    if not isinstance(cleanup, Mapping) or not (
+        cleanup.get("terminate_exit_code") == 0
+        and cleanup.get("delete_exit_code") == 0
+        and cleanup.get("box_processes_after") == []
+        and cleanup.get("sandbox_paths_after") == []
+        and cleanup.get("new_controller_pids_after") == []
+        and cleanup.get("configuration_remove_exit_code") == 0
+        and cleanup.get("box_configuration_removed") is True
+        and cleanup.get("preexisting_configuration_restored") is True
+        and cleanup.get("configuration_sections_after")
+        == cleanup.get("preexisting_configuration_sections")
+    ):
+        raise FormalResultVerificationError("Sandboxie 清理证明未通过")
+    expected_acceptance = {
+        str(check["check_id"]) for check in compiled["acceptance_checks"]
+    }
+    acceptance = record.get("acceptance_results")
+    if not isinstance(acceptance, list) or {
+        item.get("check_id") for item in acceptance if isinstance(item, Mapping)
+    } != expected_acceptance or any(
+        not isinstance(item, Mapping) or item.get("status") != "passed"
+        for item in acceptance
+    ):
+        raise FormalResultVerificationError("Execution Spec acceptance checks 未通过")
     if record.get("undeclared_write_count") != 0 or record.get("code_unchanged") is not True:
         raise FormalResultVerificationError("执行现场存在未声明写入或代码修改")
     if record.get("input_unchanged") is not True or record.get("output_set_exact") is not True:
         raise FormalResultVerificationError("输入发生修改或输出集合不精确")
-    if not _parse_time(attestation["started_at"], "started_at") <= _parse_time(
-        attestation["completed_at"], "completed_at"
+    validate_execution_time_window(
+        summary["generated_at"],
+        attestation["started_at"],
+        attestation["completed_at"],
+        summary["valid_until"],
+    )
+
+    archived_output = run_root / "execution_sandbox" / "output"
+    stdout_path = archived_output / "stdout.log"
+    stderr_path = archived_output / "stderr.log"
+    challenge_path = run_root / "workspace" / "output" / "execution_challenge.json"
+    for path, field in (
+        (stdout_path, "stdout_sha256"),
+        (stderr_path, "stderr_sha256"),
+        (challenge_path, "execution_challenge_sha256"),
     ):
-        raise FormalResultVerificationError("Run 执行时间窗口非法")
-    if _parse_time(attestation["started_at"], "started_at") > _parse_time(
-        summary["valid_until"], "environment.valid_until"
-    ):
-        raise FormalResultVerificationError("Run 启动时环境报告已经过期")
+        _regular_file(path, field)
+        if record.get(field) != file_sha256(path):
+            raise FormalResultVerificationError(f"执行记录日志或 challenge SHA 不匹配：{field}")
+    challenge_echo = _load_object(challenge_path, "execution_challenge.json")
+    if challenge_echo != {
+        "challenge_nonce": attestation["challenge_nonce"],
+        "run_id": attestation["run_id"],
+        "execution_id": attestation["execution_id"],
+    }:
+        raise FormalResultVerificationError("Execution Challenge 未由候选进程正确回显")
 
     code_manifest = _load_object(code_manifest_path, "code_manifest.json")
     workspace = run_root / str(spec["declared_workspace"])

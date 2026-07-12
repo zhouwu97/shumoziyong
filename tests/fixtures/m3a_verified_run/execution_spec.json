@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
   "artifact_type": "execution_spec",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -27,7 +27,9 @@
       "entrypoint_arg_index": 1,
       "argv": [
         "python",
-        "code/solve.py"
+        "code/solve.py",
+        "--mode",
+        "validated"
       ],
       "working_directory": "workspace",
       "inputs": [

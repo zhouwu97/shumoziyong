@@ -1,8 +1,8 @@
 {
   "manifest_version": "1.0.0",
   "gate": 5,
-  "completed_at": "2026-07-13T00:20:06+08:00",
-  "run_id": "m3a_fixture_run_20260712",
+  "completed_at": "2026-07-13T01:26:59+08:00",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -13,7 +13,7 @@
       "role": "gate_5_review",
       "schema": "schemas/gate_5_review.schema.json",
       "schema_version": "1.0.0",
-      "sha256": "09ed353158f26f115102068b88fabd12b08b5df7fc85625cd53a365ecabedf2a",
+      "sha256": "d33cfd17eef62c0c39c0640f802906e6f83b826ce8e4b1a23e10a17f4faab201",
       "size_bytes": 616
     }
   ],

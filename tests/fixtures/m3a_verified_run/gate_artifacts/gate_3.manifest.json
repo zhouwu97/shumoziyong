@@ -2,7 +2,7 @@
   "manifest_version": "1.0.0",
   "gate": 3,
   "completed_at": "2026-07-11T00:00:00Z",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -13,7 +13,7 @@
       "role": "result_report",
       "schema": "schemas/gate_business_artifact.schema.json",
       "schema_version": "1.0.0",
-      "sha256": "5d8b9ccb5152b5fab1ae1faa6ebd63689f5d261c55ce88cff5bc8ffaefc18a00",
+      "sha256": "5addcb1c447ceab2551808e433347cf7b15d4eb45f67e807c77e14535603a6b5",
       "size_bytes": 1251
     },
     {
@@ -21,7 +21,7 @@
       "role": "result_manifest",
       "schema": "schemas/gate_business_artifact.schema.json",
       "schema_version": "1.0.0",
-      "sha256": "4a1dbfc9dfef863d8500bfb2c26ce7cf12851efb639cf28e29f38fac1a9e44c3",
+      "sha256": "40d2add3fd897fdced2f3443b006c461ffbf0119085e337a7192fcb1e87700a4",
       "size_bytes": 1759
     }
   ],
@@ -33,8 +33,8 @@
   "formal_result": {
     "formal_result_id": "formal-m3a-fixture-001",
     "envelope_path": "formal_results/formal-m3a-fixture-001/formal_result_envelope.json",
-    "envelope_file_sha256": "3dd2e1c17fbf2e7aa2ec0e90a9d4b8de155aeaa7d6b88ea627a7bf717aca75fb",
-    "envelope_semantic_sha256": "f9d65a10a0e4ca4bf1d38070900dcbb65db6ed59c0309a5bd68cbd5a26193509",
+    "envelope_file_sha256": "594486d870750b59cebd7d36e3edcf045f202c22d05b43bdcfee4bb7aa8f1cc1",
+    "envelope_semantic_sha256": "6402c88fc0116653d0e5e268849250609f2fb4f6b16348012010aaa995982d4a",
     "formal_result_activation_status": "run_execution_verified",
     "sandboxie_environment_observed": true,
     "sandboxie_environment_verified": true,

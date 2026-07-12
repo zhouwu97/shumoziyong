@@ -341,6 +341,8 @@ def build_run_evidence_manifest(
                             (environment["run_attestation_path"], "sandboxie_run_execution_attestation", "application/json", environment["run_attestation_semantic_sha256"]),
                             ("sandboxie_run_execution_record.json", "sandboxie_run_execution_record", "application/json", None),
                             ("run_output_manifest.json", "formal_result_output_manifest", "application/json", None),
+                            ("formal_result_payload_manifest.json", "formal_result_payload_manifest", "application/json", None),
+                            ("collector_derivation_attestation.json", "collector_derivation_attestation", "application/json", None),
                         ]
                     )
             for filename, role, media_type, semantic_hash in formal_specs:
@@ -941,6 +943,8 @@ def extend_formal_result_evidence_requirements(
             )
             required["sandboxie_run_execution_record"] = "sandboxie_run_execution_record.json"
             required["formal_result_output_manifest"] = "run_output_manifest.json"
+            required["formal_result_payload_manifest"] = "formal_result_payload_manifest.json"
+            required["collector_derivation_attestation"] = "collector_derivation_attestation.json"
     return summary
 
 

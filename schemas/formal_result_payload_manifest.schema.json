@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_payload_manifest.schema.json",
+  "title": "Formal Result Payload Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "run_id", "formal_result_id", "execution_id",
+    "run_output_manifest_sha256", "formal_core_semantic_sha256", "formal_result_core_digest",
+    "result_derivation_contract", "collector_derivation_attestation_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "formal_result_payload_manifest"},
+    "run_id": {"type": "string", "minLength": 1},
+    "formal_result_id": {"type": "string", "minLength": 1},
+    "execution_id": {"type": "string", "minLength": 1},
+    "run_output_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "formal_core_semantic_sha256": {"type": "object", "minProperties": 4, "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "formal_result_core_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "result_derivation_contract": {"type": "object", "minProperties": 3},
+    "collector_derivation_attestation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -14,9 +14,10 @@
   "artifact_type": "optimality_certificate",
   "status": "optimal",
   "bindings": {
-    "optimization_validation.json": "8d2d81e62e4791923dcbee6d9fc9b5ee576e8130ae35e3b8b5f18fe61d8332ca"
+    "optimization_validation.json": "b244e4e80bdb47508a5d7dcd70d44c3cc69d37112d1d364a57f69cbfabae5c0a"
   },
   "payload": {
-    "solver_status": "optimal"
+    "solver_status": "optimal",
+    "raw_output_sha256": "a6fd28c77931ce7eea3f885cda71e497f33a861eca695ad196ec5360ebb1881e"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -14,11 +14,11 @@
   "artifact_type": "optimization_validation",
   "status": "passed",
   "bindings": {
-    "decision_variables.json": "57bc383731b4b8ffbcf1b276047f2a7c50feadd32c4202095ba35292c0fd06e4"
+    "decision_variables.json": "9b04b3c92ba16e5f85ee15b5b34847d00bf6ecccdc74789f85f123d4bcb2827c"
   },
   "payload": {
     "metrics": {
-      "objective": 1.0
+      "objective": 13
     },
     "invariant_checks": {
       "capacity": {

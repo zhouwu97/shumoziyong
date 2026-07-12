@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path, PurePosixPath
@@ -20,6 +21,16 @@ from typing import Any, Mapping
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from formal_result.canonicalization import canonical_bytes
+from formal_result.derivation import (
+    DERIVATION_ATTESTATION_FILENAME,
+    PAYLOAD_MANIFEST_FILENAME,
+    core_semantic_hashes,
+)
+from formal_result.execution_contract import (
+    compile_execution_command,
+    launch_command_sha256,
+    sandbox_policy_sha256,
+)
 from formal_result.hashing import file_sha256, semantic_sha256
 from formal_result.run_execution_attestation import (
     ATTESTATION_FILENAME,
@@ -35,6 +46,7 @@ from formal_result.verifier import verify_formal_result_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
+TRANSIENT_START_EXIT = 0x40010004
 
 
 def _now() -> str:
@@ -116,6 +128,79 @@ def _snapshot(root: Path) -> dict[str, str]:
     }
 
 
+def _ps_quote(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _process_ids(name: str) -> set[int]:
+    command = (
+        f"@(Get-Process -Name {_ps_quote(name)} -ErrorAction SilentlyContinue | "
+        "Select-Object -ExpandProperty Id) -join ','"
+    )
+    result = _run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command])
+    return {int(item) for item in result.stdout.strip().split(",") if item.strip().isdigit()}
+
+
+def _sandbox_paths(box: str) -> list[str]:
+    system_drive = os.environ.get("SystemDrive", "C:").rstrip("\\") + "\\"
+    roots = [
+        Path(system_drive) / "Sandbox",
+        Path(os.environ.get("USERPROFILE", "")) / "Sandbox",
+        Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "Sandboxie",
+    ]
+    found: list[str] = []
+    for root in roots:
+        if root.is_dir():
+            found.extend(
+                str(path)
+                for path in root.rglob("*")
+                if path.is_dir() and (path.name == box or path.name.startswith(f"__Delete_{box}"))
+            )
+    return sorted(set(found))
+
+
+def _wait_sandbox_removed(box: str, timeout_seconds: int = 20) -> list[str]:
+    deadline = time.monotonic() + timeout_seconds
+    paths = _sandbox_paths(box)
+    while paths and time.monotonic() < deadline:
+        time.sleep(1)
+        paths = _sandbox_paths(box)
+    return paths
+
+
+def _read_negative_control(
+    start: Path, box: str, target: Path, control_id: str, cwd: Path
+) -> dict[str, Any]:
+    probe = (
+        "$mods=[Diagnostics.Process]::GetCurrentProcess().Modules|% ModuleName;"
+        "if($mods -notcontains 'SbieDll.dll'){exit 42};"
+        f"try{{Get-Content -LiteralPath {_ps_quote(str(target))} -Raw -ErrorAction Stop|Out-Null;exit 41}}"
+        "catch{exit 0}"
+    )
+    command = [
+        str(start), f"/box:{box}", "/silent", "/wait", "powershell.exe",
+        "-NoProfile", "-NonInteractive", "-Command", probe,
+    ]
+    result: subprocess.CompletedProcess[str] | None = None
+    attempt_exit_codes: list[int] = []
+    for attempt in range(3):
+        result = _run(command, timeout=30, cwd=cwd)
+        attempt_exit_codes.append(result.returncode)
+        if result.returncode != TRANSIENT_START_EXIT:
+            break
+        if attempt < 2:
+            time.sleep(1)
+    assert result is not None
+    return {
+        "control_id": control_id,
+        "target_class": control_id.removeprefix("blocked_read_"),
+        "status": "passed" if result.returncode == 0 else "failed",
+        "exit_code": result.returncode,
+        "attempt_exit_codes": attempt_exit_codes,
+        "command_sha256": hashlib.sha256("\0".join(command).encode("utf-8")).hexdigest(),
+    }
+
+
 def _expand_report_path(value: str) -> Path:
     """只展开公开报告允许的固定脱敏令牌。"""
     replacements = {
@@ -194,6 +279,88 @@ def _rebind_formal_bundle(run_dir: Path, formal_result_id: str, run_summary: Map
     _write(envelope_path, envelope)
 
 
+def _derive_formal_result(
+    run_dir: Path, formal_result_id: str, execution_id: str, derived_at: str
+) -> dict[str, Any]:
+    """按固定 JSON Pointer 合同从 raw result 生成最小工程优化 Formal core。"""
+    raw_path = run_dir / "workspace" / "output" / "result.json"
+    raw = _load(raw_path)
+    objective = raw.get("objective")
+    if not isinstance(objective, (int, float)) or isinstance(objective, bool):
+        raise RuntimeError("Fixture raw result 缺少数值 objective，无法派生 Formal Result")
+    formal = run_dir / "formal_results" / formal_result_id
+    decision_path = formal / "decision_variables.json"
+    decision = _load(decision_path)
+    decision["payload"] = {"x": objective}
+    _write(decision_path, decision)
+    validation_path = formal / "optimization_validation.json"
+    validation = _load(validation_path)
+    validation["bindings"] = {"decision_variables.json": semantic_sha256(decision)}
+    validation["payload"]["metrics"]["objective"] = objective
+    _write(validation_path, validation)
+    certificate_path = formal / "optimality_certificate.json"
+    certificate = _load(certificate_path)
+    certificate["bindings"] = {"optimization_validation.json": semantic_sha256(validation)}
+    certificate["payload"]["raw_output_sha256"] = file_sha256(raw_path)
+    _write(certificate_path, certificate)
+
+    contract = {
+        "contract_version": "1.0.0",
+        "raw_output_path": "result.json",
+        "mappings": [
+            {
+                "source_pointer": "/objective",
+                "target_artifact": "decision_variables.json",
+                "target_pointer": "/payload/x",
+            },
+            {
+                "source_pointer": "/objective",
+                "target_artifact": "optimization_validation.json",
+                "target_pointer": "/payload/metrics/objective",
+            },
+        ],
+    }
+    hashes = core_semantic_hashes(formal)
+    core_digest = semantic_sha256(hashes)
+    output_sha = file_sha256(run_dir / OUTPUT_MANIFEST_FILENAME)
+    derivation = {
+        "schema_version": "1.0.0",
+        "artifact_type": "collector_derivation_attestation",
+        "run_id": _load(run_dir / "run_manifest.json")["run_id"],
+        "formal_result_id": formal_result_id,
+        "execution_id": execution_id,
+        "run_output_manifest_sha256": output_sha,
+        "result_derivation_contract": contract,
+        "formal_core_semantic_sha256": hashes,
+        "formal_result_core_digest": core_digest,
+        "collector_id": "m3a-json-pointer-collector-v1",
+        "derived_at": derived_at,
+    }
+    _write(run_dir / DERIVATION_ATTESTATION_FILENAME, derivation)
+    payload = {
+        "schema_version": "1.0.0",
+        "artifact_type": "formal_result_payload_manifest",
+        "run_id": derivation["run_id"],
+        "formal_result_id": formal_result_id,
+        "execution_id": execution_id,
+        "run_output_manifest_sha256": output_sha,
+        "formal_core_semantic_sha256": hashes,
+        "formal_result_core_digest": core_digest,
+        "result_derivation_contract": contract,
+        "collector_derivation_attestation_sha256": file_sha256(
+            run_dir / DERIVATION_ATTESTATION_FILENAME
+        ),
+    }
+    _write(run_dir / PAYLOAD_MANIFEST_FILENAME, payload)
+    return {
+        "payload_manifest_sha256": file_sha256(run_dir / PAYLOAD_MANIFEST_FILENAME),
+        "collector_derivation_attestation_sha256": file_sha256(
+            run_dir / DERIVATION_ATTESTATION_FILENAME
+        ),
+        "formal_result_core_digest": core_digest,
+    }
+
+
 def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[str, Any]:
     """执行白名单物化目录；任何现场漂移都不会生成资格证明。"""
     run_dir = run_dir.resolve()
@@ -212,8 +379,6 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     spec = _load(spec_path)
     if spec["run_id"] != _load(run_dir / "run_manifest.json")["run_id"]:
         raise ValueError("Execution Spec 与 Run ID 不匹配")
-    if len(spec["tasks"]) != 1 or len(spec["tasks"][0]["seed_policy"]["seeds"]) != 1:
-        raise ValueError("M3A 执行器当前只接受单任务、单随机种子合同")
     task = spec["tasks"][0]
     formal = run_dir / "formal_results" / formal_result_id
     code_items = _manifest_items(_load(formal / "code_manifest.json"), "files")
@@ -238,39 +403,79 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     box = f"ShumoM3A{uuid.uuid4().hex[:12]}"
     execution_id = f"sandboxie-exec-{uuid.uuid4().hex}"
     challenge = secrets.token_hex(32)
+    compiled = compile_execution_command(
+        spec,
+        execution_root,
+        execution_id=execution_id,
+        challenge_nonce=challenge,
+    )
     stdout_path = execution_root / "output" / "stdout.log"
     stderr_path = execution_root / "output" / "stderr.log"
     python = Path(sys.executable).resolve(strict=True)
-    escaped_execution_root = str(execution_root).replace("'", "''")
-    escaped_python = str(python).replace("'", "''")
-    entrypoint = str(task["entrypoint"])
+    working_path = Path(str(compiled["resolved_working_directory_path"]))
+    working_path.mkdir(parents=True, exist_ok=True)
+    environment_script = "".join(
+        f"$env:{name}={_ps_quote(str(value))};"
+        for name, value in compiled["environment_overrides"].items()
+    )
+    child_command = subprocess.list2cmdline(
+        [str(python), *(str(item) for item in compiled["resolved_argv"][1:])]
+    )
+    child_command += " 1>" + subprocess.list2cmdline([str(stdout_path)])
+    child_command += " 2>" + subprocess.list2cmdline([str(stderr_path)])
     powershell = (
         "$mods=[Diagnostics.Process]::GetCurrentProcess().Modules|% ModuleName;"
         "if($mods -notcontains 'SbieDll.dll'){exit 97};"
-        f"Set-Location -LiteralPath '{escaped_execution_root}';"
-        f"& '{escaped_python}' '{entrypoint}';"
+        + environment_script
+        + f"Set-Location -LiteralPath {_ps_quote(str(working_path))};"
+        + f"& $env:ComSpec /d /s /c {_ps_quote(child_command)};"
         "exit $LASTEXITCODE"
     )
     command = [
         str(start), f"/box:{box}", "/silent", "/wait", "powershell.exe", "-NoProfile",
         "-NonInteractive", "-Command", powershell,
     ]
-    command_sha = hashlib.sha256("\0".join(command).encode("utf-8")).hexdigest()
+    start_sha = file_sha256(start)
+    python_sha = file_sha256(python)
+    command_sha = launch_command_sha256(
+        compiled,
+        start_exe_sha256=start_sha,
+        python_sha256=python_sha,
+        sandboxie_box_name=box,
+    )
     started_at = _now()
+    other_temp_root = Path(tempfile.mkdtemp(prefix="shumo-m3a-sentinel-"))
+    other_temp_sentinel = other_temp_root / "secret.txt"
+    other_temp_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
+    user_sentinel = Path.home() / f".shumo-m3a-sentinel-{uuid.uuid4().hex}.txt"
+    user_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
+    sentinels = {
+        "blocked_read_original_run": run_dir / "run_manifest.json",
+        "blocked_read_repo_unlisted": ROOT / "README.md",
+        "blocked_read_other_temp": other_temp_sentinel,
+        "blocked_read_user_home": user_sentinel,
+    }
     normalized_policy = [
         "Enabled=y", "AutoDelete=n", "DropAdminRights=y", "BlockNetworkFiles=y",
+        "HideMessage=2203",
         "NotifyInternetAccessDenied=n", "ClosedFilePath=%RUN_ROOT%",
+        "ClosedFilePath=%REPO_SENTINEL%", "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
+        "ClosedFilePath=%USER_HOME_SENTINEL%",
         r"ReadFilePath=%EXECUTION_ROOT%\code", r"ReadFilePath=%EXECUTION_ROOT%\input",
         r"ReadFilePath=%EXECUTION_ROOT%\execution_spec.json",
         r"OpenFilePath=%EXECUTION_ROOT%\output", r"OpenFilePath=%EXECUTION_ROOT%\tmp",
         r"ClosedFilePath=\Device\Afd*", r"ClosedFilePath=\Device\Tcp*",
         r"ClosedFilePath=\Device\RawIp",
     ]
-    policy_sha = hashlib.sha256(canonical_bytes(normalized_policy)).hexdigest()
+    policy_sha = sandbox_policy_sha256(normalized_policy)
     settings = [
         ("Enabled", "y"), ("AutoDelete", "n"), ("DropAdminRights", "y"),
         ("BlockNetworkFiles", "y"), ("NotifyInternetAccessDenied", "n"),
+        ("HideMessage", "2203"),
         ("ClosedFilePath", str(run_dir)),
+        ("ClosedFilePath", str(sentinels["blocked_read_repo_unlisted"])),
+        ("ClosedFilePath", str(other_temp_sentinel)),
+        ("ClosedFilePath", str(user_sentinel)),
         ("ReadFilePath", str(execution_root / "code")),
         ("ReadFilePath", str(execution_root / "input")),
         ("ReadFilePath", str(execution_root / "execution_spec.json")),
@@ -281,25 +486,107 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         ("ClosedFilePath", r"\Device\RawIp"),
     ]
     result: subprocess.CompletedProcess[str] | None = None
+    candidate_attempt_exit_codes: list[int] = []
+    negative_controls: list[dict[str, Any]] = []
+    controller_pids_before = sorted(_process_ids("SbieCtrl"))
+    sections_before_result = _run([str(sbie_ini), "query", "*"])
+    sections_before = sorted(
+        line.strip() for line in sections_before_result.stdout.splitlines() if line.strip()
+    )
+    cleanup: dict[str, Any] = {}
+    execution_error: Exception | None = None
     try:
         for index, (name, value) in enumerate(settings):
             verb = "set" if index == 0 or name not in {item[0] for item in settings[:index]} else "append"
             configured = _run([str(sbie_ini), verb, box, name, value])
             if configured.returncode != 0:
                 raise RuntimeError(f"Sandboxie 配置失败：{name}")
-        result = _run(
-            command,
-            timeout=int(task["timeout_seconds"]) + 30,
-            cwd=execution_root,
-        )
-        stdout_path.write_text(result.stdout, encoding="utf-8")
-        stderr_path.write_text(result.stderr, encoding="utf-8")
+        negative_controls = [
+            _read_negative_control(start, box, target, control_id, execution_root)
+            for control_id, target in sentinels.items()
+        ]
+        if any(item["status"] != "passed" for item in negative_controls):
+            raise RuntimeError(
+                "Sandboxie Run 外宿主读取负控失败："
+                + json.dumps(negative_controls, ensure_ascii=False)
+            )
+        for attempt in range(3):
+            result = _run(
+                command,
+                timeout=int(task["timeout_seconds"]) + 30,
+                cwd=execution_root,
+            )
+            candidate_attempt_exit_codes.append(result.returncode)
+            if result.returncode != TRANSIENT_START_EXIT:
+                break
+            if attempt < 2:
+                time.sleep(1)
+    except Exception as exc:
+        execution_error = exc
     finally:
-        _run([str(start), f"/box:{box}", "/silent", "/terminate_all"], timeout=30)
-        _run([str(start), f"/box:{box}", "/silent", "/delete_sandbox"], timeout=30)
-        _run([str(sbie_ini), "set", box, "*", ""], timeout=30)
+        terminate = _run([str(start), f"/box:{box}", "/silent", "/terminate_all"], timeout=30)
+        listed = _run([str(start), f"/box:{box}", "/silent", "/listpids"], timeout=30)
+        delete = _run(
+            [str(start), f"/box:{box}", "/silent", "delete_sandbox_silent"],
+            timeout=45,
+        )
+        paths_after = _wait_sandbox_removed(box)
+        remove_config = _run([str(sbie_ini), "set", box, "*", ""], timeout=30)
+        query_config = _run([str(sbie_ini), "query", box, "*"], timeout=30)
+        controller_pids_after = sorted(_process_ids("SbieCtrl"))
+        remaining_pids = [
+            int(line.strip())
+            for line in listed.stdout.splitlines()
+            if line.strip().isdigit() and int(line.strip()) > 0
+        ]
+        sections_after_result = _run([str(sbie_ini), "query", "*"])
+        sections_after = sorted(
+            line.strip()
+            for line in sections_after_result.stdout.splitlines()
+            if line.strip()
+        )
+        cleanup = {
+            "terminate_exit_code": terminate.returncode,
+            "delete_exit_code": delete.returncode,
+            "box_processes_after": remaining_pids,
+            "sandbox_paths_after": paths_after,
+            "controller_pids_before": controller_pids_before,
+            "new_controller_pids_after": sorted(
+                set(controller_pids_after) - set(controller_pids_before)
+            ),
+            "configuration_remove_exit_code": remove_config.returncode,
+            "box_configuration_removed": not query_config.stdout.strip(),
+            "preexisting_configuration_sections": sections_before,
+            "configuration_sections_after": sections_after,
+            "preexisting_configuration_restored": sections_after == sections_before,
+        }
+        user_sentinel.unlink(missing_ok=True)
+        shutil.rmtree(other_temp_root, ignore_errors=True)
+    cleanup_passed = (
+        cleanup.get("terminate_exit_code") == 0
+        and cleanup.get("delete_exit_code") == 0
+        and cleanup.get("box_processes_after") == []
+        and cleanup.get("sandbox_paths_after") == []
+        and cleanup.get("new_controller_pids_after") == []
+        and cleanup.get("configuration_remove_exit_code") == 0
+        and cleanup.get("box_configuration_removed") is True
+        and cleanup.get("preexisting_configuration_restored") is True
+    )
+    if not cleanup_passed:
+        shutil.rmtree(execution_root, ignore_errors=True)
+        raise RuntimeError(
+            "Sandboxie 清理证明未通过，拒绝生成 Run Attestation："
+            + json.dumps(cleanup, ensure_ascii=False)
+        )
+    if execution_error is not None:
+        shutil.rmtree(execution_root, ignore_errors=True)
+        raise RuntimeError(f"Sandboxie 执行阶段失败：{execution_error}") from execution_error
     if result is None or result.returncode != 0:
+        shutil.rmtree(execution_root, ignore_errors=True)
         raise RuntimeError(f"Sandboxie Run 执行失败，exit_code={None if result is None else result.returncode}")
+    if not stdout_path.is_file() or not stderr_path.is_file():
+        shutil.rmtree(execution_root, ignore_errors=True)
+        raise RuntimeError("Sandbox 内未生成真实子进程 stdout/stderr")
 
     after = _snapshot(execution_root)
     immutable_before = {key: value for key, value in before.items() if not key.startswith(("output/", "tmp/"))}
@@ -310,14 +597,32 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     expected_outputs = {
         PurePosixPath(item["path"]).relative_to(f"{spec['declared_workspace']}/output").as_posix()
         for item in task["required_outputs"]
-    }
+    } | {"execution_challenge.json"}
     actual_outputs = {
         path.relative_to(execution_root / "output").as_posix()
         for path in (execution_root / "output").rglob("*")
         if path.is_file() and path.name not in {"stdout.log", "stderr.log"}
     }
     if immutable_before != immutable_after or undeclared or actual_outputs != expected_outputs:
+        shutil.rmtree(execution_root, ignore_errors=True)
         raise RuntimeError("执行现场检查失败：代码/输入漂移、未声明写入或输出集合不精确")
+    challenge_echo = _load(execution_root / "output" / "execution_challenge.json")
+    if challenge_echo != {
+        "challenge_nonce": challenge,
+        "run_id": spec["run_id"],
+        "execution_id": execution_id,
+    }:
+        shutil.rmtree(execution_root, ignore_errors=True)
+        raise RuntimeError("候选进程未正确回显本次 Execution Challenge")
+    acceptance_results = []
+    for check in compiled["acceptance_checks"]:
+        accepted = (execution_root / str(check["expectation"])).is_file()
+        acceptance_results.append(
+            {"check_id": check["check_id"], "status": "passed" if accepted else "failed"}
+        )
+    if any(item["status"] != "passed" for item in acceptance_results):
+        shutil.rmtree(execution_root, ignore_errors=True)
+        raise RuntimeError("Execution Spec acceptance check 未通过")
     shutil.copytree(execution_root, archived_execution_root)
 
     run_output = run_dir / "workspace" / "output"
@@ -339,18 +644,32 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     }
     _write(run_dir / OUTPUT_MANIFEST_FILENAME, output_manifest)
     completed_at = _now()
+    derivation = _derive_formal_result(
+        run_dir, formal_result_id, execution_id, completed_at
+    )
     record = {
         "schema_version": "1.0.0", "artifact_type": "sandboxie_run_execution_record",
         "run_id": spec["run_id"], "formal_result_id": formal_result_id,
         "execution_id": execution_id, "sandboxie_box_name": box,
         "sandbox_policy_sha256": policy_sha, "sandbox_policy_settings": normalized_policy,
+        "resolved_argv": compiled["resolved_argv"],
+        "resolved_working_directory": compiled["resolved_working_directory"],
+        "seed": compiled["seed"],
+        "environment_overrides": compiled["environment_overrides"],
+        "acceptance_results": acceptance_results,
+        "read_negative_controls": negative_controls,
+        "candidate_attempt_exit_codes": candidate_attempt_exit_codes,
+        "cleanup": cleanup,
         "launch_command_sha256": command_sha, "started_at": started_at,
         "completed_at": completed_at, "challenge_nonce": challenge,
         "exit_code": result.returncode, "stdout_sha256": file_sha256(stdout_path),
         "stderr_sha256": file_sha256(stderr_path), "start_exe_sha256": file_sha256(start),
+        "execution_challenge_sha256": file_sha256(
+            run_dir / "workspace" / "output" / "execution_challenge.json"
+        ),
         "sandboxie_marker_detected": True, "undeclared_write_count": 0,
         "code_unchanged": True, "input_unchanged": True, "output_set_exact": True,
-        "python_sha256": file_sha256(python), "python_version": sys.version,
+        "python_sha256": python_sha, "python_version": sys.version,
         "requirements_lock_sha256": file_sha256(ROOT / "requirements.lock"),
     }
     _write(run_dir / EXECUTION_RECORD_FILENAME, record)
@@ -366,6 +685,13 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         "input_manifest_sha256": file_sha256(formal / "input_manifest.json"),
         "output_manifest_sha256": file_sha256(run_dir / OUTPUT_MANIFEST_FILENAME),
         "execution_record_sha256": file_sha256(run_dir / EXECUTION_RECORD_FILENAME),
+        "formal_result_payload_manifest_sha256": derivation[
+            "payload_manifest_sha256"
+        ],
+        "collector_derivation_attestation_sha256": derivation[
+            "collector_derivation_attestation_sha256"
+        ],
+        "formal_result_core_digest": derivation["formal_result_core_digest"],
         "environment_report_sha256": environment["report_file_sha256"],
         "environment_attestation_sha256": environment["attestation_file_sha256"],
         "trusted_registry_sha256": environment["trusted_registry_sha256"],
@@ -381,11 +707,12 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     }
     attestation = {**unsigned, "signature": _sign(unsigned, key["certificate_thumbprint"])}
     _write(run_dir / ATTESTATION_FILENAME, attestation)
-    run_summary = verify_run_execution_attestation(run_dir, formal_result_id)
-    _rebind_formal_bundle(run_dir, formal_result_id, run_summary)
-    final_summary = verify_formal_result_bundle(run_dir, envelope)
-    shutil.rmtree(execution_root)
-    return final_summary
+    try:
+        run_summary = verify_run_execution_attestation(run_dir, formal_result_id)
+        _rebind_formal_bundle(run_dir, formal_result_id, run_summary)
+        return verify_formal_result_bundle(run_dir, envelope)
+    finally:
+        shutil.rmtree(execution_root, ignore_errors=True)
 
 
 def main() -> int:

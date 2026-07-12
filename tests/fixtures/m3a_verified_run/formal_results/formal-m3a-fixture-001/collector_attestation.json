@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -15,10 +15,10 @@
   "collector_id": "test-collector",
   "collector_version": "1.0.0",
   "source_commit": "abcdef0",
-  "input_manifest_sha256": "d932c13ba3a3cc59579f1da1b2ec23754e1fc383da425086a2e0b162ec27f2c6",
-  "code_manifest_sha256": "64fb1d9d0b0112536ff0f83a684195f5ca85323e66b95ef1c1130cd08fbf993e",
-  "execution_spec_sha256": "81c4c370faf16884ef8f6c1f44f43271e70398972f5a69ab5ba2064d6790cbbb",
-  "environment_manifest_sha256": "4224315021a5ca1bed653483a4bf0cedeeef9779c653fa1d16b8f10f88a2da61",
+  "input_manifest_sha256": "37dee8a8f240552163870a7e5ecd772cb1051ce2650d654be9e4e476ea61080d",
+  "code_manifest_sha256": "5e327894fa5ebe66343ea7e0610af6e1f5428732b9b207cf41c07a54d005b6cd",
+  "execution_spec_sha256": "cf4a49d518f84efdf90861d872849d937b2c551f908f73ab0bddf486ac3be532",
+  "environment_manifest_sha256": "15d98c47f1177e2b268d75157592c0d8e8ad5b69afc4cd4cc146edf825c16f6f",
   "sandbox_policy": "manifest-only-test",
   "candidate_access_assurance": "manifest_isolation",
   "candidate_output_access_not_detected": true,
@@ -33,5 +33,5 @@
     "optimality_certificate.json"
   ],
   "undeclared_write_check": "passed",
-  "negative_test_report_sha256": "7259aec0831919019bd64632dc7a35686a93613b481c13cf6efd5de37c6bdda0"
+  "negative_test_report_sha256": "6e077142c9830fa0849e9569e386602f74aa363335693c4eca507021c73a5c02"
 }

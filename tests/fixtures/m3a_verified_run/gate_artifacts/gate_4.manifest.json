@@ -2,7 +2,7 @@
   "manifest_version": "1.0.0",
   "gate": 4,
   "completed_at": "2026-07-11T00:00:00Z",
-  "run_id": "m3a_fixture_run_20260712",
+  "run_id": "m3a_fixture_run_20260713",
   "problem_id": "2024-C",
   "profile": "engineering_optimization",
   "runtime_version": "0.1.0",
@@ -13,7 +13,7 @@
       "role": "paper_claim_map",
       "schema": "schemas/gate_business_artifact.schema.json",
       "schema_version": "1.0.0",
-      "sha256": "2b97d16169d2d7c1d88a6ff283af0e15e5df58d6a92b416787ef13d1cbadde9b",
+      "sha256": "a6af0dfd4e1ffc4b408535eae1272e1a6579b6dd1065bf9386f88e2b236f94b2",
       "size_bytes": 497
     }
   ],

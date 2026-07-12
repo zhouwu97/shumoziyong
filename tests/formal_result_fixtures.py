@@ -203,7 +203,7 @@ def write_formal_result_bundle(
         "tasks": [{
             "task_id": "FORMAL_TEST", "runner": "python", "entrypoint": "code/solve.py",
             "entrypoint_arg_index": 1,
-            "argv": ["python", "code/solve.py"], "working_directory": "workspace",
+            "argv": ["python", "code/solve.py", "--mode", "validated"], "working_directory": "workspace",
             "inputs": [{"path": "problem/input.txt", "sha256": file_sha256(input_path)}],
             "required_outputs": [{"path": "workspace/output/result.json", "media_type": "application/json"}],
             "depends_on": [], "timeout_seconds": 60,
@@ -216,13 +216,19 @@ def write_formal_result_bundle(
     code_path = run_dir / "workspace" / "code" / "solve.py"
     code_path.parent.mkdir(parents=True, exist_ok=True)
     code_path.write_text(
+        "import argparse\n"
         "import json\n"
+        "import os\n"
         "from pathlib import Path\n"
+        "parser = argparse.ArgumentParser()\n"
+        "parser.add_argument('--mode', required=True, choices=['validated'])\n"
+        "args = parser.parse_args()\n"
         "source = Path('input/input.txt')\n"
         "if not source.is_file():\n"
         "    source = Path('../problem/input.txt')\n"
         "Path('output').mkdir(exist_ok=True)\n"
         "Path('output/result.json').write_text(json.dumps({'objective': len(source.read_text(encoding='utf-8'))}) + '\\n', encoding='utf-8')\n"
+        "Path('output/execution_challenge.json').write_text(json.dumps({'challenge_nonce': os.environ['SHUMO_EXECUTION_CHALLENGE'], 'run_id': os.environ['SHUMO_RUN_ID'], 'execution_id': os.environ['SHUMO_EXECUTION_ID']}) + '\\n', encoding='utf-8')\n"
         "print('formal test')\n",
         encoding="utf-8",
     )

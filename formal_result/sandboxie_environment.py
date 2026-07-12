@@ -150,7 +150,10 @@ def _probe_sha256_at_source_commit(source_commit: str) -> str:
                 else isinstance(node.target, ast.Name) and node.target.id == "PROBE_SCRIPT"
             )
         )
-        value = ast.literal_eval(assignment.value)
+        assignment_value = assignment.value
+        if assignment_value is None:
+            raise ValueError("PROBE_SCRIPT 赋值缺少值")
+        value = ast.literal_eval(assignment_value)
     except (StopIteration, SyntaxError, ValueError, TypeError, UnicodeDecodeError) as exc:
         raise FormalResultVerificationError("source_commit 中缺少可静态验证的 PROBE_SCRIPT") from exc
     if not isinstance(value, str):
