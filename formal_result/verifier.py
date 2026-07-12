@@ -51,7 +51,8 @@ def _safe_relative(root: Path, value: str, label: str) -> Path:
         path.resolve(strict=False).relative_to(root.resolve())
     except ValueError as exc:
         raise FormalResultVerificationError(f"{label} 越出 Run 目录：{value}") from exc
-    if path.exists() and os.stat(path, follow_symlinks=False).st_nlink != 1:
+    # POSIX 目录的链接计数会包含自身、父目录及子目录，不能据此判定 hardlink。
+    if path.is_file() and os.stat(path, follow_symlinks=False).st_nlink != 1:
         raise FormalResultVerificationError(f"{label} 禁止 hardlink：{value}")
     return path
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -80,6 +81,18 @@ def test_required_bundle_verifies_and_binds_file_and_semantic_hashes(tmp_path: P
     summary = verify_formal_result_bundle(run_dir, envelope)
     assert summary["formal_result_id"] == "formal-test-001"
     assert summary["envelope_file_sha256"] != summary["envelope_semantic_sha256"]
+
+
+def test_required_bundle_rejects_hardlinked_core_file(tmp_path: Path) -> None:
+    run_dir, envelope = _bundle(tmp_path)
+    decision_path = envelope.parent / "decision_variables.json"
+    external_path = tmp_path / "external_decision_variables.json"
+    external_path.write_bytes(decision_path.read_bytes())
+    decision_path.unlink()
+    os.link(external_path, decision_path)
+
+    with pytest.raises(FormalResultVerificationError, match="禁止 hardlink"):
+        verify_formal_result_bundle(run_dir, envelope)
 
 
 @pytest.mark.parametrize(
