@@ -31,9 +31,9 @@
 
 ## 已确认的远程验证
 
-- 冻结 HEAD：`3e24e15f434362e245f58c66d83b1583179d7474`
-- 代码有效 HEAD：`3e24e15f434362e245f58c66d83b1583179d7474`
-- 最新验证 GitHub Actions Run：`29188235439`
+- 上一轮独立复审冻结 HEAD：`3e24e15f434362e245f58c66d83b1583179d7474`
+- 本轮修复代码有效 HEAD：`4e80b72becf353dea302c1eb56829ef16d4398b6`
+- 本轮代码最新验证 GitHub Actions Run：`29189481081`
 - 验证矩阵：Ubuntu / Windows × Python 3.11 / 3.12 全部通过。
 - 冻结对象当时的本地全量回归：`269 passed, 10 skipped`，覆盖率 `82%`。
 - 本次可信收口工作树：`286 passed, 10 skipped`，覆盖率 `82%`；Ruff、Pyright、仓库验证和确定性构建均通过。
