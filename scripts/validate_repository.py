@@ -18,6 +18,7 @@ from promotion_engine import evaluate_status_eligibility, load_json as pe_load_j
 from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
     evidence_required_artifacts_for_workflow,
+    extend_formal_result_evidence_requirements,
     replay_transition_log,
     verify_run_seal,
 )
@@ -336,6 +337,12 @@ class RepositoryValidator:
             except ValueError as exc:
                 self.fail(f"{run_dir.name} {exc}")
                 return False
+            if run_manifest.get("formal_result_policy") == "required_v1":
+                try:
+                    extend_formal_result_evidence_requirements(run_dir, required_artifacts)
+                except (OSError, ValueError, json.JSONDecodeError) as exc:
+                    self.fail(f"{run_dir.name} Formal Result 证据链无效：{exc}")
+                    return False
 
             required_roles = set(required_artifacts)
             seen_roles: set[str] = set()
@@ -1462,6 +1469,11 @@ class RepositoryValidator:
             "executor_handoff.schema.json",
             "executor_blocker.schema.json",
             "execution_record.schema.json",
+            "formal_result_envelope.schema.json",
+            "domain_manifest.schema.json",
+            "formal_result_bundle_manifest.schema.json",
+            "formal_result_core_artifact.schema.json",
+            "collector_attestation.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:

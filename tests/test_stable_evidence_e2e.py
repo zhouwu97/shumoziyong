@@ -49,6 +49,11 @@ def _complete_and_seal_run(run_dir: Path) -> None:
             "initial_state": "initialized",
             "mode": "standard",
             "promotion_evidence": True,
+            "formal_result_policy": "required_v1",
+            "execution_contract_version": "1.0.0",
+            "formal_result_contract_version": "1.0.0",
+            "canonicalization_version": "1.0.0",
+            "gate_artifact_contract_version": "1.0.0",
         }
     )
     candidate_patches = [manifest["target_patch"]] if manifest.get("target_patch") else []

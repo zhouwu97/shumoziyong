@@ -11,8 +11,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from atomic_io import atomic_write_bytes, atomic_write_text
 from export_runtime_pack import RUNTIME_CONTRACTS, build_manifest, build_pack
+from formal_result.identity import (
+    CONTRACT_VERSION as FORMAL_CONTRACT_VERSION,
+    FORMAL_RESULT_POLICY_LEGACY,
+    FORMAL_RESULT_POLICY_REQUIRED,
+    IMMUTABLE_IDENTITY_FIELDS,
+)
+from formal_result.verifier import verify_formal_result_bundle
 from model_validation import validate_model_and_execution
 from verify_materials import MaterialVerificationResult, verify_materials
 
@@ -23,6 +32,14 @@ except ImportError as exc:  # pragma: no cover - 依赖缺失时由命令行明�
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+FORMAL_IDENTITY_DEFAULTS = {
+    "formal_result_policy": FORMAL_RESULT_POLICY_REQUIRED,
+    "execution_contract_version": FORMAL_CONTRACT_VERSION,
+    "formal_result_contract_version": FORMAL_CONTRACT_VERSION,
+    "canonicalization_version": FORMAL_CONTRACT_VERSION,
+    "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
+}
 
 
 def normalize_problem_dir(problem: str) -> str:
@@ -256,6 +273,49 @@ def build_run_evidence_manifest(
                     "role": f"gate_{gate_name}_artifact_manifest",
                 }
             )
+    if workflow in {"full_replay", "new_problem"}:
+        manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
+        if (
+            manifest.get("formal_result_policy") == FORMAL_RESULT_POLICY_REQUIRED
+            and any(run_dir.glob("formal_results/*/formal_result_envelope.json"))
+        ):
+            summary = _verify_required_formal_result(run_dir)
+            formal_specs = [
+                (
+                    "execution_spec.json",
+                    "formal_execution_spec",
+                    "application/json",
+                    summary["execution_spec_semantic_sha256"],
+                ),
+                (
+                    summary["envelope_path"],
+                    "formal_result_envelope",
+                    "application/json",
+                    summary["envelope_semantic_sha256"],
+                ),
+            ]
+            for relative, item in summary["artifacts"].items():
+                formal_specs.append(
+                    (
+                        item["path"],
+                        f"formal_result_{relative.replace('/', '_').removesuffix('.json').removesuffix('.log')}",
+                        "application/json" if relative.endswith(".json") else "text/plain",
+                        item.get("semantic_sha256"),
+                    )
+                )
+            for filename, role, media_type, semantic_hash in formal_specs:
+                path = run_dir / filename
+                content = path.read_bytes()
+                reference = {
+                    "path": filename,
+                    "sha256": sha256_bytes(content),
+                    "media_type": media_type,
+                    "size_bytes": len(content),
+                    "role": role,
+                }
+                if semantic_hash is not None:
+                    reference["semantic_sha256"] = semantic_hash
+                artifacts.append(reference)
     return {
         "evidence_manifest_version": "2.0.0",
         "run_id": run_id,
@@ -583,6 +643,7 @@ def create_gate_run_core(
         "excluded_patches": excluded_patches,
         "evidence_purpose": evidence_purpose,
         "initial_state": initial_state,
+        **FORMAL_IDENTITY_DEFAULTS,
         "runtime_profile_snapshot_sha256": sha256_bytes(
             (run_dir / "runtime_profile.snapshot.json").read_bytes()
         ),
@@ -774,6 +835,49 @@ GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
     5: (("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),),
 }
 
+
+def _formal_result_policy(run_manifest: Mapping[str, Any]) -> str:
+    """读取显式政策；旧封存运行缺字段时仅按 Legacy 读取。"""
+    policy = run_manifest.get("formal_result_policy")
+    if policy is None:
+        return FORMAL_RESULT_POLICY_LEGACY
+    if policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_LEGACY}:
+        raise ValueError(f"formal_result_policy 非法：{policy!r}")
+    return str(policy)
+
+
+def _verify_required_formal_result(run_dir: Path) -> dict[str, Any]:
+    envelopes = sorted(run_dir.glob("formal_results/*/formal_result_envelope.json"))
+    if len(envelopes) != 1:
+        raise ValueError(f"required_v1 Run 必须且只能包含一个 Formal Result Envelope，实际 {len(envelopes)}")
+    return verify_formal_result_bundle(run_dir, envelopes[0])
+
+
+def extend_formal_result_evidence_requirements(
+    run_dir: Path, required: dict[str, str]
+) -> dict[str, Any] | None:
+    """对 required_v1 运行现场添加 Formal Result 核心证据角色。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if _formal_result_policy(manifest) != FORMAL_RESULT_POLICY_REQUIRED:
+        return None
+    summary = _verify_required_formal_result(run_dir)
+    required["formal_execution_spec"] = "execution_spec.json"
+    required["formal_result_envelope"] = str(summary["envelope_path"])
+    for relative, item in summary["artifacts"].items():
+        role = f"formal_result_{relative.replace('/', '_').removesuffix('.json').removesuffix('.log')}"
+        required[role] = str(item["path"])
+    return summary
+
+
+def _assert_formal_result_mutable(run_dir: Path) -> None:
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    policy = _formal_result_policy(manifest)
+    if policy == FORMAL_RESULT_POLICY_LEGACY:
+        raise ValueError("legacy_read_only_v1 Run 只允许历史验证与导出，禁止继续推进、完成或重新封存")
+    for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"run_manifest.{field} 已漂移，禁止继续推进")
+
 TRANSITION_VERSION = "2.0.0"
 
 VALID_TRANSITIONS: dict[int | None, set[int]] = {
@@ -791,6 +895,8 @@ VALID_TRANSITIONS: dict[int | None, set[int]] = {
 def _init_transitions(run_dir: Path, gate_range: str, material_ready: bool) -> None:
     """初始化 transitions.jsonl 并记录 initialized 状态。"""
     max_gate = int(gate_range.split("-")[1])
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    immutable_identity = {field: run_manifest[field] for field in IMMUTABLE_IDENTITY_FIELDS}
     initialized = chain_transition_event(
         {
             "transition_version": TRANSITION_VERSION,
@@ -802,6 +908,7 @@ def _init_transitions(run_dir: Path, gate_range: str, material_ready: bool) -> N
             "material_ready": material_ready,
             "max_gate": max_gate,
             "note": "运行目录已创建；材料校验通过后才允许进入 Gate 0",
+            **immutable_identity,
         },
         None,
     )
@@ -834,6 +941,11 @@ def _replay_v2_transition_log(
     """回放 v2 Gate 日志：事件表达已完成 Gate 和下一 Gate。"""
     _validate_transition_hash_chain(entries)
     init_data = entries[0]
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if any(field in init_data for field in IMMUTABLE_IDENTITY_FIELDS):
+        for field in IMMUTABLE_IDENTITY_FIELDS:
+            if init_data.get(field) != run_manifest.get(field):
+                raise ValueError(f"v2 initialized 记录的 {field} 与 run_manifest 不一致")
     if init_data.get("completed_gate") is not None or init_data.get("next_gate") != 0:
         raise ValueError("v2 initialized 记录必须声明 completed_gate=null、next_gate=0")
 
@@ -1303,6 +1415,19 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
     run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
     if seal.get("run_id") != run_manifest.get("run_id"):
         raise ValueError("seal_record.run_id 与 run_manifest.run_id 不一致")
+    if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+        for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
+            if seal.get(field) != expected or run_manifest.get(field) != expected:
+                raise ValueError(f"seal_record.{field} 未绑定当前 required_v1 不可变身份")
+        summary = _verify_required_formal_result(run_dir)
+        expected_formal = {
+            "formal_result_id": summary["formal_result_id"],
+            "formal_result_envelope_sha256": summary["envelope_file_sha256"],
+            "formal_result_envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+        }
+        for field, expected in expected_formal.items():
+            if seal.get(field) != expected:
+                raise ValueError(f"seal_record.{field} 与当前 Formal Result 不一致")
 
     sealed_files = {
         "run_manifest_sha256": run_dir / "run_manifest.json",
@@ -1396,7 +1521,7 @@ def build_gate_artifact_manifest(
                 "size_bytes": len(raw),
             }
         )
-    return {
+    manifest: dict[str, Any] = {
         "manifest_version": "1.0.0",
         "gate": gate,
         "completed_at": completed_at
@@ -1404,6 +1529,18 @@ def build_gate_artifact_manifest(
         **binding,
         "artifacts": artifacts,
     }
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+        manifest.update(FORMAL_IDENTITY_DEFAULTS)
+        if gate == 3:
+            summary = _verify_required_formal_result(run_dir)
+            manifest["formal_result"] = {
+                "formal_result_id": summary["formal_result_id"],
+                "envelope_path": summary["envelope_path"],
+                "envelope_file_sha256": summary["envelope_file_sha256"],
+                "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+            }
+    return manifest
 
 
 def write_gate_artifact_manifest(
@@ -1438,6 +1575,11 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
     for field, expected in binding.items():
         if manifest.get(field) != expected:
             raise ValueError(f"gate_{gate}.manifest.json.{field} 与当前运行现场不一致")
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+        for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
+            if manifest.get(field) != expected or run_manifest.get(field) != expected:
+                raise ValueError(f"gate_{gate}.manifest.json.{field} 未绑定 required_v1 不可变身份")
 
     expected_specs = GATE_ARTIFACT_SPECS[gate]
     expected_paths = {spec[0] for spec in expected_specs}
@@ -1474,6 +1616,16 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         if entry.get("size_bytes") != len(raw):
             raise ValueError(f"Gate {gate} 产物 {filename} size_bytes 不匹配")
     if gate == 3:
+        if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+            summary = _verify_required_formal_result(run_dir)
+            expected_formal = {
+                "formal_result_id": summary["formal_result_id"],
+                "envelope_path": summary["envelope_path"],
+                "envelope_file_sha256": summary["envelope_file_sha256"],
+                "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+            }
+            if manifest.get("formal_result") != expected_formal:
+                raise ValueError("Gate 3 Manifest 未精确绑定当前 Formal Result Envelope")
         result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
         result_manifest = _load_json_object(
             run_dir / "result_manifest.json", "result_manifest.json"
@@ -1545,6 +1697,7 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
 
 def mark_run_completed(run_dir: Path, reviewer: str) -> None:
     """将运行标记为 completed 终态（必须已严格到达 Gate 5 且审核记录获批）。"""
+    _assert_formal_result_mutable(run_dir)
     state = replay_transition_log(run_dir)
     _assert_run_can_progress(run_dir, state)
     if state["completed"]:
@@ -1781,6 +1934,7 @@ def _find_parent_transactions(run_root: Path, parent_run_id: str) -> list[dict[s
 
 def _assert_parent_fork_eligible(parent_run: Path, selected_profile: str) -> tuple[dict[str, Any], dict[str, Any], str, str]:
     """执行 fork-profile 的完整预检，并返回父身份、状态、材料摘要和链头。"""
+    _assert_formal_result_mutable(parent_run)
     parent_manifest = _load_json_object(parent_run / "run_manifest.json", "run_manifest.json")
     if parent_manifest.get("workflow") != "new_problem":
         raise ValueError("fork-profile 只允许从 new_problem 父 Run 发起")
@@ -2343,6 +2497,7 @@ def fork_profile(
 
 def advance_run(run_dir: Path, reviewer: str, decision: str = "approved") -> dict[str, Any]:
     """推进一次 Gate；离开当前 Gate 时复用业务产物机器校验。"""
+    _assert_formal_result_mutable(run_dir)
     state = replay_transition_log(run_dir)
     current = state["current_gate"]
     if current is None:
@@ -2395,6 +2550,8 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
                 completed=bool(state.get("completed")),
                 runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
             )
+            if state.get("completed"):
+                extend_formal_result_evidence_requirements(run_dir, required_artifacts)
             evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
             if evidence.get("run_id") != manifest.get("run_id"):
                 evidence_errors.append("run_evidence_manifest.run_id 与 run_manifest 不一致")
@@ -2446,6 +2603,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
                 completed=True,
                 runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
             )
+            extend_formal_result_evidence_requirements(run_dir, required)
             evidence = _load_json_object(
                 run_dir / "run_evidence_manifest.json", "run_evidence_manifest.json"
             )

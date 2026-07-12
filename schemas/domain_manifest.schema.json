@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/domain_manifest.schema.json",
+  "title": "Formal Result Domain Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "formal_result_id", "run_id", "problem_id", "profile",
+    "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version",
+    "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version",
+    "domain", "mechanism", "validator_id", "validator_version", "required_artifacts",
+    "required_certificates", "decision_schema", "metric_schema", "invariant_checks",
+    "optimality_claim_level", "negative_test_requirements", "semantic_hashes"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "domain_manifest"},
+    "formal_result_id": {"$ref": "#/$defs/id"}, "run_id": {"$ref": "#/$defs/id"},
+    "problem_id": {"$ref": "#/$defs/id"}, "profile": {"$ref": "#/$defs/id"},
+    "runtime_version": {"$ref": "#/$defs/id"}, "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"}, "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"}, "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"},
+    "domain": {"const": "engineering_optimization"},
+    "mechanism": {"enum": ["mip", "nonlinear", "heuristic", "network_optimization"]},
+    "validator_id": {"$ref": "#/$defs/id"}, "validator_version": {"$ref": "#/$defs/id"},
+    "required_artifacts": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {"type": "object", "additionalProperties": false,
+        "required": ["path", "media_type", "file_sha256"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+          "media_type": {"enum": ["application/json", "text/plain"]},
+          "file_sha256": {"$ref": "#/$defs/sha"},
+          "semantic_sha256": {"$ref": "#/$defs/sha"},
+          "schema": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.schema\\.json$"}
+        },
+        "allOf": [{"if": {"properties": {"media_type": {"const": "application/json"}}}, "then": {"required": ["semantic_sha256", "schema"]}}]
+      }
+    },
+    "required_certificates": {"type": "array", "minItems": 1, "uniqueItems": true, "contains": {"const": "optimality_certificate.json"}, "items": {"type": "string"}},
+    "decision_schema": {"const": "decision_variables.schema.json"},
+    "metric_schema": {"type": "object", "minProperties": 1},
+    "invariant_checks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "optimality_claim_level": {"enum": ["optimal", "feasible", "heuristic"]},
+    "negative_test_requirements": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "semantic_hashes": {"type": "object", "minProperties": 6, "additionalProperties": {"$ref": "#/$defs/sha"}}
+  },
+  "$defs": {"id": {"type": "string", "minLength": 1}, "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

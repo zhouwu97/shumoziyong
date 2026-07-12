@@ -18,6 +18,11 @@
       "pattern": "^[a-f0-9]{64}$",
       "description": "文件内容的 SHA-256。"
     },
+    "semantic_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "结构化 JSON 通过 Schema 校验后的规范语义 SHA-256；不得代替文件哈希。"
+    },
     "media_type": {
       "type": "string",
       "minLength": 1,

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_bundle_manifest.schema.json",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "formal_result_id", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version", "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version", "validation_status", "semantic_hashes"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "formal_result_manifest"},
+    "formal_result_id": {"type": "string", "minLength": 1}, "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1}, "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1}, "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"}, "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"}, "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"}, "validation_status": {"const": "passed"},
+    "semantic_hashes": {"type": "object", "minProperties": 5, "additionalProperties": {"$ref": "#/$defs/sha"}}
+  },
+  "$defs": {"sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

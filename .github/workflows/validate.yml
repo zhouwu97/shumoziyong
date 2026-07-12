@@ -35,7 +35,7 @@ jobs:
         run: |
           python scripts/update_evaluation_case_registry.py
           git diff --exit-code -- tests/prompt_regression/evaluation_case_registry.json
-      - run: python -m ruff check scripts tests
+      - run: python -m ruff check scripts tests formal_result
       - run: python -m pyright
       - run: python scripts/validate_repository.py
       - run: python -m coverage run -m pytest -q

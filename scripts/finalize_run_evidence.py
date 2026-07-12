@@ -10,13 +10,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from atomic_io import atomic_write_bytes
+from formal_result.identity import FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_POLICY_REQUIRED
+from formal_result.verifier import verify_formal_result_bundle
 from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
     ROOT,
     build_run_evidence_manifest,
     evidence_artifact_specs_for_workflow,
     evidence_required_artifacts_for_workflow,
+    extend_formal_result_evidence_requirements,
     replay_transition_log,
     validate_workflow_evidence_purpose,
     write_json,
@@ -53,6 +58,17 @@ def validate_evidence_manifest(
     content_overrides: Mapping[str, bytes] | None = None,
 ) -> list[str]:
     """校验角色绑定、路径安全、文件大小及内容哈希，返回全部错误。"""
+    required_artifacts = dict(required_artifacts)
+    try:
+        run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+        if (
+            run_manifest.get("formal_result_policy") == FORMAL_RESULT_POLICY_REQUIRED
+            and any(run_dir.glob("formal_results/*/formal_result_envelope.json"))
+        ):
+            extend_formal_result_evidence_requirements(run_dir, required_artifacts)
+    except (OSError, ValueError, json.JSONDecodeError):
+        # 后续逐项校验会输出更精确的缺文件或哈希错误。
+        pass
     errors: list[str] = []
     artifacts = evidence_manifest.get("artifacts")
     if not isinstance(artifacts, list):
@@ -116,6 +132,11 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     run_id = run_manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("run_manifest.run_id 不能为空")
+    formal_policy = run_manifest.get("formal_result_policy", FORMAL_RESULT_POLICY_LEGACY)
+    if formal_policy == FORMAL_RESULT_POLICY_LEGACY and run_manifest.get("manifest_version") == "2.0.0":
+        raise ValueError("legacy_read_only_v1 Run 禁止重新 complete 或 seal")
+    if formal_policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_LEGACY}:
+        raise ValueError(f"formal_result_policy 非法：{formal_policy!r}")
     runtime_manifest = json.loads(
         (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
     )
@@ -129,6 +150,7 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         completed=True,
         runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
     )
+    formal_summary: dict[str, Any] | None = None
     immutable_manifest = run_manifest.get("manifest_version") == "2.0.0"
     if immutable_manifest:
         if run_manifest.get("initial_state") != "initialized":
@@ -146,6 +168,12 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         raise ValueError(f"Gate 状态机记录无效，不能封存证据：{exc}") from exc
     if not state["completed"] or state["max_gate"] != 5:
         raise ValueError("仅允许封存已完成 Gate 0-5 全流程的运行")
+    if formal_policy == FORMAL_RESULT_POLICY_REQUIRED:
+        envelopes = sorted(run_dir.glob("formal_results/*/formal_result_envelope.json"))
+        if len(envelopes) != 1:
+            raise ValueError("required_v1 Run 封存前必须且只能存在一个 Formal Result Envelope")
+        formal_summary = verify_formal_result_bundle(run_dir, envelopes[0])
+        extend_formal_result_evidence_requirements(run_dir, required_artifacts)
     missing_files = [
         filename for filename in sorted(set(required_artifacts.values())) if not (run_dir / filename).is_file()
     ]
@@ -177,18 +205,32 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
 
     if immutable_manifest:
         evidence_bytes = (run_dir / "run_evidence_manifest.json").read_bytes()
+        seal_record: dict[str, Any] = {
+            "seal_version": "1.0.0",
+            "run_id": run_id,
+            "sealed_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "run_manifest_sha256": hashlib.sha256(run_manifest_bytes).hexdigest(),
+            "transitions_sha256": hashlib.sha256(
+                (run_dir / "transitions.jsonl").read_bytes()
+            ).hexdigest(),
+            "evidence_manifest_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
+        }
+        if formal_summary is not None:
+            seal_record.update(
+                {
+                    "formal_result_policy": formal_policy,
+                    "execution_contract_version": run_manifest["execution_contract_version"],
+                    "formal_result_contract_version": run_manifest["formal_result_contract_version"],
+                    "canonicalization_version": run_manifest["canonicalization_version"],
+                    "gate_artifact_contract_version": run_manifest["gate_artifact_contract_version"],
+                    "formal_result_id": formal_summary["formal_result_id"],
+                    "formal_result_envelope_sha256": formal_summary["envelope_file_sha256"],
+                    "formal_result_envelope_semantic_sha256": formal_summary["envelope_semantic_sha256"],
+                }
+            )
         write_json(
             run_dir / "seal_record.json",
-            {
-                "seal_version": "1.0.0",
-                "run_id": run_id,
-                "sealed_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-                "run_manifest_sha256": hashlib.sha256(run_manifest_bytes).hexdigest(),
-                "transitions_sha256": hashlib.sha256(
-                    (run_dir / "transitions.jsonl").read_bytes()
-                ).hexdigest(),
-                "evidence_manifest_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
-            },
+            seal_record,
         )
 
     errors = validate_evidence_manifest(run_dir, evidence_manifest, required_artifacts)

@@ -52,6 +52,7 @@ from verify_materials import MaterialVerificationResult, sha256_bytes, verify_ma
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
 from export_runtime_pack import parse_args as parse_export_runtime_pack_args  # noqa: E402
 import run_workflow as run_workflow_module  # noqa: E402
+from formal_result_fixtures import write_formal_result_bundle  # noqa: E402
 
 
 def _write_material_manifest(materials: Path, problem_id: str, files: dict[str, list[tuple[str, bytes]]]) -> None:
@@ -93,12 +94,19 @@ def _write_minimal_run_binding(
     (run_dir / "run_manifest.json").write_text(
         json.dumps(
             {
+                "manifest_version": "2.0.0",
                 "run_id": run_id,
                 "workflow": "full_replay",
                 "evidence_purpose": "training_validation",
                 "problem_id": problem_id,
                 "profile": profile,
                 "runtime_version": runtime_version,
+                "runtime_pack_sha256": runtime_pack_sha,
+                "formal_result_policy": "required_v1",
+                "execution_contract_version": "1.0.0",
+                "formal_result_contract_version": "1.0.0",
+                "canonicalization_version": "1.0.0",
+                "gate_artifact_contract_version": "1.0.0",
             }
         ),
         encoding="utf-8",
@@ -151,6 +159,12 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
     runtime_manifest = json.loads(
         (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
     )
+    if (
+        gate == 3
+        and run_manifest.get("formal_result_policy") == "required_v1"
+        and not any(run_dir.glob("formal_results/*/formal_result_envelope.json"))
+    ):
+        write_formal_result_bundle(run_dir)
     binding = {
         "schema_version": "1.0.0",
         "run_id": run_manifest["run_id"],
@@ -393,6 +407,14 @@ def _v2_gate_0_run(parent: Path, name: str = "v2_run") -> Path:
             "state": "initialized",
             "material_ready": True,
             "max_gate": 5,
+            **{
+                field: json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))[field]
+                for field in (
+                    "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256",
+                    "formal_result_policy", "execution_contract_version", "formal_result_contract_version",
+                    "canonicalization_version", "gate_artifact_contract_version",
+                )
+            },
         },
         None,
     )

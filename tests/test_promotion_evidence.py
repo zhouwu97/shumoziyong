@@ -54,6 +54,14 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
             "integrity_status": "unsealed",
             "workflow": "full_replay",
             "evidence_purpose": "training_validation",
+            "manifest_version": "2.0.0",
+            "initial_state": "initialized",
+            "formal_result_policy": "required_v1",
+            "execution_contract_version": "1.0.0",
+            "formal_result_contract_version": "1.0.0",
+            "canonicalization_version": "1.0.0",
+            "gate_artifact_contract_version": "1.0.0",
+            "promotion_evidence": True,
         }
     )
     manifest_path.write_text(json.dumps(manifest), "utf-8")
@@ -74,6 +82,11 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     (run_dir / "runtime_pack.manifest.json").write_text(
         json.dumps(runtime_manifest), "utf-8"
     )
+    manifest["runtime_version"] = runtime_manifest.get(
+        "runtime_version", manifest["runtime_version"]
+    )
+    manifest["runtime_pack_sha256"] = runtime_manifest["runtime_pack_sha256"]
+    manifest_path.write_text(json.dumps(manifest), "utf-8")
     (run_dir / "material_review.json").write_text("{}", "utf-8")
     (run_dir / "response.md").write_text("fixture response", "utf-8")
     (run_dir / "runtime_profile.snapshot.json").write_text(

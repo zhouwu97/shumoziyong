@@ -24,6 +24,21 @@
     "profile": {"type": "string", "minLength": 1},
     "runtime_version": {"type": "string", "minLength": 1},
     "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "formal_result_policy": {"enum": ["required_v1", "legacy_read_only_v1"]},
+    "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"},
+    "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"},
+    "formal_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["formal_result_id", "envelope_path", "envelope_file_sha256", "envelope_semantic_sha256"],
+      "properties": {
+        "formal_result_id": {"type": "string", "minLength": 1},
+        "envelope_path": {"type": "string", "pattern": "^formal_results/[A-Za-z0-9._-]+/formal_result_envelope\\.json$"},
+        "envelope_file_sha256": {"$ref": "#/$defs/sha256"},
+        "envelope_semantic_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
     "artifacts": {
       "type": "array",
       "minItems": 1,

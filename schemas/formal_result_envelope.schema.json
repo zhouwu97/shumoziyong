@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_envelope.schema.json",
+  "title": "Formal Result Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "formal_result_id", "run_id", "problem_id", "profile",
+    "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version",
+    "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version",
+    "execution_spec_file_sha256", "execution_spec_semantic_sha256", "domain_manifest_path",
+    "domain_manifest_file_sha256", "domain_manifest_semantic_sha256", "formal_result_manifest_path",
+    "formal_result_manifest_file_sha256", "formal_result_manifest_semantic_sha256",
+    "collector_attestation_semantic_sha256", "created_by"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "formal_result_envelope"},
+    "formal_result_id": {"$ref": "#/$defs/id"},
+    "run_id": {"$ref": "#/$defs/id"}, "problem_id": {"$ref": "#/$defs/id"},
+    "profile": {"$ref": "#/$defs/id"}, "runtime_version": {"$ref": "#/$defs/id"},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"},
+    "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"},
+    "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"},
+    "execution_spec_file_sha256": {"$ref": "#/$defs/sha"},
+    "execution_spec_semantic_sha256": {"$ref": "#/$defs/sha"},
+    "domain_manifest_path": {"$ref": "#/$defs/path"},
+    "domain_manifest_file_sha256": {"$ref": "#/$defs/sha"},
+    "domain_manifest_semantic_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_manifest_path": {"$ref": "#/$defs/path"},
+    "formal_result_manifest_file_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_manifest_semantic_sha256": {"$ref": "#/$defs/sha"},
+    "collector_attestation_semantic_sha256": {"$ref": "#/$defs/sha"},
+    "created_by": {"const": "trusted_collector"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1},
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "path": {"type": "string", "pattern": "^formal_results/[A-Za-z0-9._-]+/[A-Za-z0-9_./-]+\\.json$"}
+  }
+}

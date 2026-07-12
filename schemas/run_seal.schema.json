@@ -10,6 +10,14 @@
     "sealed_at": {"type": "string", "format": "date-time"},
     "run_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "transitions_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "evidence_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    "evidence_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "formal_result_policy": {"enum": ["required_v1", "legacy_read_only_v1"]},
+    "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"},
+    "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"},
+    "formal_result_id": {"type": "string", "minLength": 1},
+    "formal_result_envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "formal_result_envelope_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
   }
 }
