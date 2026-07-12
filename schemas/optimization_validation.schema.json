@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/optimization_validation.schema.json",
+  "title": "工程优化独立数值验证 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "validator", "decision_variables_sha256", "material_manifest_sha256", "objective_reported", "objective_recomputed", "objective_abs_error", "max_capacity_violation", "max_domain_violation", "invalid_assignment_count", "feasible", "validation_precision", "feasibility_tolerance", "objective_tolerance", "canonicalization_version", "canonicalization_precision", "data_extraction_contract_sha256"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "validator": {"const": "optimization_validation_v1"},
+    "decision_variables_sha256": {"$ref": "#/$defs/sha256"},
+    "material_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "objective_reported": {"type": "number"},
+    "objective_recomputed": {"type": "number"},
+    "objective_abs_error": {"type": "number", "minimum": 0},
+    "max_capacity_violation": {"type": "number", "minimum": 0},
+    "max_domain_violation": {"type": "number", "minimum": 0},
+    "invalid_assignment_count": {"type": "integer", "minimum": 0},
+    "feasible": {"type": "boolean"},
+    "validation_precision": {"type": "string", "minLength": 1},
+    "feasibility_tolerance": {"type": "number", "exclusiveMinimum": 0},
+    "objective_tolerance": {"type": "number", "exclusiveMinimum": 0},
+    "canonicalization_version": {"const": "1.0.0"},
+    "canonicalization_precision": {"const": 8},
+    "data_extraction_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "details": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

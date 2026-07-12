@@ -1,0 +1,11 @@
+{
+  "contract_version": "2024c_q1_dryland_extraction_v1",
+  "preprocessing_version": "1.0.0",
+  "sources": {
+    "land": {"file": "附件1.xlsx", "sheet": "乡村的现有耕地", "header_row": 1, "columns": {"plot_id": 1, "land_type": 2, "area_mu": 3}},
+    "statistics": {"file": "附件2.xlsx", "sheet": "2023年统计的相关数据", "header_row": 1, "columns": {"crop_id": 2, "land_type": 4, "season": 5, "yield_per_mu": 6, "cost_per_mu": 7, "sale_price": 8}}
+  },
+  "filters": {"land_types": ["平旱地", "梯田", "山坡地"], "crop_id_min": 1, "crop_id_max": 15, "season": "单季"},
+  "price_rule": "closed_interval_midpoint",
+  "tie_break_policy": "lexicographic_plot_crop_v1"
+}

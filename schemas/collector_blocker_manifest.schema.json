@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/collector_blocker_manifest.schema.json",
+  "title": "Collector 阻断清单 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "schema_version", "scope", "candidate_output_used", "collector_run_id", "task_id", "execution_spec_sha256", "failed_phase", "blocker_code", "message", "expected", "actual", "input_hashes", "retryable", "formal_result_generated", "unblock_conditions"],
+  "properties": {
+    "contract_version": {"const": "collector_blocker_v1"},
+    "schema_version": {"const": "1.0.0"},
+    "scope": {"const": "2024-C-Q1-single-season-dryland-baseline"},
+    "candidate_output_used": {"const": false},
+    "collector_run_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "execution_spec_sha256": {"$ref": "#/$defs/sha256"},
+    "failed_phase": {"enum": ["isolation", "input_binding", "execution", "independent_validation", "formalization"]},
+    "blocker_code": {"enum": ["MATERIAL_HASH_MISMATCH", "DIRTY_CODE_WORKSPACE", "INVALID_SPEC", "SOLVER_STATUS", "MISSING_DECISION_OUTPUT", "OBJECTIVE_MISMATCH", "CAPACITY_CONSTRAINT_VIOLATION", "INVALID_ASSIGNMENT", "UNHASHED_CONVERSION", "COLLECTOR_NOT_FRESH", "CANDIDATE_OUTPUT_ACCESS", "UNKNOWN"]},
+    "message": {"type": "string", "minLength": 1},
+    "expected": {"type": "object"},
+    "actual": {"type": "object"},
+    "input_hashes": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sha256"}},
+    "stdout_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "stderr_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "retryable": {"type": "boolean"},
+    "formal_result_generated": {"const": false},
+    "unblock_conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

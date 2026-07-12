@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/decision_variables.schema.json",
+  "title": "工程优化正式决策变量 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "problem_id", "scope", "task_id", "assignments", "objective_reported"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "problem_id": {"const": "2024-C"},
+    "scope": {"const": "q1_dryland_single_season_baseline"},
+    "task_id": {"const": "Q1_DRYLAND_BASELINE"},
+    "assignments": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["plot_id", "crop_id", "area_mu"], "properties": {"plot_id": {"type": "string", "pattern": "^[ABC][0-9]+$"}, "crop_id": {"type": "integer", "minimum": 1, "maximum": 15}, "area_mu": {"type": "number", "exclusiveMinimum": 0}}}},
+    "objective_reported": {"type": "number"}
+  }
+}
