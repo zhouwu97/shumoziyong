@@ -116,12 +116,19 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     run_id = run_manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("run_manifest.run_id 不能为空")
-    purpose_error = validate_workflow_evidence_purpose(run_manifest)
+    runtime_manifest = json.loads(
+        (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+    )
+    purpose_error = validate_workflow_evidence_purpose(run_manifest, runtime_manifest)
     if purpose_error:
         raise ValueError(purpose_error)
     workflow = run_manifest.get("workflow")
     assert isinstance(workflow, str)
-    required_artifacts = evidence_required_artifacts_for_workflow(workflow, completed=True)
+    required_artifacts = evidence_required_artifacts_for_workflow(
+        workflow,
+        completed=True,
+        runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
+    )
     immutable_manifest = run_manifest.get("manifest_version") == "2.0.0"
     if immutable_manifest:
         if run_manifest.get("initial_state") != "initialized":

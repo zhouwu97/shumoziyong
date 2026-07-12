@@ -1,0 +1,28 @@
+{
+  "manifest_version": "2.0.0",
+  "run_id": "historical_v1_1_sealed",
+  "workflow": "full_replay",
+  "mode": "standard",
+  "human_confirmation_gates": [
+    0,
+    2,
+    5
+  ],
+  "created_at": "2026-07-12T10:22:20+08:00",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "gates": "0-5",
+  "materials": "tests/fixtures/historical_sealed_run_v1_1/materials",
+  "material_manifest": "tests/fixtures/historical_sealed_run_v1_1/materials/material_manifest.json",
+  "material_manifest_sha256": "dcd5857eac6e4c30dfa776fb8c37fa0580c52f401c828cacb1e29d0155f4d12d",
+  "material_status": "ready",
+  "material_error_count": 0,
+  "candidate_patches": [],
+  "excluded_patches": [],
+  "experiment_kind": "standard",
+  "promotion_evidence": false,
+  "initial_state": "initialized",
+  "runtime_profile_snapshot_sha256": "2eeaca0640e827be9f90d162581538abb747551d1d05ae52a2dcf7bb55a7ee8f",
+  "patch_selection_snapshot_sha256": "4bea6c459966fe2349ba66b89a9fa2349376befe7a20546c339d50b9301b9bb4"
+}

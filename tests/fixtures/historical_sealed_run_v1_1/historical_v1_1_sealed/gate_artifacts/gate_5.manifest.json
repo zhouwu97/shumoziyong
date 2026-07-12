@@ -1,0 +1,20 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 5,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "historical_v1_1_sealed",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "artifacts": [
+    {
+      "path": "gate_5_review.json",
+      "role": "gate_5_review",
+      "schema": "schemas/gate_5_review.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "ae3b984f5cbca83f7d15d3075dd79c9fd2b287648d2fd235737b7518e5e06769",
+      "size_bytes": 615
+    }
+  ]
+}

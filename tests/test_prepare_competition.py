@@ -157,6 +157,39 @@ def test_apply_cleans_manifest_and_staging_run_when_initialization_fails(
     assert not list((tmp_path / "runs" / ".tmp").glob("prepare-*"))
 
 
+def test_apply_rejects_corrupt_staged_run_without_publishing_partial_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """staged Run 损坏时，材料清单与正式 Run 必须同时保持未提交。"""
+    materials = _materials(tmp_path)
+    plan_path = tmp_path / "material_plan.json"
+    preparation.plan("2026-A", materials, plan_path)
+    _confirm_all(plan_path)
+    original_create = preparation.create_new_problem_run
+
+    def create_corrupt_staged_run(args):
+        staged_run, ready = original_create(args)
+        (staged_run / "runtime_pack.manifest.json").write_text("{broken", encoding="utf-8")
+        return staged_run, ready
+
+    monkeypatch.setattr(preparation, "create_new_problem_run", create_corrupt_staged_run)
+    output_root = tmp_path / "runs"
+    with pytest.raises(json.JSONDecodeError):
+        preparation.apply(
+            plan_path,
+            materials,
+            profile="general",
+            mode="standard",
+            reviewer="tester",
+            confirm_no_solution=True,
+            output_root=str(output_root),
+        )
+
+    assert not (materials / "material_manifest.json").exists()
+    assert not [path for path in output_root.glob("*") if path.name != ".tmp"]
+    assert not list((output_root / ".tmp").glob("prepare-*"))
+
+
 def test_competition_runtime_end_to_end_preserves_optional_markdown_boundary(
     tmp_path: Path,
 ) -> None:

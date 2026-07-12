@@ -1,0 +1,20 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 0,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "historical_v1_1_sealed",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "artifacts": [
+    {
+      "path": "diagnosis.json",
+      "role": "diagnosis",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "4b8cb6f737d5fecbdc5bdf5d6819ebaf570e3d5773550023651a0f08b3496f83",
+      "size_bytes": 654
+    }
+  ]
+}

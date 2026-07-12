@@ -1,0 +1,20 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 1,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "historical_v1_1_sealed",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "artifacts": [
+    {
+      "path": "model_route.json",
+      "role": "model_route",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "8a07f5d6d2cd0568f6f7bbd3e832d3876bc8a149b324d42769f909a0f1af7937",
+      "size_bytes": 592
+    }
+  ]
+}

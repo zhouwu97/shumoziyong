@@ -1,0 +1,41 @@
+{
+  "problem_id": "2024-C",
+  "material_root": "tests/fixtures/historical_sealed_run_v1_1/materials",
+  "material_manifest": "tests/fixtures/historical_sealed_run_v1_1/materials/material_manifest.json",
+  "material_manifest_sha256": "dcd5857eac6e4c30dfa776fb8c37fa0580c52f401c828cacb1e29d0155f4d12d",
+  "material_exists": true,
+  "material_status": "ready",
+  "categories": {
+    "problem": {
+      "required": true,
+      "declared_files": 1,
+      "verified_files": 1,
+      "status": "ready",
+      "errors": []
+    },
+    "attachments": {
+      "required": false,
+      "declared_files": 0,
+      "verified_files": 0,
+      "status": "ready",
+      "errors": []
+    },
+    "templates": {
+      "required": false,
+      "declared_files": 0,
+      "verified_files": 0,
+      "status": "ready",
+      "errors": []
+    }
+  },
+  "files": [
+    {
+      "category": "problem",
+      "path": "tests/fixtures/historical_sealed_run_v1_1/materials/problem.pdf",
+      "size": 38,
+      "sha256": "afa155d5f2012cbde8922bb99772dd8cda08220d55acbf4f6b09d96179789758"
+    }
+  ],
+  "content_digest": "c9337956ee5105321307fb02f3f8cb640d49d4db6ef7ab947140afad0f68bb84",
+  "errors": []
+}

@@ -14,7 +14,7 @@ from typing import Any, Iterable, Mapping
 from jsonschema import Draft202012Validator, FormatChecker
 
 from atomic_io import atomic_write_bytes
-from run_workflow import ROOT, create_new_problem_run
+from run_workflow import ROOT, create_new_problem_run, verify_run
 from verify_materials import verify_materials
 
 
@@ -308,24 +308,42 @@ def apply(
         staged_run, ready = create_new_problem_run(args)
         if not ready:
             raise ValueError("初始化的比赛 Run 未就绪")
-        final_run = output_path / staged_run.name
-        if final_run.exists():
-            raise FileExistsError(f"运行目录已存在：{final_run}")
-        staged_run.replace(final_run)
-        _cleanup_staging(staging_root)
-
         runtime_manifest = json.loads(
-            (final_run / "runtime_pack.manifest.json").read_text(encoding="utf-8")
+            (staged_run / "runtime_pack.manifest.json").read_text(encoding="utf-8")
         )
-        return {
+        runtime_pack_sha256 = runtime_manifest.get("runtime_pack_sha256")
+        if (
+            not isinstance(runtime_pack_sha256, str)
+            or len(runtime_pack_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in runtime_pack_sha256)
+        ):
+            raise ValueError("staged runtime_pack.manifest.json 缺少合法 runtime_pack_sha256")
+        if runtime_manifest.get("workflow_context") != "new_problem":
+            raise ValueError("staged runtime_pack.manifest.json 不是 new_problem 上下文")
+        staged_report = verify_run(staged_run)
+        if staged_report.get("workflow") != "new_problem" or not staged_report.get(
+            "advance_allowed"
+        ):
+            raise ValueError("staged 比赛 Run 未通过初始化完整性验证")
+
+        final_run = output_path / staged_run.name
+        if final_run.exists() or final_run.is_symlink():
+            raise FileExistsError(f"运行目录已存在：{final_run}")
+        result = {
             "run_dir": str(final_run),
             "runtime_pack": str(final_run / "runtime_pack.md"),
-            "runtime_pack_sha256": str(runtime_manifest["runtime_pack_sha256"]),
-            "workflow_context": str(runtime_manifest["workflow_context"]),
+            "runtime_pack_sha256": runtime_pack_sha256,
+            "workflow_context": "new_problem",
             "profile": profile,
             "mode": mode,
             "gate_0_prompt": GATE_0_PROMPT,
         }
+        staged_run.replace(final_run)
+        try:
+            _cleanup_staging(staging_root)
+        except OSError:
+            pass
+        return result
     except Exception:
         _cleanup_staging(staging_root)
         if manifest_created:

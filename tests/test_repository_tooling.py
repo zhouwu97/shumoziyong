@@ -106,6 +106,7 @@ def _write_minimal_run_binding(
     (run_dir / "runtime_pack.manifest.json").write_text(
         json.dumps(
             {
+                "manifest_version": "1.2.0",
                 "profile": profile,
                 "runtime_version": runtime_version,
                 "runtime_pack_sha256": runtime_pack_sha,
@@ -1147,7 +1148,7 @@ def test_profile_requirements_and_explicit_run_id_collisions_fail_closed(tmp_pat
         create_new_problem_run(Namespace(**vars(args)))
 
 
-@pytest.mark.parametrize("run_id", ["../escaped", "nested/run", "C:/absolute-run", "CON"])
+@pytest.mark.parametrize("run_id", ["", "../escaped", "nested/run", "C:/absolute-run", "CON"])
 def test_explicit_run_id_cannot_escape_output_root(tmp_path: Path, run_id: str) -> None:
     """显式 Run ID 只能是单段安全标识，不能改变输出目录解析结果。"""
     args = Namespace(
@@ -1264,6 +1265,35 @@ def _interrupt_fork_before_child_move(
     return transaction_path, transaction, staged_child, final_child
 
 
+def _interrupt_fork_after_parent_linked(
+    parent: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    transaction_id: str,
+) -> tuple[Path, dict[str, object], Path]:
+    """制造父事件与 parent_linked 已落盘、子记录尚未提交的恢复现场。"""
+    original_commit = run_workflow_module._commit_child_fork_record
+
+    def interrupt_child_commit(*_args, **_kwargs):
+        raise OSError("模拟 parent_linked 后中断")
+
+    monkeypatch.setattr(run_workflow_module, "_commit_child_fork_record", interrupt_child_commit)
+    with pytest.raises(OSError, match="parent_linked"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id=transaction_id,
+        )
+    monkeypatch.setattr(run_workflow_module, "_commit_child_fork_record", original_commit)
+    transaction_path = (
+        parent.parent / ".transactions" / "fork-profile" / f"{transaction_id}.json"
+    )
+    transaction = json.loads(transaction_path.read_text("utf-8"))
+    child = parent.parent / str(transaction["child_run_id"])
+    return transaction_path, transaction, child
+
+
 def test_fork_profile_commits_cross_bound_lineage_and_supersedes_parent(tmp_path: Path) -> None:
     """Fork 成功后父 Run 停止推进，子 Run 仅在 committed 谱系下可继续。"""
     parent = _forkable_general_run(tmp_path)
@@ -1290,6 +1320,25 @@ def test_fork_profile_commits_cross_bound_lineage_and_supersedes_parent(tmp_path
         advance_run(parent, "reviewer")
     advance_run(child, "reviewer")
     assert replay_transition_log(child)["current_gate"] == 0
+
+
+def test_committed_fork_child_tampering_blocks_reported_progress(tmp_path: Path) -> None:
+    """已提交子 Run 的证据漂移必须使完整性与推进状态同时闭锁。"""
+    parent = _forkable_general_run(tmp_path)
+    result = fork_profile(
+        parent,
+        profile="engineering_optimization",
+        reviewer="reviewer",
+        reason="Gate 0 确认需要工程优化专项 Profile。",
+        transaction_id="forktxn16",
+    )
+    child = Path(result["child_run"])
+    (child / "diagnosis.json").write_text("{}\n", encoding="utf-8")
+
+    report = verify_run(child)
+    assert report["sealed"] is False
+    assert report["advance_allowed"] is False
+    assert any("diagnosis.json" in error for error in report["promotion_readiness_errors"])
 
 
 def test_fork_profile_resumes_after_child_publish_failure(
@@ -1329,6 +1378,61 @@ def test_fork_profile_resumes_after_child_publish_failure(
     )
     assert Path(resumed["child_run"]).name == child_before
     assert resumed["status"] == "committed"
+
+
+@pytest.mark.parametrize(
+    ("tampered_file", "transaction_id", "error_pattern"),
+    [
+        ("diagnosis.json", "forktxn14_diagnosis", "diagnosis.json"),
+        ("runtime_pack.md", "forktxn14_runtime", "runtime_pack.md"),
+    ],
+)
+def test_fork_profile_resume_rejects_tampering_after_child_published(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tampered_file: str,
+    transaction_id: str,
+    error_pattern: str,
+) -> None:
+    """child_published 后子证据漂移时，不得 supersede 父 Run 或提交子 Run。"""
+    parent = _forkable_general_run(tmp_path)
+    original_append = run_workflow_module._append_profile_fork_event
+
+    def interrupt_parent_link(*_args, **_kwargs):
+        raise OSError("模拟 child_published 后中断")
+
+    monkeypatch.setattr(run_workflow_module, "_append_profile_fork_event", interrupt_parent_link)
+    with pytest.raises(OSError, match="child_published"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id=transaction_id,
+        )
+    monkeypatch.setattr(run_workflow_module, "_append_profile_fork_event", original_append)
+    transaction_path = (
+        parent.parent / ".transactions" / "fork-profile" / f"{transaction_id}.json"
+    )
+    transaction = json.loads(transaction_path.read_text("utf-8"))
+    child = parent.parent / str(transaction["child_run_id"])
+    assert transaction["status"] == "child_published"
+    (child / tampered_file).write_text("tampered\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=error_pattern):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id=transaction_id,
+            resume=True,
+        )
+
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "child_published"
+    assert json.loads((child / "fork_record.json").read_text("utf-8"))["status"] == "prepared"
+    assert child.name == transaction["child_run_id"]
 
 
 def test_fork_profile_resumes_when_child_move_precedes_transaction_update(
@@ -1647,6 +1751,80 @@ def test_fork_profile_resumes_when_parent_event_precedes_transaction_update(
     assert Path(resumed["child_run"]) == child
     assert resumed["status"] == "committed"
     assert json.loads(transaction_path.read_text("utf-8"))["status"] == "committed"
+
+
+def test_fork_profile_rolls_back_parent_when_parent_linked_child_is_corrupt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """父事件已写但子提交前损坏时，补偿事件必须恢复父 Run 并中止事务。"""
+    parent = _forkable_general_run(tmp_path)
+    transaction_path, transaction, child = _interrupt_fork_after_parent_linked(
+        parent, monkeypatch, "forktxn15"
+    )
+    assert transaction["status"] == "parent_linked"
+    assert replay_transition_log(parent)["lifecycle_status"] == "superseded"
+    (child / "diagnosis.json").write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="diagnosis.json"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn15",
+            resume=True,
+        )
+
+    parent_state = replay_transition_log(parent)
+    assert parent_state["lifecycle_status"] == "active"
+    assert parent_state["current_gate"] == 0
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "aborted"
+    assert verify_run(parent)["advance_allowed"] is True
+    with pytest.raises(ValueError, match="aborted|谱系"):
+        advance_run(child, "reviewer")
+
+
+def test_parent_linked_compensation_resumes_after_rollback_event_interruption(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """补偿事件落盘后的再次 resume 必须幂等完成事务中止。"""
+    parent = _forkable_general_run(tmp_path)
+    transaction_path, transaction, child = _interrupt_fork_after_parent_linked(
+        parent, monkeypatch, "forktxn17"
+    )
+    (child / "diagnosis.json").write_text("{}\n", encoding="utf-8")
+    original_abort_child = run_workflow_module._abort_child_fork_record
+
+    def interrupt_after_rollback(*_args, **_kwargs):
+        raise OSError("模拟 rollback event 后中断")
+
+    monkeypatch.setattr(run_workflow_module, "_abort_child_fork_record", interrupt_after_rollback)
+    with pytest.raises(OSError, match="rollback event"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn17",
+            resume=True,
+        )
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "parent_linked"
+
+    monkeypatch.setattr(run_workflow_module, "_abort_child_fork_record", original_abort_child)
+    with pytest.raises(ValueError, match="diagnosis.json"):
+        fork_profile(
+            parent,
+            profile="engineering_optimization",
+            reviewer="reviewer",
+            reason="Gate 0 确认需要工程优化专项 Profile。",
+            transaction_id="forktxn17",
+            resume=True,
+        )
+    assert replay_transition_log(parent)["lifecycle_status"] == "active"
+    assert json.loads(transaction_path.read_text("utf-8"))["status"] == "aborted"
+    assert json.loads((child / "fork_record.json").read_text("utf-8"))["status"] == "aborted"
+    assert child.name == transaction["child_run_id"]
 
 
 def test_export_runtime_pack_requires_context_and_resolves_profile_defaults(

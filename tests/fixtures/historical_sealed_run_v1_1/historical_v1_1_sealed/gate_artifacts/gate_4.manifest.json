@@ -1,0 +1,20 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 4,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "historical_v1_1_sealed",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "artifacts": [
+    {
+      "path": "paper_claim_map.json",
+      "role": "paper_claim_map",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "e6959195f2354a1da5b89d0592d3d237884db97d9b8826d5f3ca1799441fe574",
+      "size_bytes": 495
+    }
+  ]
+}

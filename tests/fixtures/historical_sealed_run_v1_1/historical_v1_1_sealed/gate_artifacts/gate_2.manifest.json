@@ -1,0 +1,20 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 2,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "historical_v1_1_sealed",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "artifacts": [
+    {
+      "path": "code_plan.json",
+      "role": "code_plan",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "94483f52b5faed03839af9be63f5a646371c39cdf1b8ebd1a92bd894da4aa65f",
+      "size_bytes": 518
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 3,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "historical_v1_1_sealed",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.2.0",
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "artifacts": [
+    {
+      "path": "result_report.json",
+      "role": "result_report",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "1653af9ba84eabd12245c02cc13c134845345ec0e8e3793b93ff5c77888b3220",
+      "size_bytes": 1249
+    },
+    {
+      "path": "result_manifest.json",
+      "role": "result_manifest",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "d1ce4360bd27e0991af7c9e3f0327cc0b06616d1a3592c9b62ddd9e5aa9e6836",
+      "size_bytes": 1757
+    }
+  ]
+}

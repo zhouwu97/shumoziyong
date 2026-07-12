@@ -106,6 +106,22 @@ NEW_PROBLEM_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("competition_process_review.md", "competition_process_review", "text/markdown"),
 )
 
+LEGACY_1_1_FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("run_manifest.json", "run_manifest", "application/json"),
+    ("request.json", "request", "application/json"),
+    ("response.json", "model_response", "application/json"),
+    ("runtime_pack.md", "runtime_pack", "text/markdown"),
+    ("runtime_pack.manifest.json", "runtime_pack_manifest", "application/json"),
+    ("problem_manifest.json", "problem_manifest", "application/json"),
+    ("automatic_evaluation.json", "automatic_evaluation", "application/json"),
+    ("ai_run_metadata.json", "ai_run_metadata", "application/json"),
+    ("human_review.md", "human_review", "text/markdown"),
+    ("transitions.jsonl", "transitions", "application/jsonlines"),
+    ("gate_5_review.json", "gate_5_review", "application/json"),
+    ("score.json", "score", "application/json"),
+    ("failure_labels.json", "failure_labels", "application/json"),
+)
+
 WORKFLOW_EVIDENCE_PURPOSES = {
     "full_replay": "training_validation",
     "new_problem": "competition_execution",
@@ -134,9 +150,18 @@ def evidence_required_artifacts_for_workflow(
     workflow: str,
     *,
     completed: bool,
+    runtime_manifest_version: str = "1.2.0",
 ) -> dict[str, str]:
     """从 workflow 派生不可手填的证据角色合同；完成态额外要求 Gate 0-5。"""
-    required = {role: filename for filename, role, _media_type in evidence_artifact_specs_for_workflow(workflow)}
+    if runtime_manifest_version == "1.1.0":
+        if workflow != "full_replay":
+            raise ValueError("runtime pack manifest 1.1.0 只支持历史 full_replay Evidence")
+        specs = LEGACY_1_1_FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS
+    elif runtime_manifest_version == "1.2.0":
+        specs = evidence_artifact_specs_for_workflow(workflow)
+    else:
+        raise ValueError(f"runtime pack manifest_version 不支持：{runtime_manifest_version!r}")
+    required = {role: filename for filename, role, _media_type in specs}
     if completed:
         required.update({role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS})
         required.update(
@@ -148,7 +173,10 @@ def evidence_required_artifacts_for_workflow(
     return required
 
 
-def validate_workflow_evidence_purpose(manifest: Mapping[str, Any]) -> str | None:
+def validate_workflow_evidence_purpose(
+    manifest: Mapping[str, Any],
+    runtime_manifest: Mapping[str, Any] | None = None,
+) -> str | None:
     """验证 workflow 与证据用途的一对一绑定，防止通过手改字段改变证据资格。"""
     workflow = manifest.get("workflow")
     if not isinstance(workflow, str):
@@ -156,6 +184,13 @@ def validate_workflow_evidence_purpose(manifest: Mapping[str, Any]) -> str | Non
     expected = WORKFLOW_EVIDENCE_PURPOSES.get(workflow)
     if expected is None:
         return f"run_manifest.workflow 非法：{workflow!r}"
+    if (
+        manifest.get("evidence_purpose") is None
+        and runtime_manifest is not None
+        and runtime_manifest.get("manifest_version") == "1.1.0"
+        and workflow == "full_replay"
+    ):
+        return None
     if manifest.get("evidence_purpose") != expected:
         return (
             "run_manifest.evidence_purpose 与 workflow 不一致："
@@ -359,7 +394,7 @@ def _resolve_run_directory(
     if not output_root.is_absolute():
         output_root = ROOT / output_root
     explicit_run_id = getattr(args, "run_id", None)
-    if explicit_run_id:
+    if explicit_run_id is not None:
         run_id = validate_explicit_run_id(str(explicit_run_id))
         run_dir = output_root / run_id
         if run_dir.exists():
@@ -812,6 +847,31 @@ def _replay_v2_transition_log(
     for idx, entry in enumerate(entries[1:], start=2):
         if entry.get("transition_version") != TRANSITION_VERSION:
             raise ValueError(f"第 {idx} 条 Gate 记录 transition_version 不一致")
+        if entry.get("state") == "profile_fork_rolled_back":
+            if completed or lifecycle_status != "superseded":
+                raise ValueError("profile_fork_rolled_back 只能补偿尚未提交的 profile_forked")
+            if entry.get("event_type") != "profile_fork_rolled_back":
+                raise ValueError("profile_fork_rolled_back 事件类型非法")
+            if (
+                current != 0
+                or entry.get("completed_gate") is not None
+                or entry.get("next_gate") != 0
+                or entry.get("lifecycle_status") != "active"
+            ):
+                raise ValueError("profile_fork_rolled_back 必须恢复 Gate 0 active 状态")
+            if entry.get("fork_transaction_id") != fork_transaction_id:
+                raise ValueError("profile_fork_rolled_back 的事务身份不匹配")
+            if entry.get("child_run_id") != superseded_by_run_id:
+                raise ValueError("profile_fork_rolled_back 的子 Run 身份不匹配")
+            if not all(
+                isinstance(entry.get(field), str) and str(entry[field]).strip()
+                for field in ("reviewer", "reason")
+            ):
+                raise ValueError("profile_fork_rolled_back 缺少审核身份或原因")
+            lifecycle_status = "active"
+            superseded_by_run_id = None
+            fork_transaction_id = None
+            continue
         if completed or lifecycle_status != "active":
             raise ValueError("completed 终态之后不得再追加转换记录")
         if entry.get("state") == "profile_forked":
@@ -1214,6 +1274,15 @@ def _validate_runtime_context_binding(
     workflow = run_manifest.get("workflow")
     if not isinstance(workflow, str) or workflow not in RUNTIME_CONTRACTS:
         raise ValueError(f"run_manifest.workflow 非法：{workflow!r}")
+    manifest_version = runtime_manifest.get("manifest_version")
+    if manifest_version == "1.1.0":
+        if workflow != "full_replay":
+            raise ValueError("runtime pack manifest 1.1.0 只支持历史 full_replay")
+        if "workflow_context" in runtime_manifest or "runtime_contract" in runtime_manifest:
+            raise ValueError("runtime pack manifest 1.1.0 不得携带 1.2.0 上下文字段")
+        return
+    if manifest_version != "1.2.0":
+        raise ValueError(f"runtime pack manifest_version 不支持：{manifest_version!r}")
     if runtime_manifest.get("workflow_context") != workflow:
         raise ValueError(
             "runtime_pack.manifest.json.workflow_context 与 run_manifest.workflow 不一致"
@@ -1857,6 +1926,45 @@ def _append_profile_fork_event(parent_run: Path, transaction: Mapping[str, Any])
     )
 
 
+def _append_profile_fork_rollback_event(
+    parent_run: Path,
+    transaction: Mapping[str, Any],
+    failure: Exception,
+) -> None:
+    """幂等追加 Fork 补偿事件，使尚未提交事务的父 Run 恢复 Gate 0 active。"""
+    entries = _read_transition_entries(parent_run / "transitions.jsonl")
+    if entries:
+        existing = entries[-1]
+        if (
+            existing.get("state") == "profile_fork_rolled_back"
+            and existing.get("fork_transaction_id") == transaction["fork_transaction_id"]
+            and existing.get("child_run_id") == transaction["child_run_id"]
+        ):
+            return
+    state = replay_transition_log(parent_run)
+    if (
+        state.get("lifecycle_status") != "superseded"
+        or state.get("fork_transaction_id") != transaction["fork_transaction_id"]
+        or state.get("superseded_by_run_id") != transaction["child_run_id"]
+    ):
+        raise ValueError("父 Run 不存在可补偿的 profile_forked 事件")
+    _append_transition_event(
+        parent_run / "transitions.jsonl",
+        {
+            "transition_version": TRANSITION_VERSION,
+            "event_type": "profile_fork_rolled_back",
+            "state": "profile_fork_rolled_back",
+            "completed_gate": None,
+            "next_gate": 0,
+            "fork_transaction_id": transaction["fork_transaction_id"],
+            "child_run_id": transaction["child_run_id"],
+            "reviewer": transaction["reviewer"],
+            "reason": f"子 Run 提交前完整性复核失败：{failure}",
+            "lifecycle_status": "active",
+        },
+    )
+
+
 def _fork_record_path(run_dir: Path) -> Path:
     """集中定义子 Run 的 Fork 记录位置。"""
     return run_dir / "fork_record.json"
@@ -2052,6 +2160,76 @@ def _commit_child_fork_record(child_run: Path, transaction: Mapping[str, Any]) -
     write_json(record_path, record)
 
 
+def _abort_child_fork_record(child_run: Path, transaction: Mapping[str, Any]) -> None:
+    """将补偿事务的子记录标为 aborted，确保该目录永久不可推进。"""
+    if child_run.is_symlink() or not child_run.is_dir():
+        return
+    record_path = _fork_record_path(child_run)
+    try:
+        record = _load_json_object(record_path, "fork_record.json")
+    except (OSError, ValueError):
+        return
+    if record.get("fork_transaction_id") != transaction["fork_transaction_id"]:
+        return
+    record["status"] = "aborted"
+    write_json(record_path, record)
+
+
+def _abort_linked_fork_transaction(
+    parent_run: Path,
+    transaction_path: Path,
+    transaction: dict[str, Any],
+    failure: Exception,
+) -> None:
+    """补偿已写父事件但尚未提交子 Run 的事务，恢复父 Run 并封闭子 Run。"""
+    _append_profile_fork_rollback_event(parent_run, transaction, failure)
+    parent_manifest = _load_json_object(parent_run / "run_manifest.json", "run_manifest.json")
+    write_json(
+        parent_run / "run_evidence_manifest.json",
+        build_run_evidence_manifest(parent_run, str(parent_manifest["run_id"])),
+    )
+    child_run = parent_run.parent / str(transaction["child_run_id"])
+    _abort_child_fork_record(child_run, transaction)
+    transaction["status"] = "aborted"
+    transaction["abort_reason"] = str(failure)
+    _write_fork_transaction(transaction_path, transaction)
+
+
+def _verify_published_child_or_compensate(
+    parent_run: Path,
+    transaction_path: Path,
+    transaction: dict[str, Any],
+) -> None:
+    """重验正式子 Run；父事件已写时以补偿事务恢复父状态。"""
+    child_run = parent_run.parent / str(transaction["child_run_id"])
+    try:
+        _verify_fork_child_for_resume(
+            child_run,
+            transaction,
+            label="已发布子 Run",
+            parent_run=parent_run,
+        )
+    except Exception as exc:
+        state = replay_transition_log(parent_run)
+        parent_is_linked = (
+            state.get("lifecycle_status") == "superseded"
+            and state.get("fork_transaction_id") == transaction["fork_transaction_id"]
+            and state.get("superseded_by_run_id") == transaction["child_run_id"]
+        )
+        entries = _read_transition_entries(parent_run / "transitions.jsonl")
+        rollback_is_recorded = bool(entries) and all(
+            entries[-1].get(field) == expected
+            for field, expected in {
+                "state": "profile_fork_rolled_back",
+                "fork_transaction_id": transaction["fork_transaction_id"],
+                "child_run_id": transaction["child_run_id"],
+            }.items()
+        )
+        if parent_is_linked or rollback_is_recorded:
+            _abort_linked_fork_transaction(parent_run, transaction_path, transaction, exc)
+        raise
+
+
 def _resume_fork_transaction(parent_run: Path, transaction_path: Path) -> dict[str, Any]:
     """从已落盘状态继续事务，重复调用不创建第二个子 Run。"""
     run_root = parent_run.parent
@@ -2072,6 +2250,7 @@ def _resume_fork_transaction(parent_run: Path, transaction_path: Path) -> dict[s
         _write_fork_transaction(transaction_path, transaction)
         status = "child_published"
     if status == "child_published":
+        _verify_published_child_or_compensate(parent_run, transaction_path, transaction)
         try:
             _append_profile_fork_event(parent_run, transaction)
         except ValueError as exc:
@@ -2083,6 +2262,7 @@ def _resume_fork_transaction(parent_run: Path, transaction_path: Path) -> dict[s
         _write_fork_transaction(transaction_path, transaction)
         status = "parent_linked"
     if status == "parent_linked":
+        _verify_published_child_or_compensate(parent_run, transaction_path, transaction)
         _commit_child_fork_record(run_root / str(transaction["child_run_id"]), transaction)
         transaction["status"] = "committed"
         _write_fork_transaction(transaction_path, transaction)
@@ -2194,15 +2374,15 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
     evidence_errors: list[str] = []
     lineage_errors = _fork_lineage_errors(run_dir, state)
     evidence_errors.extend(lineage_errors)
-    purpose_error = validate_workflow_evidence_purpose(manifest)
-    if purpose_error:
-        evidence_errors.append(purpose_error)
-    else:
-        try:
-            runtime_manifest = _load_json_object(
-                run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
-            )
-            _validate_runtime_context_binding(manifest, runtime_manifest)
+    try:
+        runtime_manifest = _load_json_object(
+            run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
+        )
+        _validate_runtime_context_binding(manifest, runtime_manifest)
+        purpose_error = validate_workflow_evidence_purpose(manifest, runtime_manifest)
+        if purpose_error:
+            evidence_errors.append(purpose_error)
+        else:
             from finalize_run_evidence import validate_evidence_manifest
 
             workflow = manifest.get("workflow")
@@ -2213,12 +2393,13 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             required_artifacts = evidence_required_artifacts_for_workflow(
                 workflow,
                 completed=bool(state.get("completed")),
+                runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
             )
             evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
             if evidence.get("run_id") != manifest.get("run_id"):
                 evidence_errors.append("run_evidence_manifest.run_id 与 run_manifest 不一致")
-        except (OSError, ValueError, json.JSONDecodeError) as exc:
-            evidence_errors.append(str(exc))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        evidence_errors.append(str(exc))
     verified_gates: list[int] = []
     for gate in state.get("completed_gates", []):
         verify_gate_artifacts(run_dir, gate)
@@ -2261,7 +2442,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             workflow = manifest.get("workflow")
             assert isinstance(workflow, str)
             required = evidence_required_artifacts_for_workflow(
-                workflow, completed=True
+                workflow,
+                completed=True,
+                runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
             )
             evidence = _load_json_object(
                 run_dir / "run_evidence_manifest.json", "run_evidence_manifest.json"
@@ -2273,6 +2456,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
     advance_allowed = (
         state.get("lifecycle_status") == "active"
         and not state["completed"]
+        and not evidence_errors
         and not _fork_lineage_errors(run_dir, state)
     )
     if advance_allowed and not _fork_record_path(run_dir).is_file():

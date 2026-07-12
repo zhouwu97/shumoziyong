@@ -1,0 +1,100 @@
+{
+  "manifest_version": "1.1.0",
+  "runtime_version": "0.2.0",
+  "generated_at": "2026-07-10T16:00:00+00:00",
+  "profile": "engineering_optimization",
+  "maturity": "assembled",
+  "runtime_profile_state": {
+    "path": "runtime_profiles/engineering_optimization.json",
+    "sha256": "2eeaca0640e827be9f90d162581538abb747551d1d05ae52a2dcf7bb55a7ee8f"
+  },
+  "patch_index": {
+    "path": "prompt_patches/patch_index.json",
+    "sha256": "966a7904a9c6dad276097401e499415b387a2405569b0b6696cd3a02129902a9"
+  },
+  "base": {
+    "path": "prompt_base/prompt_base_v1.0.md",
+    "sha256": "cfb0f90e9b67bfbd5e0f91241c8f24b5f5514995259ba743bf7a741a2b9671e6"
+  },
+  "plugins": [
+    {
+      "path": "prompt_plugins/plugin_optimization_v1.md",
+      "sha256": "e9d9966dae398e6f84a885caa380a9d0ef11085fdb178ecd461ce41654175cb1"
+    }
+  ],
+  "patches": [],
+  "checklists": [
+    {
+      "path": "checklists/gate_0_material_diagnosis.md",
+      "sha256": "6076cb3f15627c0966b27448152b50a3a6f61c844d497f002c7ffa0fd6e177e2"
+    },
+    {
+      "path": "checklists/gate_1_model_route.md",
+      "sha256": "6ee28b92d05926e31cb4ba89a233dc34fc0b08d4964915774bdfdb9a8229f2df"
+    },
+    {
+      "path": "checklists/gate_2_code_plan.md",
+      "sha256": "3e95243de44bb3a0993f5384995eecc3563993da5944805a7763297f621b999b"
+    },
+    {
+      "path": "checklists/gate_3_results_confirmation.md",
+      "sha256": "6fb388bc1bcc73703b2edf93e9825e50a4d97e0a3b91df5c4a52dc7c53e0051b"
+    },
+    {
+      "path": "checklists/gate_4_paper_confirmation.md",
+      "sha256": "abcd8484922e7bf5ca6037096859a8d44b1feb240be1562a89d53b4ddf5b8115"
+    },
+    {
+      "path": "checklists/gate_5_final_acceptance.md",
+      "sha256": "d504ca72bb6b108ab7cc906ac3299151a322b3cd83f3ab17161fbb5143312363"
+    }
+  ],
+  "other_files": [
+    {
+      "path": "export/mathmodelagent_inject_prompt.md",
+      "sha256": "a1388c85691b80b4efc471d0896aa79e6e40f2fc6399ba1156310343afb9ba0e"
+    },
+    {
+      "path": "runtime_profiles/engineering_optimization_runtime.md",
+      "sha256": "ebbe87800fcfca8952219f915623a5832181b7034d9ffd9c3dcbd289684a73a1"
+    }
+  ],
+  "excluded_patches": [
+    {
+      "patch_id": "A092",
+      "status": "review_ready",
+      "reason": "review_ready patch 未显式指定导入"
+    },
+    {
+      "patch_id": "A127",
+      "status": "review_ready",
+      "reason": "review_ready patch 未显式指定导入"
+    },
+    {
+      "patch_id": "B311",
+      "status": "review_ready",
+      "reason": "review_ready patch 未显式指定导入"
+    },
+    {
+      "patch_id": "B477",
+      "status": "review_ready",
+      "reason": "review_ready patch 未显式指定导入"
+    }
+  ],
+  "candidate_experiment": {
+    "enabled": false,
+    "patch_ids": [],
+    "warning": null
+  },
+  "exclusion_experiment": {
+    "enabled": false,
+    "patch_ids": []
+  },
+  "export_flags": {
+    "candidate_patches": [],
+    "excluded_patches": []
+  },
+  "validation_target_status": null,
+  "runtime_pack_sha256": "cee50640f4bb82a1a1370de3f11c0a08e2ae2f03485f8683e79324df25c17ee3",
+  "build_identity": "27ec847b1dc647cd0df88e65eb1e8cef9e4763792a528fd7cf7fb4a12de6e91d"
+}

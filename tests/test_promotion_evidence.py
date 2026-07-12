@@ -63,6 +63,7 @@ def _complete_and_seal_fixture_run(run_dir: Path) -> None:
     contract_path = RUNTIME_CONTRACTS["full_replay"]
     runtime_manifest.update(
         {
+            "manifest_version": "1.2.0",
             "workflow_context": "full_replay",
             "runtime_contract": {
                 "path": contract_path,

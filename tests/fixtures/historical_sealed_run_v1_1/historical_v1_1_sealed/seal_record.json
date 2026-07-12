@@ -1,0 +1,8 @@
+{
+  "seal_version": "1.0.0",
+  "run_id": "historical_v1_1_sealed",
+  "sealed_at": "2026-07-12T10:22:20+08:00",
+  "run_manifest_sha256": "1b4791c989e182fc102bbcbf18bee5ac788d8e62337173905694bedc244acba0",
+  "transitions_sha256": "74dfd239dfb6ad013ad85636ab9577692ef3c92ea179119c9f24ab92aa235e30",
+  "evidence_manifest_sha256": "15d9d84b1cd1065e97dd20dae70512f4e2ea526f2f276fffbefd62941210621c"
+}
