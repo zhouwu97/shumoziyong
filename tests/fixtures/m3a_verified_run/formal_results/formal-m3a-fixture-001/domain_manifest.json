@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "artifact_type": "domain_manifest",
+  "domain": "engineering_optimization",
+  "mechanism": "mip",
+  "validator_id": "test-validator",
+  "validator_version": "1.0.0",
+  "required_artifacts": [
+    {
+      "path": "formal_result_manifest.json",
+      "media_type": "application/json",
+      "file_sha256": "8643c6fdf36e48df0f9d45a9aae8f6b80290581dfa65e4555f62af757ffb5c70",
+      "semantic_sha256": "8c2aee09169b2e03ce6c4dc0683f9da3df1db69128fd2a2eec0fce76c2843b1c",
+      "schema": "formal_result_bundle_manifest.schema.json"
+    },
+    {
+      "path": "decision_variables.json",
+      "media_type": "application/json",
+      "file_sha256": "770f73b7dc8b3269ff853b840e727b6eeb507e05738cf0400b47b9a9597abe12",
+      "semantic_sha256": "57bc383731b4b8ffbcf1b276047f2a7c50feadd32c4202095ba35292c0fd06e4",
+      "schema": "formal_result_decision_variables.schema.json"
+    },
+    {
+      "path": "optimization_validation.json",
+      "media_type": "application/json",
+      "file_sha256": "83046924f09478b50a06b014bea71e77ef8511e207e4f110b3931d00318afd8f",
+      "semantic_sha256": "8d2d81e62e4791923dcbee6d9fc9b5ee576e8130ae35e3b8b5f18fe61d8332ca",
+      "schema": "formal_result_core_artifact.schema.json"
+    },
+    {
+      "path": "optimality_certificate.json",
+      "media_type": "application/json",
+      "file_sha256": "e68d74176fbc9d55a60af36760ba4f4cc8f7aa7d200a79e4b90c08b33e454657",
+      "semantic_sha256": "5984b3870999aca526d5cdd13856773af16d5a3a18f6f4227656d67aa372797a",
+      "schema": "formal_result_core_artifact.schema.json"
+    },
+    {
+      "path": "collector_attestation.json",
+      "media_type": "application/json",
+      "file_sha256": "15e9debd3f4358eb9173be92e68f50efd9d9b1070a28651b1ab29652592cc917",
+      "semantic_sha256": "5e9b9e46025eb83f9650351ba6c81fd52ffbf4d6f311784b0c866f89dc0acd81",
+      "schema": "collector_attestation.schema.json"
+    },
+    {
+      "path": "negative_tests.json",
+      "media_type": "application/json",
+      "file_sha256": "7259aec0831919019bd64632dc7a35686a93613b481c13cf6efd5de37c6bdda0",
+      "semantic_sha256": "b5cc6eb1fe4fd753a4db00b3aa8a74d4b84ba0f04bb4cfc64733f845b20c8936",
+      "schema": "formal_result_core_artifact.schema.json"
+    },
+    {
+      "path": "input_manifest.json",
+      "media_type": "application/json",
+      "file_sha256": "d932c13ba3a3cc59579f1da1b2ec23754e1fc383da425086a2e0b162ec27f2c6",
+      "semantic_sha256": "ddb0878aa708b9fe7349871ffeb18aa78684a8fb6c61e5c9d06064d91e6e5169",
+      "schema": "formal_result_provenance_manifest.schema.json"
+    },
+    {
+      "path": "code_manifest.json",
+      "media_type": "application/json",
+      "file_sha256": "64fb1d9d0b0112536ff0f83a684195f5ca85323e66b95ef1c1130cd08fbf993e",
+      "semantic_sha256": "fe3e6732501689e3ce4928e6a2fe2fe707c3a0c1171799fb614baabec1f56836",
+      "schema": "formal_result_provenance_manifest.schema.json"
+    },
+    {
+      "path": "environment_manifest.json",
+      "media_type": "application/json",
+      "file_sha256": "4224315021a5ca1bed653483a4bf0cedeeef9779c653fa1d16b8f10f88a2da61",
+      "semantic_sha256": "8964862040a580f0d256a2bd89c0698110d7e4e2d21a6f51622ed446d351b0c4",
+      "schema": "formal_result_provenance_manifest.schema.json"
+    },
+    {
+      "path": "logs/stdout.log",
+      "media_type": "text/plain",
+      "file_sha256": "500ac942747c7df45378217bf4e9b5d61c859788b4fcceeb0a2526af656e7abe"
+    },
+    {
+      "path": "logs/stderr.log",
+      "media_type": "text/plain",
+      "file_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "required_certificates": [
+    "optimality_certificate.json"
+  ],
+  "decision_schema": "formal_result_decision_variables.schema.json",
+  "metric_schema": {
+    "objective": "number"
+  },
+  "invariant_checks": [
+    "capacity"
+  ],
+  "optimality_claim_level": "optimal",
+  "negative_test_requirements": [
+    "missing-input",
+    "tampered-output"
+  ],
+  "output_file_set": [
+    "decision_variables.json",
+    "optimization_validation.json",
+    "optimality_certificate.json"
+  ],
+  "semantic_hashes": {
+    "formal_result_manifest.json": "8c2aee09169b2e03ce6c4dc0683f9da3df1db69128fd2a2eec0fce76c2843b1c",
+    "decision_variables.json": "57bc383731b4b8ffbcf1b276047f2a7c50feadd32c4202095ba35292c0fd06e4",
+    "optimization_validation.json": "8d2d81e62e4791923dcbee6d9fc9b5ee576e8130ae35e3b8b5f18fe61d8332ca",
+    "optimality_certificate.json": "5984b3870999aca526d5cdd13856773af16d5a3a18f6f4227656d67aa372797a",
+    "collector_attestation.json": "5e9b9e46025eb83f9650351ba6c81fd52ffbf4d6f311784b0c866f89dc0acd81",
+    "negative_tests.json": "b5cc6eb1fe4fd753a4db00b3aa8a74d4b84ba0f04bb4cfc64733f845b20c8936",
+    "input_manifest.json": "ddb0878aa708b9fe7349871ffeb18aa78684a8fb6c61e5c9d06064d91e6e5169",
+    "code_manifest.json": "fe3e6732501689e3ce4928e6a2fe2fe707c3a0c1171799fb614baabec1f56836",
+    "environment_manifest.json": "8964862040a580f0d256a2bd89c0698110d7e4e2d21a6f51622ed446d351b0c4"
+  }
+}

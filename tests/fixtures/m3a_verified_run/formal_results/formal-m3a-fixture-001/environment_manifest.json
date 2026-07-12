@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "artifact_type": "environment_manifest",
+  "bindings": {
+    "execution_spec.json": "d53e66b87ad5b7f2c32740817e730eed62f97c714a7ed7a1ad7be2c771ddaed8"
+  },
+  "payload": {
+    "formal_result_activation_status": "run_execution_verified",
+    "sandboxie_environment_observed": true,
+    "sandboxie_environment_verified": true,
+    "formal_result_executed_in_verified_environment": true,
+    "formal_result_eligible": true,
+    "sandboxie_environment_report": {
+      "path": "sandboxie_environment_report.json",
+      "report_id": "sandboxie-env-20260712T225758p0800-94ec485ad9fb",
+      "file_sha256": "5d7791cb5439a75921cb561c804540f82bd94a044fce2747db4f480c0162821a",
+      "semantic_sha256": "42b1913b106d3e8a9d49a5f71d3110a195b792f557c54c96d3eba9c378c29061",
+      "configuration_backup_path": "sandboxie_config_backup.txt",
+      "configuration_backup_sha256": "5d67157d5b1b9a83449bfc853669ed700172f6951cb12c9b142e97e3952bd7d7"
+    },
+    "sandboxie_environment_attestation": {
+      "path": "sandboxie_environment_attestation.json",
+      "file_sha256": "e3cad47e7b77304daf958fd55ec07ecbcfdb036aabc929f78fa87407eead333a",
+      "semantic_sha256": "e65b4baf5a01a91eacd95c1133ad124e3fb1b0138b539a69d836811fe0b28bd0",
+      "original_report_sha256": "c69dd5a368842edb80feedf08506464699f330d59bc29368a83b88d5fa69f83a",
+      "environment_fingerprint": "74464654c9f44d167dd8624e98218a466e952d69743fc3f75b16a4fb4c2c2379",
+      "machine_key_id": "sandboxie-host-d08131d0397a11c0"
+    },
+    "sandboxie_run_execution_attestation": {
+      "path": "sandboxie_run_execution_attestation.json",
+      "file_sha256": "ef6af78d84b7268798c2cd055f457334e403b560a79fd6ed219dd7872652ae19",
+      "semantic_sha256": "c3884744a9d6b6a8646e6530280811e1874238981f7239512d7629421634ad48",
+      "execution_id": "sandboxie-exec-586ab048c159467aaf7ed30948d115ee"
+    }
+  }
+}

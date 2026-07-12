@@ -255,6 +255,10 @@ def test_signed_sandboxie_report_verifies_environment_but_not_run_eligibility(
         "sandboxie_configuration_backup_sha256": environment[
             "configuration_backup_sha256"
         ],
+        "trusted_environment_registry_sha256": environment["trusted_registry_sha256"],
+        "trusted_environment_key_entry_semantic_sha256": environment[
+            "trusted_key_entry_semantic_sha256"
+        ],
     }
     _write(run_dir / "seal_record.json", seal)
     assert verify_run_seal(run_dir)["sandboxie_environment_verified"] is True

@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "execution_spec",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "execution_mode": "trusted_local",
+  "declared_workspace": "workspace",
+  "network_access": false,
+  "declared_writable_paths": [
+    "workspace/output"
+  ],
+  "approved_by": "test-reviewer",
+  "approved_at": "2026-07-12T10:00:00Z",
+  "tasks": [
+    {
+      "task_id": "FORMAL_TEST",
+      "runner": "python",
+      "entrypoint": "code/solve.py",
+      "entrypoint_arg_index": 1,
+      "argv": [
+        "python",
+        "code/solve.py"
+      ],
+      "working_directory": "workspace",
+      "inputs": [
+        {
+          "path": "problem/input.txt",
+          "sha256": "f4706ec6f26d9588f796d4c1a7362f7c0656dd9f3c59452b353d449fc82be446"
+        }
+      ],
+      "required_outputs": [
+        {
+          "path": "workspace/output/result.json",
+          "media_type": "application/json"
+        }
+      ],
+      "depends_on": [],
+      "timeout_seconds": 60,
+      "seed_policy": {
+        "deterministic_expected": true,
+        "seeds": [
+          0
+        ]
+      },
+      "acceptance_checks": [
+        {
+          "check_id": "result",
+          "kind": "file_exists",
+          "expectation": "output/result.json"
+        }
+      ],
+      "fallback": "emit_blocker"
+    }
+  ]
+}

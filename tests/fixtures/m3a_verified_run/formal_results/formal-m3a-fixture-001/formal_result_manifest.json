@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "artifact_type": "formal_result_manifest",
+  "validation_status": "passed",
+  "semantic_hashes": {
+    "decision_variables.json": "57bc383731b4b8ffbcf1b276047f2a7c50feadd32c4202095ba35292c0fd06e4",
+    "optimization_validation.json": "8d2d81e62e4791923dcbee6d9fc9b5ee576e8130ae35e3b8b5f18fe61d8332ca",
+    "optimality_certificate.json": "5984b3870999aca526d5cdd13856773af16d5a3a18f6f4227656d67aa372797a",
+    "collector_attestation.json": "5e9b9e46025eb83f9650351ba6c81fd52ffbf4d6f311784b0c866f89dc0acd81",
+    "negative_tests.json": "b5cc6eb1fe4fd753a4db00b3aa8a74d4b84ba0f04bb4cfc64733f845b20c8936",
+    "input_manifest.json": "ddb0878aa708b9fe7349871ffeb18aa78684a8fb6c61e5c9d06064d91e6e5169",
+    "code_manifest.json": "fe3e6732501689e3ce4928e6a2fe2fe707c3a0c1171799fb614baabec1f56836",
+    "environment_manifest.json": "8964862040a580f0d256a2bd89c0698110d7e4e2d21a6f51622ed446d351b0c4"
+  }
+}

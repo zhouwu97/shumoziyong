@@ -208,14 +208,24 @@ def write_formal_result_bundle(
             "required_outputs": [{"path": "workspace/output/result.json", "media_type": "application/json"}],
             "depends_on": [], "timeout_seconds": 60,
             "seed_policy": {"deterministic_expected": True, "seeds": [0]},
-            "acceptance_checks": [{"check_id": "result", "kind": "file_exists", "expectation": "result exists"}],
+            "acceptance_checks": [{"check_id": "result", "kind": "file_exists", "expectation": "output/result.json"}],
             "fallback": "emit_blocker"
         }]
     }
     _write_json(run_dir / "execution_spec.json", execution_spec)
     code_path = run_dir / "workspace" / "code" / "solve.py"
     code_path.parent.mkdir(parents=True, exist_ok=True)
-    code_path.write_text("print('formal test')\n", encoding="utf-8")
+    code_path.write_text(
+        "import json\n"
+        "from pathlib import Path\n"
+        "source = Path('input/input.txt')\n"
+        "if not source.is_file():\n"
+        "    source = Path('../problem/input.txt')\n"
+        "Path('output').mkdir(exist_ok=True)\n"
+        "Path('output/result.json').write_text(json.dumps({'objective': len(source.read_text(encoding='utf-8'))}) + '\\n', encoding='utf-8')\n"
+        "print('formal test')\n",
+        encoding="utf-8",
+    )
 
     formal = run_dir / "formal_results" / formal_result_id
     (formal / "logs").mkdir(parents=True)

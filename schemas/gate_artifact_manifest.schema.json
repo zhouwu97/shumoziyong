@@ -37,10 +37,10 @@
         "envelope_path": {"type": "string", "pattern": "^formal_results/[A-Za-z0-9._-]+/formal_result_envelope\\.json$"},
         "envelope_file_sha256": {"$ref": "#/$defs/sha256"},
         "envelope_semantic_sha256": {"$ref": "#/$defs/sha256"},
-        "formal_result_activation_status": {"enum": ["code_complete_candidate", "sandboxie_environment_verified"]},
+        "formal_result_activation_status": {"enum": ["code_complete_candidate", "sandboxie_environment_verified", "run_execution_verified"]},
         "sandboxie_environment_observed": {"type": "boolean"},
         "sandboxie_environment_verified": {"type": "boolean"},
-        "formal_result_executed_in_verified_environment": {"const": false},
+        "formal_result_executed_in_verified_environment": {"type": "boolean"},
         "formal_result_eligible": {"type": "boolean"}
       },
       "allOf": [
@@ -51,6 +51,10 @@
         {
           "if": {"properties": {"formal_result_activation_status": {"const": "sandboxie_environment_verified"}}, "required": ["formal_result_activation_status"]},
           "then": {"properties": {"sandboxie_environment_observed": {"const": true}, "sandboxie_environment_verified": {"const": true}, "formal_result_executed_in_verified_environment": {"const": false}, "formal_result_eligible": {"const": false}}}
+        },
+        {
+          "if": {"properties": {"formal_result_activation_status": {"const": "run_execution_verified"}}, "required": ["formal_result_activation_status"]},
+          "then": {"properties": {"sandboxie_environment_observed": {"const": true}, "sandboxie_environment_verified": {"const": true}, "formal_result_executed_in_verified_environment": {"const": true}, "formal_result_eligible": {"const": true}}}
         }
       ]
     },

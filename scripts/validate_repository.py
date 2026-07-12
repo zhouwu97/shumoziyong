@@ -1478,6 +1478,7 @@ class RepositoryValidator:
             "collector_attestation.schema.json",
             "sandboxie_environment_report.schema.json",
             "sandboxie_environment_attestation.schema.json",
+            "sandboxie_run_execution_attestation.schema.json",
             "trusted_environment_registry.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")

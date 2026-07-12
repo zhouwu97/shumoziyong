@@ -1,0 +1,17 @@
+{
+  "attestation_version": "1.0.0",
+  "report_kind": "live_attestation",
+  "report_id": "sandboxie-env-20260712T225758p0800-94ec485ad9fb",
+  "public_report_sha256": "5d7791cb5439a75921cb561c804540f82bd94a044fce2747db4f480c0162821a",
+  "public_report_semantic_sha256": "42b1913b106d3e8a9d49a5f71d3110a195b792f557c54c96d3eba9c378c29061",
+  "original_report_sha256": "c69dd5a368842edb80feedf08506464699f330d59bc29368a83b88d5fa69f83a",
+  "configuration_backup_sha256": "5d67157d5b1b9a83449bfc853669ed700172f6951cb12c9b142e97e3952bd7d7",
+  "probe_script_sha256": "c9cb8194b3b98d7bf4cbcc3f9b0f59ebd1800725ded8ece4684fee0a36381da1",
+  "collector_source_commit": "5e2acfc86950d2b4785bf4d718f1b0bbe5ad35c3",
+  "machine_key_id": "sandboxie-host-d08131d0397a11c0",
+  "environment_fingerprint": "74464654c9f44d167dd8624e98218a466e952d69743fc3f75b16a4fb4c2c2379",
+  "generated_at": "2026-07-12T22:57:58+08:00",
+  "valid_until": "2026-07-19T22:57:58+08:00",
+  "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+  "signature": "HLSKSw3uGd4nwc1VC7olbK8xU/ZpZggfV3s2xSp2uXnpwT4szhLG+BQu7of9HaqE/oELFiT41VR75piAdC790pH75Qyw0czFEwTkW3HMAGNmmiTlOh4MfhO3hr1qy6NM7FtGyJqkr/z/2vU8BhVhPLDRkAY37YLrJBm40IKwu4692hcu2EQBGT17k7JfAxgTdnUb28e985DpXo4UdgQvfQWXJ7dt6TBgiipZur96MIVFi1zDuMJAxs1KfXakDtTMelLmtZW5g+jVPe7XDI18mt5aI8QU3vTjzBonx/tCDqKpaLwiXrvoap5rO+65GJsW325dZExHV+cKAHD5LRpbXfDexf8fTOT0vAmpn7BENovD6NqVDL8igtbhOgPra7ajoQrxlOQGGWcBVZJuwZxtSjUpu8KQ+vDewuXN/nX+A2lXfux0bPAtiBfl5wJzoRsKlkVA2YdYkA/i4IaaoTTIUTx/Z/q8eS4kLCExYREXwoNkDYXqrY71RYhzgzcHg4rd"
+}

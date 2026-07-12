@@ -18,6 +18,10 @@ from .path_safety import (
 )
 from .schema import validate_schema
 from .sandboxie_environment import load_and_verify_sandboxie_environment_report
+from .run_execution_attestation import (
+    ATTESTATION_FILENAME as RUN_ATTESTATION_FILENAME,
+    verify_run_execution_attestation,
+)
 
 
 CORE_RELATIVE_PATHS = (
@@ -262,6 +266,24 @@ def _verify_provenance_manifests(
     }
     if not expected_entrypoints.issubset(code_by_path):
         raise FormalResultVerificationError("Code Manifest 未覆盖全部 Execution Spec 入口文件")
+    code_root = _safe_relative(
+        run_root,
+        f"{execution_spec['declared_workspace']}/code",
+        "完整代码目录",
+    )
+    for path in code_root.rglob("*"):
+        is_junction = getattr(path, "is_junction", lambda: False)
+        if path.is_symlink() or is_junction():
+            raise FormalResultVerificationError(f"Code Manifest 禁止 symlink 或 junction：{path}")
+    actual_code_files = {
+        path.relative_to(run_root).as_posix()
+        for path in code_root.rglob("*")
+        if path.is_file()
+    }
+    if set(code_by_path) != actual_code_files:
+        raise FormalResultVerificationError(
+            f"Code Manifest 未精确覆盖完整代码目录：声明 {sorted(code_by_path)}，实际 {sorted(actual_code_files)}"
+        )
 
     environment_payload = values["environment_manifest.json"].get("payload", {})
     activation_status = environment_payload.get("formal_result_activation_status")
@@ -286,12 +308,14 @@ def _verify_provenance_manifests(
             "formal_result_executed_in_verified_environment": False,
             "formal_result_eligible": False,
         }
+    if activation_status not in {"sandboxie_environment_verified", "run_execution_verified"}:
+        raise FormalResultVerificationError("Environment Manifest 的 Sandboxie 激活状态非法")
+    expected_run_verified = activation_status == "run_execution_verified"
     if (
-        activation_status != "sandboxie_environment_verified"
-        or observed is not True
+        observed is not True
         or verified is not True
-        or executed is not False
-        or eligible is not False
+        or executed is not expected_run_verified
+        or eligible is not expected_run_verified
     ):
         raise FormalResultVerificationError("Environment Manifest 的 Sandboxie 激活状态组合非法")
 
@@ -331,6 +355,26 @@ def _verify_provenance_manifests(
     }
     if attestation_binding != expected_attestation:
         raise FormalResultVerificationError("Environment Manifest 的机器签名 Attestation 绑定不匹配")
+    if expected_run_verified:
+        run_binding = environment_payload.get("sandboxie_run_execution_attestation")
+        if not isinstance(run_binding, dict) or run_binding.get("path") != RUN_ATTESTATION_FILENAME:
+            raise FormalResultVerificationError("Environment Manifest 缺少 Run 专属执行证明绑定")
+        run_summary = verify_run_execution_attestation(run_root, str(execution_spec.get("formal_result_id", "")) or str(values["environment_manifest.json"]["formal_result_id"]))
+        expected_run_binding = {
+            "path": RUN_ATTESTATION_FILENAME,
+            "file_sha256": run_summary["run_attestation_file_sha256"],
+            "semantic_sha256": run_summary["run_attestation_semantic_sha256"],
+            "execution_id": run_summary["execution_id"],
+        }
+        if run_binding != expected_run_binding:
+            raise FormalResultVerificationError("Environment Manifest 的 Run 执行证明绑定不匹配")
+        return {
+            **summary,
+            **run_summary,
+            "report_path": "sandboxie_environment_report.json",
+            "attestation_path": "sandboxie_environment_attestation.json",
+            "run_attestation_path": RUN_ATTESTATION_FILENAME,
+        }
     return {
         **summary,
         "report_path": "sandboxie_environment_report.json",
@@ -350,10 +394,11 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         raise FormalResultVerificationError("仅 required_v1 Run 可以生成或验证新正式结果")
     identity = immutable_identity(run_manifest)
 
-    envelope_relative = Path(envelope_path).as_posix()
-    if Path(envelope_path).is_absolute():
+    envelope_candidate = Path(envelope_path)
+    envelope_relative = envelope_candidate.as_posix()
+    if envelope_candidate.is_absolute() or envelope_candidate.exists():
         try:
-            envelope_relative = Path(envelope_path).resolve().relative_to(run_root).as_posix()
+            envelope_relative = envelope_candidate.resolve().relative_to(run_root).as_posix()
         except ValueError as exc:
             raise FormalResultVerificationError("Envelope 不在当前 Run 目录内") from exc
     envelope_file = _safe_relative(run_root, envelope_relative, "Envelope 路径")

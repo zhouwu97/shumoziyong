@@ -1,0 +1,44 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 3,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "artifacts": [
+    {
+      "path": "result_report.json",
+      "role": "result_report",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "5d8b9ccb5152b5fab1ae1faa6ebd63689f5d261c55ce88cff5bc8ffaefc18a00",
+      "size_bytes": 1251
+    },
+    {
+      "path": "result_manifest.json",
+      "role": "result_manifest",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "4a1dbfc9dfef863d8500bfb2c26ce7cf12851efb639cf28e29f38fac1a9e44c3",
+      "size_bytes": 1759
+    }
+  ],
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "formal_result": {
+    "formal_result_id": "formal-m3a-fixture-001",
+    "envelope_path": "formal_results/formal-m3a-fixture-001/formal_result_envelope.json",
+    "envelope_file_sha256": "3dd2e1c17fbf2e7aa2ec0e90a9d4b8de155aeaa7d6b88ea627a7bf717aca75fb",
+    "envelope_semantic_sha256": "f9d65a10a0e4ca4bf1d38070900dcbb65db6ed59c0309a5bd68cbd5a26193509",
+    "formal_result_activation_status": "run_execution_verified",
+    "sandboxie_environment_observed": true,
+    "sandboxie_environment_verified": true,
+    "formal_result_executed_in_verified_environment": true,
+    "formal_result_eligible": true
+  }
+}

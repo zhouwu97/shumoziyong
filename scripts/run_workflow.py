@@ -335,6 +335,14 @@ def build_run_evidence_manifest(
                         ),
                     ]
                 )
+                if environment.get("formal_result_executed_in_verified_environment"):
+                    formal_specs.extend(
+                        [
+                            (environment["run_attestation_path"], "sandboxie_run_execution_attestation", "application/json", environment["run_attestation_semantic_sha256"]),
+                            ("sandboxie_run_execution_record.json", "sandboxie_run_execution_record", "application/json", None),
+                            ("run_output_manifest.json", "formal_result_output_manifest", "application/json", None),
+                        ]
+                    )
             for filename, role, media_type, semantic_hash in formal_specs:
                 path = run_dir / filename
                 content = path.read_bytes()
@@ -927,6 +935,12 @@ def extend_formal_result_evidence_requirements(
         required["sandboxie_configuration_backup"] = str(
             environment["configuration_backup_path"]
         )
+        if environment.get("formal_result_executed_in_verified_environment"):
+            required["sandboxie_run_execution_attestation"] = str(
+                environment["run_attestation_path"]
+            )
+            required["sandboxie_run_execution_record"] = "sandboxie_run_execution_record.json"
+            required["formal_result_output_manifest"] = "run_output_manifest.json"
     return summary
 
 
@@ -1528,8 +1542,26 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
                     "sandboxie_configuration_backup_sha256": environment[
                         "configuration_backup_sha256"
                     ],
+                    "trusted_environment_registry_sha256": environment[
+                        "trusted_registry_sha256"
+                    ],
+                    "trusted_environment_key_entry_semantic_sha256": environment[
+                        "trusted_key_entry_semantic_sha256"
+                    ],
                 }
             )
+            if environment.get("formal_result_executed_in_verified_environment"):
+                expected_formal.update(
+                    {
+                        "sandboxie_run_execution_attestation_sha256": environment[
+                            "run_attestation_file_sha256"
+                        ],
+                        "sandboxie_run_execution_attestation_semantic_sha256": environment[
+                            "run_attestation_semantic_sha256"
+                        ],
+                        "sandboxie_execution_id": environment["execution_id"],
+                    }
+                )
         for field, expected in expected_formal.items():
             if seal.get(field) != expected:
                 raise ValueError(f"seal_record.{field} 与当前 Formal Result 不一致")

@@ -10,3 +10,6 @@
 *.yml text eol=lf
 *.in text eol=lf
 *.lock text eol=lf
+
+# 机器签名 Fixture 绑定原始现场字节，禁止 Git 在检出时改写换行符。
+tests/fixtures/m3a_verified_run/** -text -diff

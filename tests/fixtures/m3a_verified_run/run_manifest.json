@@ -1,0 +1,16 @@
+{
+  "manifest_version": "2.0.0",
+  "run_id": "m3a_fixture_run_20260712",
+  "workflow": "full_replay",
+  "evidence_purpose": "training_validation",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "initial_state": "initialized"
+}

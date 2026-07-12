@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "run_output_manifest",
+  "run_id": "m3a_fixture_run_20260712",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "execution_id": "sandboxie-exec-586ab048c159467aaf7ed30948d115ee",
+  "files": [
+    {
+      "path": "result.json",
+      "sha256": "a6fd28c77931ce7eea3f885cda71e497f33a861eca695ad196ec5360ebb1881e"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "manifest_version": "1.0.0",
+  "gate": 0,
+  "completed_at": "2026-07-11T00:00:00Z",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "artifacts": [
+    {
+      "path": "diagnosis.json",
+      "role": "diagnosis",
+      "schema": "schemas/gate_business_artifact.schema.json",
+      "schema_version": "1.0.0",
+      "sha256": "c2c0546c91767af2e40efc699d543827b3cfcf2ddca5f12d382039627d928160",
+      "size_bytes": 656
+    }
+  ],
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0"
+}

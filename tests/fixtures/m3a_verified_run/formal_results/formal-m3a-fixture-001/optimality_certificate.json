@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "artifact_type": "optimality_certificate",
+  "status": "optimal",
+  "bindings": {
+    "optimization_validation.json": "8d2d81e62e4791923dcbee6d9fc9b5ee576e8130ae35e3b8b5f18fe61d8332ca"
+  },
+  "payload": {
+    "solver_status": "optimal"
+  }
+}

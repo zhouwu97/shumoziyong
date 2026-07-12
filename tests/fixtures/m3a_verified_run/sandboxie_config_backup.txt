@@ -1,0 +1,11 @@
+[GlobalSettings]
+Template=HuorongSecurity
+Template=7zipShellEx
+Template=WindowsRasMan
+Template=OnScreenKeyboard
+Template=AdobeLicensing
+Template=RTSS
+Template=WindowsLive
+Template=Edge_Fix
+Template=OfficeLicensing
+Template=OfficeClickToRun

@@ -292,8 +292,26 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                         "sandboxie_configuration_backup_sha256": environment[
                             "configuration_backup_sha256"
                         ],
+                        "trusted_environment_registry_sha256": environment[
+                            "trusted_registry_sha256"
+                        ],
+                        "trusted_environment_key_entry_semantic_sha256": environment[
+                            "trusted_key_entry_semantic_sha256"
+                        ],
                     }
                 )
+                if environment.get("formal_result_executed_in_verified_environment"):
+                    seal_record.update(
+                        {
+                            "sandboxie_run_execution_attestation_sha256": environment[
+                                "run_attestation_file_sha256"
+                            ],
+                            "sandboxie_run_execution_attestation_semantic_sha256": environment[
+                                "run_attestation_semantic_sha256"
+                            ],
+                            "sandboxie_execution_id": environment["execution_id"],
+                        }
+                    )
         write_json(
             run_dir / "seal_record.json",
             seal_record,

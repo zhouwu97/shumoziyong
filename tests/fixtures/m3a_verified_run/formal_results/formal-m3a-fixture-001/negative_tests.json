@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "m3a_fixture_run_20260712",
+  "problem_id": "2024-C",
+  "profile": "engineering_optimization",
+  "runtime_version": "0.1.0",
+  "runtime_pack_sha256": "cfc2168db96759077f7e8c84d787fe2ff25e200efc7aa821d9b192c5c1841efd",
+  "formal_result_policy": "required_v1",
+  "execution_contract_version": "1.0.0",
+  "formal_result_contract_version": "1.0.0",
+  "canonicalization_version": "1.0.0",
+  "gate_artifact_contract_version": "1.0.0",
+  "formal_result_id": "formal-m3a-fixture-001",
+  "artifact_type": "negative_tests",
+  "status": "passed",
+  "bindings": {
+    "execution_spec.json": "d53e66b87ad5b7f2c32740817e730eed62f97c714a7ed7a1ad7be2c771ddaed8"
+  },
+  "payload": {
+    "results": [
+      {
+        "test_id": "missing-input",
+        "status": "passed"
+      },
+      {
+        "test_id": "tampered-output",
+        "status": "passed"
+      }
+    ]
+  }
+}

@@ -19,10 +19,10 @@
     "formal_result_id": {"type": "string", "minLength": 1},
     "formal_result_envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "formal_result_envelope_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "formal_result_activation_status": {"enum": ["code_complete_candidate", "sandboxie_environment_verified"]},
+    "formal_result_activation_status": {"enum": ["code_complete_candidate", "sandboxie_environment_verified", "run_execution_verified"]},
     "sandboxie_environment_observed": {"type": "boolean"},
     "sandboxie_environment_verified": {"type": "boolean"},
-    "formal_result_executed_in_verified_environment": {"const": false},
+    "formal_result_executed_in_verified_environment": {"type": "boolean"},
     "formal_result_eligible": {"type": "boolean"},
     "sandboxie_environment_report_id": {"type": "string", "pattern": "^sandboxie-env-[A-Za-z0-9._-]{8,96}$"},
     "sandboxie_environment_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
@@ -32,7 +32,12 @@
     "sandboxie_environment_original_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "sandboxie_environment_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "sandboxie_environment_machine_key_id": {"type": "string", "pattern": "^sandboxie-host-[a-f0-9]{16}$"},
-    "sandboxie_configuration_backup_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    "sandboxie_configuration_backup_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "trusted_environment_registry_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "trusted_environment_key_entry_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sandboxie_run_execution_attestation_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sandboxie_run_execution_attestation_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sandboxie_execution_id": {"type": "string", "minLength": 1}
   },
   "allOf": [
     {
@@ -73,9 +78,18 @@
           "sandboxie_environment_original_report_sha256",
           "sandboxie_environment_fingerprint",
           "sandboxie_environment_machine_key_id",
-          "sandboxie_configuration_backup_sha256"
+          "sandboxie_configuration_backup_sha256",
+          "trusted_environment_registry_sha256",
+          "trusted_environment_key_entry_semantic_sha256"
         ],
         "properties": {"sandboxie_environment_observed": {"const": true}, "sandboxie_environment_verified": {"const": true}, "formal_result_executed_in_verified_environment": {"const": false}, "formal_result_eligible": {"const": false}}
+      }
+    },
+    {
+      "if": {"properties": {"formal_result_activation_status": {"const": "run_execution_verified"}}, "required": ["formal_result_activation_status"]},
+      "then": {
+        "required": ["sandboxie_run_execution_attestation_sha256", "sandboxie_run_execution_attestation_semantic_sha256", "sandboxie_execution_id"],
+        "properties": {"sandboxie_environment_observed": {"const": true}, "sandboxie_environment_verified": {"const": true}, "formal_result_executed_in_verified_environment": {"const": true}, "formal_result_eligible": {"const": true}}
       }
     }
   ]

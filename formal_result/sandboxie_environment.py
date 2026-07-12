@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import base64
+import ast
 import hashlib
 import hmac
 import json
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from typing import Any, Mapping
 
@@ -127,6 +128,36 @@ def _verify_source_commit(source_commit: str) -> None:
         raise FormalResultVerificationError("Sandboxie 报告引用的生成器提交不存在")
 
 
+def _probe_sha256_at_source_commit(source_commit: str) -> str:
+    """从被签名提交中的生成器源码提取探针常量，避免信任报告自报 SHA。"""
+    result = subprocess.run(
+        ["git", "show", f"{source_commit}:scripts/verify_sandboxie_environment.py"],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise FormalResultVerificationError("无法读取 source_commit 中的 Sandboxie 生成器")
+    try:
+        tree = ast.parse(result.stdout.decode("utf-8"))
+        assignment = next(
+            node
+            for node in tree.body
+            if isinstance(node, (ast.Assign, ast.AnnAssign))
+            and (
+                any(isinstance(target, ast.Name) and target.id == "PROBE_SCRIPT" for target in node.targets)
+                if isinstance(node, ast.Assign)
+                else isinstance(node.target, ast.Name) and node.target.id == "PROBE_SCRIPT"
+            )
+        )
+        value = ast.literal_eval(assignment.value)
+    except (StopIteration, SyntaxError, ValueError, TypeError, UnicodeDecodeError) as exc:
+        raise FormalResultVerificationError("source_commit 中缺少可静态验证的 PROBE_SCRIPT") from exc
+    if not isinstance(value, str):
+        raise FormalResultVerificationError("source_commit 中的 PROBE_SCRIPT 不是字符串常量")
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def _verify_report_contract(report: Mapping[str, Any]) -> None:
     if report["verification_status"] != "passed" or report["sandboxie_environment_verified"] is not True:
         raise FormalResultVerificationError("Sandboxie 环境报告未通过")
@@ -208,6 +239,10 @@ def _verify_report_contract(report: Mapping[str, Any]) -> None:
     if collector["environment_fingerprint"] != environment_fingerprint(report):
         raise FormalResultVerificationError("Sandboxie environment_fingerprint 不匹配")
     _verify_source_commit(str(collector["source_commit"]))
+    if collector["probe_script_sha256"] != _probe_sha256_at_source_commit(
+        str(collector["source_commit"])
+    ):
+        raise FormalResultVerificationError("Probe Script SHA 与 source_commit 中脚本内容不一致")
 
     controls = report["negative_controls"]
     control_ids = [item["control_id"] for item in controls]
@@ -346,6 +381,11 @@ def load_and_verify_sandboxie_environment_report(
         raise FormalResultVerificationError("可信机器证书有效期不覆盖报告生成时间")
     _verify_rsa_signature(canonical_bytes(unsigned_attestation), signature, key)
 
+    generated_valid = generated <= _parse_time(attestation["valid_until"], "attestation.valid_until")
+    currently_valid = datetime.now(timezone.utc) <= _parse_time(
+        attestation["valid_until"], "attestation.valid_until"
+    )
+
     return {
         "report_id": report["report_id"],
         "report_file_sha256": file_sha256(path),
@@ -358,6 +398,13 @@ def load_and_verify_sandboxie_environment_report(
         "configuration_backup_sha256": backup["file_sha256"],
         "environment_fingerprint": report["collector"]["environment_fingerprint"],
         "machine_key_id": report["collector"]["machine_key_id"],
+        "trusted_registry_sha256": file_sha256(registry_path),
+        "trusted_key_entry_semantic_sha256": semantic_sha256(key),
+        "probe_script_sha256": attestation["probe_script_sha256"],
+        "generated_at": attestation["generated_at"],
+        "valid_until": attestation["valid_until"],
+        "environment_verified_at_generation": generated_valid,
+        "environment_attestation_currently_valid": currently_valid,
         "formal_result_activation_status": "sandboxie_environment_verified",
         "sandboxie_environment_observed": True,
         "sandboxie_environment_verified": True,
