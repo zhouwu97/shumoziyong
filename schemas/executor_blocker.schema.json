@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/executor_blocker.schema.json",
+  "title": "Executor 阻断记录",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "task_id", "execution_spec_sha256", "blocker_type", "message", "observed_at", "retryable", "recommended_action"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "executor_blocker"},
+    "run_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+    "execution_spec_sha256": {"$ref": "#/$defs/sha256"},
+    "blocker_type": {"enum": ["contract_invalid", "missing_input", "dependency_failure", "timeout", "resource_limit", "command_failed", "acceptance_check_failed", "authorization_denied", "unknown"]},
+    "message": {"type": "string", "minLength": 1},
+    "stdout_ref": {"type": ["string", "null"], "minLength": 1},
+    "stderr_ref": {"type": ["string", "null"], "minLength": 1},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "retryable": {"type": "boolean"},
+    "recommended_action": {"enum": ["retry_same_contract", "human_review", "revise_contract", "stop_run"]}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

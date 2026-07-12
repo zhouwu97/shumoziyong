@@ -1,0 +1,59 @@
+{
+  "policy_version": "1.0.0",
+  "description": "系统与专项 Profile 成熟度的派生政策。证据文件不得包含 maturity 字段；状态只能由此政策和 capability_evidence 现场计算。",
+  "ordered_statuses": [
+    "foundation",
+    "runtime_trusted",
+    "contract_ready",
+    "executor_validated",
+    "profile_qualified",
+    "benchmark_candidate",
+    "competition_ready",
+    "national_award_competitive"
+  ],
+  "foundation": {
+    "required_documents": ["vision", "architecture", "roadmap"]
+  },
+  "runtime_trusted": {
+    "minimum_passed_runtime_verifications": 1
+  },
+  "contract_ready": {
+    "required_contract_ids": [
+      "diagnosis_v2",
+      "model_route_v2",
+      "execution_spec_v1",
+      "executor_handoff_v1",
+      "executor_blocker_v1"
+    ]
+  },
+  "executor_validated": {
+    "minimum_passed_execution_cycles": 1,
+    "forbid_fabrication": true
+  },
+  "profile_qualified": {
+    "minimum_cases": 3,
+    "minimum_distinct_years": 2,
+    "minimum_distinct_mechanisms": 2,
+    "minimum_independent_reviewers": 2,
+    "required_formal_replay_rate": 1.0,
+    "forbid_fabrication": true,
+    "forbid_fatal_math_error": true,
+    "forbid_common_p0": true
+  },
+  "benchmark_candidate": {
+    "minimum_blind_benchmark_cases": 6,
+    "require_registered_protocol": true
+  },
+  "competition_ready": {
+    "minimum_simulations": 2,
+    "maximum_simulation_hours": 72,
+    "require_reproducible_delivery": true
+  },
+  "national_award_competitive": {
+    "minimum_blind_expert_reviews": 2,
+    "minimum_blind_benchmark_score": 80,
+    "formal_national_award_alternative": true,
+    "forbid_fabrication": true,
+    "forbid_fatal_math_error": true
+  }
+}

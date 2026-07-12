@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/execution_spec.schema.json",
+  "title": "机器执行合同",
+  "description": "Gate 2 之后唯一授权 Executor 执行的机器合同。Executor 只能在 declared_workspace 与 declared_writable_paths 内操作，失败时必须输出 blocker。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_pack_sha256", "execution_mode", "declared_workspace", "network_access", "declared_writable_paths", "approved_by", "approved_at", "tasks"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "execution_spec"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "execution_mode": {"const": "trusted_local"},
+    "declared_workspace": {"type": "string", "pattern": "^(workspace|collector_workspace)(/[^/\\\\]+)*$"},
+    "network_access": {"const": false},
+    "declared_writable_paths": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^(workspace|collector_workspace)(/[^/\\\\]+)*$"}},
+    "approved_by": {"type": "string", "minLength": 1},
+    "approved_at": {"type": "string", "format": "date-time"},
+    "tasks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["task_id", "entrypoint", "argv", "working_directory", "inputs", "required_outputs", "depends_on", "timeout_seconds", "seed_policy", "acceptance_checks", "fallback"], "properties": {"task_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}, "entrypoint": {"type": "string", "pattern": "^code/[A-Za-z0-9._/-]+$"}, "argv": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "working_directory": {"type": "string", "pattern": "^workspace(/[^/\\\\]+)*$"}, "inputs": {"type": "array", "items": {"$ref": "#/$defs/hashedPath"}}, "required_outputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/outputPath"}}, "depends_on": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}}, "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 7200}, "seed_policy": {"type": "object", "additionalProperties": false, "required": ["deterministic_expected", "seeds"], "properties": {"deterministic_expected": {"type": "boolean"}, "seeds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}}}}, "acceptance_checks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["check_id", "kind", "expectation"], "properties": {"check_id": {"type": "string", "minLength": 1}, "kind": {"enum": ["file_exists", "json_schema", "metric_range", "constraint_residual", "repeated_run", "custom"]}, "expectation": {"type": "string", "minLength": 1}}}}, "fallback": {"const": "emit_blocker"}}}},
+    "contract_notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "hashedPath": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "pattern": "^(problem|workspace)/[A-Za-z0-9._/-]+$"}, "sha256": {"$ref": "#/$defs/sha256"}}},
+    "outputPath": {"type": "object", "additionalProperties": false, "required": ["path", "media_type"], "properties": {"path": {"type": "string", "pattern": "^workspace/[A-Za-z0-9._/-]+$"}, "media_type": {"type": "string", "minLength": 3}, "schema_path": {"type": ["string", "null"], "pattern": "^schemas/[A-Za-z0-9_./-]+\\.json$"}}}
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/model_route_v2.schema.json",
+  "title": "Gate 1 模型路线 v2",
+  "description": "面向机器执行的模型路线合同。每个子问题独立定义输入输出、模型、基线、验证与失败条件。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "subproblems", "human_decisions_required"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "artifact_type": {"const": "model_route_v2"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "subproblems": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["subproblem_id", "task_type", "inputs", "outputs", "variables", "parameters", "objectives", "constraints", "assumptions", "baseline_model", "selected_model", "alternatives_rejected", "validation_requirements", "uncertainty_plan", "failure_conditions"], "properties": {"subproblem_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"}, "task_type": {"type": "string", "minLength": 1}, "inputs": {"$ref": "#/$defs/namedItems"}, "outputs": {"$ref": "#/$defs/namedItems"}, "variables": {"$ref": "#/$defs/namedItems"}, "parameters": {"$ref": "#/$defs/namedItems"}, "objectives": {"$ref": "#/$defs/nonEmptyStrings"}, "constraints": {"$ref": "#/$defs/nonEmptyStrings"}, "assumptions": {"$ref": "#/$defs/nonEmptyStrings"}, "baseline_model": {"$ref": "#/$defs/model"}, "selected_model": {"$ref": "#/$defs/model"}, "alternatives_rejected": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "rejection_reason"], "properties": {"name": {"type": "string", "minLength": 1}, "rejection_reason": {"type": "string", "minLength": 10}}}}, "validation_requirements": {"$ref": "#/$defs/nonEmptyStrings"}, "uncertainty_plan": {"$ref": "#/$defs/nonEmptyStrings"}, "failure_conditions": {"$ref": "#/$defs/nonEmptyStrings"}}}},
+    "human_decisions_required": {"$ref": "#/$defs/nonEmptyStrings"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "nonEmptyStrings": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "namedItems": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "definition"], "properties": {"name": {"type": "string", "minLength": 1}, "definition": {"type": "string", "minLength": 1}, "unit": {"type": ["string", "null"]}, "source": {"type": ["string", "null"]}}}},
+    "model": {"type": "object", "additionalProperties": false, "required": ["name", "rationale"], "properties": {"name": {"type": "string", "minLength": 1}, "rationale": {"type": "string", "minLength": 10}, "implementation_notes": {"type": "array", "items": {"type": "string", "minLength": 1}}}}
+  }
+}

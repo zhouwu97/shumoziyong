@@ -1433,6 +1433,46 @@ class RepositoryValidator:
         else:
             self.pass_("晋级自动评估用例注册表 Schema、LF、哈希和授权约束")
 
+    def validate_capability_framework(self) -> None:
+        """检查国奖竞争力路线的政策与新增合同，避免文档与机器接口脱节。"""
+        policy = self.load_json("policies/capability_maturity_policy.json")
+        required_statuses = [
+            "foundation",
+            "runtime_trusted",
+            "contract_ready",
+            "executor_validated",
+            "profile_qualified",
+            "benchmark_candidate",
+            "competition_ready",
+            "national_award_competitive",
+        ]
+        if not isinstance(policy, dict):
+            self.fail("能力成熟度政策无法读取")
+        elif policy.get("ordered_statuses") != required_statuses:
+            self.fail("能力成熟度政策的状态顺序不符合固定资格链")
+        elif any(status not in policy for status in required_statuses):
+            self.fail("能力成熟度政策缺少状态判定规则")
+        else:
+            self.pass_("能力成熟度政策状态链")
+
+        for schema_name in (
+            "capability_evidence.schema.json",
+            "model_route_v2.schema.json",
+            "execution_spec.schema.json",
+            "executor_handoff.schema.json",
+            "executor_blocker.schema.json",
+            "execution_record.schema.json",
+        ):
+            schema = self.load_json(f"schemas/{schema_name}")
+            if schema is None:
+                continue
+            try:
+                Draft202012Validator.check_schema(schema)
+            except Exception as exc:  # jsonschema 会提供包含路径的具体结构错误。
+                self.fail(f"能力合同 Schema 无效：{schema_name}（{exc}）")
+            else:
+                self.pass_(f"能力合同 Schema：{schema_name}")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1445,6 +1485,7 @@ class RepositoryValidator:
         self.validate_training_log_duplicates()
         self.validate_prompt_regression_cases()
         self.validate_evaluation_case_registry()
+        self.validate_capability_framework()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:

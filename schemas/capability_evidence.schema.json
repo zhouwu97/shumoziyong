@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/capability_evidence.schema.json",
+  "title": "能力成熟度证据",
+  "description": "用于派生系统或专项 Profile 的成熟度。禁止在本文件中手填 maturity、status 或 award_level。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evidence_id", "scope", "foundation_documents", "contracts", "runtime_verifications", "execution_cycles", "qualification_cases", "benchmark", "simulations", "independent_reviews"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "evidence_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"},
+    "scope": {"enum": ["system", "profile"]},
+    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"},
+    "foundation_documents": {"type": "array", "uniqueItems": true, "items": {"enum": ["vision", "architecture", "roadmap"]}},
+    "contracts": {"type": "array", "uniqueItems": true, "items": {"type": "object", "additionalProperties": false, "required": ["contract_id", "schema_path", "sha256"], "properties": {"contract_id": {"type": "string", "minLength": 1}, "schema_path": {"type": "string", "pattern": "^schemas/[A-Za-z0-9_./-]+\\.json$"}, "sha256": {"$ref": "#/$defs/sha256"}}}},
+    "runtime_verifications": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["run_id", "evidence_ref", "status"], "properties": {"run_id": {"type": "string", "minLength": 1}, "evidence_ref": {"type": "string", "minLength": 1}, "status": {"enum": ["passed", "failed"]}}}},
+    "execution_cycles": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["cycle_id", "candidate_execution_ref", "collector_report_ref", "formal_result_ref", "status", "fabrication_detected"], "properties": {"cycle_id": {"type": "string", "minLength": 1}, "candidate_execution_ref": {"type": "string", "minLength": 1}, "collector_report_ref": {"type": "string", "minLength": 1}, "formal_result_ref": {"type": "string", "minLength": 1}, "status": {"enum": ["passed", "failed"]}, "fabrication_detected": {"type": "boolean"}}}},
+    "qualification_cases": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["case_id", "year", "mechanism", "formal_replay_status", "fabrication_detected", "fatal_math_error", "reviewers"], "properties": {"case_id": {"type": "string", "minLength": 1}, "year": {"type": "integer", "minimum": 1900, "maximum": 2200}, "mechanism": {"type": "string", "minLength": 1}, "formal_replay_status": {"enum": ["passed", "failed"]}, "fabrication_detected": {"type": "boolean"}, "fatal_math_error": {"type": "boolean"}, "reviewers": {"type": "array", "uniqueItems": true, "items": {"type": "object", "additionalProperties": false, "required": ["reviewer_id", "shared_p0"], "properties": {"reviewer_id": {"type": "string", "minLength": 1}, "shared_p0": {"type": "boolean"}}}}}}},
+    "benchmark": {"type": "object", "additionalProperties": false, "required": ["protocol_registered", "blind_cases", "average_score"], "properties": {"protocol_registered": {"type": "boolean"}, "blind_cases": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["case_id", "blind", "formal_replay_status"], "properties": {"case_id": {"type": "string", "minLength": 1}, "blind": {"type": "boolean"}, "formal_replay_status": {"enum": ["passed", "failed"]}}}}, "average_score": {"type": "number", "minimum": 0, "maximum": 100}}},
+    "simulations": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["simulation_id", "duration_hours", "reproducible_delivery", "status"], "properties": {"simulation_id": {"type": "string", "minLength": 1}, "duration_hours": {"type": "number", "exclusiveMinimum": 0}, "reproducible_delivery": {"type": "boolean"}, "status": {"enum": ["passed", "failed"]}}}},
+    "independent_reviews": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["reviewer_id", "blind", "score"], "properties": {"reviewer_id": {"type": "string", "minLength": 1}, "blind": {"type": "boolean"}, "score": {"type": "number", "minimum": 0, "maximum": 100}}}},
+    "formal_national_award": {"type": "boolean", "default": false}
+  },
+  "allOf": [{"if": {"properties": {"scope": {"const": "profile"}}}, "then": {"required": ["profile"]}}],
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}
