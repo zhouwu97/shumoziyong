@@ -266,27 +266,51 @@ def _verify_provenance_manifests(
     environment_payload = values["environment_manifest.json"].get("payload", {})
     activation_status = environment_payload.get("formal_result_activation_status")
     eligible = environment_payload.get("formal_result_eligible")
+    observed = environment_payload.get("sandboxie_environment_observed")
     verified = environment_payload.get("sandboxie_environment_verified")
+    executed = environment_payload.get("formal_result_executed_in_verified_environment")
     if activation_status == "code_complete_candidate":
-        if eligible is not False or verified is not False:
+        if eligible is not False or observed is not False or verified is not False or executed is not False:
             raise FormalResultVerificationError(
                 "Environment Manifest 在 Sandboxie 激活前必须保持环境验证和 eligibility 为 false"
             )
-        if "sandboxie_environment_report" in environment_payload:
-            raise FormalResultVerificationError("未激活 Environment Manifest 禁止引用 Sandboxie 报告")
+        if {
+            "sandboxie_environment_report",
+            "sandboxie_environment_attestation",
+        } & set(environment_payload):
+            raise FormalResultVerificationError("未激活 Environment Manifest 禁止引用 Sandboxie 环境证据")
         return {
             "formal_result_activation_status": activation_status,
+            "sandboxie_environment_observed": False,
             "sandboxie_environment_verified": False,
+            "formal_result_executed_in_verified_environment": False,
             "formal_result_eligible": False,
         }
-    if activation_status != "sandboxie_environment_verified" or eligible is not True or verified is not True:
+    if (
+        activation_status != "sandboxie_environment_verified"
+        or observed is not True
+        or verified is not True
+        or executed is not False
+        or eligible is not False
+    ):
         raise FormalResultVerificationError("Environment Manifest 的 Sandboxie 激活状态组合非法")
 
     binding = environment_payload.get("sandboxie_environment_report")
     if not isinstance(binding, dict) or binding.get("path") != "sandboxie_environment_report.json":
         raise FormalResultVerificationError("Environment Manifest 缺少固定 Sandboxie 报告路径绑定")
+    attestation_binding = environment_payload.get("sandboxie_environment_attestation")
+    if (
+        not isinstance(attestation_binding, dict)
+        or attestation_binding.get("path") != "sandboxie_environment_attestation.json"
+    ):
+        raise FormalResultVerificationError("Environment Manifest 缺少固定机器签名 Attestation 绑定")
     report_path = _safe_relative(run_root, str(binding["path"]), "Sandboxie 环境报告路径")
-    summary = load_and_verify_sandboxie_environment_report(report_path)
+    attestation_path = _safe_relative(
+        run_root,
+        str(attestation_binding["path"]),
+        "Sandboxie Attestation 路径",
+    )
+    summary = load_and_verify_sandboxie_environment_report(report_path, attestation_path)
     expected = {
         "path": "sandboxie_environment_report.json",
         "report_id": summary["report_id"],
@@ -297,7 +321,21 @@ def _verify_provenance_manifests(
     }
     if binding != expected:
         raise FormalResultVerificationError("Environment Manifest 的 Sandboxie 报告绑定不匹配")
-    return {**summary, "report_path": "sandboxie_environment_report.json"}
+    expected_attestation = {
+        "path": "sandboxie_environment_attestation.json",
+        "file_sha256": summary["attestation_file_sha256"],
+        "semantic_sha256": summary["attestation_semantic_sha256"],
+        "original_report_sha256": summary["original_report_sha256"],
+        "environment_fingerprint": summary["environment_fingerprint"],
+        "machine_key_id": summary["machine_key_id"],
+    }
+    if attestation_binding != expected_attestation:
+        raise FormalResultVerificationError("Environment Manifest 的机器签名 Attestation 绑定不匹配")
+    return {
+        **summary,
+        "report_path": "sandboxie_environment_report.json",
+        "attestation_path": "sandboxie_environment_attestation.json",
+    }
 
 
 def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dict[str, Any]:
@@ -485,6 +523,12 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         ],
         "sandboxie_environment_verified": environment_summary[
             "sandboxie_environment_verified"
+        ],
+        "sandboxie_environment_observed": environment_summary[
+            "sandboxie_environment_observed"
+        ],
+        "formal_result_executed_in_verified_environment": environment_summary[
+            "formal_result_executed_in_verified_environment"
         ],
         "formal_result_eligible": environment_summary["formal_result_eligible"],
         "sandboxie_environment": environment_summary,

@@ -81,8 +81,14 @@ def validate_evidence_manifest(
             "formal_result_activation_status": formal_summary[
                 "formal_result_activation_status"
             ],
+            "sandboxie_environment_observed": formal_summary[
+                "sandboxie_environment_observed"
+            ],
             "sandboxie_environment_verified": formal_summary[
                 "sandboxie_environment_verified"
+            ],
+            "formal_result_executed_in_verified_environment": formal_summary[
+                "formal_result_executed_in_verified_environment"
             ],
             "formal_result_eligible": formal_summary["formal_result_eligible"],
         }
@@ -245,8 +251,14 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                     "formal_result_activation_status": formal_summary[
                         "formal_result_activation_status"
                     ],
+                    "sandboxie_environment_observed": formal_summary[
+                        "sandboxie_environment_observed"
+                    ],
                     "sandboxie_environment_verified": formal_summary[
                         "sandboxie_environment_verified"
+                    ],
+                    "formal_result_executed_in_verified_environment": formal_summary[
+                        "formal_result_executed_in_verified_environment"
                     ],
                     "formal_result_eligible": formal_summary["formal_result_eligible"],
                 }
@@ -261,6 +273,21 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                         ],
                         "sandboxie_environment_report_semantic_sha256": environment[
                             "report_semantic_sha256"
+                        ],
+                        "sandboxie_environment_attestation_sha256": environment[
+                            "attestation_file_sha256"
+                        ],
+                        "sandboxie_environment_attestation_semantic_sha256": environment[
+                            "attestation_semantic_sha256"
+                        ],
+                        "sandboxie_environment_original_report_sha256": environment[
+                            "original_report_sha256"
+                        ],
+                        "sandboxie_environment_fingerprint": environment[
+                            "environment_fingerprint"
+                        ],
+                        "sandboxie_environment_machine_key_id": environment[
+                            "machine_key_id"
                         ],
                         "sandboxie_configuration_backup_sha256": environment[
                             "configuration_backup_sha256"

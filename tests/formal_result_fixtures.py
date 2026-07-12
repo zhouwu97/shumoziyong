@@ -10,7 +10,9 @@ from typing import Any
 
 from formal_result.hashing import file_sha256, semantic_sha256
 from formal_result.sandboxie_environment import (
+    ATTESTATION_FILENAME,
     NEGATIVE_CONTROL_IDS,
+    load_and_validate_sandboxie_fixture_report,
     load_and_verify_sandboxie_environment_report,
 )
 
@@ -21,7 +23,7 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
 
 
 def write_sandboxie_environment_report(directory: Path) -> Path:
-    """生成与真实报告同合同的跨平台测试证据。"""
+    """生成只能用于 Schema/接线测试、永不授予资格的 Fixture 报告。"""
     directory.mkdir(parents=True, exist_ok=True)
     backup = directory / "sandboxie_config_backup.txt"
     backup.write_text("[GlobalSettings]\nTemplate=Test\n", encoding="utf-8")
@@ -34,8 +36,15 @@ def write_sandboxie_environment_report(directory: Path) -> Path:
             "file_sha256": sha,
             "size_bytes": 1,
             "file_version": "1.0.0",
-            "signature_status": "Valid",
-            "signer_subject": "CN=Sandboxie Test Signer",
+            "signature": {
+                "status": "Valid",
+                "subject": "CN=Sandboxie Test Signer",
+                "issuer": "CN=Sandboxie Test Issuer",
+                "certificate_thumbprint": "b" * 40,
+                "not_before": "2026-07-01T00:00:00Z",
+                "not_after": "2027-07-01T00:00:00Z",
+                "chain_status": "Valid",
+            },
         }
         for role, filename in (
             ("start_exe", "Start.exe"),
@@ -49,7 +58,14 @@ def write_sandboxie_environment_report(directory: Path) -> Path:
             "status": "passed",
             "expected": "operation denied",
             "observed": "sandbox operation denied as expected",
+            "target": "fixture-target",
+            "probe_sha256": sha,
+            "command_sha256": sha,
+            "started_at": "2026-07-12T11:59:00+08:00",
+            "completed_at": "2026-07-12T11:59:01+08:00",
             "exit_code": 0,
+            "stdout_sha256": sha,
+            "stderr_sha256": sha,
         }
         for control_id in sorted(NEGATIVE_CONTROL_IDS)
     ]
@@ -66,11 +82,25 @@ def write_sandboxie_environment_report(directory: Path) -> Path:
         "ClosedFilePath=\\Device\\RawIp",
     ]
     report = {
-        "schema_version": "1.0.0",
+        "schema_version": "2.0.0",
+        "report_kind": "fixture_report",
         "report_id": "sandboxie-env-20260712T120000p0800-test",
         "generated_at": "2026-07-12T12:00:00+08:00",
+        "valid_until": "2026-07-13T12:00:00+08:00",
+        "probe_started_at": "2026-07-12T11:58:00+08:00",
+        "probe_completed_at": "2026-07-12T11:59:30+08:00",
         "verification_status": "passed",
-        "sandboxie_environment_verified": True,
+        "sandboxie_environment_verified": False,
+        "formal_result_executed_in_verified_environment": False,
+        "collector": {
+            "tool_id": "verify_sandboxie_environment.py",
+            "source_commit": "a" * 40,
+            "probe_script_sha256": sha,
+            "challenge_nonce": "c" * 64,
+            "machine_key_id": "sandboxie-host-0123456789abcdef",
+            "environment_fingerprint": sha,
+            "redaction_policy_version": "none",
+        },
         "platform": {
             "system": "Windows",
             "caption": "Windows Test",
@@ -107,6 +137,8 @@ def write_sandboxie_environment_report(directory: Path) -> Path:
         "sandbox": {
             "box_name": "ShumoM2TestBox01",
             "start_exit_code": 0,
+            "start_exe_sha256": sha,
+            "start_command_sha256": sha,
             "settings": settings,
             "settings_sha256": hashlib.sha256("\n".join(settings).encode()).hexdigest(),
             "sandbox_marker_detected": True,
@@ -126,6 +158,14 @@ def write_sandboxie_environment_report(directory: Path) -> Path:
             ],
         },
         "cleanup": {
+            "terminate_exit_code": 0,
+            "delete_exit_code": 0,
+            "box_processes_before": [],
+            "box_processes_after": [],
+            "sandbox_content_path": "C:\\Sandbox\\test\\ShumoM2TestBox01",
+            "sandbox_content_exists_after": False,
+            "preexisting_controller_pids": [],
+            "new_controller_pids_after": [],
             "processes_terminated": True,
             "new_controller_processes_terminated": True,
             "sandbox_content_deleted": True,
@@ -134,6 +174,7 @@ def write_sandboxie_environment_report(directory: Path) -> Path:
         },
     }
     _write_json(report_path, report)
+    load_and_validate_sandboxie_fixture_report(report_path)
     return report_path
 
 
@@ -217,22 +258,32 @@ def write_formal_result_bundle(
         _write_json(formal / name, value)
     environment_payload: dict[str, Any] = {
         "formal_result_activation_status": "code_complete_candidate",
+        "sandboxie_environment_observed": False,
         "sandboxie_environment_verified": False,
+        "formal_result_executed_in_verified_environment": False,
         "formal_result_eligible": False,
     }
     if sandboxie_report is not None:
         target_report = run_dir / "sandboxie_environment_report.json"
+        target_attestation = run_dir / ATTESTATION_FILENAME
         target_backup = run_dir / "sandboxie_config_backup.txt"
         if sandboxie_report.resolve() != target_report.resolve():
             report = json.loads(sandboxie_report.read_text(encoding="utf-8"))
             source_backup = sandboxie_report.parent / report["configuration_backup"]["path"]
+            source_attestation = sandboxie_report.parent / ATTESTATION_FILENAME
             shutil.copyfile(sandboxie_report, target_report)
+            shutil.copyfile(source_attestation, target_attestation)
             shutil.copyfile(source_backup, target_backup)
-        summary = load_and_verify_sandboxie_environment_report(target_report)
+        summary = load_and_verify_sandboxie_environment_report(
+            target_report,
+            target_attestation,
+        )
         environment_payload = {
             "formal_result_activation_status": "sandboxie_environment_verified",
+            "sandboxie_environment_observed": True,
             "sandboxie_environment_verified": True,
-            "formal_result_eligible": True,
+            "formal_result_executed_in_verified_environment": False,
+            "formal_result_eligible": False,
             "sandboxie_environment_report": {
                 "path": "sandboxie_environment_report.json",
                 "report_id": summary["report_id"],
@@ -240,6 +291,14 @@ def write_formal_result_bundle(
                 "semantic_sha256": summary["report_semantic_sha256"],
                 "configuration_backup_path": summary["configuration_backup_path"],
                 "configuration_backup_sha256": summary["configuration_backup_sha256"],
+            },
+            "sandboxie_environment_attestation": {
+                "path": ATTESTATION_FILENAME,
+                "file_sha256": summary["attestation_file_sha256"],
+                "semantic_sha256": summary["attestation_semantic_sha256"],
+                "original_report_sha256": summary["original_report_sha256"],
+                "environment_fingerprint": summary["environment_fingerprint"],
+                "machine_key_id": summary["machine_key_id"],
             },
         }
     provenance_values = {

@@ -1,0 +1,20 @@
+{
+  "registry_version": "1.0.0",
+  "keys": [
+    {
+      "machine_key_id": "sandboxie-host-d08131d0397a11c0",
+      "status": "active",
+      "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+      "certificate_thumbprint": "d08131d0397a11c0d2d4151f9c68ede76cad57fa",
+      "subject": "CN=Shumo Sandboxie Environment Attestation",
+      "issuer": "CN=Shumo Sandboxie Environment Attestation",
+      "not_before": "2026-07-12T14:21:07Z",
+      "not_after": "2031-07-12T14:31:06Z",
+      "rsa_modulus_hex": "bae20eca87b317450dcf1fbae21d64c818428dab5792ac0b1fcf809bfd4910de856582c0d8f6f6cd9cff77b7cde3aaefb1dd04606e2ea40fbd7365518355af48da2beacf7aa13049b961cebde9f343c907dc33ba8a9e7bfc704a583344dab9566f5f8849dbd40690fb02b9ea58b678e8169cc969bfd0b1d300a8c65fa65f1a3eb95bf30a1faaff82dc74c2aa44aded67209b025c7ee80ed629a180243b264e37274a9d3bab8598385f26bd905bad4a108468fa624ec358a0cc889e19b10752456ec55a5290eb97e9aad53f6af12fd4c37b03e5e71e76e489e9cd0a8938f9ed3ee04cdc038994e5af380fc5c0441a417491d9c931c9e139f31915a1e1916eccd4c6b17eca25ccd382405985f68ff079dd84534ba7ab01428e396696e33f8c7245a3ba012fd95928bcf24aa33e0c6b209ebd6aed48fbf6cce7b9669882bf5509ba110388dfeda8b2ee9770a78fb0a169469fda9c89e71a3548a8beaf9c0fd275d859a957f09e0137fdc1489a5db4e8ca17d9bda2bf9a390999365437e32c0ba0a1",
+      "rsa_exponent": 65537,
+      "allowed_probe_sha256": [
+        "c9cb8194b3b98d7bf4cbcc3f9b0f59ebd1800725ded8ece4684fee0a36381da1"
+      ]
+    }
+  ]
+}

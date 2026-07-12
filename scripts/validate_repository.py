@@ -1476,6 +1476,9 @@ class RepositoryValidator:
             "formal_result_decision_variables.schema.json",
             "formal_result_provenance_manifest.schema.json",
             "collector_attestation.schema.json",
+            "sandboxie_environment_report.schema.json",
+            "sandboxie_environment_attestation.schema.json",
+            "trusted_environment_registry.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1486,6 +1489,14 @@ class RepositoryValidator:
                 self.fail(f"能力合同 Schema 无效：{schema_name}（{exc}）")
             else:
                 self.pass_(f"能力合同 Schema：{schema_name}")
+
+        trusted_registry = self.load_json("policies/trusted_environment_registry.json")
+        if trusted_registry is not None:
+            self.validate_schema(
+                trusted_registry,
+                "trusted_environment_registry.schema.json",
+                "可信环境机器公钥注册表",
+            )
 
     def run(self) -> int:
         self.validate_all_json_syntax()

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/sandboxie_environment_attestation.schema.json",
+  "title": "Sandboxie 环境机器签名证明 v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "attestation_version", "report_kind", "report_id", "public_report_sha256",
+    "public_report_semantic_sha256", "original_report_sha256", "configuration_backup_sha256",
+    "probe_script_sha256", "collector_source_commit", "machine_key_id", "environment_fingerprint",
+    "generated_at", "valid_until", "signature_algorithm", "signature"
+  ],
+  "properties": {
+    "attestation_version": {"const": "1.0.0"},
+    "report_kind": {"const": "live_attestation"},
+    "report_id": {"type": "string", "pattern": "^sandboxie-env-[A-Za-z0-9._-]{8,96}$"},
+    "public_report_sha256": {"$ref": "#/$defs/sha256"},
+    "public_report_semantic_sha256": {"$ref": "#/$defs/sha256"},
+    "original_report_sha256": {"$ref": "#/$defs/sha256"},
+    "configuration_backup_sha256": {"$ref": "#/$defs/sha256"},
+    "probe_script_sha256": {"$ref": "#/$defs/sha256"},
+    "collector_source_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "machine_key_id": {"type": "string", "pattern": "^sandboxie-host-[a-f0-9]{16}$"},
+    "environment_fingerprint": {"$ref": "#/$defs/sha256"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "valid_until": {"type": "string", "format": "date-time"},
+    "signature_algorithm": {"const": "RSASSA-PKCS1-v1_5-SHA256"},
+    "signature": {"type": "string", "pattern": "^[A-Za-z0-9+/]+={0,2}$", "minLength": 128}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

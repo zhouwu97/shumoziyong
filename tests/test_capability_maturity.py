@@ -121,13 +121,17 @@ def test_maturity_is_derived_from_complete_evidence() -> None:
 def test_verified_sandboxie_summary_activates_without_overstating_maturity() -> None:
     environment_summary = {
         "formal_result_activation_status": "sandboxie_environment_verified",
+        "sandboxie_environment_observed": True,
         "sandboxie_environment_verified": True,
-        "formal_result_eligible": True,
+        "formal_result_executed_in_verified_environment": False,
+        "formal_result_eligible": False,
     }
     result = derive_maturity(_evidence(), _policy(), environment_summary)
     assert result["formal_result_activation_status"] == "sandboxie_environment_verified"
+    assert result["sandboxie_environment_observed"] is True
     assert result["sandboxie_environment_verified"] is True
-    assert result["formal_result_eligible"] is True
+    assert result["formal_result_executed_in_verified_environment"] is False
+    assert result["formal_result_eligible"] is False
     assert result["derived_maturity"] == "foundation"
     assert result["next_status"] == "runtime_trusted"
 

@@ -18,6 +18,10 @@ from formal_result.errors import FormalResultVerificationError
 from formal_result.hashing import file_sha256, semantic_sha256
 from formal_result.path_safety import validate_contract_relative_path
 from formal_result.verifier import verify_formal_result_bundle
+from formal_result.sandboxie_environment import (
+    load_and_validate_sandboxie_fixture_report,
+    load_and_verify_sandboxie_environment_report,
+)
 from formal_result_fixtures import (
     write_formal_result_bundle,
     write_sandboxie_environment_report,
@@ -31,6 +35,16 @@ from run_workflow import (
     verify_run_seal,
 )
 from test_repository_tooling import _v2_gate_0_run, _write_material_manifest
+
+
+LIVE_SANDBOXIE_REPORT = (
+    ROOT
+    / "output"
+    / "environment"
+    / "sandboxie-m2"
+    / "2026-07-12"
+    / "sandboxie_environment_report.json"
+)
 
 
 def _bundle(tmp_path: Path) -> tuple[Path, Path]:
@@ -141,16 +155,27 @@ def test_required_bundle_verifies_and_binds_file_and_semantic_hashes(tmp_path: P
     assert summary["formal_result_eligible"] is False
 
 
-def test_verified_sandboxie_report_activates_and_enters_evidence_and_seal(
+def test_fixture_report_never_activates_environment_or_eligibility(tmp_path: Path) -> None:
+    report_path = write_sandboxie_environment_report(tmp_path)
+    fixture = load_and_validate_sandboxie_fixture_report(report_path)
+    assert fixture["sandboxie_environment_observed"] is True
+    assert fixture["sandboxie_environment_verified"] is False
+    assert fixture["formal_result_eligible"] is False
+    with pytest.raises(FormalResultVerificationError, match="Fixture 报告"):
+        load_and_verify_sandboxie_environment_report(report_path)
+
+
+def test_signed_sandboxie_report_verifies_environment_but_not_run_eligibility(
     tmp_path: Path,
 ) -> None:
     run_dir = _v2_gate_0_run(tmp_path)
-    report_path = write_sandboxie_environment_report(run_dir)
-    envelope = write_formal_result_bundle(run_dir, sandboxie_report=report_path)
+    envelope = write_formal_result_bundle(run_dir, sandboxie_report=LIVE_SANDBOXIE_REPORT)
     summary = verify_formal_result_bundle(run_dir, envelope)
     assert summary["formal_result_activation_status"] == "sandboxie_environment_verified"
+    assert summary["sandboxie_environment_observed"] is True
     assert summary["sandboxie_environment_verified"] is True
-    assert summary["formal_result_eligible"] is True
+    assert summary["formal_result_executed_in_verified_environment"] is False
+    assert summary["formal_result_eligible"] is False
 
     run_manifest = _load(run_dir / "run_manifest.json")
     workflow = str(run_manifest["workflow"])
@@ -162,9 +187,12 @@ def test_verified_sandboxie_report_activates_and_enters_evidence_and_seal(
     evidence = build_run_evidence_manifest(run_dir, str(run_manifest["run_id"]))
     roles = {item["role"] for item in evidence["artifacts"]}
     assert "sandboxie_environment_report" in roles
+    assert "sandboxie_environment_attestation" in roles
     assert "sandboxie_configuration_backup" in roles
+    assert evidence["sandboxie_environment_observed"] is True
     assert evidence["sandboxie_environment_verified"] is True
-    assert evidence["formal_result_eligible"] is True
+    assert evidence["formal_result_executed_in_verified_environment"] is False
+    assert evidence["formal_result_eligible"] is False
 
     transitions_path = run_dir / "transitions.jsonl"
     transitions_path.write_text("{}\n", encoding="utf-8")
@@ -192,13 +220,26 @@ def test_verified_sandboxie_report_activates_and_enters_evidence_and_seal(
         "formal_result_envelope_sha256": summary["envelope_file_sha256"],
         "formal_result_envelope_semantic_sha256": summary["envelope_semantic_sha256"],
         "formal_result_activation_status": summary["formal_result_activation_status"],
+        "sandboxie_environment_observed": True,
         "sandboxie_environment_verified": True,
-        "formal_result_eligible": True,
+        "formal_result_executed_in_verified_environment": False,
+        "formal_result_eligible": False,
         "sandboxie_environment_report_id": environment["report_id"],
         "sandboxie_environment_report_sha256": environment["report_file_sha256"],
         "sandboxie_environment_report_semantic_sha256": environment[
             "report_semantic_sha256"
         ],
+        "sandboxie_environment_attestation_sha256": environment[
+            "attestation_file_sha256"
+        ],
+        "sandboxie_environment_attestation_semantic_sha256": environment[
+            "attestation_semantic_sha256"
+        ],
+        "sandboxie_environment_original_report_sha256": environment[
+            "original_report_sha256"
+        ],
+        "sandboxie_environment_fingerprint": environment["environment_fingerprint"],
+        "sandboxie_environment_machine_key_id": environment["machine_key_id"],
         "sandboxie_configuration_backup_sha256": environment[
             "configuration_backup_sha256"
         ],
@@ -206,15 +247,15 @@ def test_verified_sandboxie_report_activates_and_enters_evidence_and_seal(
     _write(run_dir / "seal_record.json", seal)
     assert verify_run_seal(run_dir)["sandboxie_environment_verified"] is True
 
+    report_path = run_dir / "sandboxie_environment_report.json"
     report_path.write_text(report_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
     with pytest.raises(FormalResultVerificationError, match="报告绑定"):
         verify_run_seal(run_dir)
 
 
-def test_sandboxie_configuration_backup_tampering_blocks_activation(tmp_path: Path) -> None:
+def test_sandboxie_configuration_backup_tampering_blocks_verification(tmp_path: Path) -> None:
     run_dir = _v2_gate_0_run(tmp_path)
-    report_path = write_sandboxie_environment_report(run_dir)
-    envelope = write_formal_result_bundle(run_dir, sandboxie_report=report_path)
+    envelope = write_formal_result_bundle(run_dir, sandboxie_report=LIVE_SANDBOXIE_REPORT)
     (run_dir / "sandboxie_config_backup.txt").write_text("tampered\n", encoding="utf-8")
     with pytest.raises(FormalResultVerificationError, match="配置备份"):
         verify_formal_result_bundle(run_dir, envelope)

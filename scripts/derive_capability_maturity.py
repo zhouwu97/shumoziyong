@@ -182,14 +182,23 @@ def derive_maturity(
 ) -> dict[str, Any]:
     """按顺序派生最高连续成熟度，并返回下一阶段缺口。"""
     activation_status = "code_complete_candidate"
+    sandboxie_environment_observed = False
     sandboxie_environment_verified = False
+    formal_result_executed_in_verified_environment = False
     formal_result_eligible = False
     if environment_summary is not None:
         activation_status = str(environment_summary["formal_result_activation_status"])
+        sandboxie_environment_observed = bool(
+            environment_summary["sandboxie_environment_observed"]
+        )
         sandboxie_environment_verified = bool(
             environment_summary["sandboxie_environment_verified"]
         )
-        formal_result_eligible = bool(environment_summary["formal_result_eligible"])
+        formal_result_executed_in_verified_environment = bool(
+            environment_summary["formal_result_executed_in_verified_environment"]
+        )
+        # Milestone 3 前禁止环境观察报告单独授予 Run 资格。
+        formal_result_eligible = False
     achieved: list[str] = []
     first_missing: list[str] = []
     for status in policy["ordered_statuses"]:
@@ -208,7 +217,9 @@ def derive_maturity(
         "scope": evidence["scope"],
         "profile": evidence.get("profile"),
         "formal_result_activation_status": activation_status,
+        "sandboxie_environment_observed": sandboxie_environment_observed,
         "sandboxie_environment_verified": sandboxie_environment_verified,
+        "formal_result_executed_in_verified_environment": formal_result_executed_in_verified_environment,
         "formal_result_eligible": formal_result_eligible,
         "derived_maturity": achieved[-1] if achieved else None,
         "satisfied_statuses": achieved,

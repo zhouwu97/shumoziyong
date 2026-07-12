@@ -322,6 +322,12 @@ def build_run_evidence_manifest(
                             environment["report_semantic_sha256"],
                         ),
                         (
+                            environment["attestation_path"],
+                            "sandboxie_environment_attestation",
+                            "application/json",
+                            environment["attestation_semantic_sha256"],
+                        ),
+                        (
                             environment["configuration_backup_path"],
                             "sandboxie_configuration_backup",
                             "text/plain",
@@ -353,8 +359,14 @@ def build_run_evidence_manifest(
                 "formal_result_activation_status": formal_summary[
                     "formal_result_activation_status"
                 ],
+                "sandboxie_environment_observed": formal_summary[
+                    "sandboxie_environment_observed"
+                ],
                 "sandboxie_environment_verified": formal_summary[
                     "sandboxie_environment_verified"
+                ],
+                "formal_result_executed_in_verified_environment": formal_summary[
+                    "formal_result_executed_in_verified_environment"
                 ],
                 "formal_result_eligible": formal_summary["formal_result_eligible"],
             }
@@ -909,6 +921,9 @@ def extend_formal_result_evidence_requirements(
     environment = summary["sandboxie_environment"]
     if environment["sandboxie_environment_verified"]:
         required["sandboxie_environment_report"] = str(environment["report_path"])
+        required["sandboxie_environment_attestation"] = str(
+            environment["attestation_path"]
+        )
         required["sandboxie_configuration_backup"] = str(
             environment["configuration_backup_path"]
         )
@@ -1473,8 +1488,14 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
             "formal_result_activation_status": summary[
                 "formal_result_activation_status"
             ],
+            "sandboxie_environment_observed": summary[
+                "sandboxie_environment_observed"
+            ],
             "sandboxie_environment_verified": summary[
                 "sandboxie_environment_verified"
+            ],
+            "formal_result_executed_in_verified_environment": summary[
+                "formal_result_executed_in_verified_environment"
             ],
             "formal_result_eligible": summary["formal_result_eligible"],
         }
@@ -1488,6 +1509,21 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
                     ],
                     "sandboxie_environment_report_semantic_sha256": environment[
                         "report_semantic_sha256"
+                    ],
+                    "sandboxie_environment_attestation_sha256": environment[
+                        "attestation_file_sha256"
+                    ],
+                    "sandboxie_environment_attestation_semantic_sha256": environment[
+                        "attestation_semantic_sha256"
+                    ],
+                    "sandboxie_environment_original_report_sha256": environment[
+                        "original_report_sha256"
+                    ],
+                    "sandboxie_environment_fingerprint": environment[
+                        "environment_fingerprint"
+                    ],
+                    "sandboxie_environment_machine_key_id": environment[
+                        "machine_key_id"
                     ],
                     "sandboxie_configuration_backup_sha256": environment[
                         "configuration_backup_sha256"
@@ -1611,8 +1647,14 @@ def build_gate_artifact_manifest(
                 "formal_result_activation_status": summary[
                     "formal_result_activation_status"
                 ],
+                "sandboxie_environment_observed": summary[
+                    "sandboxie_environment_observed"
+                ],
                 "sandboxie_environment_verified": summary[
                     "sandboxie_environment_verified"
+                ],
+                "formal_result_executed_in_verified_environment": summary[
+                    "formal_result_executed_in_verified_environment"
                 ],
                 "formal_result_eligible": summary["formal_result_eligible"],
             }
@@ -1702,8 +1744,14 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
                 "formal_result_activation_status": summary[
                     "formal_result_activation_status"
                 ],
+                "sandboxie_environment_observed": summary[
+                    "sandboxie_environment_observed"
+                ],
                 "sandboxie_environment_verified": summary[
                     "sandboxie_environment_verified"
+                ],
+                "formal_result_executed_in_verified_environment": summary[
+                    "formal_result_executed_in_verified_environment"
                 ],
                 "formal_result_eligible": summary["formal_result_eligible"],
             }
@@ -2608,7 +2656,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             "completed": False,
             "sealed": False,
             "formal_result_activation_status": None,
+            "sandboxie_environment_observed": False,
             "sandboxie_environment_verified": False,
+            "formal_result_executed_in_verified_environment": False,
             "formal_result_eligible": False,
         }
     state = replay_transition_log(run_dir)
@@ -2709,7 +2759,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             for item in _find_parent_transactions(run_dir.parent, run_dir.name)
         )
     formal_result_activation_status: str | None = None
+    sandboxie_environment_observed = False
     sandboxie_environment_verified = False
+    formal_result_executed_in_verified_environment = False
     formal_result_eligible = False
     if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         try:
@@ -2719,6 +2771,12 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             ]
             sandboxie_environment_verified = bool(
                 formal_summary["sandboxie_environment_verified"]
+            )
+            sandboxie_environment_observed = bool(
+                formal_summary["sandboxie_environment_observed"]
+            )
+            formal_result_executed_in_verified_environment = bool(
+                formal_summary["formal_result_executed_in_verified_environment"]
             )
             formal_result_eligible = bool(formal_summary["formal_result_eligible"])
         except (OSError, ValueError, json.JSONDecodeError):
@@ -2738,7 +2796,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "advance_allowed": advance_allowed,
         "complete_allowed": advance_allowed and state.get("current_gate") == 5,
         "formal_result_activation_status": formal_result_activation_status,
+        "sandboxie_environment_observed": sandboxie_environment_observed,
         "sandboxie_environment_verified": sandboxie_environment_verified,
+        "formal_result_executed_in_verified_environment": formal_result_executed_in_verified_environment,
         "formal_result_eligible": formal_result_eligible,
         "promotion_readiness_errors": promotion_errors,
     }
