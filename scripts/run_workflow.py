@@ -230,6 +230,7 @@ def build_run_evidence_manifest(
     artifact_specs = evidence_artifact_specs_for_workflow(workflow)
 
     artifacts: list[dict[str, Any]] = []
+    formal_summary: dict[str, Any] | None = None
     for filename, role, media_type in artifact_specs:
         path = run_dir / filename
         if content_overrides and filename in content_overrides:
@@ -280,6 +281,7 @@ def build_run_evidence_manifest(
             and any(run_dir.glob("formal_results/*/formal_result_envelope.json"))
         ):
             summary = _verify_required_formal_result(run_dir)
+            formal_summary = summary
             formal_specs = [
                 (
                     "execution_spec.json",
@@ -322,11 +324,21 @@ def build_run_evidence_manifest(
                 if semantic_hash is not None:
                     reference["semantic_sha256"] = semantic_hash
                 artifacts.append(reference)
-    return {
+    evidence_manifest: dict[str, Any] = {
         "evidence_manifest_version": "2.0.0",
         "run_id": run_id,
         "artifacts": artifacts,
     }
+    if formal_summary is not None:
+        evidence_manifest.update(
+            {
+                "formal_result_activation_status": formal_summary[
+                    "formal_result_activation_status"
+                ],
+                "formal_result_eligible": formal_summary["formal_result_eligible"],
+            }
+        )
+    return evidence_manifest
 
 
 def repo_relative(path: Path) -> str:
@@ -1431,6 +1443,10 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
             "formal_result_id": summary["formal_result_id"],
             "formal_result_envelope_sha256": summary["envelope_file_sha256"],
             "formal_result_envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+            "formal_result_activation_status": summary[
+                "formal_result_activation_status"
+            ],
+            "formal_result_eligible": summary["formal_result_eligible"],
         }
         for field, expected in expected_formal.items():
             if seal.get(field) != expected:
@@ -1546,6 +1562,10 @@ def build_gate_artifact_manifest(
                 "envelope_path": summary["envelope_path"],
                 "envelope_file_sha256": summary["envelope_file_sha256"],
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+                "formal_result_activation_status": summary[
+                    "formal_result_activation_status"
+                ],
+                "formal_result_eligible": summary["formal_result_eligible"],
             }
     return manifest
 
@@ -1630,6 +1650,10 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
                 "envelope_path": summary["envelope_path"],
                 "envelope_file_sha256": summary["envelope_file_sha256"],
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
+                "formal_result_activation_status": summary[
+                    "formal_result_activation_status"
+                ],
+                "formal_result_eligible": summary["formal_result_eligible"],
             }
             if manifest.get("formal_result") != expected_formal:
                 raise ValueError("Gate 3 Manifest 未精确绑定当前 Formal Result Envelope")
@@ -2531,6 +2555,8 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             "verified_gates": [],
             "completed": False,
             "sealed": False,
+            "formal_result_activation_status": None,
+            "formal_result_eligible": False,
         }
     state = replay_transition_log(run_dir)
     evidence_errors: list[str] = []
@@ -2629,6 +2655,17 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             item.get("status") not in {"committed", "aborted"}
             for item in _find_parent_transactions(run_dir.parent, run_dir.name)
         )
+    formal_result_activation_status: str | None = None
+    formal_result_eligible = False
+    if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+        try:
+            formal_summary = _verify_required_formal_result(run_dir)
+            formal_result_activation_status = formal_summary[
+                "formal_result_activation_status"
+            ]
+            formal_result_eligible = bool(formal_summary["formal_result_eligible"])
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
     return {
         "run_id": manifest.get("run_id"),
         "workflow": manifest.get("workflow"),
@@ -2643,6 +2680,8 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "fork_transaction_id": state.get("fork_transaction_id"),
         "advance_allowed": advance_allowed,
         "complete_allowed": advance_allowed and state.get("current_gate") == 5,
+        "formal_result_activation_status": formal_result_activation_status,
+        "formal_result_eligible": formal_result_eligible,
         "promotion_readiness_errors": promotion_errors,
     }
 

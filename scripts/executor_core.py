@@ -7,16 +7,21 @@ import hashlib
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from formal_result.path_safety import validate_execution_spec_paths
+from formal_result.path_safety import (
+    validate_execution_command_bindings,
+    validate_execution_spec_paths,
+)
+from formal_result.identity import IMMUTABLE_IDENTITY_FIELDS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,20 +74,63 @@ def _inside(root: Path, candidate: Path) -> Path:
 def _safe_spec_file(spec_path: Path, run_dir: Path) -> Path:
     """在解析链接前确认 Execution Spec 是 Run 内唯一的普通文件。"""
     absolute = spec_path.absolute()
-    try:
-        relative = absolute.relative_to(run_dir)
-    except ValueError as exc:
-        raise ValueError(f"Execution Spec 越出 Run 目录：{spec_path}") from exc
-    cursor = run_dir
-    for part in relative.parts:
-        cursor = cursor / part
-        if cursor.is_symlink():
-            raise ValueError(f"Execution Spec 禁止符号链接：{spec_path}")
+    expected = run_dir / "execution_spec.json"
+    if absolute != expected:
+        raise ValueError(f"Executor 只允许读取 {expected}")
+    if absolute.is_symlink():
+        raise ValueError(f"Execution Spec 禁止符号链接：{spec_path}")
     if not absolute.is_file():
         raise ValueError(f"Execution Spec 不存在：{spec_path}")
     if os.stat(absolute, follow_symlinks=False).st_nlink != 1:
         raise ValueError(f"Execution Spec 禁止 hardlink：{spec_path}")
-    return absolute.resolve()
+    resolved = absolute.resolve()
+    if resolved != expected or resolved.parent != run_dir:
+        raise ValueError(f"Execution Spec 解析后不在 Run Root：{spec_path}")
+    return resolved
+
+
+def _task_working_directory(task: Mapping[str, Any], workspace: Path, run_dir: Path) -> Path:
+    working = _inside(run_dir, run_dir.joinpath(*PurePosixPath(task["working_directory"]).parts))
+    try:
+        working.relative_to(workspace)
+    except ValueError as exc:
+        raise ValueError(f"任务 {task['task_id']} working_directory 越出 declared_workspace") from exc
+    return working
+
+
+def _resolve_approved_command(
+    task: Mapping[str, Any], workspace: Path, cwd: Path
+) -> Path:
+    """确认 Python 命令实际解析到合同批准的唯一入口文件。"""
+    argv = task["argv"]
+    runner_name = Path(argv[0]).name.casefold()
+    if task.get("runner") != "python" or not re.fullmatch(
+        r"python(?:3(?:\.\d+)?)?(?:\.exe)?", runner_name
+    ):
+        raise ValueError(f"任务 {task['task_id']} runner 不是受支持的 Python 解释器")
+    entrypoint_index = task.get("entrypoint_arg_index")
+    if entrypoint_index != 1 or len(argv) <= entrypoint_index:
+        raise ValueError(f"任务 {task['task_id']} 缺少受绑定的 entrypoint 参数")
+    entrypoint_arg = argv[entrypoint_index]
+    if (
+        not isinstance(entrypoint_arg, str)
+        or not entrypoint_arg
+        or entrypoint_arg.startswith("/")
+        or "\\" in entrypoint_arg
+        or ":" in entrypoint_arg
+    ):
+        raise ValueError(f"任务 {task['task_id']} entrypoint 参数必须是 POSIX 相对路径")
+    command_entrypoint = _inside(
+        workspace, cwd.joinpath(*PurePosixPath(entrypoint_arg).parts)
+    )
+    approved_entrypoint = _inside(
+        workspace, workspace.joinpath(*PurePosixPath(task["entrypoint"]).parts)
+    )
+    if command_entrypoint != approved_entrypoint:
+        raise ValueError(f"任务 {task['task_id']} argv 未解析到批准的 entrypoint")
+    if not approved_entrypoint.is_file():
+        raise ValueError(f"任务 {task['task_id']} 缺少批准的 entrypoint")
+    return approved_entrypoint
 
 
 def _file_ref(path: Path, run_dir: Path) -> dict[str, Any]:
@@ -179,13 +227,16 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
     spec = _load_object(spec_path)
     _validate(spec, SPEC_SCHEMA_PATH, "execution_spec")
     validate_execution_spec_paths(spec)
+    validate_execution_command_bindings(spec, run_dir)
     spec_sha256 = _sha256_bytes(spec_raw)
 
     manifest_path = run_dir / "run_manifest.json"
-    if manifest_path.is_file():
-        manifest = _load_object(manifest_path)
-        if manifest.get("run_id") != spec["run_id"]:
-            raise ValueError("execution_spec.run_id 与 run_manifest.json 不一致")
+    if not manifest_path.is_file():
+        raise ValueError("Run 缺少 run_manifest.json")
+    manifest = _load_object(manifest_path)
+    for field in IMMUTABLE_IDENTITY_FIELDS:
+        if manifest.get(field) != spec.get(field):
+            raise ValueError(f"execution_spec.{field} 与 Run 不可变身份不一致")
 
     workspace = _inside(run_dir, run_dir / spec["declared_workspace"])
     workspace.mkdir(parents=True, exist_ok=True)
@@ -204,11 +255,11 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
                 retryable=False, recommended_action="revise_contract"
             )
             break
+        cwd = _task_working_directory(task, workspace, run_dir)
+        cwd.mkdir(parents=True, exist_ok=True)
+        _resolve_approved_command(task, workspace, cwd)
         try:
             input_refs = _check_inputs(task, run_dir)
-            entrypoint = _inside(workspace, workspace / task["entrypoint"])
-            if not entrypoint.is_file():
-                raise FileNotFoundError(f"缺少入口文件：{task['entrypoint']}")
         except (OSError, ValueError) as exc:
             blocker = _build_blocker(
                 spec, task_id, spec_sha256, "missing_input", str(exc),
@@ -224,8 +275,6 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
             environment = os.environ.copy()
             environment["PYTHONHASHSEED"] = str(seed)
             environment["SHUMO_EXECUTION_SEED"] = str(seed)
-            cwd = _inside(workspace, workspace / task["working_directory"].removeprefix("workspace").lstrip("/"))
-            cwd.mkdir(parents=True, exist_ok=True)
             try:
                 completed = subprocess.run(
                     task["argv"],
@@ -263,7 +312,9 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
             # 输出路径由合同声明。缺失输出被记录为 acceptance 失败，而不是伪造文件。
             output_refs = []
             for item in task["required_outputs"]:
-                output_path = _inside(workspace, workspace / item["path"].removeprefix("workspace/"))
+                output_path = _inside(
+                    workspace, run_dir.joinpath(*PurePosixPath(item["path"]).parts)
+                )
                 if output_path.is_file():
                     output_refs.append(_file_ref(output_path, run_dir))
             acceptance, acceptance_passed = _check_acceptance(task, workspace, run_dir)

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import PurePosixPath
+import re
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
 
@@ -14,6 +15,24 @@ WINDOWS_RESERVED_NAMES = {
     *(f"COM{index}" for index in range(1, 10)),
     *(f"LPT{index}" for index in range(1, 10)),
 }
+
+CONTRACT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+
+
+def _validate_portable_segment(part: str, label: str, value: str) -> None:
+    normalized = part.rstrip(" .")
+    if normalized != part:
+        raise ValueError(f"{label} 的路径段禁止尾随空格或句点：{value}")
+    device_name = normalized.split(".", 1)[0].upper()
+    if not normalized or device_name in WINDOWS_RESERVED_NAMES:
+        raise ValueError(f"{label} 包含 Windows 保留名称：{value}")
+
+
+def validate_contract_id(value: str, label: str) -> None:
+    """验证会进入路径的合同 ID 在 Windows/POSIX 上均可安全使用。"""
+    if not isinstance(value, str) or not CONTRACT_ID_PATTERN.fullmatch(value):
+        raise ValueError(f"{label} 必须是安全的单段合同 ID")
+    _validate_portable_segment(value, label, value)
 
 
 def validate_contract_relative_path(value: str, allowed_root: str, label: str) -> None:
@@ -29,10 +48,7 @@ def validate_contract_relative_path(value: str, allowed_root: str, label: str) -
         raise ValueError(f"{label} 必须位于 {allowed_root}/ 下：{value}")
     for part in parts:
         # Windows 会忽略设备名后的扩展名，并折叠段末的空格或句点。
-        normalized = part.rstrip(" .")
-        device_name = normalized.split(".", 1)[0].upper()
-        if not normalized or device_name in WINDOWS_RESERVED_NAMES:
-            raise ValueError(f"{label} 包含 Windows 保留名称：{value}")
+        _validate_portable_segment(part, label, value)
     pure = PurePosixPath(value)
     if pure.is_absolute() or pure.parts != tuple(parts):
         raise ValueError(f"{label} 不是规范的 POSIX 相对路径：{value}")
@@ -83,3 +99,43 @@ def validate_execution_spec_paths(spec: Mapping[str, Any]) -> None:
                     workspace_root,
                     f"{prefix}.acceptance_checks[{check_index}].expectation",
                 )
+
+
+def validate_execution_command_bindings(spec: Mapping[str, Any], run_root: Path) -> None:
+    """确认每个 Python argv 都从声明工作目录解析到批准入口。"""
+    workspace = run_root.joinpath(
+        *PurePosixPath(spec["declared_workspace"]).parts
+    ).resolve()
+    for task in spec["tasks"]:
+        label = f"任务 {task['task_id']}"
+        argv = task["argv"]
+        runner_name = Path(argv[0]).name.casefold()
+        if task.get("runner") != "python" or not re.fullmatch(
+            r"python(?:3(?:\.\d+)?)?(?:\.exe)?", runner_name
+        ):
+            raise ValueError(f"{label} runner 不是受支持的 Python 解释器")
+        index = task.get("entrypoint_arg_index")
+        if index != 1 or len(argv) <= index:
+            raise ValueError(f"{label} 缺少受绑定的 entrypoint 参数")
+        entrypoint_arg = argv[index]
+        if (
+            not isinstance(entrypoint_arg, str)
+            or not entrypoint_arg
+            or entrypoint_arg.startswith("/")
+            or "\\" in entrypoint_arg
+            or ":" in entrypoint_arg
+        ):
+            raise ValueError(f"{label} entrypoint 参数必须是 POSIX 相对路径")
+        working = run_root.joinpath(
+            *PurePosixPath(task["working_directory"]).parts
+        ).resolve()
+        try:
+            working.relative_to(workspace)
+        except ValueError as exc:
+            raise ValueError(f"{label} working_directory 越出 declared_workspace") from exc
+        command_entrypoint = working.joinpath(*PurePosixPath(entrypoint_arg).parts).resolve()
+        approved_entrypoint = workspace.joinpath(
+            *PurePosixPath(task["entrypoint"]).parts
+        ).resolve()
+        if command_entrypoint != approved_entrypoint:
+            raise ValueError(f"{label} argv 未解析到批准的 entrypoint")

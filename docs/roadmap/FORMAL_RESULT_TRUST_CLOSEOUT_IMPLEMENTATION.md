@@ -16,9 +16,11 @@
 - Formal Result 核心文件进入 Run Evidence Manifest，Seal 再绑定该 Evidence 与 Envelope。
 - 删除、替换、改名、格式哈希混用、策略降级和合同版本漂移均失败即关闭。
 - Execution Spec 所有路径统一拒绝绝对路径、空段、`.`、`..`、反斜杠、盘符和 Windows 设备名；Spec 本身也拒绝 symlink/hardlink。
+- Executor 只读取 Run Root 的 `execution_spec.json`，校验完整不可变身份，并强制 Python `argv` 解析到批准的 entrypoint。
 - 文件名、`artifact_type`、状态、Schema、指标、不变量、最优性声明和负控要求由公共 verifier 交叉绑定。
-- Collector Attestation 的 Spec、日志、负控报告和输出集合均现场复算；候选输出访问标志必须为 `true`。
-- 在真实 Sandboxie Capability Bundle 激活前，机器派生固定为 `formal_result_eligible=false`，成熟度最高为 `contract_ready`。
+- Collector Attestation 的输入、代码、环境、Spec、日志、负控报告和固定输出集合均现场复算；候选输出访问标志必须为 `true`。
+- Eligibility 显式进入 Verifier Summary、Gate 3、Run Evidence、Seal 和 `verify_run()` 输出。
+- 在 Capability 引用深验证和真实 Sandboxie 激活前，机器派生固定为 `formal_result_eligible=false`，成熟度最高为 `foundation`。
 
 ## 未实施且不得越界声称
 
@@ -29,12 +31,12 @@
 
 ## 已确认的远程验证
 
-- 冻结 HEAD：`4a5c07346716b150d353b5875e17733468cc5641`
-- 代码有效 HEAD：`c7ee0be102c0842873358084e60826be77a6bb4e`
-- 最新验证 GitHub Actions Run：`29187221330`
+- 冻结 HEAD：`3e24e15f434362e245f58c66d83b1583179d7474`
+- 代码有效 HEAD：`3e24e15f434362e245f58c66d83b1583179d7474`
+- 最新验证 GitHub Actions Run：`29188235439`
 - 验证矩阵：Ubuntu / Windows × Python 3.11 / 3.12 全部通过。
-- 冻结对象当时的本地全量回归：`243 passed, 10 skipped`，覆盖率 `82%`。
-- 本次可信收口工作树：`269 passed, 10 skipped`，覆盖率 `82%`；Ruff、Pyright、仓库验证和确定性构建均通过。
+- 冻结对象当时的本地全量回归：`269 passed, 10 skipped`，覆盖率 `82%`。
+- 本次可信收口工作树：`286 passed, 10 skipped`，覆盖率 `82%`；Ruff、Pyright、仓库验证和确定性构建均通过。
 
 该记录只确认上述提交的代码质量门，不代替独立审查，也不授权提前合入 `main`、
 打正式 Tag 或声明 Sandboxie 环境已经验证。

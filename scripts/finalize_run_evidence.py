@@ -59,13 +59,16 @@ def validate_evidence_manifest(
 ) -> list[str]:
     """校验角色绑定、路径安全、文件大小及内容哈希，返回全部错误。"""
     required_artifacts = dict(required_artifacts)
+    formal_summary: dict[str, Any] | None = None
     try:
         run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
         if (
             run_manifest.get("formal_result_policy") == FORMAL_RESULT_POLICY_REQUIRED
             and any(run_dir.glob("formal_results/*/formal_result_envelope.json"))
         ):
-            extend_formal_result_evidence_requirements(run_dir, required_artifacts)
+            formal_summary = extend_formal_result_evidence_requirements(
+                run_dir, required_artifacts
+            )
     except (OSError, ValueError, json.JSONDecodeError):
         # 后续逐项校验会输出更精确的缺文件或哈希错误。
         pass
@@ -73,6 +76,16 @@ def validate_evidence_manifest(
     artifacts = evidence_manifest.get("artifacts")
     if not isinstance(artifacts, list):
         return ["run_evidence_manifest.artifacts 必须是数组"]
+    if formal_summary is not None:
+        expected_state = {
+            "formal_result_activation_status": formal_summary[
+                "formal_result_activation_status"
+            ],
+            "formal_result_eligible": formal_summary["formal_result_eligible"],
+        }
+        for field, expected in expected_state.items():
+            if evidence_manifest.get(field) != expected:
+                errors.append(f"run_evidence_manifest.{field} 与 Formal Result 不一致")
 
     run_root = run_dir.resolve()
     seen_roles: set[str] = set()
@@ -226,6 +239,10 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                     "formal_result_id": formal_summary["formal_result_id"],
                     "formal_result_envelope_sha256": formal_summary["envelope_file_sha256"],
                     "formal_result_envelope_semantic_sha256": formal_summary["envelope_semantic_sha256"],
+                    "formal_result_activation_status": formal_summary[
+                        "formal_result_activation_status"
+                    ],
+                    "formal_result_eligible": formal_summary["formal_result_eligible"],
                 }
             )
         write_json(

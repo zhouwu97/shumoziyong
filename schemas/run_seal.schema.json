@@ -18,7 +18,9 @@
     "gate_artifact_contract_version": {"const": "1.0.0"},
     "formal_result_id": {"type": "string", "minLength": 1},
     "formal_result_envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "formal_result_envelope_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    "formal_result_envelope_semantic_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "formal_result_activation_status": {"const": "code_complete_candidate"},
+    "formal_result_eligible": {"const": false}
   },
   "allOf": [
     {
@@ -34,7 +36,9 @@
           "gate_artifact_contract_version",
           "formal_result_id",
           "formal_result_envelope_sha256",
-          "formal_result_envelope_semantic_sha256"
+          "formal_result_envelope_semantic_sha256",
+          "formal_result_activation_status",
+          "formal_result_eligible"
         ]
       }
     }

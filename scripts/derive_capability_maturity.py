@@ -15,6 +15,7 @@ POLICY_PATH = ROOT / "policies" / "capability_maturity_policy.json"
 SCHEMA_PATH = ROOT / "schemas" / "capability_evidence.schema.json"
 FORMAL_RESULT_ACTIVATION_STATUS = "code_complete_candidate"
 FORMAL_RESULT_ELIGIBLE = False
+CAPABILITY_DEEP_VALIDATION_ENABLED = False
 
 
 def _passed(items: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
@@ -40,11 +41,14 @@ def _missing_for_status(
         return [f"缺少基础文档证据：{item}" for item in missing]
 
     if status == "runtime_trusted":
-        return _require_at_least(
+        issues = _require_at_least(
             "通过的 Runtime 验证",
             len(_passed(evidence["runtime_verifications"])),
             config["minimum_passed_runtime_verifications"],
         )
+        if not CAPABILITY_DEEP_VALIDATION_ENABLED:
+            issues.append("Capability 引用深验证尚未启用，成熟度暂时封顶 foundation")
+        return issues
 
     if status == "contract_ready":
         present = {item["contract_id"] for item in evidence["contracts"]}

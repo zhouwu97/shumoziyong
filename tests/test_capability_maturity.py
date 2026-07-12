@@ -111,11 +111,11 @@ def test_maturity_is_derived_from_complete_evidence() -> None:
     evidence = _evidence()
     validate_evidence(evidence)
     result = derive_maturity(evidence, _policy())
-    assert result["derived_maturity"] == "contract_ready"
-    assert result["next_status"] == "executor_validated"
+    assert result["derived_maturity"] == "foundation"
+    assert result["next_status"] == "runtime_trusted"
     assert result["formal_result_activation_status"] == "code_complete_candidate"
     assert result["formal_result_eligible"] is False
-    assert "Sandboxie Capability Bundle" in result["missing_requirements"][0]
+    assert "深验证" in result["missing_requirements"][0]
 
 
 def test_capability_evidence_cannot_self_activate_formal_results() -> None:
@@ -131,9 +131,14 @@ def test_fabrication_blocks_executor_and_higher_maturity() -> None:
     assert isinstance(execution_cycles, list)
     execution_cycles[0]["fabrication_detected"] = True
     result = derive_maturity(evidence, _policy())
-    assert result["derived_maturity"] == "contract_ready"
-    assert result["next_status"] == "executor_validated"
-    assert "伪造" in result["missing_requirements"][0]
+    assert result["derived_maturity"] == "foundation"
+    assert result["next_status"] == "runtime_trusted"
+
+
+def test_fake_contract_hashes_cannot_derive_contract_ready() -> None:
+    result = derive_maturity(_evidence(), _policy())
+    assert result["derived_maturity"] == "foundation"
+    assert "contract_ready" not in result["satisfied_statuses"]
 
 
 def test_execution_spec_contract_forbids_network_access() -> None:
@@ -160,7 +165,9 @@ def test_execution_spec_contract_forbids_network_access() -> None:
         "tasks": [
             {
                 "task_id": "Q1_BASELINE",
+                "runner": "python",
                 "entrypoint": "code/q1_baseline.py",
+                "entrypoint_arg_index": 1,
                 "argv": ["python", "code/q1_baseline.py"],
                 "working_directory": "workspace",
                 "inputs": [],
@@ -189,7 +196,6 @@ def test_executor_runs_candidate_and_requires_collector(tmp_path: Path) -> None:
         "Path('output/result.json').write_text('{\"score\": 1}', encoding='utf-8')\n",
         encoding="utf-8",
     )
-    (run_dir / "run_manifest.json").write_text('{"run_id": "run-1"}', encoding="utf-8")
     spec = {
         "schema_version": "1.0.0",
         "artifact_type": "execution_spec",
@@ -212,7 +218,9 @@ def test_executor_runs_candidate_and_requires_collector(tmp_path: Path) -> None:
         "tasks": [
             {
                 "task_id": "Q1_BASELINE",
+                "runner": "python",
                 "entrypoint": "code/task.py",
+                "entrypoint_arg_index": 1,
                 "argv": [sys.executable, "code/task.py"],
                 "working_directory": "workspace",
                 "inputs": [],
@@ -225,6 +233,21 @@ def test_executor_runs_candidate_and_requires_collector(tmp_path: Path) -> None:
             }
         ],
     }
+    identity_fields = (
+        "run_id",
+        "problem_id",
+        "profile",
+        "runtime_version",
+        "runtime_pack_sha256",
+        "formal_result_policy",
+        "execution_contract_version",
+        "formal_result_contract_version",
+        "canonicalization_version",
+        "gate_artifact_contract_version",
+    )
+    (run_dir / "run_manifest.json").write_text(
+        json.dumps({field: spec[field] for field in identity_fields}), encoding="utf-8"
+    )
     spec_path = run_dir / "execution_spec.json"
     spec_path.write_text(json.dumps(spec), encoding="utf-8")
 

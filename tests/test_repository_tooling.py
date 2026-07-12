@@ -1979,12 +1979,23 @@ def test_finalize_run_evidence_seals_current_files_and_detects_later_tampering(t
     evidence = json.loads(
         (run_dir / "run_evidence_manifest.json").read_text(encoding="utf-8")
     )
+    gate_3_manifest = json.loads(
+        (run_dir / "gate_artifacts" / "gate_3.manifest.json").read_text(encoding="utf-8")
+    )
     required_artifacts = json.loads((ROOT / "policies" / "promotion_policy.json").read_text(encoding="utf-8"))["run_evidence_requirements"]["ai_run_metadata_checks"]["required_artifacts"]
     assert (run_dir / "run_manifest.json").read_bytes() == immutable_manifest_before
     seal = json.loads((run_dir / "seal_record.json").read_text(encoding="utf-8"))
     validator = RepositoryValidator()
     assert validator.validate_schema(seal, "run_seal.schema.json", "run seal")
     assert seal["run_manifest_sha256"] == hashlib.sha256(immutable_manifest_before).hexdigest()
+    assert gate_3_manifest["formal_result"]["formal_result_eligible"] is False
+    assert gate_3_manifest["formal_result"]["formal_result_activation_status"] == "code_complete_candidate"
+    assert evidence["formal_result_eligible"] is False
+    assert evidence["formal_result_activation_status"] == "code_complete_candidate"
+    assert seal["formal_result_eligible"] is False
+    assert seal["formal_result_activation_status"] == "code_complete_candidate"
+    assert report["formal_result_eligible"] is False
+    assert report["formal_result_activation_status"] == "code_complete_candidate"
     assert report["completed"] is True
     assert report["sealed"] is True
     assert report["eligible_for_promotion"] is False

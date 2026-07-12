@@ -10,7 +10,12 @@ from typing import Any
 from .errors import FormalResultVerificationError
 from .hashing import file_sha256, semantic_sha256
 from .identity import FORMAL_RESULT_POLICY_REQUIRED, assert_identity, immutable_identity
-from .path_safety import validate_contract_relative_path, validate_execution_spec_paths
+from .path_safety import (
+    validate_contract_id,
+    validate_contract_relative_path,
+    validate_execution_command_bindings,
+    validate_execution_spec_paths,
+)
 from .schema import validate_schema
 
 
@@ -46,6 +51,12 @@ EXPECTED_PROVENANCE_ARTIFACTS = {
     "code_manifest.json": "code_manifest",
     "environment_manifest.json": "environment_manifest",
 }
+
+FORMAL_OUTPUT_FILE_SET = (
+    "decision_variables.json",
+    "optimization_validation.json",
+    "optimality_certificate.json",
+)
 
 
 def _load_object(path: Path, label: str) -> dict[str, Any]:
@@ -129,6 +140,10 @@ def _verify_domain_contract(
     if decision_descriptor.get("schema") != domain["decision_schema"]:
         raise FormalResultVerificationError(
             "decision_variables.json 的 descriptor.schema 未绑定 domain.decision_schema"
+        )
+    if set(domain["output_file_set"]) != set(FORMAL_OUTPUT_FILE_SET):
+        raise FormalResultVerificationError(
+            "domain.output_file_set 不符合工程优化 v1 固定正式输出集合"
         )
 
     actual_certificates = sorted(
@@ -214,6 +229,12 @@ def _verify_provenance_manifests(
         raise FormalResultVerificationError(
             "input_manifest.json 未精确绑定 Execution Spec 输入集合"
         )
+    for item in expected_inputs:
+        input_path = _safe_relative(run_root, item["path"], "Execution Spec 输入路径")
+        if not input_path.is_file():
+            raise FormalResultVerificationError(f"Execution Spec 输入不存在：{item['path']}")
+        if file_sha256(input_path) != item["sha256"]:
+            raise FormalResultVerificationError(f"Execution Spec 输入文件哈希不匹配：{item['path']}")
 
     code_files = values["code_manifest.json"].get("payload", {}).get("files")
     if not isinstance(code_files, list):
@@ -274,6 +295,10 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
     assert_identity(envelope, identity, "formal_result_envelope")
 
     formal_result_id = envelope["formal_result_id"]
+    try:
+        validate_contract_id(formal_result_id, "formal_result_id")
+    except ValueError as exc:
+        raise FormalResultVerificationError(str(exc)) from exc
     formal_root_relative = f"formal_results/{formal_result_id}"
     expected_envelope_path = f"{formal_root_relative}/formal_result_envelope.json"
     if envelope_relative != expected_envelope_path:
@@ -285,6 +310,7 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
     validate_schema(execution_spec, "execution_spec.schema.json", "execution_spec.json")
     try:
         validate_execution_spec_paths(execution_spec)
+        validate_execution_command_bindings(execution_spec, run_root)
     except ValueError as exc:
         raise FormalResultVerificationError(f"execution_spec 路径合同无效：{exc}") from exc
     assert_identity(execution_spec, identity, "execution_spec")
@@ -425,6 +451,12 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         "domain_manifest_path": domain_path.relative_to(run_root).as_posix(),
         "domain_manifest_file_sha256": file_sha256(domain_path),
         "domain_manifest_semantic_sha256": semantic_sha256(domain),
+        "formal_result_activation_status": values["environment_manifest.json"]["payload"][
+            "formal_result_activation_status"
+        ],
+        "formal_result_eligible": values["environment_manifest.json"]["payload"][
+            "formal_result_eligible"
+        ],
         "artifacts": verified,
         "identity": identity,
     }

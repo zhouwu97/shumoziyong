@@ -25,14 +25,19 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
             "canonicalization_version", "gate_artifact_contract_version",
         )
     }
+    input_path = run_dir / "problem" / "input.txt"
+    input_path.parent.mkdir(parents=True, exist_ok=True)
+    input_path.write_text("formal input\n", encoding="utf-8")
     execution_spec = {
         "schema_version": "1.0.0", "artifact_type": "execution_spec", **identity,
         "execution_mode": "trusted_local", "declared_workspace": "workspace", "network_access": False,
         "declared_writable_paths": ["workspace/output"], "approved_by": "test-reviewer",
         "approved_at": "2026-07-12T10:00:00Z",
         "tasks": [{
-            "task_id": "FORMAL_TEST", "entrypoint": "code/solve.py",
-            "argv": ["python", "code/solve.py"], "working_directory": "workspace", "inputs": [],
+            "task_id": "FORMAL_TEST", "runner": "python", "entrypoint": "code/solve.py",
+            "entrypoint_arg_index": 1,
+            "argv": ["python", "code/solve.py"], "working_directory": "workspace",
+            "inputs": [{"path": "problem/input.txt", "sha256": file_sha256(input_path)}],
             "required_outputs": [{"path": "workspace/output/result.json", "media_type": "application/json"}],
             "depends_on": [], "timeout_seconds": 60,
             "seed_policy": {"deterministic_expected": True, "seeds": [0]},
@@ -89,7 +94,13 @@ def write_formal_result_bundle(run_dir: Path, formal_result_id: str = "formal-te
             **common,
             "artifact_type": "input_manifest",
             "bindings": {"execution_spec.json": execution_semantic},
-            "payload": {"inputs": []},
+            "payload": {
+                "inputs": [{
+                    "task_id": "FORMAL_TEST",
+                    "path": "problem/input.txt",
+                    "sha256": file_sha256(input_path),
+                }]
+            },
         },
         "code_manifest.json": {
             **common,
