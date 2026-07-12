@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -51,6 +52,17 @@ def _bundle(tmp_path: Path) -> tuple[Path, Path]:
     run_dir = _v2_gate_0_run(tmp_path)
     envelope = write_formal_result_bundle(run_dir)
     return run_dir, envelope
+
+
+def _copy_signed_environment(directory: Path) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "sandboxie_environment_report.json",
+        "sandboxie_environment_attestation.json",
+        "sandboxie_config_backup.txt",
+    ):
+        shutil.copyfile(LIVE_SANDBOXIE_REPORT.parent / name, directory / name)
+    return directory / "sandboxie_environment_report.json"
 
 
 def _load(path: Path) -> dict[str, object]:
@@ -249,7 +261,7 @@ def test_signed_sandboxie_report_verifies_environment_but_not_run_eligibility(
 
     report_path = run_dir / "sandboxie_environment_report.json"
     report_path.write_text(report_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
-    with pytest.raises(FormalResultVerificationError, match="报告绑定"):
+    with pytest.raises(FormalResultVerificationError, match="Attestation 未绑定公开报告"):
         verify_run_seal(run_dir)
 
 
@@ -259,6 +271,69 @@ def test_sandboxie_configuration_backup_tampering_blocks_verification(tmp_path: 
     (run_dir / "sandboxie_config_backup.txt").write_text("tampered\n", encoding="utf-8")
     with pytest.raises(FormalResultVerificationError, match="配置备份"):
         verify_formal_result_bundle(run_dir, envelope)
+
+
+def test_sandboxie_machine_signature_tampering_is_rejected(tmp_path: Path) -> None:
+    report_path = _copy_signed_environment(tmp_path)
+    attestation_path = tmp_path / "sandboxie_environment_attestation.json"
+    attestation = _load(attestation_path)
+    signature = str(attestation["signature"])
+    attestation["signature"] = ("A" if signature[0] != "A" else "B") + signature[1:]
+    _write(attestation_path, attestation)
+    with pytest.raises(FormalResultVerificationError, match="机器签名"):
+        load_and_verify_sandboxie_environment_report(report_path, attestation_path)
+
+
+def test_sandboxie_settings_sha_is_recomputed(tmp_path: Path) -> None:
+    report_path = _copy_signed_environment(tmp_path)
+    report = _load(report_path)
+    report["sandbox"]["settings_sha256"] = "f" * 64
+    _write(report_path, report)
+    with pytest.raises(FormalResultVerificationError, match="settings_sha256"):
+        load_and_verify_sandboxie_environment_report(report_path)
+
+
+def test_sandboxie_service_path_must_bind_component(tmp_path: Path) -> None:
+    report_path = _copy_signed_environment(tmp_path)
+    report = _load(report_path)
+    report["installation"]["service"]["path"] = report["installation"]["components"][0][
+        "path"
+    ]
+    _write(report_path, report)
+    with pytest.raises(FormalResultVerificationError, match="Service.*交叉绑定"):
+        load_and_verify_sandboxie_environment_report(report_path)
+
+
+def test_sandboxie_tcp_control_must_bind_host_probe_endpoint(tmp_path: Path) -> None:
+    report_path = _copy_signed_environment(tmp_path)
+    report = _load(report_path)
+    control = next(
+        item
+        for item in report["negative_controls"]
+        if item["control_id"] == "blocked_tcp_endpoint_1"
+    )
+    control["target"] = "unbound.example:443"
+    _write(report_path, report)
+    with pytest.raises(FormalResultVerificationError, match="一一绑定"):
+        load_and_verify_sandboxie_environment_report(report_path)
+
+
+def test_sandboxie_cleanup_booleans_cannot_override_exit_code(tmp_path: Path) -> None:
+    report_path = _copy_signed_environment(tmp_path)
+    report = _load(report_path)
+    report["cleanup"]["terminate_exit_code"] = 1
+    report["cleanup"]["processes_terminated"] = True
+    _write(report_path, report)
+    with pytest.raises(FormalResultVerificationError, match="清理状态未由现场结果派生"):
+        load_and_verify_sandboxie_environment_report(report_path)
+
+
+def test_public_sandboxie_evidence_is_redacted() -> None:
+    public_text = LIVE_SANDBOXIE_REPORT.read_text(encoding="utf-8")
+    assert "C:\\\\Users\\\\" not in public_text
+    assert "AppData\\\\Local\\\\Temp" not in public_text
+    assert "%TEMP%" in public_text
+    assert "%PROGRAMFILES%" in public_text
 
 
 def test_formal_result_id_rejects_windows_reserved_name(tmp_path: Path) -> None:
