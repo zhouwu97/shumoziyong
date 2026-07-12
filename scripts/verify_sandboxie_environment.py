@@ -404,6 +404,16 @@ def _find_sandbox_paths(box: str) -> list[Path]:
     return sorted(found)
 
 
+def _wait_for_sandbox_content_removal(box: str, timeout_seconds: int = 15) -> bool:
+    """Sandboxie 删除分两阶段异步完成，只在真实目录稳定消失后返回成功。"""
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if not _find_sandbox_paths(box):
+            return True
+        time.sleep(1)
+    return not _find_sandbox_paths(box)
+
+
 def _redact_text(value: str, replacements: list[tuple[str, str]]) -> str:
     result = value
     for raw, token in replacements:
@@ -609,7 +619,7 @@ def collect_report(
             check=False,
         )
         cleanup["delete_exit_code"] = delete_result.returncode
-        cleanup["sandbox_content_exists_after"] = bool(_find_sandbox_paths(box))
+        cleanup["sandbox_content_exists_after"] = not _wait_for_sandbox_content_removal(box)
         cleanup["sandbox_content_deleted"] = (
             delete_result.returncode == 0 and not cleanup["sandbox_content_exists_after"]
         )
