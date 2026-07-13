@@ -1,0 +1,19 @@
+{
+  "run_id": "R01",
+  "problem_id": "2024-C",
+  "scope": "full_problem",
+  "files": {
+    "formal_result_contract.md": "59a39363b2348cb728b9af8252278c87858a80b7c8b95efe10fc2395db192e19",
+    "materials/attachments/附件1.xlsx": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932",
+    "materials/attachments/附件2.xlsx": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce",
+    "materials/manifest.md": "4c6fd763173bb72bd7b5c0e9a41204d60162be8626a5973f19c4c6613eaa5ff0",
+    "materials/material_manifest.json": "340354a313b0db5d315dea76899f1a8a4bf47b84ea0ffd3d4bf7f4202e347a7f",
+    "materials/problem/C题.pdf": "c7b5e58bff4189b8afba5505f7bff7d4f08280fc291c51ef3f46134ebbf74f9a",
+    "materials/problem/C题_extracted_text.txt": "94c0a7e2b508367b42a8139461c09e1799aa1d152fdad0c6937f6cc9f7682aa3",
+    "materials/templates/format2024.doc": "ec699bbe89e25cad16ca907b305c6cc76112ec04083cfe56ca65fd7a26fbaafe",
+    "materials/templates/result1_1.xlsx": "4f2484c0d70a5c4d047163f2ee6ef486949e813330466f46def4bd7d98af06af",
+    "materials/templates/result1_2.xlsx": "6166d43f5a64bf9d1657e80d4aee7f10f54bb1a5695b81a28a0ac5e657297649",
+    "materials/templates/result2.xlsx": "6a1ba9fc28d14d0a4a795e5f0b7261fb6e32165517afee62bcd1931aba5bee8a",
+    "prompt_exact.md": "645f98d70a5cdcf929e121c728206afb3fae94e9afc3451d1914e8c550dfb4ab"
+  }
+}

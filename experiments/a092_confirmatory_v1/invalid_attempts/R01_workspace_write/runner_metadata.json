@@ -1,0 +1,23 @@
+{
+  "run_id": "R01",
+  "problem_id": "2024-C",
+  "scope": "full_problem",
+  "model": "gpt-5.6-sol",
+  "model_reasoning_effort": "high",
+  "sampling_control": "codex_cli_model_default",
+  "codex_cli_version": "0.144.0-alpha.4",
+  "sandbox": "workspace-write",
+  "web_search": false,
+  "human_confirmation": false,
+  "started_at": "2026-07-13T03:48:22.179435+00:00",
+  "completed_at": "2026-07-13T03:49:19.598085+00:00",
+  "return_code": 0,
+  "thread_id": "019f5997-18b3-7a41-809e-68685a842394",
+  "usage": {
+    "input_tokens": 261611,
+    "cached_input_tokens": 236032,
+    "output_tokens": 2073,
+    "reasoning_output_tokens": 852
+  },
+  "prompt_sha256": "645f98d70a5cdcf929e121c728206afb3fae94e9afc3451d1914e8c550dfb4ab"
+}

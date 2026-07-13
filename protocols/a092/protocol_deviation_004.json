@@ -1,0 +1,14 @@
+{
+  "deviation_id": "A092-DEV-004",
+  "recorded_before_first_successful_formal_run": true,
+  "protocol_deviation": true,
+  "reason": "Windows Codex CLI 在 --ignore-user-config 下把 workspace-write 实际执行为只读，R01 首次尝试无法执行 Python 或写入任何产物。为使相同工具权限真实可用，两组统一改为仅以复制材料组成的隔离工作目录配合 danger-full-access，继续禁止网络和跨运行读取。",
+  "changes": [
+    "Baseline 与 Treatment 的 CLI sandbox 同步改为 danger-full-access",
+    "保持 --ignore-user-config、无 Web、无人工确认和独立新上下文",
+    "R01 首次只读尝试保留为 Experiment Invalid 证据并全新重跑"
+  ],
+  "affected_runs": ["R01_workspace_write_attempt"],
+  "rerun_required": true,
+  "fulfillment_condition": "R01 及其后全部正式运行使用修订后相同权限重新生成"
+}

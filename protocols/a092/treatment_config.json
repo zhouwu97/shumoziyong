@@ -10,7 +10,7 @@
     "equality_rule": "same_model_cli_and_explicit_reasoning_effort"
   },
   "runner": "codex-cli 0.144.0-alpha.4",
-  "tool_permissions": "isolated_workspace_write_no_web",
+  "tool_permissions": "isolated_directory_danger_full_access_no_web",
   "time_limit_seconds": 3600,
   "iteration_limit": "one_fresh_codex_exec_tool_loop",
   "human_confirmation_policy": "none_during_run"

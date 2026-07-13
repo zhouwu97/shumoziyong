@@ -1,0 +1,18 @@
+2026-07-13T03:48:22.324505Z  WARN codex_core::shell_snapshot: Failed to create shell snapshot for powershell: Shell snapshot not supported yet for PowerShell
+2026-07-13T03:48:35.372802Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command '$files = Get-ChildItem -LiteralPath . -Recurse -File | ForEach-Object { $_.FullName.Substring((Get-Location).Path.Length + 1) }; $files; "`n---FORMAL CONTRACT---"; Get-Content -LiteralPath '"'.\\formal_result_contract.md' -Raw"` rejected: blocked by policy
+2026-07-13T03:48:55.852916Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "@'
+import pandas as pd
+from pathlib import Path
+for p in [Path('materials/attachments/附件1.xlsx'), Path('materials/attachments/附件2.xlsx')]:
+    print('\\n###', p)
+    book = pd.ExcelFile(p)
+    print('sheets=', book.sheet_names)
+    for s in book.sheet_names:
+        df = pd.read_excel(p, sheet_name=s, header=None)
+        print('\\n--', s, df.shape, '--')
+        print(df.to_string(index=True, header=False))
+'@ | python -"` rejected: blocked by policy
+2026-07-13T03:48:59.885347Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "python -c \"import pandas as pd; ps=['materials/attachments/附件1.xlsx','materials/attachments/附件2.xlsx']; [(print('\\n###',p), print('sheets=',pd.ExcelFile(p).sheet_names), [(print('\\n--',s,'--'),print(pd.read_excel(p,sheet_name=s,header=None).to_string())) for s in pd.ExcelFile(p).sheet_names]) for p in ps]\""` rejected: blocked by policy
+2026-07-13T03:49:04.537227Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'python --version'` rejected: blocked by policy
+2026-07-13T03:49:09.000232Z ERROR codex_core::tools::router: error=`"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-Command python | Select-Object -ExpandProperty Source'` rejected: blocked by policy
+2026-07-13T03:49:11.931353Z ERROR codex_core::tools::router: error=patch rejected: writing is blocked by read-only sandbox; rejected by user approval settings
