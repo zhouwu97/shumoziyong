@@ -91,13 +91,11 @@ def launch_command_sha256(
     *,
     start_exe_sha256: str,
     python_sha256: str,
-    runtime_manifest_sha256: str,
     sandboxie_box_name: str,
 ) -> str:
     stable = {
         "start_exe_sha256": start_exe_sha256,
         "python_sha256": python_sha256,
-        "runtime_manifest_sha256": runtime_manifest_sha256,
         "sandboxie_box_name": sandboxie_box_name,
         "resolved_argv": compiled["resolved_argv"],
         "resolved_working_directory": compiled["resolved_working_directory"],

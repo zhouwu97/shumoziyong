@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from formal_result.run_execution_attestation import (
     validate_execution_time_window,
     verify_run_execution_attestation,
 )
+from formal_result.trusted_local import collect_git_state
 from formal_result.verifier import verify_formal_result_bundle
 from run_workflow import verify_run
 
@@ -269,6 +271,32 @@ def test_execution_command_compiler_rejects_unsupported_acceptance_check(
         )
 
 
+def test_trusted_local_git_state_includes_untracked_and_staged_changes(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    subprocess.run(["git", "init", "--quiet"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.com"], cwd=repository, check=True
+    )
+    subprocess.run(["git", "config", "user.name", "test"], cwd=repository, check=True)
+    tracked = repository / "tracked.txt"
+    tracked.write_text("stable\n", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked.txt"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "--quiet", "-m", "initial"], cwd=repository, check=True)
+    assert collect_git_state(repository)["git_state_clean"] is True
+
+    (repository / "untracked.txt").write_text("drift\n", encoding="utf-8")
+    assert collect_git_state(repository)["git_state_clean"] is False
+    (repository / "untracked.txt").unlink()
+    tracked.write_text("staged drift\n", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked.txt"], cwd=repository, check=True)
+    state = collect_git_state(repository)
+    assert state["git_state_clean"] is False
+    assert state["diff_cached_exit_code"] == 1
+
+
 def test_formal_result_must_derive_from_raw_sandbox_output(tmp_path: Path) -> None:
     run = _copy(tmp_path)
     raw_path = run / "workspace" / "output" / "result.json"
@@ -401,31 +429,17 @@ def test_fixture_binds_host_read_controls_and_cleanup() -> None:
         "blocked_read_repo_unlisted",
         "blocked_read_other_temp",
         "blocked_read_user_home",
-        "blocked_read_random_unregistered_host_file",
     }
     assert all(item["status"] == "passed" for item in record["read_negative_controls"])
-    assert record["read_isolation_mode"] == "default_deny"
-    assert record["allowed_read_roots"] == [
-        "runtime",
-        "code",
-        "input",
-        "execution_spec.json",
-        "run_execution_runtime_manifest.json",
-    ]
-    assert record["allowed_write_roots"] == ["output", "tmp"]
-    assert record["denied_host_roots"]
-    assert record["system_runtime_read_roots"] == [
-        "%SYSTEMROOT%",
-        "%PROGRAMFILES%",
-        "%PROGRAMFILES_X86%",
-        "%PROGRAMDATA%\\Microsoft",
-    ]
-    assert all(root.endswith(":\\") for root in record["denied_host_roots"])
-    assert "UseRuleSpecificity=y" in record["sandbox_policy_settings"]
-    assert "UsePrivacyMode=y" in record["sandbox_policy_settings"]
-    assert not any(
-        "SENTINEL" in setting for setting in record["sandbox_policy_settings"]
-    )
+    assert record["execution_trust_model"] == "trusted_local"
+    assert record["git_state_clean"] is True
+    assert record["git_state"]["git_head"] == record["git_head"]
+    assert record["git_state"]["status_porcelain_v1"] == ""
+    assert record["privacy_mode_available"] is False
+    assert record["targeted_host_read_controls_passed"] is True
+    assert record["default_deny_host_reads_verified"] is False
+    assert "UseRuleSpecificity=y" not in record["sandbox_policy_settings"]
+    assert "UsePrivacyMode=y" not in record["sandbox_policy_settings"]
     assert record["cleanup"]["preexisting_configuration_restored"] is True
     assert record["cleanup"]["sandbox_paths_after"] == []
 

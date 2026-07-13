@@ -187,4 +187,5 @@ def verify_formal_result_derivation(
         "collector_derivation_attestation_semantic_sha256": semantic_sha256(derivation),
         "formal_result_core_digest": core_digest,
         "execution_id": payload["execution_id"],
+        "collector_source_commit": derivation["collector_source_commit"],
     }

@@ -47,19 +47,11 @@ from formal_result.run_execution_attestation import (
     OUTPUT_MANIFEST_FILENAME,
     verify_run_execution_attestation,
 )
-from formal_result.runtime_isolation import (
-    ALLOWED_READ_ROOTS,
-    ALLOWED_WRITE_ROOTS,
-    READ_ISOLATION_MODE,
-    RUNTIME_MANIFEST_FILENAME,
-    SYSTEM_RUNTIME_READ_ROOTS,
-    logical_drive_roots,
-    materialize_runtime,
-)
 from formal_result.sandboxie_environment import (
     TRUST_REGISTRY_PATH,
     load_and_verify_sandboxie_environment_report,
 )
+from formal_result.trusted_local import EXECUTION_TRUST_MODEL, require_clean_git_state
 from formal_result.verifier import verify_formal_result_bundle
 
 
@@ -197,27 +189,22 @@ def _wait_sandbox_removed(box: str, timeout_seconds: int = 20) -> list[str]:
 
 
 def _read_negative_control(
-    start: Path,
-    box: str,
-    target: Path,
-    control_id: str,
-    cwd: Path,
-    runtime_python: Path,
-    environment: Mapping[str, str],
+    start: Path, box: str, target: Path, control_id: str, cwd: Path
 ) -> dict[str, Any]:
     probe = (
-        "import ctypes,pathlib,sys;"
-        "sys.exit(42) if not ctypes.windll.kernel32.GetModuleHandleW('SbieDll.dll') else None;"
-        f"target=pathlib.Path({str(target)!r});"
-        "\ntry:\n target.read_bytes()\nexcept OSError:\n sys.exit(0)\nelse:\n sys.exit(41)"
+        "$mods=[Diagnostics.Process]::GetCurrentProcess().Modules|% ModuleName;"
+        "if($mods -notcontains 'SbieDll.dll'){exit 42};"
+        f"try{{Get-Content -LiteralPath {_ps_quote(str(target))} -Raw -ErrorAction Stop|Out-Null;exit 41}}"
+        "catch{exit 0}"
     )
     command = [
-        str(start), f"/box:{box}", "/silent", "/wait", str(runtime_python), "-c", probe,
+        str(start), f"/box:{box}", "/silent", "/wait", "powershell.exe",
+        "-NoProfile", "-NonInteractive", "-Command", probe,
     ]
     result: subprocess.CompletedProcess[str] | None = None
     attempt_exit_codes: list[int] = []
     for attempt in range(3):
-        result = _run(command, timeout=30, cwd=cwd, env=environment)
+        result = _run(command, timeout=30, cwd=cwd)
         attempt_exit_codes.append(result.returncode)
         if result.returncode != TRANSIENT_START_EXIT:
             break
@@ -250,16 +237,12 @@ def _expand_report_path(value: str) -> Path:
     return Path(expanded).resolve(strict=True)
 
 
-def _require_supporter_certificate(sbie_ini: Path) -> None:
-    """Premium 隔离规则必须在物化或启动前确认合法凭据存在。"""
+def _privacy_mode_available(sbie_ini: Path) -> bool:
+    """记录可选增强能力；trusted-local 资格不依赖付费凭据。"""
     result = _run([str(sbie_ini), "query", "global", "Certificate"], timeout=30)
     if result.returncode != 0:
-        raise RuntimeError("无法查询 Sandboxie supporter certificate 状态")
-    if not result.stdout.strip():
-        raise RuntimeError(
-            "Sandboxie 缺少 supporter certificate；UsePrivacyMode/UseRuleSpecificity "
-            "不可用，拒绝生成 default_deny Attestation"
-        )
+        return False
+    return bool(result.stdout.strip())
 
 
 def _rebind_formal_bundle(run_dir: Path, formal_result_id: str, run_summary: Mapping[str, Any]) -> None:
@@ -422,7 +405,10 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     )
     if not environment["environment_attestation_currently_valid"]:
         raise ValueError("环境报告已过期，拒绝启动新执行")
+    git_state = require_clean_git_state(ROOT)
     collector_source_commit, collector_script_sha = bound_collector_source_commit()
+    if git_state["git_head"] != collector_source_commit:
+        raise RuntimeError("Git HEAD 与 Collector source commit 不一致")
 
     spec_path = run_dir / "execution_spec.json"
     spec = _load(spec_path)
@@ -436,7 +422,7 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     components = {item["role"]: item for item in report["installation"]["components"]}
     start = _expand_report_path(str(components["start_exe"]["path"]))
     sbie_ini = start.with_name("SbieIni.exe")
-    _require_supporter_certificate(sbie_ini)
+    privacy_mode_available = _privacy_mode_available(sbie_ini)
 
     archived_execution_root = run_dir / "execution_sandbox"
     if archived_execution_root.exists():
@@ -448,12 +434,6 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     unique_inputs = {item["path"]: item for item in input_items}
     _copy_manifest_files(run_dir, execution_root / "input", list(unique_inputs.values()), "problem")
     shutil.copyfile(spec_path, execution_root / "execution_spec.json")
-    python, runtime_manifest = materialize_runtime(
-        execution_root / "runtime", ROOT / "requirements.lock"
-    )
-    runtime_manifest_path = execution_root / RUNTIME_MANIFEST_FILENAME
-    _write(runtime_manifest_path, runtime_manifest)
-    runtime_manifest_sha = file_sha256(runtime_manifest_path)
     before = _snapshot(execution_root)
 
     box = f"ShumoM3A{uuid.uuid4().hex[:12]}"
@@ -467,38 +447,36 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     )
     stdout_path = execution_root / "output" / "stdout.log"
     stderr_path = execution_root / "output" / "stderr.log"
+    python = Path(sys.executable).resolve(strict=True)
     working_path = Path(str(compiled["resolved_working_directory_path"]))
     working_path.mkdir(parents=True, exist_ok=True)
+    environment_script = "".join(
+        f"$env:{name}={_ps_quote(str(value))};"
+        for name, value in compiled["environment_overrides"].items()
+    )
+    child_command = subprocess.list2cmdline(
+        [str(python), *(str(item) for item in compiled["resolved_argv"][1:])]
+    )
+    child_command += " 1>" + subprocess.list2cmdline([str(stdout_path)])
+    child_command += " 2>" + subprocess.list2cmdline([str(stderr_path)])
+    powershell = (
+        "$mods=[Diagnostics.Process]::GetCurrentProcess().Modules|% ModuleName;"
+        "if($mods -notcontains 'SbieDll.dll'){exit 97};"
+        + environment_script
+        + f"Set-Location -LiteralPath {_ps_quote(str(working_path))};"
+        + f"& $env:ComSpec /d /s /c {_ps_quote(child_command)};"
+        "exit $LASTEXITCODE"
+    )
     command = [
-        str(start),
-        f"/box:{box}",
-        "/silent",
-        "/wait",
-        str(python),
-        str(execution_root / "runtime" / "shumo_launch_wrapper.py"),
-        str(working_path),
-        *(str(item) for item in compiled["resolved_argv"][1:]),
+        str(start), f"/box:{box}", "/silent", "/wait", "powershell.exe", "-NoProfile",
+        "-NonInteractive", "-Command", powershell,
     ]
-    child_environment = dict(os.environ)
-    child_environment.update(
-        {name: str(value) for name, value in compiled["environment_overrides"].items()}
-    )
-    child_environment.update(
-        {
-            "PYTHONHOME": str(execution_root / "runtime"),
-            "PYTHONNOUSERSITE": "1",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "TEMP": str(execution_root / "tmp"),
-            "TMP": str(execution_root / "tmp"),
-        }
-    )
     start_sha = file_sha256(start)
     python_sha = file_sha256(python)
     command_sha = launch_command_sha256(
         compiled,
         start_exe_sha256=start_sha,
         python_sha256=python_sha,
-        runtime_manifest_sha256=runtime_manifest_sha,
         sandboxie_box_name=box,
     )
     started_at = _now()
@@ -507,39 +485,38 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     other_temp_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
     user_sentinel = Path.home() / f".shumo-m3a-sentinel-{uuid.uuid4().hex}.txt"
     user_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
-    denied_host_roots = logical_drive_roots()
     normalized_policy = [
-        "Enabled=y",
-        "AutoDelete=n",
-        "DropAdminRights=y",
-        "BlockNetworkFiles=y",
-        "UsePrivacyMode=y",
-        "UseRuleSpecificity=y",
-        "HideMessage=2203",
-        "NotifyInternetAccessDenied=n",
-        *(f"ReadFilePath=%EXECUTION_ROOT%\\{item}" for item in ALLOWED_READ_ROOTS),
-        *(f"OpenFilePath=%EXECUTION_ROOT%\\{item}" for item in ALLOWED_WRITE_ROOTS),
+        "Enabled=y", "AutoDelete=n", "DropAdminRights=y", "BlockNetworkFiles=y",
+        "HideMessage=2203", "NotifyInternetAccessDenied=n", "ClosedFilePath=%RUN_ROOT%",
+        "ClosedFilePath=%REPO_SENTINEL%", "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
+        "ClosedFilePath=%USER_HOME_SENTINEL%",
+        r"ReadFilePath=%EXECUTION_ROOT%\code", r"ReadFilePath=%EXECUTION_ROOT%\input",
+        r"ReadFilePath=%EXECUTION_ROOT%\execution_spec.json",
+        r"OpenFilePath=%EXECUTION_ROOT%\output", r"OpenFilePath=%EXECUTION_ROOT%\tmp",
         r"ClosedFilePath=\Device\Afd*",
         r"ClosedFilePath=\Device\Tcp*",
         r"ClosedFilePath=\Device\RawIp",
     ]
     policy_sha = sandbox_policy_sha256(normalized_policy)
-    random_host_root = Path(tempfile.mkdtemp(prefix="shumo-m3a-unregistered-host-"))
-    random_host_sentinel = random_host_root / f"unregistered-{uuid.uuid4().hex}.txt"
-    random_host_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
     sentinels = {
         "blocked_read_original_run": run_dir / "run_manifest.json",
         "blocked_read_repo_unlisted": ROOT / "README.md",
         "blocked_read_other_temp": other_temp_sentinel,
         "blocked_read_user_home": user_sentinel,
-        "blocked_read_random_unregistered_host_file": random_host_sentinel,
     }
     settings = [
         ("Enabled", "y"), ("AutoDelete", "n"), ("DropAdminRights", "y"),
         ("BlockNetworkFiles", "y"), ("NotifyInternetAccessDenied", "n"),
-        ("UsePrivacyMode", "y"), ("UseRuleSpecificity", "y"), ("HideMessage", "2203"),
-        *(("ReadFilePath", str(execution_root / item)) for item in ALLOWED_READ_ROOTS),
-        *(("OpenFilePath", str(execution_root / item)) for item in ALLOWED_WRITE_ROOTS),
+        ("HideMessage", "2203"),
+        ("ClosedFilePath", str(run_dir)),
+        ("ClosedFilePath", str(sentinels["blocked_read_repo_unlisted"])),
+        ("ClosedFilePath", str(other_temp_sentinel)),
+        ("ClosedFilePath", str(user_sentinel)),
+        ("ReadFilePath", str(execution_root / "code")),
+        ("ReadFilePath", str(execution_root / "input")),
+        ("ReadFilePath", str(execution_root / "execution_spec.json")),
+        ("OpenFilePath", str(execution_root / "output")),
+        ("OpenFilePath", str(execution_root / "tmp")),
         ("ClosedFilePath", r"\Device\Afd*"),
         ("ClosedFilePath", r"\Device\Tcp*"),
         ("ClosedFilePath", r"\Device\RawIp"),
@@ -561,15 +538,7 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
             if configured.returncode != 0:
                 raise RuntimeError(f"Sandboxie 配置失败：{name}")
         negative_controls = [
-            _read_negative_control(
-                start,
-                box,
-                target,
-                control_id,
-                execution_root,
-                python,
-                child_environment,
-            )
+            _read_negative_control(start, box, target, control_id, execution_root)
             for control_id, target in sentinels.items()
         ]
         if any(item["status"] != "passed" for item in negative_controls):
@@ -582,7 +551,6 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
                 command,
                 timeout=int(task["timeout_seconds"]) + 30,
                 cwd=execution_root,
-                env=child_environment,
             )
             candidate_attempt_exit_codes.append(result.returncode)
             if result.returncode != TRANSIENT_START_EXIT:
@@ -630,7 +598,6 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         }
         user_sentinel.unlink(missing_ok=True)
         shutil.rmtree(other_temp_root, ignore_errors=True)
-        shutil.rmtree(random_host_root, ignore_errors=True)
     cleanup_passed = (
         cleanup.get("terminate_exit_code") == 0
         and cleanup.get("delete_exit_code") == 0
@@ -653,8 +620,6 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     if result is None or result.returncode != 0:
         shutil.rmtree(execution_root, ignore_errors=True)
         raise RuntimeError(f"Sandboxie Run 执行失败，exit_code={None if result is None else result.returncode}")
-    stdout_path.write_text(result.stdout, encoding="utf-8")
-    stderr_path.write_text(result.stderr, encoding="utf-8")
     if not stdout_path.is_file() or not stderr_path.is_file():
         shutil.rmtree(execution_root, ignore_errors=True)
         raise RuntimeError("Sandbox 内未生成真实子进程 stdout/stderr")
@@ -694,12 +659,7 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     if any(item["status"] != "passed" for item in acceptance_results):
         shutil.rmtree(execution_root, ignore_errors=True)
         raise RuntimeError("Execution Spec acceptance check 未通过")
-    shutil.copytree(
-        execution_root,
-        archived_execution_root,
-        ignore=lambda directory, _names: ["runtime"] if Path(directory) == execution_root else [],
-    )
-    shutil.copyfile(runtime_manifest_path, run_dir / RUNTIME_MANIFEST_FILENAME)
+    shutil.copytree(execution_root, archived_execution_root)
 
     run_output = run_dir / "workspace" / "output"
     run_output.mkdir(parents=True, exist_ok=True)
@@ -733,12 +693,13 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         "run_id": spec["run_id"], "formal_result_id": formal_result_id,
         "execution_id": execution_id, "sandboxie_box_name": box,
         "sandbox_policy_sha256": policy_sha, "sandbox_policy_settings": normalized_policy,
-        "read_isolation_mode": READ_ISOLATION_MODE,
-        "runtime_manifest_sha256": runtime_manifest_sha,
-        "denied_host_roots": denied_host_roots,
-        "system_runtime_read_roots": SYSTEM_RUNTIME_READ_ROOTS,
-        "allowed_read_roots": ALLOWED_READ_ROOTS,
-        "allowed_write_roots": ALLOWED_WRITE_ROOTS,
+        "execution_trust_model": EXECUTION_TRUST_MODEL,
+        "git_head": git_state["git_head"],
+        "git_state_clean": True,
+        "git_state": git_state,
+        "privacy_mode_available": privacy_mode_available,
+        "targeted_host_read_controls_passed": True,
+        "default_deny_host_reads_verified": False,
         "resolved_argv": compiled["resolved_argv"],
         "resolved_working_directory": compiled["resolved_working_directory"],
         "seed": compiled["seed"],
@@ -772,7 +733,6 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         "input_manifest_sha256": file_sha256(formal / "input_manifest.json"),
         "output_manifest_sha256": file_sha256(run_dir / OUTPUT_MANIFEST_FILENAME),
         "execution_record_sha256": file_sha256(run_dir / EXECUTION_RECORD_FILENAME),
-        "runtime_manifest_sha256": runtime_manifest_sha,
         "formal_result_payload_manifest_sha256": derivation[
             "payload_manifest_sha256"
         ],
@@ -787,6 +747,12 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         "environment_fingerprint": environment["environment_fingerprint"],
         "start_exe_sha256": file_sha256(start), "sandboxie_box_name": box,
         "sandbox_policy_sha256": policy_sha,
+        "execution_trust_model": EXECUTION_TRUST_MODEL,
+        "git_head": git_state["git_head"],
+        "git_state_clean": True,
+        "privacy_mode_available": privacy_mode_available,
+        "targeted_host_read_controls_passed": True,
+        "default_deny_host_reads_verified": False,
         "launch_command_sha256": command_sha, "started_at": started_at,
         "completed_at": completed_at, "challenge_nonce": challenge,
         "exit_code": result.returncode, "stdout_sha256": file_sha256(stdout_path),
