@@ -20,7 +20,18 @@ def _sha256(path: Path) -> str:
 def _validator_digest() -> tuple[str, dict[str, str]]:
     """把通用薄壳全部文件绑定为一个稳定摘要。"""
 
-    files = sorted((ROOT / "validators" / "common").glob("*.py"))
+    validator_root = ROOT / "validators"
+    included_directories = {
+        "common",
+        "problem_positive",
+        "problem_boundary",
+        "problem_negative",
+    }
+    files = sorted(
+        path
+        for path in validator_root.rglob("*.py")
+        if path.parent.name in included_directories
+    )
     manifest = {path.relative_to(ROOT).as_posix(): _sha256(path) for path in files}
     canonical = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest(), manifest
@@ -39,6 +50,7 @@ def build_freeze_record(protocol_commit: str) -> dict[str, Any]:
         "treatment_config_sha256": ROOT / "protocols" / "a092" / "treatment_config.json",
         "runtime_pack_sha256": ROOT / "protocols" / "a092" / "runtime_pack.json",
         "case_role_manifest_sha256": ROOT / "protocols" / "a092" / "case_role_manifest.json",
+        "formal_result_contract_sha256": ROOT / "protocols" / "a092" / "formal_result_contract.md",
     }
     return {
         "freeze_record_version": "1.0.0",

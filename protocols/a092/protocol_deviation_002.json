@@ -1,0 +1,16 @@
+{
+  "deviation_id": "A092-DEV-002",
+  "recorded_before_formal_runs": true,
+  "protocol_deviation": true,
+  "reason": "阶段二冻结只绑定了通用 Validator 薄壳，未绑定三道正式题的题目数学适配器。若在 Treatment 之后补公式会产生事后评价风险，因此在任何正式运行前补全并重新冻结。",
+  "changes": [
+    "新增 2024-C 全题目标与核心约束独立复算适配器",
+    "新增 2023-B 问题一、二解析表格复算适配器",
+    "新增 2016-C MRE 与剩余时间结果复算适配器",
+    "冻结三类题共同的 formal_result.json 输出合同",
+    "validator_sha256 扩展绑定三个正式适配器目录"
+  ],
+  "affected_runs": [],
+  "rerun_required": true,
+  "fulfillment_condition": "阶段三全部正式运行在适配器冻结后生成"
+}
