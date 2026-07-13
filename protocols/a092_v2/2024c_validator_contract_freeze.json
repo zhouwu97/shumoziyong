@@ -1,0 +1,33 @@
+{
+  "freeze_record_version": "1.0.0",
+  "validator_contract_version": "2024c_positive_v2",
+  "status": "validator_frozen_for_a092_v2_design",
+  "full_confirmatory_protocol_frozen": false,
+  "data_contract": {
+    "merged_plot_ids_forward_filled": true,
+    "smart_greenhouse_first_season_source": "普通大棚第一季",
+    "sales_cap_key": [
+      "crop_id",
+      "season"
+    ],
+    "smart_greenhouse_rotation_order": "actual_season_sequence_with_2023_boundary",
+    "objective_tolerance": 1e-06,
+    "constraint_tolerance": 1e-05
+  },
+  "official_inputs": {
+    "official_materials/2024_C/attachments/附件1.xlsx": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932",
+    "official_materials/2024_C/attachments/附件2.xlsx": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce"
+  },
+  "validator_files": {
+    "validators/problem_positive_v2/__init__.py": "f56dbe3f61faa65c7f543b70c67070adab111c4efd3984d33e5a320052ed7d22",
+    "validators/problem_positive_v2/validate.py": "08604c07a70097ec833225821ed4696f4726d766df5e33daa070fdd75b4dfc0f"
+  },
+  "diagnostic_result": {
+    "path": "experiments/2024c_objective_diagnosis_v1/diagnostic_result.json",
+    "sha256": "9fb64794cf3a0e6d46623532904d287f3f3c8149f693628a1b6a589a58409031"
+  },
+  "diagnostic_report": {
+    "path": "docs/reports/2024C_OBJECTIVE_RECOMPUTATION_DIAGNOSIS.md",
+    "sha256": "a3faa8051b02dfc4e8993289a9bf9e30155175b9e48cd74c410f907f2fe41936"
+  }
+}

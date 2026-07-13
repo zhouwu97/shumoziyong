@@ -1,0 +1,505 @@
+{
+  "diagnosis_id": "2024c_objective_recomputation_diagnosis_v1",
+  "official_inputs": {
+    "official_materials/2024_C/attachments/附件1.xlsx": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932",
+    "official_materials/2024_C/attachments/附件2.xlsx": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce"
+  },
+  "loader_ablation": {
+    "v1_no_fill_smart_second": {
+      "planting_2023_rows": 54,
+      "sales_cap_keys": 31
+    },
+    "fill_only_smart_second": {
+      "planting_2023_rows": 87,
+      "sales_cap_keys": 47
+    },
+    "smart_only_no_fill": {
+      "planting_2023_rows": 54,
+      "sales_cap_keys": 31
+    },
+    "v2_fill_and_ordinary_first": {
+      "planting_2023_rows": 87,
+      "sales_cap_keys": 47
+    }
+  },
+  "runs": {
+    "R01": {
+      "formal_result": {
+        "path": "experiments/a092_confirmatory_v1/runs/R01/results/formal_result.json",
+        "sha256": "137278ebdfab72637078c0d6c61a2763ef02db0dc5e46b1c754dc57e15d35734"
+      },
+      "v1_report": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 40774639.798695,
+          "objective_recomputed": 25079911.38141167,
+          "objective_difference": 15694728.417283326,
+          "objective_valid": false,
+          "constraint_violation_count": 0,
+          "violated_constraints": [],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 59324260.51175,
+          "objective_recomputed": 54368178.268695,
+          "objective_difference": 4956082.243055001,
+          "objective_valid": false,
+          "constraint_violation_count": 16,
+          "violated_constraints": [
+            "continuous_crop:F1:17:2025",
+            "continuous_crop:F1:22:2026",
+            "continuous_crop:F1:22:2029",
+            "continuous_crop:F1:29:2027",
+            "continuous_crop:F1:29:2030",
+            "continuous_crop:F2:22:2026",
+            "continuous_crop:F2:22:2029",
+            "continuous_crop:F2:29:2025",
+            "continuous_crop:F2:29:2028",
+            "continuous_crop:F3:22:2026",
+            "continuous_crop:F3:22:2029",
+            "continuous_crop:F3:29:2025",
+            "continuous_crop:F3:29:2028",
+            "continuous_crop:F4:22:2025",
+            "continuous_crop:F4:29:2027",
+            "continuous_crop:F4:29:2030"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40488419.079394,
+          "objective_recomputed": 25104329.67546027,
+          "objective_difference": 15384089.403933726,
+          "objective_valid": false,
+          "constraint_violation_count": 2,
+          "violated_constraints": [
+            "continuous_crop:F4:22:2025",
+            "legume_window:D8:2025-2027"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40920239.237815,
+          "objective_recomputed": 25555925.5419756,
+          "objective_difference": 15364313.695839401,
+          "objective_valid": false,
+          "constraint_violation_count": 6,
+          "violated_constraints": [
+            "capacity:2028:D6:第一季",
+            "legume_window:D2:2023-2025",
+            "legume_window:D3:2023-2025",
+            "legume_window:D3:2024-2026",
+            "water_system:2028:D6:第一季",
+            "water_system:2030:D5:第二季"
+          ],
+          "constraints_valid": false
+        }
+      ],
+      "v2_report": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 40774639.798695,
+          "objective_recomputed": 39707071.79869501,
+          "objective_difference": 1067567.999999985,
+          "objective_valid": false,
+          "constraint_violation_count": 2,
+          "violated_constraints": [
+            "continuous_crop:F1:21:2023-第二季->2024-第一季",
+            "continuous_crop:F3:30:2023-第二季->2024-第一季"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 59324260.51175,
+          "objective_recomputed": 59108291.938149996,
+          "objective_difference": 215968.57360000163,
+          "objective_valid": false,
+          "constraint_violation_count": 1,
+          "violated_constraints": [
+            "continuous_crop:F2:29:2023-第二季->2024-第一季"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40488419.079394,
+          "objective_recomputed": 39220764.7470507,
+          "objective_difference": 1267654.3323432952,
+          "objective_valid": false,
+          "constraint_violation_count": 2,
+          "violated_constraints": [
+            "continuous_crop:F1:21:2023-第二季->2024-第一季",
+            "continuous_crop:F2:22:2023-第二季->2024-第一季"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40920239.237815,
+          "objective_recomputed": 39655747.50215322,
+          "objective_difference": 1264491.7356617823,
+          "objective_valid": false,
+          "constraint_violation_count": 2,
+          "violated_constraints": [
+            "continuous_crop:F1:21:2023-第二季->2024-第一季",
+            "continuous_crop:F4:23:2023-第二季->2024-第一季"
+          ],
+          "constraints_valid": false
+        }
+      ],
+      "preprocessing_ablation": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 40774639.798695,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 25079911.38141167,
+            "reported_minus_recomputed": 15694728.417283326
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 40295571.38141168,
+            "reported_minus_recomputed": 479068.41728331894
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 24490914.798694998,
+            "reported_minus_recomputed": 16283725.0
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 39707071.79869501,
+            "reported_minus_recomputed": 1067567.999999985
+          }
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 59324260.51175,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 54368178.268695,
+            "reported_minus_recomputed": 4956082.243055001
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 60797712.935361676,
+            "reported_minus_recomputed": -1473452.4236116782
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 52677749.938149996,
+            "reported_minus_recomputed": 6646510.573600002
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 59108291.938149996,
+            "reported_minus_recomputed": 215968.57360000163
+          }
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40488419.079394,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 25104329.67546027,
+            "reported_minus_recomputed": 15384089.403933726
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 39934758.407658815,
+            "reported_minus_recomputed": 553660.6717351824
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 24392008.456403993,
+            "reported_minus_recomputed": 16096410.622990005
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 39220764.7470507,
+            "reported_minus_recomputed": 1267654.3323432952
+          }
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40920239.237815,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 25555925.5419756,
+            "reported_minus_recomputed": 15364313.695839401
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 40369679.39798101,
+            "reported_minus_recomputed": 550559.8398339897
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 24843856.22202482,
+            "reported_minus_recomputed": 16076383.01579018
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 39655747.50215322,
+            "reported_minus_recomputed": 1264491.7356617823
+          }
+        }
+      ],
+      "first_divergence": "candidate_objective_sales_cap_grouped_by_crop_not_crop_season",
+      "serialization_divergence_found": false,
+      "paper_copy_divergence_found": false
+    },
+    "R02": {
+      "formal_result": {
+        "path": "experiments/a092_confirmatory_v1/runs/R02/results/formal_result.json",
+        "sha256": "7342ded4e6fb1560169cf0d41088e273d337c3158b5fd03855386d45b8bc676f"
+      },
+      "v1_report": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 22119933.25,
+          "objective_recomputed": 9593434.583333334,
+          "objective_difference": 12526498.666666666,
+          "objective_valid": false,
+          "constraint_violation_count": 0,
+          "violated_constraints": [],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 54065488.287914,
+          "objective_recomputed": 48775286.78791351,
+          "objective_difference": 5290201.500000492,
+          "objective_valid": false,
+          "constraint_violation_count": 9,
+          "violated_constraints": [
+            "continuous_crop:F1:29:2025",
+            "continuous_crop:F1:29:2026",
+            "continuous_crop:F1:29:2027",
+            "continuous_crop:F1:29:2028",
+            "continuous_crop:F2:22:2026",
+            "continuous_crop:F4:29:2025",
+            "continuous_crop:F4:29:2026",
+            "continuous_crop:F4:29:2029",
+            "continuous_crop:F4:29:2030"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40918763.736438,
+          "objective_recomputed": 26535442.979638837,
+          "objective_difference": 14383320.756799161,
+          "objective_valid": false,
+          "constraint_violation_count": 9,
+          "violated_constraints": [
+            "continuous_crop:F1:22:2030",
+            "continuous_crop:F2:21:2029",
+            "continuous_crop:F2:22:2025",
+            "continuous_crop:F2:22:2030",
+            "continuous_crop:F3:21:2029",
+            "continuous_crop:F3:28:2028",
+            "continuous_crop:F4:22:2027",
+            "continuous_crop:F4:22:2028",
+            "continuous_crop:F4:24:2030"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40918763.736438,
+          "objective_recomputed": 26535442.979638837,
+          "objective_difference": 14383320.756799161,
+          "objective_valid": false,
+          "constraint_violation_count": 9,
+          "violated_constraints": [
+            "continuous_crop:F1:22:2030",
+            "continuous_crop:F2:21:2029",
+            "continuous_crop:F2:22:2025",
+            "continuous_crop:F2:22:2030",
+            "continuous_crop:F3:21:2029",
+            "continuous_crop:F3:28:2028",
+            "continuous_crop:F4:22:2027",
+            "continuous_crop:F4:22:2028",
+            "continuous_crop:F4:24:2030"
+          ],
+          "constraints_valid": false
+        }
+      ],
+      "v2_report": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 22119933.25,
+          "objective_recomputed": 22119933.25,
+          "objective_difference": 0.0,
+          "objective_valid": true,
+          "constraint_violation_count": 0,
+          "violated_constraints": [],
+          "constraints_valid": true
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 54065488.287914,
+          "objective_recomputed": 54065488.287913516,
+          "objective_difference": 4.842877388000488e-07,
+          "objective_valid": true,
+          "constraint_violation_count": 8,
+          "violated_constraints": [
+            "continuous_crop:F1:29:2024-第二季->2025-第一季",
+            "continuous_crop:F1:29:2026-第二季->2027-第一季",
+            "continuous_crop:F2:22:2028-第一季->2028-第二季",
+            "continuous_crop:F2:29:2029-第一季->2029-第二季",
+            "continuous_crop:F3:22:2027-第一季->2027-第二季",
+            "continuous_crop:F3:22:2029-第一季->2029-第二季",
+            "continuous_crop:F4:29:2024-第二季->2025-第一季",
+            "continuous_crop:F4:29:2028-第二季->2029-第一季"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40918763.736438,
+          "objective_recomputed": 40918763.7364375,
+          "objective_difference": 4.991888999938965e-07,
+          "objective_valid": true,
+          "constraint_violation_count": 10,
+          "violated_constraints": [
+            "continuous_crop:F1:22:2027-第一季->2027-第二季",
+            "continuous_crop:F1:24:2023-第二季->2024-第一季",
+            "continuous_crop:F1:29:2026-第一季->2026-第二季",
+            "continuous_crop:F2:21:2028-第二季->2029-第一季",
+            "continuous_crop:F2:22:2023-第二季->2024-第一季",
+            "continuous_crop:F2:22:2029-第二季->2030-第一季",
+            "continuous_crop:F3:24:2030-第一季->2030-第二季",
+            "continuous_crop:F4:21:2030-第一季->2030-第二季",
+            "continuous_crop:F4:22:2026-第二季->2027-第一季",
+            "continuous_crop:F4:24:2029-第二季->2030-第一季"
+          ],
+          "constraints_valid": false
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40918763.736438,
+          "objective_recomputed": 40918763.7364375,
+          "objective_difference": 4.991888999938965e-07,
+          "objective_valid": true,
+          "constraint_violation_count": 10,
+          "violated_constraints": [
+            "continuous_crop:F1:22:2027-第一季->2027-第二季",
+            "continuous_crop:F1:24:2023-第二季->2024-第一季",
+            "continuous_crop:F1:29:2026-第一季->2026-第二季",
+            "continuous_crop:F2:21:2028-第二季->2029-第一季",
+            "continuous_crop:F2:22:2023-第二季->2024-第一季",
+            "continuous_crop:F2:22:2029-第二季->2030-第一季",
+            "continuous_crop:F3:24:2030-第一季->2030-第二季",
+            "continuous_crop:F4:21:2030-第一季->2030-第二季",
+            "continuous_crop:F4:22:2026-第二季->2027-第一季",
+            "continuous_crop:F4:24:2029-第二季->2030-第一季"
+          ],
+          "constraints_valid": false
+        }
+      ],
+      "preprocessing_ablation": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 22119933.25,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 9593434.583333334,
+            "reported_minus_recomputed": 12526498.666666666
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 22348034.583333332,
+            "reported_minus_recomputed": -228101.3333333321
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 9365333.25,
+            "reported_minus_recomputed": 12754600.0
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 22119933.25,
+            "reported_minus_recomputed": 0.0
+          }
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 54065488.287914,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 48775286.78791351,
+            "reported_minus_recomputed": 5290201.500000492
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 55506832.787913516,
+            "reported_minus_recomputed": -1441344.4999995157
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 47332325.28791351,
+            "reported_minus_recomputed": 6733163.000000492
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 54065488.287913516,
+            "reported_minus_recomputed": 4.842877388000488e-07
+          }
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40918763.736438,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 26535442.979638837,
+            "reported_minus_recomputed": 14383320.756799161
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 41665800.48065683,
+            "reported_minus_recomputed": -747036.7442188337
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 25790254.84659482,
+            "reported_minus_recomputed": 15128508.889843177
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 40918763.7364375,
+            "reported_minus_recomputed": 4.991888999938965e-07
+          }
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40918763.736438,
+          "v1_no_fill_smart_second": {
+            "objective_recomputed": 26535442.979638837,
+            "reported_minus_recomputed": 14383320.756799161
+          },
+          "fill_only_smart_second": {
+            "objective_recomputed": 41665800.48065683,
+            "reported_minus_recomputed": -747036.7442188337
+          },
+          "smart_only_no_fill": {
+            "objective_recomputed": 25790254.84659482,
+            "reported_minus_recomputed": 15128508.889843177
+          },
+          "v2_fill_and_ordinary_first": {
+            "objective_recomputed": 40918763.7364375,
+            "reported_minus_recomputed": 4.991888999938965e-07
+          }
+        }
+      ],
+      "first_divergence": "external_validator_data_preprocessing",
+      "serialization_divergence_found": false,
+      "paper_copy_divergence_found": false
+    }
+  },
+  "root_causes": [
+    {
+      "layer": "external_validator_data_preprocessing",
+      "issue": "merged_plot_ids_not_forward_filled",
+      "effect": "2023 planting rows 87 -> 54; sales cap keys 47 -> 31"
+    },
+    {
+      "layer": "external_validator_data_preprocessing",
+      "issue": "smart_greenhouse_first_season_copied_from_smart_second",
+      "effect": "yield/cost/price contract differs from ordinary growing season"
+    },
+    {
+      "layer": "candidate_objective_implementation",
+      "run_id": "R01",
+      "issue": "sales_cap_grouped_by_crop_instead_of_crop_and_season",
+      "effect": "v2 residual objective difference remains in all four scenarios"
+    },
+    {
+      "layer": "candidate_constraint_implementation",
+      "run_id": "R01",
+      "issue": "2023_second_to_2024_first_smart_greenhouse_boundary_missing"
+    },
+    {
+      "layer": "candidate_constraint_implementation",
+      "run_id": "R02",
+      "issue": "smart_greenhouse_rotation_checked_by_same_named_season_not_actual_sequence"
+    }
+  ],
+  "diagnosis_passed": true
+}
