@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import platform
-import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -15,6 +14,8 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
+
+from process_tree import ProcessTreeTimeoutExpired, run_process_tree
 
 from formal_result.path_safety import (
     validate_execution_command_bindings,
@@ -275,25 +276,34 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
             environment["SHUMO_EXECUTION_SEED"] = str(seed)
             try:
                 # 合同只授权固定 runner token；实际解释器由 Executor 自身绑定。
-                completed = subprocess.run(
+                completed = run_process_tree(
                     [str(resolved_runner), *task["argv"][1:]],
                     cwd=cwd,
                     env=environment,
                     capture_output=True,
                     timeout=task["timeout_seconds"],
                     check=False,
-                    shell=False,
                 )
                 stdout_path.write_bytes(completed.stdout)
                 stderr_path.write_bytes(completed.stderr)
                 exit_code: int | None = completed.returncode
-            except subprocess.TimeoutExpired as exc:
+            except ProcessTreeTimeoutExpired as exc:
                 stdout_path.write_bytes(exc.stdout or b"")
                 stderr_path.write_bytes(exc.stderr or b"")
                 exit_code = None
                 blocker = _build_blocker(
-                    spec, task_id, spec_sha256, "timeout", f"任务超过 {task['timeout_seconds']} 秒时限。",
-                    retryable=True, recommended_action="human_review",
+                    spec,
+                    task_id,
+                    spec_sha256,
+                    "timeout",
+                    (
+                        f"任务超过 {task['timeout_seconds']} 秒时限；"
+                        f"进程树清理={'通过' if exc.process_tree_terminated else '失败'}。"
+                    ),
+                    retryable=exc.process_tree_terminated,
+                    recommended_action=(
+                        "human_review" if exc.process_tree_terminated else "stop_run"
+                    ),
                     stdout_ref=_file_ref(stdout_path, run_dir)["path"],
                     stderr_ref=_file_ref(stderr_path, run_dir)["path"],
                 )

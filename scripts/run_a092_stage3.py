@@ -7,10 +7,12 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from attempt_workspace import atomic_copy_directory, attempt_workspace
+from process_tree import ProcessTreeTimeoutExpired, run_process_tree
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,7 +77,7 @@ def _prompt_stack(arm: str) -> str:
 
 def prepare(run_id: str) -> Path:
     spec = RUNS[run_id]
-    run_dir = WORK_ROOT / run_id
+    run_dir = WORK_ROOT / "prepared" / run_id
     if run_dir.exists():
         raise FileExistsError(f"运行目录已存在，拒绝覆盖: {run_dir}")
     run_dir.mkdir(parents=True)
@@ -123,87 +125,127 @@ def _parse_events(path: Path) -> tuple[str | None, dict[str, Any]]:
 
 def execute(run_id: str) -> int:
     spec = RUNS[run_id]
-    run_dir = WORK_ROOT / run_id
-    if not (run_dir / "prompt_exact.md").is_file():
-        raise FileNotFoundError(f"运行尚未准备: {run_dir}")
-    events = run_dir / "runner_events.jsonl"
-    stderr = run_dir / "runner_stderr.log"
-    started = datetime.now(timezone.utc).isoformat()
-    command = [
-        str(CODEX),
-        "-a",
-        "never",
-        "exec",
-        "--ephemeral",
-        "--ignore-user-config",
-        "--skip-git-repo-check",
-        "--json",
-        "--output-last-message",
-        str(run_dir / "runner_last_message.txt"),
-        "-m",
-        "gpt-5.6-sol",
-        "-c",
-        'model_reasoning_effort="high"',
-        "-s",
-        "danger-full-access",
-        "-C",
-        str(run_dir),
-        "-",
-    ]
-    with events.open("w", encoding="utf-8", newline="\n") as stdout_file, stderr.open(
-        "w", encoding="utf-8", newline="\n"
-    ) as stderr_file:
-        completed = subprocess.run(
-            command,
-            input=(run_dir / "prompt_exact.md").read_text(encoding="utf-8"),
-            text=True,
-            encoding="utf-8",
-            stdout=stdout_file,
-            stderr=stderr_file,
-            timeout=int(spec.get("time_limit_seconds", 3600)),
-            check=False,
-            env={**os.environ, "PYTHONUTF8": "1"},
+    prepared_dir = WORK_ROOT / "prepared" / run_id
+    official_dir = WORK_ROOT / "runs" / run_id
+    if not (prepared_dir / "prompt_exact.md").is_file():
+        raise FileNotFoundError(f"运行尚未准备: {prepared_dir}")
+    if official_dir.exists():
+        raise FileExistsError(f"正式结果目录已存在，拒绝再次执行: {official_dir}")
+
+    with attempt_workspace(WORK_ROOT, run_id, prepared_dir) as attempt:
+        run_dir = attempt.path
+        events = run_dir / "runner_events.jsonl"
+        stderr = run_dir / "runner_stderr.log"
+        started = datetime.now(timezone.utc).isoformat()
+        command = [
+            str(CODEX),
+            "-a",
+            "never",
+            "exec",
+            "--ephemeral",
+            "--ignore-user-config",
+            "--skip-git-repo-check",
+            "--json",
+            "--output-last-message",
+            str(run_dir / "runner_last_message.txt"),
+            "-m",
+            "gpt-5.6-sol",
+            "-c",
+            'model_reasoning_effort="high"',
+            "-s",
+            "danger-full-access",
+            "-C",
+            str(run_dir),
+            "-",
+        ]
+        timeout_error: ProcessTreeTimeoutExpired | None = None
+        return_code: int | None = None
+        with events.open("w", encoding="utf-8", newline="\n") as stdout_file, stderr.open(
+            "w", encoding="utf-8", newline="\n"
+        ) as stderr_file:
+            try:
+                completed = run_process_tree(
+                    command,
+                    input=(run_dir / "prompt_exact.md").read_text(encoding="utf-8"),
+                    text=True,
+                    encoding="utf-8",
+                    stdout=stdout_file,
+                    stderr=stderr_file,
+                    timeout=int(spec.get("time_limit_seconds", 3600)),
+                    check=False,
+                    env={**os.environ, "PYTHONUTF8": "1"},
+                    cwd=run_dir,
+                )
+                return_code = completed.returncode
+            except ProcessTreeTimeoutExpired as exc:
+                timeout_error = exc
+
+        thread_id, usage = _parse_events(events)
+        execution_status = (
+            "timeout"
+            if timeout_error is not None
+            else "completed" if return_code == 0 else "failed"
         )
-    thread_id, usage = _parse_events(events)
-    metadata = {
-        "run_id": run_id,
-        "problem_id": spec["problem"],
-        "scope": spec["scope"],
-        "model": "gpt-5.6-sol",
-        "model_reasoning_effort": "high",
-        "sampling_control": "codex_cli_model_default",
-        "codex_cli_version": "0.144.0-alpha.4",
-        "sandbox": "danger-full-access",
-        "web_search": False,
-        "human_confirmation": False,
-        "started_at": started,
-        "completed_at": datetime.now(timezone.utc).isoformat(),
-        "return_code": completed.returncode,
-        "thread_id": thread_id,
-        "usage": usage,
-        "prompt_sha256": _sha256(run_dir / "prompt_exact.md"),
-    }
-    (run_dir / "runner_metadata.json").write_text(
-        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    return completed.returncode
+        metadata = {
+            "run_id": run_id,
+            "attempt_id": attempt.attempt_id,
+            "problem_id": spec["problem"],
+            "scope": spec["scope"],
+            "model": "gpt-5.6-sol",
+            "model_reasoning_effort": "high",
+            "sampling_control": "codex_cli_model_default",
+            "codex_cli_version": "0.144.0-alpha.4",
+            "sandbox": "danger-full-access",
+            "web_search": False,
+            "human_confirmation": False,
+            "started_at": started,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "execution_status": execution_status,
+            "return_code": return_code,
+            "thread_id": thread_id,
+            "usage": usage,
+            "prompt_sha256": _sha256(run_dir / "prompt_exact.md"),
+            "process_tree_terminated": (
+                timeout_error.process_tree_terminated if timeout_error is not None else None
+            ),
+            "termination_details": (
+                timeout_error.termination_details if timeout_error is not None else None
+            ),
+        }
+        (run_dir / "runner_metadata.json").write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        if timeout_error is not None:
+            if not timeout_error.process_tree_terminated:
+                attempt.retain_lock("进程树清理证明失败；需人工确认后释放")
+                return 125
+            return 124
+        if return_code != 0:
+            return int(return_code or 1)
+        attempt.promote(official_dir)
+        return 0
 
 
 def collect(run_id: str) -> Path:
-    source = WORK_ROOT / run_id
+    source = WORK_ROOT / "runs" / run_id
     destination = ARCHIVE_ROOT / run_id
     if destination.exists():
         raise FileExistsError(f"归档目录已存在，拒绝覆盖: {destination}")
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging_source = WORK_ROOT / "archive_staging" / run_id
+    if staging_source.exists():
+        raise FileExistsError(f"归档暂存目录已存在，拒绝覆盖: {staging_source}")
     shutil.copytree(
         source,
-        destination,
+        staging_source,
         ignore=shutil.ignore_patterns("materials"),
     )
     material_manifest = source / "materials" / "material_manifest.json"
     if material_manifest.is_file():
-        shutil.copy2(material_manifest, destination / "material_manifest.snapshot.json")
-    return destination
+        shutil.copy2(material_manifest, staging_source / "material_manifest.snapshot.json")
+    try:
+        return atomic_copy_directory(staging_source, destination)
+    finally:
+        shutil.rmtree(staging_source, ignore_errors=True)
 
 
 def main() -> int:
