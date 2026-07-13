@@ -1,0 +1,24 @@
+{
+  "freeze_record_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V1",
+  "protocol_commit": "dce82b0cf50d0bd709c8c4cc64550150fb22df1a",
+  "protocol_sha256": "f99340820f23253cf4c35e9b2f210d865185266ae2bb2ca9a45e579cddacad97",
+  "patch_sha256": "8b94788be8a4bd1d48684f6610b4c0ff795c76644015ba78b2b88e9587db6ef1",
+  "scoring_rubric_sha256": "4f03840f45e2622811ce165881be6e31d7287272e7bfb2af26b7c04174c941de",
+  "baseline_config_sha256": "7abc3865dc46208c1b4066dea37abcab49a6c012cf31e648956f324578e798f6",
+  "treatment_config_sha256": "9c3eab494010e7ac0312df4f85d2da403e6bf1d361f056c8682b4916a728d8ff",
+  "runtime_pack_sha256": "b0756625904d18080a198c2fb0c549c104f90087e5126b89aaf1afe5a2767cb6",
+  "case_role_manifest_sha256": "324baea782be08cf343273dc10d5df44bc64dc923be4656925eec03b4d9de895",
+  "validator_sha256": "ad941d46d2eea4b1407b2a6d8b67bbfd1d34c322be5a3fe30e02f84704328700",
+  "validator_files": {
+    "validators/common/__init__.py": "fada0e8a83b30395b4e54b7b3e47e740f0aba44eee1b3889754091aa9ab0da4d",
+    "validators/common/claim_level.py": "e47a0aeda8f9a99e467ece61a1160b04eeba1ff21c31de8f7f07428d8640d354",
+    "validators/common/improvement.py": "89f8a3938173962490894bcde72929c55bd8eb7e320685576bb4d552cf9812c0",
+    "validators/common/residuals.py": "51a7942ce8a91f0aee76dff9da1cb7e1000829323f9b471f0cb21f18709637bb",
+    "validators/common/sensitivity.py": "b4bde7a587d106f81e96c44388663dcbf7060142c24ee334c19e8b5369a27fd2",
+    "validators/common/types.py": "98aabfd3a0e50fba9058d917e9b6255d4f3d0f2f1d4e50bb5b972502a3f01f6a",
+    "validators/common/validator.py": "8a47e74c26b8ab44f52360d8aed2f545d91ed1abcfc5d7b7912277e1f19c3b2c"
+  },
+  "pilot_evidence_allowed": false,
+  "protocol_deviation": false
+}

@@ -109,7 +109,16 @@ ruff：All checks passed
 pyright：0 errors, 0 warnings
 ```
 
-冻结哈希和提交信息将在冻结记录生成后补入本报告。
+冻结绑定已经生成：
+
+```text
+protocol_commit: dce82b0cf50d0bd709c8c4cc64550150fb22df1a
+protocol_sha256: f99340820f23253cf4c35e9b2f210d865185266ae2bb2ca9a45e579cddacad97
+patch_sha256: 8b94788be8a4bd1d48684f6610b4c0ff795c76644015ba78b2b88e9587db6ef1
+validator_sha256: ad941d46d2eea4b1407b2a6d8b67bbfd1d34c322be5a3fe30e02f84704328700
+```
+
+其余评分表、Baseline/Treatment 配置、运行合同和题目角色哈希见 `protocols/a092/protocol_freeze.json`。冻结后 `protocol_deviation=false`，后续若改变核心规则必须记录偏差并重跑受影响实验。
 
 ## 4. 未执行事项
 
