@@ -260,14 +260,22 @@ export/cumcm_runtime_pack.manifest.json
 python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --candidate-patch B311
 ```
 
-隔离实验（负控 baseline / 单 patch 对比，可重复传入排除已批准 patch）：
+隔离实验（Baseline / A092 Treatment）：
 
 ```bash
-# baseline：排除全部已批准 patch
-python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --exclude-patch A092 --exclude-patch A127
-# A092-only
-python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --exclude-patch A127
+# Baseline
+python scripts/export_runtime_pack.py \
+  --context full_replay \
+  --profile engineering_optimization
+
+# A092 Treatment
+python scripts/export_runtime_pack.py \
+  --context full_replay \
+  --profile engineering_optimization \
+  --candidate-patch A092
 ```
+
+仅使用 `--exclude-patch A127` 不会自动加载状态为 `review_ready` 的 A092，因此不能视为 A092-only Treatment。
 
 比赛目录建议：
 
@@ -293,12 +301,42 @@ python scripts/export_runtime_pack.py --context full_replay --profile engineerin
 - 已有 A092、A127、B311、B477 学习卡片和知识卡片。
 - 当前工程优化 runtime：版本 `0.2.0`，现场派生成熟度为 `assembled`。
 - A092、A127、B311、B477 当前均为 `review_ready`；旧证据不参与主动晋级。
-- A092/A127 的正向、边界、负控矩阵已迁移为 v2，但真实重跑证据仍为空，因此未宣称 `regression_verified` 或 `competition_evidenced`。
+- A092 第一轮确认性实验已经完成，但没有形成满足 `regression_verified` 门槛的有效证据；A127、B311、B477 也未宣称 `regression_verified` 或 `competition_evidenced`。
 - Sandboxie 真实环境激活使用 `scripts/verify_sandboxie_environment.py`；报告合同、12 项负控、
   DNS/TCP 多端点门槛及 Evidence/Seal 绑定见
   `docs/roadmap/SANDBOXIE_ENVIRONMENT_VERIFICATION.md`。Milestone 2 只派生环境已验证；
   Run 实际执行尚未证明，`formal_result_eligible` 继续为 `false`。
 - 建议比赛时默认使用本状态对应的 `export/cumcm_runtime_pack.md`；后续大改应另开分支，不直接在当前验证结构上重写。
+
+## 当前建模质量验证状态
+
+A092 第一轮确认性实验已经完成。
+
+结论：
+
+- A092 保持 `review_ready`；
+- 当前没有获得满足 `regression_verified` 门槛的有效证据；
+- 正控和边界题均出现独立数学验证失败；
+- 负控实验因执行并发覆盖和外部用量限制未形成有效配对；
+- 本轮结果不证明 A092 无效，只说明当前证据不足以晋级。
+
+详细报告：
+
+- [数学建模质量计划阶段三最终报告](docs/reports/MODELING_QUALITY_PHASE3_FINAL_REPORT.md)
+
+### 正式比赛说明
+
+A092 当前仍为 `review_ready`，因此不会进入正式 `new_problem` Runtime Pack。正式包只自动加载状态为 `regression_verified` 或 `competition_evidenced` 且支持当前 Profile 的 Patch。
+
+目标值、改进率和最优性结论只有在外部 Validator 通过后才能用于论文强结论。这里的独立复算必须由候选解生成过程之外的固定适配器执行；AI 再次调用生成阶段使用的同一函数，不构成独立复算。
+
+## 当前开发重点
+
+1. 修复运行超时后的完整进程树清理、唯一 `attempt_id` 目录和结果目录原子提升，禁止同一 Run 存在两个 active attempt。
+2. 以题面原始公式、2–3 个手算小点和符号/方向故障注入复核 2023-B 数学适配器口径，确认后重新冻结。
+3. 强化外部 Validator 对论文 Claim 的阻断：验证失败时不得使用目标值、改进率或最优性强结论。
+4. 分层定位 2024-C 正控中 `objective_reported` 与 `objective_recomputed` 不一致的根因。
+5. 完成 A092 修订、新 Pilot 和预注册后，再考虑冻结并执行 `a092_confirmatory_v2`。
 
 ## 使用原则
 
