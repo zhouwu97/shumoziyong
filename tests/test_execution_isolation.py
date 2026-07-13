@@ -87,11 +87,12 @@ def test_a092_runner_executes_in_attempt_then_promotes(
     prepared = work_root / "prepared" / "R01"
     prepared.mkdir(parents=True)
     (prepared / "prompt_exact.md").write_text("prompt", encoding="utf-8")
-    observed: dict[str, Path] = {}
+    observed: dict[str, Path | list[str]] = {}
 
     def fake_run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         attempt_dir = Path(args[args.index("-C") + 1])
         observed["attempt_dir"] = attempt_dir
+        observed["command"] = args
         assert attempt_dir == kwargs["cwd"]
         (attempt_dir / "results").mkdir()
         (attempt_dir / "results" / "formal_result.json").write_text("{}", encoding="utf-8")
@@ -107,10 +108,12 @@ def test_a092_runner_executes_in_attempt_then_promotes(
     metadata = json.loads((official / "runner_metadata.json").read_text(encoding="utf-8"))
     assert official.is_dir()
     assert observed["attempt_dir"] != official
+    assert isinstance(observed["attempt_dir"], Path)
     assert not observed["attempt_dir"].exists()
     assert metadata["attempt_id"].startswith("attempt-")
     assert metadata["execution_status"] == "completed"
     assert not (work_root / "active_attempts" / "R01.json").exists()
+    assert "--ignore-user-config" not in observed["command"]
 
 
 def test_a092_runner_keeps_timed_out_attempt_unpromoted(

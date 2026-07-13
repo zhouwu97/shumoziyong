@@ -190,7 +190,6 @@ def execute(run_id: str, protocol_version: str = "v1") -> int:
             "never",
             "exec",
             "--ephemeral",
-            "--ignore-user-config",
             "--skip-git-repo-check",
             "--json",
             "--output-last-message",
