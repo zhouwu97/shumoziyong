@@ -1,0 +1,30 @@
+{
+  "freeze_record_version": "3.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V3",
+  "state": "frozen_pre_execution",
+  "execution_started": false,
+  "component_manifest_sha256": "fae75866a965a1c1de24ea5cd106e4eac993f53d6d12d7a8a9724ed98eb8fc85",
+  "components": {
+    "protocols/a092_v3/a092_confirmatory_v3.json": "04062776657724d19e7fa23e9b85ee28ad2e79def4f4897e63df28101561b999",
+    "schemas/a092_confirmatory_v3.schema.json": "656a94d94e1a8a23a933266be847f8b1c5d7416c577e5b9319e6593294986253",
+    "protocols/a092_v2/external_validator_contract.md": "530d637873bb66ca9d9e235b4120163af4e80d1e6de4e4104466e4e77551f470",
+    "protocols/a092_v2/2023b_validator_formula_freeze.json": "d39f521d2737d3d3a348c88bb3bf5a59e50add96ffeb4fe4d63ba2a53385acc9",
+    "protocols/a092_v2/2024c_validator_contract_freeze.json": "5fd0598689fd8590f4ec2be6a5a3076631be20b3341aea9f74192503a58f03c4",
+    "prompt_patches/patch_A092_engineering_optimization.md": "c4d5c586110fe81beefcc210d8e5c40ba878ef8bde4d7cbb6c0e675ff2dc7baa",
+    "schemas/a092_data_contract_audit.schema.json": "2f6a3763f01d9a64fc529ee56844e6380cd1bb0b5f9422924ce7ca8501ebc353",
+    "schemas/a092_external_validator_attestation.schema.json": "5c9e707196c7b14ea2d8365cbcd41278bf144ab7a8d65b146bc3ca4947c0d00b",
+    "validators/common/external_validation.py": "4eac09b9934d204c2fc7e7a1af1046a15532c6e66067765f343f200d1fff4f9c",
+    "validators/problem_boundary_v2/validate.py": "59f3498d4034ec6e4e32d3f306c67fe0f13e80a43c29375af6a58a32b39dd99b",
+    "validators/problem_positive_v2/validate.py": "08604c07a70097ec833225821ed4696f4726d766df5e33daa070fdd75b4dfc0f",
+    "validators/problem_negative/validate.py": "390cc881f7796cf3f418c0a1177beeed531db80ad0a713e2061af3e1615fac11",
+    "scripts/attempt_workspace.py": "8b9f88ac18a503e9540cde60ba781483b8248592c5e2119a6f922c9c4c879227",
+    "scripts/process_tree.py": "ab34670a24a8ba1ab0e2a2df9388411c8c332a1136e5f26095315b2dcdcfacef",
+    "scripts/run_a092_claude_v3.py": "f31efcb2b76e477d62db249b2f9a7531ea62db0ef2b3a72d5cc8f291aa3b28cf",
+    "scripts/validate_a092_formal_run.py": "f947c166518105b10513a165f49353dce4bd64f2ec374af05bdf80b9993bab00",
+    "protocols/a092/formal_result_contract.md": "59a39363b2348cb728b9af8252278c87858a80b7c8b95efe10fc2395db192e19",
+    "protocols/a092/stage3_execution_prompt.md": "5e5de916e0870391bdb0a66ad4f06ee378672bcc9996c87ab79eaae3e15bb036",
+    "protocols/a092/baseline_config.json": "d2cd801c888d5da97b261175291da7ac469eb37456626268b78ddb42eb433d8a",
+    "protocols/a092/treatment_config.json": "78da22dd967ee729af7c86e6949f9738f09e9e37ce596154df6d8fb3b0183c2a",
+    "examples/a092_phase2_pilot_v2/pilot_result.json": "279d75e1d4627c4c1382afa0b021bcd0e05f46bddbea7df9acb7eab6f352809e"
+  }
+}

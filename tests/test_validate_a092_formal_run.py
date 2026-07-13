@@ -61,6 +61,27 @@ def test_v2_isolation_audit_accepts_own_attempt_and_rejects_other_run(tmp_path: 
     assert report["forbidden_reference_count"] == 1
 
 
+def test_v3_isolation_audit_requires_frozen_claude_engine_metadata(tmp_path: Path) -> None:
+    run_dir = tmp_path / "a092_confirmatory_v3" / "R01"
+    _write_events(run_dir, [{"command": "python solve.py"}])
+    (run_dir / "runner_metadata.json").write_text(
+        json.dumps(
+            {
+                "execution_engine": "Claude Code",
+                "cli_version_observed": "2.1.207",
+                "model_observed": "claude-opus-4-8[1m]",
+                "engine_valid": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = audit_isolation(run_dir, "v3")
+
+    assert report["valid"] is True
+    assert report["engine_findings"] == []
+
+
 def test_v2_boundary_validation_writes_external_artifacts_without_optimization_claims(
     tmp_path: Path,
 ) -> None:

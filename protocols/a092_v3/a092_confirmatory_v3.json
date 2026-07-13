@@ -1,0 +1,46 @@
+{
+  "$schema": "../../schemas/a092_confirmatory_v3.schema.json",
+  "schema_version": "3.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V3",
+  "patch_id": "A092",
+  "patch_status": "review_ready",
+  "state": "frozen_pre_execution",
+  "execution_started": false,
+  "pilot_evidence_allowed": false,
+  "supersedes": "A092-CONFIRMATORY-V2",
+  "execution_engine": {
+    "cli": "Claude Code",
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "effort": "high",
+    "output_format": "stream-json",
+    "session_persistence": false,
+    "permission_mode": "dontAsk"
+  },
+  "prerequisites": {
+    "attempt_isolation_tests": "tests/test_execution_isolation.py",
+    "boundary_validator_freeze": "protocols/a092_v2/2023b_validator_formula_freeze.json",
+    "positive_validator_freeze": "protocols/a092_v2/2024c_validator_contract_freeze.json",
+    "a092_v2_pilot": "examples/a092_phase2_pilot_v2/pilot_result.json",
+    "claude_health_check": "claude -p --output-format stream-json --verbose --no-session-persistence",
+    "required_status": "all_passed_before_any_confirmatory_attempt"
+  },
+  "case_roles": [
+    {"role": "positive", "problem_id": "2024-C", "scope": "full_problem", "external_adapter": "validators/problem_positive_v2/validate.py", "required_data_contract": ["merged_cells", "missing_values", "unit_conversions", "aggregation_keys", "time_slot_order", "boundary_state"], "required_claim_gates": ["objective_passed", "constraints_passed"]},
+    {"role": "boundary", "problem_id": "2023-B", "scope": "questions_1_and_2_only", "external_adapter": "validators/problem_boundary_v2/validate.py", "required_data_contract": ["unit_conversions", "coordinate_direction", "angle_definition", "hand_checked_fixtures"], "optimization_modules": "not_applicable"},
+    {"role": "negative", "problem_id": "2016-C", "scope": "full_problem", "external_adapter": "validators/problem_negative/validate.py", "required_behavior": "partial_recomputation_without_forced_engineering_optimization_chain"}
+  ],
+  "paired_runs": {
+    "positive": {"minimum_valid_pairs": 2, "order": ["baseline_1", "treatment_1", "treatment_2", "baseline_2"]},
+    "boundary": {"minimum_valid_pairs": 2, "order": ["treatment_1", "baseline_1", "baseline_2", "treatment_2"]},
+    "negative": {"minimum_valid_pairs": 1, "optional_second_pair": true, "order": ["baseline_1", "treatment_1"]},
+    "invalid_attempts_do_not_count": true
+  },
+  "attempt_isolation": {"unique_attempt_id_directory": true, "one_active_attempt_per_run": true, "process_writes_own_attempt_only": true, "timeout_terminates_complete_process_tree": true, "success_promoted_atomically_by_parent": true, "failed_attempt_retained": true, "cleanup_proof_failure_exit_code": 125},
+  "external_validation": {"adapter_frozen_before_candidate": true, "candidate_process_separate": true, "same_function_or_implementation_hash_forbidden": true, "required_hashes": ["adapter", "contract", "input", "solution", "candidate_evaluator"], "manual_fixture_count_minimum": 2, "manual_fixture_count_maximum": 3, "data_contract_artifact": "artifacts/a092/data_contract_audit.json", "attestation_artifact": "artifacts/a092/external_validator_attestation.json", "quantitative_claim_gate": "objective_passed_and_constraints_passed", "strong_optimality_gate": "objective_passed_and_constraints_passed_and_optimality_evidence_passed", "claim_permissions": ["objective_value", "improvement_rate", "strong_optimality"]},
+  "controls": ["same_claude_model_and_version", "same_reasoning_effort", "same_sampling_settings", "same_problem_materials", "same_tool_permissions", "same_code_execution_permissions", "same_time_and_iteration_limits", "same_human_confirmation_policy", "same_gate_rules", "fresh_context_and_unique_attempt_id", "no_cross_run_solution_reads"],
+  "tolerances": {"objective_absolute": 1e-6, "variable_absolute": 1e-8, "integrality_absolute": 1e-8, "constraint_absolute": 1e-6, "constraint_relative": 1e-5, "baseline_epsilon": 1e-9, "improvement_ratio_absolute": 1e-6, "mip_gap_maximum": 0.001},
+  "promotion_thresholds": {"positive": {"minimum_valid_pairs": 2, "consistent_direction_required": true, "minimum_repeated_behavior_improvements": 2}, "boundary": {"minimum_valid_pairs": 2, "average_score_change_minimum": -2, "stable_dimension_drop_forbidden": true}, "negative": {"minimum_valid_pairs": 1, "score_change_minimum": -2, "score_change_maximum": 2, "full_engineering_chain_forbidden": true}, "overall": {"all_three_roles_must_pass": true, "all_external_claim_gates_must_pass": true, "repeatable_checkable_gain_required": true}},
+  "solution_failure": {"S1": "external_objective_recomputation_failed_with_valid_validator", "S2": "external_hard_constraint_check_failed_with_valid_validator", "S3": "reported_claim_exceeds_external_evidence", "S4": "wrong_model_formula_or_variable_semantics", "S5": "missing_key_constraint_or_historical_boundary"},
+  "experiment_invalid": {"E1": "validator_not_frozen_before_candidate", "E2": "validator_implementation_not_independent", "E3": "data_contract_or_hand_checked_fixture_failed", "E4": "required_hash_or_input_evidence_missing", "E5": "overlapping_active_attempts_or_shared_result_directory", "E6": "timeout_process_tree_cleanup_not_proven", "E7": "unfair_baseline_treatment_conditions_or_blinding_leakage", "E8": "post_hoc_protocol_change", "E9": "execution_engine_or_model_drift"}
+}

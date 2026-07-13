@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/a092_confirmatory_v3.schema.json",
+  "title": "A092 确认性实验 v3 Claude Code 协议",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema", "schema_version", "protocol_id", "patch_id", "patch_status", "state",
+    "execution_started", "pilot_evidence_allowed", "supersedes", "execution_engine",
+    "prerequisites", "case_roles", "paired_runs", "attempt_isolation",
+    "external_validation", "controls", "tolerances", "promotion_thresholds",
+    "solution_failure", "experiment_invalid"
+  ],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1},
+    "schema_version": {"const": "3.0.0"},
+    "protocol_id": {"const": "A092-CONFIRMATORY-V3"},
+    "patch_id": {"const": "A092"},
+    "patch_status": {"const": "review_ready"},
+    "state": {"const": "frozen_pre_execution"},
+    "execution_started": {"const": false},
+    "pilot_evidence_allowed": {"const": false},
+    "supersedes": {"const": "A092-CONFIRMATORY-V2"},
+    "execution_engine": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cli", "cli_version", "model", "effort", "output_format", "session_persistence", "permission_mode"],
+      "properties": {
+        "cli": {"const": "Claude Code"},
+        "cli_version": {"const": "2.1.207"},
+        "model": {"const": "claude-opus-4-8"},
+        "effort": {"const": "high"},
+        "output_format": {"const": "stream-json"},
+        "session_persistence": {"const": false},
+        "permission_mode": {"const": "dontAsk"}
+      }
+    },
+    "prerequisites": {"type": "object"},
+    "case_roles": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "object"}},
+    "paired_runs": {"type": "object"},
+    "attempt_isolation": {"type": "object"},
+    "external_validation": {"type": "object"},
+    "controls": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+    "tolerances": {"type": "object"},
+    "promotion_thresholds": {"type": "object"},
+    "solution_failure": {"type": "object"},
+    "experiment_invalid": {"type": "object"}
+  }
+}

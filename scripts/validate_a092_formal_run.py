@@ -28,10 +28,10 @@ from validators.problem_positive_v2.validate import validate_result as validate_
 
 FORBIDDEN_PATTERNS = (
     re.compile(
-        r"a092_confirmatory_(v[12])(?:[\\/](?:runs|attempts|prepared))?[\\/](R(?:0[1-9]|10))",
+        r"a092_confirmatory_(v[123])(?:[\\/](?:runs|attempts|prepared))?[\\/](R(?:0[1-9]|10))",
         re.IGNORECASE,
     ),
-    re.compile(r"experiments[\\/]a092_confirmatory_v[12]", re.IGNORECASE),
+    re.compile(r"experiments[\\/]a092_confirmatory_v[123]", re.IGNORECASE),
     re.compile(r"prompt_patches", re.IGNORECASE),
     re.compile(r"protocols[\\/]a092", re.IGNORECASE),
 )
@@ -239,14 +239,14 @@ def validate(run_dir: Path, problem: str, protocol_version: str = "v1") -> dict[
 
     result = _load_result(run_dir)
     if problem == "2024-C":
-        adapter = validate_positive_v2 if protocol_version == "v2" else validate_positive
+        adapter = validate_positive_v2 if protocol_version in {"v2", "v3"} else validate_positive
         return adapter(
             result,
             run_dir / "materials" / "attachments" / "附件1.xlsx",
             run_dir / "materials" / "attachments" / "附件2.xlsx",
         )
     if problem == "2023-B":
-        adapter = validate_boundary_v2 if protocol_version == "v2" else validate_boundary
+        adapter = validate_boundary_v2 if protocol_version in {"v2", "v3"} else validate_boundary
         return adapter(result)
     if problem == "2016-C":
         return validate_negative(result)
@@ -272,13 +272,30 @@ def audit_isolation(run_dir: Path, protocol_version: str = "v1") -> dict[str, An
                 ):
                     continue
                 findings.append({"line": str(line_number), "match": value})
+    engine_findings: list[str] = []
+    if protocol_version == "v3":
+        metadata_path = run_dir / "runner_metadata.json"
+        if not metadata_path.is_file():
+            engine_findings.append("runner_metadata_missing")
+        else:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if metadata.get("execution_engine") != "Claude Code":
+                engine_findings.append("execution_engine_mismatch")
+            if metadata.get("cli_version_observed") != "2.1.207":
+                engine_findings.append("claude_cli_version_mismatch")
+            observed = str(metadata.get("model_observed", "")).split("[", 1)[0]
+            if observed != "claude-opus-4-8":
+                engine_findings.append("claude_model_mismatch")
+            if metadata.get("engine_valid") is not True:
+                engine_findings.append("engine_valid_false")
     return {
         "audit": f"a092_run_isolation_{protocol_version}",
         "run_id": own_run,
         "events_sha256_checked": True,
         "forbidden_reference_count": len(findings),
         "findings": findings,
-        "valid": not findings,
+        "engine_findings": engine_findings,
+        "valid": not findings and not engine_findings,
     }
 
 
@@ -286,14 +303,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="验证 A092 正式运行")
     parser.add_argument("run_dir", type=Path)
     parser.add_argument("problem", choices=("2024-C", "2023-B", "2016-C"))
-    parser.add_argument("--protocol-version", choices=("v1", "v2"), default="v1")
+    parser.add_argument("--protocol-version", choices=("v1", "v2", "v3"), default="v1")
     args = parser.parse_args()
     run_dir = args.run_dir.resolve()
     report = validate(run_dir, args.problem, args.protocol_version)
     audit = audit_isolation(run_dir, args.protocol_version)
     attestation = (
         build_v2_external_artifacts(run_dir, args.problem, report)
-        if args.protocol_version == "v2"
+        if args.protocol_version in {"v2", "v3"}
         else None
     )
     gate3 = run_dir / "gate3"

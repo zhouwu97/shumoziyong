@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from attempt_workspace import ActiveAttemptError, attempt_workspace  # noqa: E402
 from process_tree import ProcessTreeTimeoutExpired, run_process_tree  # noqa: E402
 import run_a092_stage3  # noqa: E402
+import run_a092_claude_v3  # noqa: E402
 
 
 def test_timeout_terminates_descendant_process_before_it_can_write(tmp_path: Path) -> None:
@@ -200,3 +201,38 @@ def test_v2_runner_uses_separate_root_and_protocol_metadata(
         (work_root / "runs" / "R01" / "runner_metadata.json").read_text(encoding="utf-8")
     )
     assert metadata["protocol_id"] == "A092-CONFIRMATORY-V2"
+
+
+def test_claude_v3_runner_rejects_model_drift_and_keeps_attempt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    work_root = tmp_path / "a092_v3"
+    prepared = work_root / "prepared" / "R01"
+    prepared.mkdir(parents=True)
+    (prepared / "prompt_exact.md").write_text("prompt", encoding="utf-8")
+
+    def fake_run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        stdout = kwargs["stdout"]
+        stdout.write(
+            json.dumps(
+                {
+                    "type": "system",
+                    "subtype": "init",
+                    "session_id": "session-1",
+                    "model": "unexpected-model",
+                    "claude_code_version": "2.1.207",
+                }
+            )
+            + "\n"
+        )
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(run_a092_claude_v3, "WORK_ROOT", work_root)
+    monkeypatch.setattr(run_a092_claude_v3, "verify_v3_freeze", lambda: {})
+    monkeypatch.setattr(run_a092_claude_v3, "run_process_tree", fake_run)
+
+    assert run_a092_claude_v3.execute("R01") == 1
+    attempts = list((work_root / "attempts" / "R01").iterdir())
+    metadata = json.loads((attempts[0] / "runner_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["engine_valid"] is False
+    assert not (work_root / "runs" / "R01").exists()
