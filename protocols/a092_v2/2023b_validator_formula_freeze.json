@@ -1,0 +1,39 @@
+{
+  "freeze_record_version": "1.0.0",
+  "formula_contract_version": "2023b_q1_q2_v2",
+  "status": "formula_frozen_for_a092_v2_design",
+  "full_confirmatory_protocol_frozen": false,
+  "source_pdf": {
+    "path": "official_materials/2023_B/problem/B题.pdf",
+    "sha256": "e709e066139ea0a4bb64aa7e56ea097725a1f2b4e5161fc8c7e50c48be079396",
+    "pages_checked": [
+      2,
+      3
+    ]
+  },
+  "coordinate_contract": {
+    "depth_axis": "vertical_down_positive",
+    "q1_positive_distance": "shallow_direction",
+    "q2_beta_zero": "deep_direction_from_upward_normal_horizontal_projection",
+    "coverage_width_metric": "distance_along_seafloor_cross_section",
+    "overlap_normalization": "signed_overlap_divided_by_previous_swath_width"
+  },
+  "equations": {
+    "q1_depth": "D(x)=70-x*tan(alpha)",
+    "q2_depth": "D(s,beta)=120+1852*s*tan(alpha)*cos(beta)",
+    "cross_slope": "delta=atan(tan(alpha)*sin(beta))",
+    "coverage_width": "W=D*sin(gamma)*(sec(gamma+delta)+sec(gamma-delta))"
+  },
+  "validator_files": {
+    "validators/problem_boundary_v2/__init__.py": "e03d5ed0efa60170ac516d4f955b075d6899b8e0ce4eff3e08900ecc42ad203b",
+    "validators/problem_boundary_v2/validate.py": "59f3498d4034ec6e4e32d3f306c67fe0f13e80a43c29375af6a58a32b39dd99b"
+  },
+  "pilot_result": {
+    "path": "experiments/2023b_validator_pilot_v2/pilot_result.json",
+    "sha256": "e8406a6de777cafdae431048421ec011fbbeb6209df82fbd40835c7a773c32ff"
+  },
+  "pilot_report": {
+    "path": "docs/reports/2023B_VALIDATOR_FORMULA_PILOT.md",
+    "sha256": "76d4f1a98bbf01d017e4a70bd32cd304c51cead59b73b0ae416a40917be043e0"
+  }
+}

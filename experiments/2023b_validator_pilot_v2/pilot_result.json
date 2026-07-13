@@ -1,0 +1,100 @@
+{
+  "pilot_id": "2023b_validator_formula_pilot_v2",
+  "source": {
+    "path": "official_materials/2023_B/problem/B题.pdf",
+    "sha256": "e709e066139ea0a4bb64aa7e56ea097725a1f2b4e5161fc8c7e50c48be079396",
+    "pages_checked": [
+      2,
+      3
+    ]
+  },
+  "coordinate_contract": {
+    "depth_axis": "vertical_down_positive",
+    "q1_positive_distance": "shallow_direction",
+    "q2_beta_zero": "deep_direction_from_upward_normal_horizontal_projection",
+    "coverage_width_metric": "distance_along_seafloor_cross_section",
+    "overlap_normalization": "signed_overlap_divided_by_previous_swath_width"
+  },
+  "equations": {
+    "q1_depth": "D(x)=70-x*tan(alpha)",
+    "q2_depth": "D(s,beta)=120+1852*s*tan(alpha)*cos(beta)",
+    "cross_slope": "delta=atan(tan(alpha)*sin(beta))",
+    "coverage_width": "W=D*sin(gamma)*(sec(gamma+delta)+sec(gamma-delta))"
+  },
+  "independent_ray_plane_checkpoints": [
+    {
+      "beta_deg": 0,
+      "distance_nm": 0.3,
+      "depth_closed_form_m": 134.54889802384025,
+      "depth_ray_plane_m": 134.54889802384025,
+      "depth_absolute_difference_m": 0.0,
+      "width_closed_form_m": 466.0910549593899,
+      "width_ray_plane_m": 466.0910549593899,
+      "width_absolute_difference_m": 0.0
+    },
+    {
+      "beta_deg": 45,
+      "distance_nm": 0.6,
+      "depth_closed_form_m": 140.575248902898,
+      "depth_ray_plane_m": 140.575248902898,
+      "depth_absolute_difference_m": 0.0,
+      "width_closed_form_m": 487.55189154866537,
+      "width_ray_plane_m": 487.5518915486655,
+      "width_absolute_difference_m": 1.1368683772161603e-13
+    },
+    {
+      "beta_deg": 90,
+      "distance_nm": 2.1,
+      "depth_closed_form_m": 120.0,
+      "depth_ray_plane_m": 120.0,
+      "depth_absolute_difference_m": 0.0,
+      "width_closed_form_m": 416.69186993545,
+      "width_ray_plane_m": 416.69186993545003,
+      "width_absolute_difference_m": 5.684341886080802e-14
+    },
+    {
+      "beta_deg": 180,
+      "distance_nm": 2.1,
+      "depth_closed_form_m": 18.15771383311818,
+      "depth_ray_plane_m": 18.15771383311818,
+      "depth_absolute_difference_m": 0.0,
+      "width_closed_form_m": 62.90016581651382,
+      "width_ray_plane_m": 62.90016581651382,
+      "width_absolute_difference_m": 0.0
+    }
+  ],
+  "fixed_contract_validation": {
+    "validator": "a092_2023b_q1_q2_v2",
+    "max_absolute_difference": 0.0,
+    "tolerance": 1e-06,
+    "valid": true
+  },
+  "fault_injections": {
+    "v1_missing_directional_depth": {
+      "max_absolute_difference": 705.5840560000332,
+      "tolerance": 1e-06,
+      "valid": false
+    },
+    "beta_direction_sign_flipped": {
+      "max_absolute_difference": 705.5840560000332,
+      "tolerance": 1e-06,
+      "valid": false
+    },
+    "flat_bottom_overlap_shortcut": {
+      "max_absolute_difference": 0.06248944154592377,
+      "tolerance": 1e-06,
+      "valid": false
+    },
+    "horizontal_projection_as_width": {
+      "max_absolute_difference": 0.14278989671521458,
+      "tolerance": 1e-06,
+      "valid": false
+    },
+    "degree_used_as_radian": {
+      "max_absolute_difference": 0.9687550101997999,
+      "tolerance": 1e-06,
+      "valid": false
+    }
+  },
+  "pilot_passed": true
+}
