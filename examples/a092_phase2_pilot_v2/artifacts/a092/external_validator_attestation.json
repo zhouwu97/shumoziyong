@@ -18,6 +18,11 @@
   "optimality_evidence_passed": true,
   "experiment_disposition": "valid",
   "candidate_disposition": "accepted",
+  "claim_applicability": {
+    "objective_value": true,
+    "improvement_rate": true,
+    "strong_optimality": true
+  },
   "claim_permissions": {
     "objective_value": true,
     "improvement_rate": true,

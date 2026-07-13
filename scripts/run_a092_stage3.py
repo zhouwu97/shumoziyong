@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,8 @@ from process_tree import ProcessTreeTimeoutExpired, run_process_tree
 ROOT = Path(__file__).resolve().parents[1]
 WORK_ROOT = ROOT / "tmp" / "a092_confirmatory_v1"
 ARCHIVE_ROOT = ROOT / "experiments" / "a092_confirmatory_v1" / "runs"
+V2_WORK_ROOT = ROOT / "tmp" / "a092_confirmatory_v2"
+V2_ARCHIVE_ROOT = ROOT / "experiments" / "a092_confirmatory_v2" / "runs"
 CODEX = Path.home() / "AppData" / "Local" / "OpenAI" / "Codex" / "bin" / "a7c12ebff69fb123" / "codex.exe"
 
 RUNS: dict[str, dict[str, str | int]] = {
@@ -44,6 +47,43 @@ MATERIAL_DIRS = {"2024-C": "2024_C", "2023-B": "2023_B", "2016-C": "2016_C"}
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _roots(protocol_version: str) -> tuple[Path, Path]:
+    if protocol_version == "v1":
+        return WORK_ROOT, ARCHIVE_ROOT
+    if protocol_version == "v2":
+        return V2_WORK_ROOT, V2_ARCHIVE_ROOT
+    raise ValueError(f"不支持的协议版本: {protocol_version}")
+
+
+def verify_v2_freeze() -> dict[str, Any]:
+    """执行前现场核对 v2 冻结组件，拒绝协议后改。"""
+
+    path = ROOT / "protocols" / "a092_v2" / "protocol_freeze.json"
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        record.get("protocol_id") != "A092-CONFIRMATORY-V2"
+        or record.get("state") != "frozen_pre_execution"
+        or record.get("execution_started") is not False
+    ):
+        raise RuntimeError("A092 v2 冻结记录状态不允许启动")
+    mismatches = [
+        relative
+        for relative, expected in record.get("components", {}).items()
+        if not (ROOT / relative).is_file() or _sha256(ROOT / relative) != expected
+    ]
+    if mismatches:
+        raise RuntimeError(f"A092 v2 冻结组件哈希不匹配: {', '.join(mismatches)}")
+    worktree = subprocess.check_output(
+        ["git", "status", "--porcelain", "--untracked-files=normal"],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+    )
+    if worktree.strip():
+        raise RuntimeError("A092 v2 正式运行要求干净 Git 工作区")
+    return record
 
 
 def _copy_materials(problem: str, destination: Path) -> None:
@@ -75,9 +115,12 @@ def _prompt_stack(arm: str) -> str:
     return "\n".join(blocks)
 
 
-def prepare(run_id: str) -> Path:
+def prepare(run_id: str, protocol_version: str = "v1") -> Path:
+    if protocol_version == "v2":
+        verify_v2_freeze()
+    work_root, _ = _roots(protocol_version)
     spec = RUNS[run_id]
-    run_dir = WORK_ROOT / "prepared" / run_id
+    run_dir = work_root / "prepared" / run_id
     if run_dir.exists():
         raise FileExistsError(f"运行目录已存在，拒绝覆盖: {run_dir}")
     run_dir.mkdir(parents=True)
@@ -98,6 +141,7 @@ def prepare(run_id: str) -> Path:
     files = sorted(path for path in run_dir.rglob("*") if path.is_file())
     manifest = {
         "run_id": run_id,
+        "protocol_id": f"A092-CONFIRMATORY-{protocol_version.upper()}",
         "problem_id": problem,
         "scope": spec["scope"],
         "files": {path.relative_to(run_dir).as_posix(): _sha256(path) for path in files},
@@ -123,16 +167,19 @@ def _parse_events(path: Path) -> tuple[str | None, dict[str, Any]]:
     return thread_id, usage
 
 
-def execute(run_id: str) -> int:
+def execute(run_id: str, protocol_version: str = "v1") -> int:
+    if protocol_version == "v2":
+        verify_v2_freeze()
+    work_root, _ = _roots(protocol_version)
     spec = RUNS[run_id]
-    prepared_dir = WORK_ROOT / "prepared" / run_id
-    official_dir = WORK_ROOT / "runs" / run_id
+    prepared_dir = work_root / "prepared" / run_id
+    official_dir = work_root / "runs" / run_id
     if not (prepared_dir / "prompt_exact.md").is_file():
         raise FileNotFoundError(f"运行尚未准备: {prepared_dir}")
     if official_dir.exists():
         raise FileExistsError(f"正式结果目录已存在，拒绝再次执行: {official_dir}")
 
-    with attempt_workspace(WORK_ROOT, run_id, prepared_dir) as attempt:
+    with attempt_workspace(work_root, run_id, prepared_dir) as attempt:
         run_dir = attempt.path
         events = run_dir / "runner_events.jsonl"
         stderr = run_dir / "runner_stderr.log"
@@ -188,6 +235,7 @@ def execute(run_id: str) -> int:
         )
         metadata = {
             "run_id": run_id,
+            "protocol_id": f"A092-CONFIRMATORY-{protocol_version.upper()}",
             "attempt_id": attempt.attempt_id,
             "problem_id": spec["problem"],
             "scope": spec["scope"],
@@ -226,12 +274,15 @@ def execute(run_id: str) -> int:
         return 0
 
 
-def collect(run_id: str) -> Path:
-    source = WORK_ROOT / "runs" / run_id
-    destination = ARCHIVE_ROOT / run_id
+def collect(run_id: str, protocol_version: str = "v1") -> Path:
+    if protocol_version == "v2":
+        verify_v2_freeze()
+    work_root, archive_root = _roots(protocol_version)
+    source = work_root / "runs" / run_id
+    destination = archive_root / run_id
     if destination.exists():
         raise FileExistsError(f"归档目录已存在，拒绝覆盖: {destination}")
-    staging_source = WORK_ROOT / "archive_staging" / run_id
+    staging_source = work_root / "archive_staging" / run_id
     if staging_source.exists():
         raise FileExistsError(f"归档暂存目录已存在，拒绝覆盖: {staging_source}")
     shutil.copytree(
@@ -252,13 +303,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="A092 阶段三隔离运行")
     parser.add_argument("action", choices=("prepare", "execute", "collect"))
     parser.add_argument("run_id", choices=tuple(RUNS))
+    parser.add_argument("--protocol-version", choices=("v1", "v2"), default="v1")
     args = parser.parse_args()
     if args.action == "prepare":
-        print(prepare(args.run_id))
+        print(prepare(args.run_id, args.protocol_version))
         return 0
     if args.action == "execute":
-        return execute(args.run_id)
-    print(collect(args.run_id))
+        return execute(args.run_id, args.protocol_version)
+    print(collect(args.run_id, args.protocol_version))
     return 0
 
 

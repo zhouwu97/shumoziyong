@@ -31,6 +31,11 @@ COMPONENTS = (
     "scripts/attempt_workspace.py",
     "scripts/process_tree.py",
     "scripts/run_a092_stage3.py",
+    "scripts/validate_a092_formal_run.py",
+    "protocols/a092/formal_result_contract.md",
+    "protocols/a092/stage3_execution_prompt.md",
+    "protocols/a092/baseline_config.json",
+    "protocols/a092/treatment_config.json",
     "scripts/run_a092_v2_pilot.py",
     "examples/a092_phase2_pilot_v2/pilot_result.json"
 )

@@ -30,7 +30,9 @@ def audit_data_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
             record = preprocessing.get(check)
             if not isinstance(record, Mapping):
                 missing_checks.append(check)
-            elif record.get("status") != "passed" or not str(record.get("evidence", "")).strip():
+            elif record.get("status") not in {"passed", "not_applicable"} or not str(
+                record.get("evidence", "")
+            ).strip():
                 failed_checks.append(check)
 
     fixtures = audit.get("hand_checked_fixtures")
@@ -74,6 +76,7 @@ def build_external_validator_attestation(
     objective_passed: bool,
     constraints_passed: bool,
     optimality_evidence_passed: bool,
+    claim_applicability: Mapping[str, bool] | None = None,
 ) -> dict[str, Any]:
     """派生外部验证资格、候选判定和论文 Claim 权限。"""
 
@@ -110,10 +113,20 @@ def build_external_validator_attestation(
     if experiment_valid and not constraints_passed:
         reasons.append("external_constraints_failed")
 
+    applicability = {
+        "objective_value": True,
+        "improvement_rate": True,
+        "strong_optimality": True,
+        **(claim_applicability or {}),
+    }
     claim_permissions = {
-        "objective_value": candidate_valid,
-        "improvement_rate": candidate_valid,
-        "strong_optimality": candidate_valid and optimality_evidence_passed,
+        "objective_value": candidate_valid and applicability["objective_value"],
+        "improvement_rate": candidate_valid and applicability["improvement_rate"],
+        "strong_optimality": (
+            candidate_valid
+            and optimality_evidence_passed
+            and applicability["strong_optimality"]
+        ),
     }
     return {
         "schema_version": "2.0.0",
@@ -135,6 +148,7 @@ def build_external_validator_attestation(
         "optimality_evidence_passed": optimality_evidence_passed,
         "experiment_disposition": "valid" if experiment_valid else "invalid",
         "candidate_disposition": "accepted" if candidate_valid else "rejected",
+        "claim_applicability": applicability,
         "claim_permissions": claim_permissions,
         "failure_reasons": reasons,
     }

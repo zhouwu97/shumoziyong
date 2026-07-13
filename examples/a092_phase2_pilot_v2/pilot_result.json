@@ -33,6 +33,11 @@
         "optimality_evidence_passed": true,
         "experiment_disposition": "valid",
         "candidate_disposition": "rejected",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": false,
           "improvement_rate": false,
@@ -74,6 +79,11 @@
         "optimality_evidence_passed": true,
         "experiment_disposition": "invalid",
         "candidate_disposition": "rejected",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": false,
           "improvement_rate": false,
@@ -115,6 +125,11 @@
         "optimality_evidence_passed": true,
         "experiment_disposition": "valid",
         "candidate_disposition": "rejected",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": false,
           "improvement_rate": false,
@@ -156,6 +171,11 @@
         "optimality_evidence_passed": true,
         "experiment_disposition": "invalid",
         "candidate_disposition": "rejected",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": false,
           "improvement_rate": false,
@@ -197,6 +217,11 @@
         "optimality_evidence_passed": true,
         "experiment_disposition": "invalid",
         "candidate_disposition": "rejected",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": false,
           "improvement_rate": false,
@@ -238,6 +263,11 @@
         "optimality_evidence_passed": false,
         "experiment_disposition": "valid",
         "candidate_disposition": "accepted",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": true,
           "improvement_rate": true,
@@ -282,6 +312,11 @@
         "optimality_evidence_passed": true,
         "experiment_disposition": "valid",
         "candidate_disposition": "accepted",
+        "claim_applicability": {
+          "objective_value": true,
+          "improvement_rate": true,
+          "strong_optimality": true
+        },
         "claim_permissions": {
           "objective_value": true,
           "improvement_rate": true,

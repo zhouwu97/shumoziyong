@@ -11,7 +11,7 @@
     "candidate_evaluator_sha256", "frozen_before_candidate",
     "implementation_independent", "data_contract_passed", "objective_passed",
     "constraints_passed", "optimality_evidence_passed", "experiment_disposition", "candidate_disposition",
-    "claim_permissions", "failure_reasons"
+    "claim_applicability", "claim_permissions", "failure_reasons"
   ],
   "properties": {
     "schema_version": {"const": "2.0.0"},
@@ -33,7 +33,15 @@
     "optimality_evidence_passed": {"type": "boolean"},
     "experiment_disposition": {"enum": ["valid", "invalid"]},
     "candidate_disposition": {"enum": ["accepted", "rejected"]},
+    "claim_applicability": {"$ref": "#/$defs/claimFlags"},
     "claim_permissions": {
+      "$ref": "#/$defs/claimFlags"
+    },
+    "failure_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "claimFlags": {
       "type": "object", "additionalProperties": false,
       "required": ["objective_value", "improvement_rate", "strong_optimality"],
       "properties": {
@@ -41,8 +49,6 @@
         "improvement_rate": {"type": "boolean"},
         "strong_optimality": {"type": "boolean"}
       }
-    },
-    "failure_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
-  },
-  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+    }
+  }
 }

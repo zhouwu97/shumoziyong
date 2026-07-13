@@ -174,3 +174,26 @@ def test_a092_runner_retains_run_lock_when_tree_cleanup_is_unproven(
     assert lock["lock_retained"] is True
     with pytest.raises(ActiveAttemptError):
         run_a092_stage3.execute("R03")
+
+
+def test_v2_runner_uses_separate_root_and_protocol_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    work_root = tmp_path / "a092_v2"
+    prepared = work_root / "prepared" / "R01"
+    prepared.mkdir(parents=True)
+    (prepared / "prompt_exact.md").write_text("prompt", encoding="utf-8")
+
+    def fake_run(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(run_a092_stage3, "V2_WORK_ROOT", work_root)
+    monkeypatch.setattr(run_a092_stage3, "V2_ARCHIVE_ROOT", tmp_path / "archive_v2")
+    monkeypatch.setattr(run_a092_stage3, "verify_v2_freeze", lambda: {})
+    monkeypatch.setattr(run_a092_stage3, "run_process_tree", fake_run)
+
+    assert run_a092_stage3.execute("R01", "v2") == 0
+    metadata = json.loads(
+        (work_root / "runs" / "R01" / "runner_metadata.json").read_text(encoding="utf-8")
+    )
+    assert metadata["protocol_id"] == "A092-CONFIRMATORY-V2"
