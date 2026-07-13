@@ -302,11 +302,16 @@ python scripts/export_runtime_pack.py \
 - 当前工程优化 runtime：版本 `0.2.0`，现场派生成熟度为 `assembled`。
 - A092、A127、B311、B477 当前均为 `review_ready`；旧证据不参与主动晋级。
 - A092 第一轮确认性实验已经完成，但没有形成满足 `regression_verified` 门槛的有效证据；A127、B311、B477 也未宣称 `regression_verified` 或 `competition_evidenced`。
-- Sandboxie 真实环境激活使用 `scripts/verify_sandboxie_environment.py`；报告合同、12 项负控、
-  DNS/TCP 多端点门槛及 Evidence/Seal 绑定见
-  `docs/roadmap/SANDBOXIE_ENVIRONMENT_VERIFICATION.md`。Milestone 2 只派生环境已验证；
-  Run 实际执行尚未证明，`formal_result_eligible` 继续为 `false`。
-- 建议比赛时默认使用本状态对应的 `export/cumcm_runtime_pack.md`；后续大改应另开分支，不直接在当前验证结构上重写。
+- trusted-local 实际执行、运行证明、Collector 固定派生与 Formal Result
+  验证链已经建立；满足完整范围要求的运行可以产生
+  `formal_result_eligible=true`。
+- 该资格必须同时绑定
+  `formal_result_eligibility_scope=trusted_local`、
+  `execution_trust_model=trusted_local`、干净 Git 状态和定向宿主读取控制结果。
+- trusted-local 资格只证明可信本地代码确实运行，以及 raw output 到
+  Formal Result 的派生关系一致；不自动证明数学模型正确、约束完整或结果全局最优。
+- 后续修改按阶段保持独立提交，完成测试后可通过 SSH 直接推送；
+  是否使用功能分支根据改动风险决定。
 
 ## 当前建模质量验证状态
 
