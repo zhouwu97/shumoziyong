@@ -4,7 +4,7 @@
   "title": "A092 协议冻结记录",
   "type": "object",
   "additionalProperties": false,
-  "required": ["freeze_record_version", "protocol_id", "protocol_commit", "protocol_sha256", "patch_sha256", "validator_sha256", "validator_files", "scoring_rubric_sha256", "baseline_config_sha256", "treatment_config_sha256", "runtime_pack_sha256", "case_role_manifest_sha256", "pilot_evidence_allowed", "protocol_deviation"],
+  "required": ["freeze_record_version", "protocol_id", "protocol_commit", "protocol_sha256", "patch_sha256", "validator_sha256", "validator_files", "scoring_rubric_sha256", "baseline_config_sha256", "treatment_config_sha256", "runtime_pack_sha256", "case_role_manifest_sha256", "pilot_evidence_allowed", "protocol_deviation", "deviation_records"],
   "properties": {
     "freeze_record_version": {"const": "1.0.0"},
     "protocol_id": {"const": "A092-CONFIRMATORY-V1"},
@@ -19,8 +19,8 @@
     "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
     "case_role_manifest_sha256": {"$ref": "#/$defs/sha256"},
     "pilot_evidence_allowed": {"const": false},
-    "protocol_deviation": {"const": false}
+    "protocol_deviation": {"type": "boolean"},
+    "deviation_records": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sha256"}}
   },
   "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
 }
-

@@ -127,3 +127,5 @@ def test_freeze_record_binds_all_protocol_inputs() -> None:
     Draft202012Validator(schema).validate(record)
     assert record["pilot_evidence_allowed"] is False
     assert len(record["validator_files"]) >= 6
+    assert record["protocol_deviation"] is True
+    assert len(record["deviation_records"]) == 1

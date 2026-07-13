@@ -28,6 +28,10 @@ def _validator_digest() -> tuple[str, dict[str, str]]:
 
 def build_freeze_record(protocol_commit: str) -> dict[str, Any]:
     validator_sha256, validator_files = _validator_digest()
+    deviation_files = sorted((ROOT / "protocols" / "a092").glob("protocol_deviation_*.json"))
+    deviation_records = {
+        path.relative_to(ROOT).as_posix(): _sha256(path) for path in deviation_files
+    }
     paths = {
         "patch_sha256": ROOT / "prompt_patches" / "patch_A092_engineering_optimization.md",
         "scoring_rubric_sha256": ROOT / "protocols" / "a092" / "scoring_rubric.json",
@@ -45,7 +49,8 @@ def build_freeze_record(protocol_commit: str) -> dict[str, Any]:
         "validator_sha256": validator_sha256,
         "validator_files": validator_files,
         "pilot_evidence_allowed": False,
-        "protocol_deviation": False,
+        "protocol_deviation": bool(deviation_records),
+        "deviation_records": deviation_records,
     }
 
 
@@ -75,4 +80,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,0 +1,16 @@
+{
+  "deviation_id": "A092-DEV-001",
+  "recorded_before_formal_runs": true,
+  "protocol_deviation": true,
+  "reason": "Codex CLI 0.144.0-alpha.4 与官方配置参考未提供 temperature 配置项，无法证明阶段二配置中的 temperature=0。为保证可审计的同条件对照，改为显式固定同一模型、reasoning effort、CLI、权限和 CLI 模型默认采样。",
+  "official_reference": "https://learn.chatgpt.com/docs/config-file/config-reference",
+  "changes": [
+    "baseline_config.temperature -> sampling_control=codex_cli_model_default",
+    "treatment_config.temperature -> sampling_control=codex_cli_model_default",
+    "两组显式固定 model=gpt-5.6-sol 与 model_reasoning_effort=high",
+    "两组显式固定相同 CLI、权限、时限、执行轮次和人工确认策略"
+  ],
+  "affected_runs": [],
+  "rerun_required": true,
+  "fulfillment_condition": "阶段三全部正式运行使用修订后同一配置重新生成"
+}

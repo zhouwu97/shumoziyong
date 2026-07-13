@@ -2,10 +2,16 @@
   "config_id": "A092-BASELINE-V1",
   "prompt_components": ["prompt_base/prompt_base_v1.0.md", "prompt_plugins/plugin_optimization_v1.md"],
   "target_patch": null,
-  "reasoning_effort": "same_as_treatment",
-  "temperature": 0,
-  "tool_permissions": "same_as_treatment",
-  "time_limit": "same_as_treatment",
-  "iteration_limit": "same_as_treatment"
+  "model": "gpt-5.6-sol",
+  "model_reasoning_effort": "high",
+  "sampling_control": {
+    "temperature_user_configurable": false,
+    "effective_setting": "codex_cli_model_default",
+    "equality_rule": "same_model_cli_and_explicit_reasoning_effort"
+  },
+  "runner": "codex-cli 0.144.0-alpha.4",
+  "tool_permissions": "isolated_workspace_write_no_web",
+  "time_limit_seconds": 3600,
+  "iteration_limit": "one_fresh_codex_exec_tool_loop",
+  "human_confirmation_policy": "none_during_run"
 }
-
