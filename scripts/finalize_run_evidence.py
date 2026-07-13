@@ -22,6 +22,7 @@ from run_workflow import (
     evidence_artifact_specs_for_workflow,
     evidence_required_artifacts_for_workflow,
     extend_formal_result_evidence_requirements,
+    formal_result_state_summary,
     replay_transition_log,
     validate_workflow_evidence_purpose,
     write_json,
@@ -77,21 +78,7 @@ def validate_evidence_manifest(
     if not isinstance(artifacts, list):
         return ["run_evidence_manifest.artifacts 必须是数组"]
     if formal_summary is not None:
-        expected_state = {
-            "formal_result_activation_status": formal_summary[
-                "formal_result_activation_status"
-            ],
-            "sandboxie_environment_observed": formal_summary[
-                "sandboxie_environment_observed"
-            ],
-            "sandboxie_environment_verified": formal_summary[
-                "sandboxie_environment_verified"
-            ],
-            "formal_result_executed_in_verified_environment": formal_summary[
-                "formal_result_executed_in_verified_environment"
-            ],
-            "formal_result_eligible": formal_summary["formal_result_eligible"],
-        }
+        expected_state = formal_result_state_summary(formal_summary)
         for field, expected in expected_state.items():
             if evidence_manifest.get(field) != expected:
                 errors.append(f"run_evidence_manifest.{field} 与 Formal Result 不一致")
@@ -248,19 +235,7 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                     "formal_result_id": formal_summary["formal_result_id"],
                     "formal_result_envelope_sha256": formal_summary["envelope_file_sha256"],
                     "formal_result_envelope_semantic_sha256": formal_summary["envelope_semantic_sha256"],
-                    "formal_result_activation_status": formal_summary[
-                        "formal_result_activation_status"
-                    ],
-                    "sandboxie_environment_observed": formal_summary[
-                        "sandboxie_environment_observed"
-                    ],
-                    "sandboxie_environment_verified": formal_summary[
-                        "sandboxie_environment_verified"
-                    ],
-                    "formal_result_executed_in_verified_environment": formal_summary[
-                        "formal_result_executed_in_verified_environment"
-                    ],
-                    "formal_result_eligible": formal_summary["formal_result_eligible"],
+                    **formal_result_state_summary(formal_summary),
                 }
             )
             environment = formal_summary["sandboxie_environment"]

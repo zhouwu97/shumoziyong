@@ -23,9 +23,9 @@ from formal_result.run_execution_attestation import (
     validate_execution_time_window,
     verify_run_execution_attestation,
 )
-from formal_result.trusted_local import collect_git_state
+from formal_result.trusted_local import collect_git_state, trusted_local_eligibility_scope
 from formal_result.verifier import verify_formal_result_bundle
-from run_workflow import verify_run
+from run_workflow import verify_gate_artifacts, verify_run, verify_run_seal
 
 
 FIXTURE = ROOT / "tests" / "fixtures" / "m3a_verified_run"
@@ -64,6 +64,89 @@ def test_real_sandboxie_fixture_propagates_eligibility_to_gate_evidence_seal_and
     assert report["verified_gates"] == [0, 1, 2, 3, 4, 5]
     assert report["sealed"] is True
     assert report["formal_result_eligible"] is True
+    expected_scope = {
+        "formal_result_eligibility_scope": "trusted_local",
+        "execution_trust_model": "trusted_local",
+        "git_head": "c7f15a3da6a5c61182ec1d3a15e78664c60e2d98",
+        "git_state_clean": True,
+        "targeted_host_read_controls_passed": True,
+        "default_deny_host_reads_verified": False,
+        "privacy_mode_available": False,
+    }
+    for layer in (summary, gate_3["formal_result"], evidence, seal, report):
+        assert {field: layer[field] for field in expected_scope} == expected_scope
+
+
+def test_gate_3_rejects_missing_execution_trust_model(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    path = run / "gate_artifacts" / "gate_3.manifest.json"
+    gate = _load(path)
+    del gate["formal_result"]["execution_trust_model"]
+    _write(path, gate)
+    with pytest.raises(ValueError, match="execution_trust_model"):
+        verify_gate_artifacts(run, 3)
+
+
+def test_gate_3_rejects_wrong_eligibility_scope(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    path = run / "gate_artifacts" / "gate_3.manifest.json"
+    gate = _load(path)
+    gate["formal_result"]["formal_result_eligibility_scope"] = "default_deny"
+    _write(path, gate)
+    with pytest.raises(ValueError, match="formal_result_eligibility_scope"):
+        verify_gate_artifacts(run, 3)
+
+
+@pytest.mark.parametrize("operation", ["delete", "true"])
+def test_evidence_rejects_default_deny_scope_drift(
+    tmp_path: Path, operation: str
+) -> None:
+    run = _copy(tmp_path)
+    path = run / "run_evidence_manifest.json"
+    evidence = _load(path)
+    if operation == "delete":
+        del evidence["default_deny_host_reads_verified"]
+    else:
+        evidence["default_deny_host_reads_verified"] = True
+    _write(path, evidence)
+    report = verify_run(run)
+    assert report["sealed"] is False
+    assert any(
+        "default_deny_host_reads_verified" in error
+        for error in report["promotion_readiness_errors"]
+    )
+
+
+def test_seal_rejects_missing_eligibility_scope(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    path = run / "seal_record.json"
+    seal = _load(path)
+    del seal["formal_result_eligibility_scope"]
+    _write(path, seal)
+    with pytest.raises(ValueError, match="formal_result_eligibility_scope"):
+        verify_run_seal(run)
+
+
+def test_verify_run_rejects_scope_inconsistent_with_attestation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import formal_result.verifier as verifier_module
+
+    original = verifier_module.verify_run_execution_attestation
+
+    def inconsistent(*args: object, **kwargs: object) -> dict[str, object]:
+        result = original(*args, **kwargs)
+        result["formal_result_eligibility_scope"] = "default_deny"
+        return result
+
+    monkeypatch.setattr(verifier_module, "verify_run_execution_attestation", inconsistent)
+    with pytest.raises(ValueError, match="trusted_local 资格范围"):
+        verify_run(_copy(tmp_path))
+
+
+def test_eligible_true_without_scope_fails_closed() -> None:
+    with pytest.raises(ValueError, match="trusted_local 资格范围"):
+        trusted_local_eligibility_scope({"formal_result_eligible": True})
 
 
 def test_verify_run_accepts_repository_relative_run_path(monkeypatch: pytest.MonkeyPatch) -> None:

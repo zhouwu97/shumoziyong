@@ -24,7 +24,10 @@ from .sandboxie_environment import (
     load_and_verify_sandboxie_environment_report,
 )
 from .schema import validate_schema
-from .trusted_local import EXECUTION_TRUST_MODEL
+from .trusted_local import (
+    EXECUTION_TRUST_MODEL,
+    FORMAL_RESULT_ELIGIBILITY_SCOPE,
+)
 
 
 ATTESTATION_FILENAME = "sandboxie_run_execution_attestation.json"
@@ -426,6 +429,7 @@ def verify_run_execution_attestation(
         "sandboxie_environment_verified": True,
         "formal_result_executed_in_verified_environment": True,
         "formal_result_eligible": True,
+        "formal_result_eligibility_scope": FORMAL_RESULT_ELIGIBILITY_SCOPE,
         "execution_trust_model": EXECUTION_TRUST_MODEL,
         "git_head": attestation["git_head"],
         "git_state_clean": True,

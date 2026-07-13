@@ -17,6 +17,7 @@ from .path_safety import (
     validate_execution_spec_paths,
 )
 from .schema import validate_schema
+from .trusted_local import trusted_local_eligibility_scope
 from .sandboxie_environment import load_and_verify_sandboxie_environment_report
 from .run_execution_attestation import (
     ATTESTATION_FILENAME as RUN_ATTESTATION_FILENAME,
@@ -553,7 +554,7 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
     if formal_manifest.get("semantic_hashes") != manifest_bound_semantic:
         raise FormalResultVerificationError("Formal Result Manifest 未反向绑定完整语义哈希集")
 
-    return {
+    summary = {
         "formal_result_id": formal_result_id,
         "execution_spec_file_sha256": file_sha256(execution_spec_path),
         "execution_spec_semantic_sha256": semantic_sha256(execution_spec),
@@ -580,3 +581,5 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         "artifacts": verified,
         "identity": identity,
     }
+    summary.update(trusted_local_eligibility_scope(environment_summary))
+    return summary

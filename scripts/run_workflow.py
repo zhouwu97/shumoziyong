@@ -22,6 +22,7 @@ from formal_result.identity import (
     IMMUTABLE_IDENTITY_FIELDS,
 )
 from formal_result.verifier import verify_formal_result_bundle
+from formal_result.trusted_local import trusted_local_eligibility_scope
 from model_validation import validate_model_and_execution
 from verify_materials import MaterialVerificationResult, verify_materials
 
@@ -40,6 +41,21 @@ FORMAL_IDENTITY_DEFAULTS = {
     "canonicalization_version": FORMAL_CONTRACT_VERSION,
     "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
 }
+
+
+def formal_result_state_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
+    """构造所有下游摘要共享的 Formal Result 状态与资格范围。"""
+    state = {
+        "formal_result_activation_status": summary["formal_result_activation_status"],
+        "sandboxie_environment_observed": summary["sandboxie_environment_observed"],
+        "sandboxie_environment_verified": summary["sandboxie_environment_verified"],
+        "formal_result_executed_in_verified_environment": summary[
+            "formal_result_executed_in_verified_environment"
+        ],
+        "formal_result_eligible": summary["formal_result_eligible"],
+    }
+    state.update(trusted_local_eligibility_scope(dict(summary)))
+    return state
 
 
 def normalize_problem_dir(problem: str) -> str:
@@ -364,23 +380,7 @@ def build_run_evidence_manifest(
         "artifacts": artifacts,
     }
     if formal_summary is not None:
-        evidence_manifest.update(
-            {
-                "formal_result_activation_status": formal_summary[
-                    "formal_result_activation_status"
-                ],
-                "sandboxie_environment_observed": formal_summary[
-                    "sandboxie_environment_observed"
-                ],
-                "sandboxie_environment_verified": formal_summary[
-                    "sandboxie_environment_verified"
-                ],
-                "formal_result_executed_in_verified_environment": formal_summary[
-                    "formal_result_executed_in_verified_environment"
-                ],
-                "formal_result_eligible": formal_summary["formal_result_eligible"],
-            }
-        )
+        evidence_manifest.update(formal_result_state_summary(formal_summary))
     return evidence_manifest
 
 
@@ -1503,19 +1503,7 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
             "formal_result_id": summary["formal_result_id"],
             "formal_result_envelope_sha256": summary["envelope_file_sha256"],
             "formal_result_envelope_semantic_sha256": summary["envelope_semantic_sha256"],
-            "formal_result_activation_status": summary[
-                "formal_result_activation_status"
-            ],
-            "sandboxie_environment_observed": summary[
-                "sandboxie_environment_observed"
-            ],
-            "sandboxie_environment_verified": summary[
-                "sandboxie_environment_verified"
-            ],
-            "formal_result_executed_in_verified_environment": summary[
-                "formal_result_executed_in_verified_environment"
-            ],
-            "formal_result_eligible": summary["formal_result_eligible"],
+            **formal_result_state_summary(summary),
         }
         environment = summary["sandboxie_environment"]
         if environment["sandboxie_environment_verified"]:
@@ -1680,19 +1668,7 @@ def build_gate_artifact_manifest(
                 "envelope_path": summary["envelope_path"],
                 "envelope_file_sha256": summary["envelope_file_sha256"],
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
-                "formal_result_activation_status": summary[
-                    "formal_result_activation_status"
-                ],
-                "sandboxie_environment_observed": summary[
-                    "sandboxie_environment_observed"
-                ],
-                "sandboxie_environment_verified": summary[
-                    "sandboxie_environment_verified"
-                ],
-                "formal_result_executed_in_verified_environment": summary[
-                    "formal_result_executed_in_verified_environment"
-                ],
-                "formal_result_eligible": summary["formal_result_eligible"],
+                **formal_result_state_summary(summary),
             }
     return manifest
 
@@ -1777,19 +1753,7 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
                 "envelope_path": summary["envelope_path"],
                 "envelope_file_sha256": summary["envelope_file_sha256"],
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
-                "formal_result_activation_status": summary[
-                    "formal_result_activation_status"
-                ],
-                "sandboxie_environment_observed": summary[
-                    "sandboxie_environment_observed"
-                ],
-                "sandboxie_environment_verified": summary[
-                    "sandboxie_environment_verified"
-                ],
-                "formal_result_executed_in_verified_environment": summary[
-                    "formal_result_executed_in_verified_environment"
-                ],
-                "formal_result_eligible": summary["formal_result_eligible"],
+                **formal_result_state_summary(summary),
             }
             if manifest.get("formal_result") != expected_formal:
                 raise ValueError("Gate 3 Manifest 未精确绑定当前 Formal Result Envelope")
@@ -2696,6 +2660,13 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             "sandboxie_environment_verified": False,
             "formal_result_executed_in_verified_environment": False,
             "formal_result_eligible": False,
+            "formal_result_eligibility_scope": None,
+            "execution_trust_model": None,
+            "git_head": None,
+            "git_state_clean": False,
+            "targeted_host_read_controls_passed": False,
+            "default_deny_host_reads_verified": False,
+            "privacy_mode_available": None,
         }
     state = replay_transition_log(run_dir)
     evidence_errors: list[str] = []
@@ -2799,6 +2770,15 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
     sandboxie_environment_verified = False
     formal_result_executed_in_verified_environment = False
     formal_result_eligible = False
+    formal_scope: dict[str, Any] = {
+        "formal_result_eligibility_scope": None,
+        "execution_trust_model": None,
+        "git_head": None,
+        "git_state_clean": False,
+        "targeted_host_read_controls_passed": False,
+        "default_deny_host_reads_verified": False,
+        "privacy_mode_available": None,
+    }
     if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         try:
             formal_summary = _verify_required_formal_result(run_dir)
@@ -2815,6 +2795,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
                 formal_summary["formal_result_executed_in_verified_environment"]
             )
             formal_result_eligible = bool(formal_summary["formal_result_eligible"])
+            formal_scope.update(trusted_local_eligibility_scope(formal_summary))
         except (OSError, ValueError, json.JSONDecodeError):
             pass
     return {
@@ -2836,6 +2817,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "sandboxie_environment_verified": sandboxie_environment_verified,
         "formal_result_executed_in_verified_environment": formal_result_executed_in_verified_environment,
         "formal_result_eligible": formal_result_eligible,
+        **formal_scope,
         "promotion_readiness_errors": promotion_errors,
     }
 

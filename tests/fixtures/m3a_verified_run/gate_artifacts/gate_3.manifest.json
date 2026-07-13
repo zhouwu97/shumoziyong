@@ -39,6 +39,13 @@
     "sandboxie_environment_observed": true,
     "sandboxie_environment_verified": true,
     "formal_result_executed_in_verified_environment": true,
-    "formal_result_eligible": true
+    "formal_result_eligible": true,
+    "formal_result_eligibility_scope": "trusted_local",
+    "execution_trust_model": "trusted_local",
+    "git_head": "c7f15a3da6a5c61182ec1d3a15e78664c60e2d98",
+    "git_state_clean": true,
+    "targeted_host_read_controls_passed": true,
+    "default_deny_host_reads_verified": false,
+    "privacy_mode_available": false
   }
 }

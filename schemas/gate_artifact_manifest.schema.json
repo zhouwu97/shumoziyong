@@ -41,7 +41,14 @@
         "sandboxie_environment_observed": {"type": "boolean"},
         "sandboxie_environment_verified": {"type": "boolean"},
         "formal_result_executed_in_verified_environment": {"type": "boolean"},
-        "formal_result_eligible": {"type": "boolean"}
+        "formal_result_eligible": {"type": "boolean"},
+        "formal_result_eligibility_scope": {"const": "trusted_local"},
+        "execution_trust_model": {"const": "trusted_local"},
+        "git_head": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "git_state_clean": {"const": true},
+        "targeted_host_read_controls_passed": {"const": true},
+        "default_deny_host_reads_verified": {"const": false},
+        "privacy_mode_available": {"type": "boolean"}
       },
       "allOf": [
         {
@@ -55,6 +62,13 @@
         {
           "if": {"properties": {"formal_result_activation_status": {"const": "run_execution_verified"}}, "required": ["formal_result_activation_status"]},
           "then": {"properties": {"sandboxie_environment_observed": {"const": true}, "sandboxie_environment_verified": {"const": true}, "formal_result_executed_in_verified_environment": {"const": true}, "formal_result_eligible": {"const": true}}}
+        },
+        {
+          "if": {"properties": {"formal_result_eligible": {"const": true}}, "required": ["formal_result_eligible"]},
+          "then": {
+            "required": ["formal_result_eligibility_scope", "execution_trust_model", "git_head", "git_state_clean", "targeted_host_read_controls_passed", "default_deny_host_reads_verified"],
+            "properties": {"formal_result_eligibility_scope": {"const": "trusted_local"}, "execution_trust_model": {"const": "trusted_local"}, "git_state_clean": {"const": true}, "targeted_host_read_controls_passed": {"const": true}, "default_deny_host_reads_verified": {"const": false}}
+          }
         }
       ]
     },

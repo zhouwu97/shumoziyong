@@ -186,9 +186,9 @@
     },
     {
       "path": "gate_artifacts/gate_3.manifest.json",
-      "sha256": "15b85eb27ffbb34a93b8d469628aaa1fdfc687e2943733fce77aabb4fb388b86",
+      "sha256": "3e8135758754e054c5ce6008b5970a2f59e12b92efd687757bb929cf21e3770e",
       "media_type": "application/json",
-      "size_bytes": 1733,
+      "size_bytes": 2056,
       "role": "gate_3_artifact_manifest"
     },
     {
@@ -379,5 +379,12 @@
   "sandboxie_environment_observed": true,
   "sandboxie_environment_verified": true,
   "formal_result_executed_in_verified_environment": true,
-  "formal_result_eligible": true
+  "formal_result_eligible": true,
+  "formal_result_eligibility_scope": "trusted_local",
+  "execution_trust_model": "trusted_local",
+  "git_head": "c7f15a3da6a5c61182ec1d3a15e78664c60e2d98",
+  "git_state_clean": true,
+  "targeted_host_read_controls_passed": true,
+  "default_deny_host_reads_verified": false,
+  "privacy_mode_available": false
 }
