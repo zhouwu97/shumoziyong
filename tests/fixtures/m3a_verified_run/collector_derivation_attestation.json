@@ -3,8 +3,8 @@
   "artifact_type": "collector_derivation_attestation",
   "run_id": "m3a_fixture_run_20260713",
   "formal_result_id": "formal-m3a-fixture-001",
-  "execution_id": "sandboxie-exec-28037fb7a0cf4d2bbf4c28dc98adb249",
-  "run_output_manifest_sha256": "5e89c00f2c1fd5bb69c4433d72717543c545e5aa5fc508485ec7810364a4554e",
+  "execution_id": "sandboxie-exec-3390db141c3e4d1cbac1cfa7b9aa773c",
+  "run_output_manifest_sha256": "14e5cb067113676c45e66afb8124aa1f93595bbf0905ec8a322bac59b022141e",
   "result_derivation_contract": {
     "contract_version": "1.0.0",
     "raw_output_path": "result.json",
@@ -64,11 +64,11 @@
   },
   "formal_result_core_digest": "aebc339e4651b5aab568f0e4729e87b09691a103341a243346ffc4293e9252c0",
   "collector_id": "m3a-json-pointer-collector-v1",
-  "collector_source_commit": "52ab8b22daff1f6a8239c2a0849f56d124cdc47b",
+  "collector_source_commit": "c7f15a3da6a5c61182ec1d3a15e78664c60e2d98",
   "collector_script_path": "scripts/run_in_verified_sandbox.py",
-  "collector_script_sha256": "88009ddc259367b3d57e7584eab88251134aa4d6eb1ba7f065c70d158f3347c3",
+  "collector_script_sha256": "4fb42083448ae18040eb5539785a632f8ae9bcb205b9635b8c4f60311893f1b6",
   "derivation_contract_id": "m3a-engineering-objective-v1",
   "derivation_contract_sha256": "0440f9d58360a4920ca91ace8498ae4537aa283a0e4abcd416e900e965f06a3b",
   "domain_policy_sha256": "7a5e7945240d4967c61b6754aeb8f14e412b3ad1b5db7695c584d16b5cac8b66",
-  "derived_at": "2026-07-13T09:07:49+08:00"
+  "derived_at": "2026-07-13T09:17:27+08:00"
 }

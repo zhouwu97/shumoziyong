@@ -18,7 +18,7 @@
   "input_manifest_sha256": "37dee8a8f240552163870a7e5ecd772cb1051ce2650d654be9e4e476ea61080d",
   "code_manifest_sha256": "7644e706c6b5c2a63b832294ea9e2353c8e7dcc0787eebfaef20652e999e6251",
   "execution_spec_sha256": "cf4a49d518f84efdf90861d872849d937b2c551f908f73ab0bddf486ac3be532",
-  "environment_manifest_sha256": "9ff9b1f59e0970154aa53e28f13f8ba6726846d8cfbd34d8553e92a3e4fd48ec",
+  "environment_manifest_sha256": "4e642261fb1b6e2133f4d123ef27692e0142d979f67a7b68e801cd1fe23ec590",
   "sandbox_policy": "manifest-only-test",
   "candidate_access_assurance": "manifest_isolation",
   "candidate_output_access_not_detected": true,

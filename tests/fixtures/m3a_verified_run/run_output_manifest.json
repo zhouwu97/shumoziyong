@@ -3,11 +3,11 @@
   "artifact_type": "run_output_manifest",
   "run_id": "m3a_fixture_run_20260713",
   "formal_result_id": "formal-m3a-fixture-001",
-  "execution_id": "sandboxie-exec-28037fb7a0cf4d2bbf4c28dc98adb249",
+  "execution_id": "sandboxie-exec-3390db141c3e4d1cbac1cfa7b9aa773c",
   "files": [
     {
       "path": "execution_challenge.json",
-      "sha256": "333ae048af331edf6913f872b9852f7969de1f3c0ccdf01ee6415629b873c3bc"
+      "sha256": "33cdff543f501489f6beb359f206aa8722af8eb737a5b96e49b6092797ca84fd"
     },
     {
       "path": "result.json",

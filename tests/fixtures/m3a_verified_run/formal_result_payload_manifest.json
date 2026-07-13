@@ -3,8 +3,8 @@
   "artifact_type": "formal_result_payload_manifest",
   "run_id": "m3a_fixture_run_20260713",
   "formal_result_id": "formal-m3a-fixture-001",
-  "execution_id": "sandboxie-exec-28037fb7a0cf4d2bbf4c28dc98adb249",
-  "run_output_manifest_sha256": "5e89c00f2c1fd5bb69c4433d72717543c545e5aa5fc508485ec7810364a4554e",
+  "execution_id": "sandboxie-exec-3390db141c3e4d1cbac1cfa7b9aa773c",
+  "run_output_manifest_sha256": "14e5cb067113676c45e66afb8124aa1f93595bbf0905ec8a322bac59b022141e",
   "formal_core_semantic_sha256": {
     "decision_variables.json": "9b04b3c92ba16e5f85ee15b5b34847d00bf6ecccdc74789f85f123d4bcb2827c",
     "optimization_validation.json": "b244e4e80bdb47508a5d7dcd70d44c3cc69d37112d1d364a57f69cbfabae5c0a",
@@ -63,5 +63,5 @@
       }
     ]
   },
-  "collector_derivation_attestation_sha256": "9bfd86d18b1533244b4de91e04025f4403d93ac6695b96c8e065ee7f72f249fa"
+  "collector_derivation_attestation_sha256": "2e4772de7b31c36b286dd1893fd445a386b12c4729b4e40271f37fab6211d8b5"
 }

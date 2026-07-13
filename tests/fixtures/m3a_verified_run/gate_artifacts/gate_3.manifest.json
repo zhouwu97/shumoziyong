@@ -33,8 +33,8 @@
   "formal_result": {
     "formal_result_id": "formal-m3a-fixture-001",
     "envelope_path": "formal_results/formal-m3a-fixture-001/formal_result_envelope.json",
-    "envelope_file_sha256": "a8e90bd53dc4df9f73facea8e1da245afd705435409efefdc2da79121dbe4a77",
-    "envelope_semantic_sha256": "908d42b9a9011879ac6daa22d0f515dfdc749f7491eb32a4951c9ee30fb60622",
+    "envelope_file_sha256": "b40c35e717cd53cd8cfc248219b53f403fae2da390a9af7dff91c5022e64ecd0",
+    "envelope_semantic_sha256": "c41e32126ceb9d0940151695f830a57651ba22d1bdef44f990f4f7d83c490bfd",
     "formal_result_activation_status": "run_execution_verified",
     "sandboxie_environment_observed": true,
     "sandboxie_environment_verified": true,
