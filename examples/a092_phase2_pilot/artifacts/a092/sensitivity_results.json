@@ -1,0 +1,16 @@
+{
+  "status": "completed",
+  "checks_passed": true,
+  "results": [
+    {
+      "parameter": "profit_x",
+      "perturbation": "+5%",
+      "relative_objective_change": 0.03,
+      "solution_structure_changed": false,
+      "main_conclusion_reversed": false,
+      "classification": "stable",
+      "derived_classification": "stable",
+      "classification_valid": true
+    }
+  ]
+}

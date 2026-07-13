@@ -1,0 +1,17 @@
+{
+  "rubric_id": "A092-SCORING-V1",
+  "total": 100,
+  "dimensions": [
+    {"id": "problem_decomposition", "score": 10},
+    {"id": "assumptions_and_mechanism", "score": 10},
+    {"id": "model_design", "score": 20},
+    {"id": "solution_strategy", "score": 10},
+    {"id": "code_and_results", "score": 15},
+    {"id": "independent_validation", "score": 15},
+    {"id": "paper_and_figures", "score": 15},
+    {"id": "conclusion_boundary", "score": 5}
+  ],
+  "unsupported_paper_claims_score": 0,
+  "quantitative_claim_conflict": "Solution P0"
+}
+

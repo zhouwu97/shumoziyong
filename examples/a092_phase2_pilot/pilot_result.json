@@ -1,0 +1,497 @@
+{
+  "schema_version": "1.0.0",
+  "pilot_id": "A092-PILOT-20260713",
+  "promotion_evidence": false,
+  "excluded_from_roles": [
+    "positive",
+    "boundary",
+    "negative"
+  ],
+  "valid_case_passed": true,
+  "fault_injections": [
+    {
+      "fault_id": "wrong_objective",
+      "expected_failed_check": "objective_consistent",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": true,
+        "objective_reported": 999.0,
+        "objective_recomputed": 58.0,
+        "objective_difference": 941.0,
+        "objective_consistent": false,
+        "max_raw_constraint_violation": 0.0,
+        "max_scaled_constraint_violation": 0.0,
+        "violated_constraints": [],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 32.0,
+        "improvement_ratio": 1.2307692307692308,
+        "improvement_ratio_reported": 1.2307692307692308,
+        "improvement_ratio_consistent": true,
+        "baseline_near_zero": false,
+        "bounds_valid": true,
+        "bound_violations": [],
+        "integrality_valid": true,
+        "integrality_violations": [],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": true,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.03,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "stable",
+            "classification_valid": true
+          }
+        ],
+        "optimality_claim_requested": "best_found_in_search",
+        "optimality_claim_allowed": "unverified_candidate",
+        "optimality_claim_consistent": false,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    },
+    {
+      "fault_id": "out_of_bounds",
+      "expected_failed_check": "bounds_valid",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": false,
+        "objective_reported": 58.0,
+        "objective_recomputed": 88.0,
+        "objective_difference": 30.0,
+        "objective_consistent": false,
+        "max_raw_constraint_violation": 8.0,
+        "max_scaled_constraint_violation": 0.5714285714285714,
+        "violated_constraints": [
+          "total_capacity",
+          "machine_hours"
+        ],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 1.0,
+            "scaled_residual": 0.1,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": false
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 8.0,
+            "scaled_residual": 0.5714285714285714,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": false
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 62.0,
+        "improvement_ratio": 2.3846153846153846,
+        "improvement_ratio_reported": 1.2307692307692308,
+        "improvement_ratio_consistent": false,
+        "baseline_near_zero": false,
+        "bounds_valid": false,
+        "bound_violations": [
+          "x"
+        ],
+        "integrality_valid": true,
+        "integrality_violations": [],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": true,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.03,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "stable",
+            "classification_valid": true
+          }
+        ],
+        "optimality_claim_requested": "best_found_in_search",
+        "optimality_claim_allowed": "unverified_candidate",
+        "optimality_claim_consistent": false,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    },
+    {
+      "fault_id": "non_integer",
+      "expected_failed_check": "integrality_valid",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": false,
+        "objective_reported": 58.0,
+        "objective_recomputed": 54.0,
+        "objective_difference": 4.0,
+        "objective_consistent": false,
+        "max_raw_constraint_violation": 0.0,
+        "max_scaled_constraint_violation": 0.0,
+        "violated_constraints": [],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 28.0,
+        "improvement_ratio": 1.0769230769230769,
+        "improvement_ratio_reported": 1.2307692307692308,
+        "improvement_ratio_consistent": false,
+        "baseline_near_zero": false,
+        "bounds_valid": true,
+        "bound_violations": [],
+        "integrality_valid": false,
+        "integrality_violations": [
+          "x"
+        ],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": true,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.03,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "stable",
+            "classification_valid": true
+          }
+        ],
+        "optimality_claim_requested": "best_found_in_search",
+        "optimality_claim_allowed": "unverified_candidate",
+        "optimality_claim_consistent": false,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    },
+    {
+      "fault_id": "constraint_violation",
+      "expected_failed_check": "feasible",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": false,
+        "objective_reported": 58.0,
+        "objective_recomputed": 63.0,
+        "objective_difference": 5.0,
+        "objective_consistent": false,
+        "max_raw_constraint_violation": 1.0,
+        "max_scaled_constraint_violation": 0.07142857142857142,
+        "violated_constraints": [
+          "machine_hours"
+        ],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 1.0,
+            "scaled_residual": 0.07142857142857142,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": false
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 37.0,
+        "improvement_ratio": 1.4230769230769231,
+        "improvement_ratio_reported": 1.2307692307692308,
+        "improvement_ratio_consistent": false,
+        "baseline_near_zero": false,
+        "bounds_valid": true,
+        "bound_violations": [],
+        "integrality_valid": true,
+        "integrality_violations": [],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": true,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.03,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "stable",
+            "classification_valid": true
+          }
+        ],
+        "optimality_claim_requested": "best_found_in_search",
+        "optimality_claim_allowed": "unverified_candidate",
+        "optimality_claim_consistent": false,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    },
+    {
+      "fault_id": "wrong_improvement_ratio",
+      "expected_failed_check": "improvement_ratio_consistent",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": true,
+        "objective_reported": 58.0,
+        "objective_recomputed": 58.0,
+        "objective_difference": 0.0,
+        "objective_consistent": true,
+        "max_raw_constraint_violation": 0.0,
+        "max_scaled_constraint_violation": 0.0,
+        "violated_constraints": [],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 32.0,
+        "improvement_ratio": 1.2307692307692308,
+        "improvement_ratio_reported": 9.99,
+        "improvement_ratio_consistent": false,
+        "baseline_near_zero": false,
+        "bounds_valid": true,
+        "bound_violations": [],
+        "integrality_valid": true,
+        "integrality_violations": [],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": true,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.03,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "stable",
+            "classification_valid": true
+          }
+        ],
+        "optimality_claim_requested": "best_found_in_search",
+        "optimality_claim_allowed": "best_found_in_search",
+        "optimality_claim_consistent": true,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    },
+    {
+      "fault_id": "forged_sensitivity",
+      "expected_failed_check": "sensitivity_checks_passed",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": true,
+        "objective_reported": 58.0,
+        "objective_recomputed": 58.0,
+        "objective_difference": 0.0,
+        "objective_consistent": true,
+        "max_raw_constraint_violation": 0.0,
+        "max_scaled_constraint_violation": 0.0,
+        "violated_constraints": [],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 32.0,
+        "improvement_ratio": 1.2307692307692308,
+        "improvement_ratio_reported": 1.2307692307692308,
+        "improvement_ratio_consistent": true,
+        "baseline_near_zero": false,
+        "bounds_valid": true,
+        "bound_violations": [],
+        "integrality_valid": true,
+        "integrality_violations": [],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": false,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.2,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "highly_sensitive",
+            "classification_valid": false
+          }
+        ],
+        "optimality_claim_requested": "best_found_in_search",
+        "optimality_claim_allowed": "best_found_in_search",
+        "optimality_claim_consistent": true,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    },
+    {
+      "fault_id": "heuristic_claimed_global_optimum",
+      "expected_failed_check": "optimality_claim_consistent",
+      "detected": true,
+      "validator_result": {
+        "schema_version": "1.0.0",
+        "validator": "a092_validator_v0",
+        "objective_direction": "maximize",
+        "feasible": true,
+        "objective_reported": 58.0,
+        "objective_recomputed": 58.0,
+        "objective_difference": 0.0,
+        "objective_consistent": true,
+        "max_raw_constraint_violation": 0.0,
+        "max_scaled_constraint_violation": 0.0,
+        "violated_constraints": [],
+        "constraint_results": [
+          {
+            "constraint_id": "total_capacity",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          },
+          {
+            "constraint_id": "machine_hours",
+            "constraint_type": "inequality",
+            "raw_residual": 0.0,
+            "scaled_residual": 0.0,
+            "absolute_tolerance": 1e-09,
+            "relative_tolerance": 1e-09,
+            "satisfied": true
+          }
+        ],
+        "baseline_objective": 26.0,
+        "absolute_improvement": 32.0,
+        "improvement_ratio": 1.2307692307692308,
+        "improvement_ratio_reported": 1.2307692307692308,
+        "improvement_ratio_consistent": true,
+        "baseline_near_zero": false,
+        "bounds_valid": true,
+        "bound_violations": [],
+        "integrality_valid": true,
+        "integrality_violations": [],
+        "sensitivity_status": "completed",
+        "sensitivity_checks_passed": true,
+        "sensitivity_results": [
+          {
+            "parameter": "profit_x",
+            "perturbation": "+5%",
+            "relative_objective_change": 0.03,
+            "solution_structure_changed": false,
+            "main_conclusion_reversed": false,
+            "classification": "stable",
+            "derived_classification": "stable",
+            "classification_valid": true
+          }
+        ],
+        "optimality_claim_requested": "global_optimum_verified",
+        "optimality_claim_allowed": "best_found_in_search",
+        "optimality_claim_consistent": false,
+        "global_optimality_verified": false,
+        "valid": false
+      }
+    }
+  ],
+  "all_faults_detected": true,
+  "calibration_changes": [
+    "约束满足采用绝对容差或缩放相对容差，避免严格等于零。",
+    "敏感性分类由数值变化和结构变化共同派生，不能只信任文本标签。",
+    "最优性等级由求解证据派生，启发式搜索最高只能声明当前搜索中最好。"
+  ]
+}

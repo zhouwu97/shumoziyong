@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/a092_claim_map.schema.json",
+  "title": "A092 结果声明证据映射",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claims"],
+  "properties": {
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_id", "claim", "source_result", "source_fields", "validator_record", "figure_or_table", "paper_location", "supported"],
+        "properties": {
+          "claim_id": {"type": "string", "minLength": 1},
+          "claim": {"type": "string", "minLength": 1},
+          "source_result": {"type": "string", "minLength": 1},
+          "source_fields": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "validator_record": {"type": "string", "minLength": 1},
+          "figure_or_table": {"type": ["string", "null"]},
+          "paper_location": {"type": "string", "minLength": 1},
+          "supported": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}
+

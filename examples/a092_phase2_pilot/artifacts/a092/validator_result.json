@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "validator": "a092_validator_v0",
+  "objective_direction": "maximize",
+  "feasible": true,
+  "objective_reported": 58.0,
+  "objective_recomputed": 58.0,
+  "objective_difference": 0.0,
+  "objective_consistent": true,
+  "max_raw_constraint_violation": 0.0,
+  "max_scaled_constraint_violation": 0.0,
+  "violated_constraints": [],
+  "constraint_results": [
+    {
+      "constraint_id": "total_capacity",
+      "constraint_type": "inequality",
+      "raw_residual": 0.0,
+      "scaled_residual": 0.0,
+      "absolute_tolerance": 1e-09,
+      "relative_tolerance": 1e-09,
+      "satisfied": true
+    },
+    {
+      "constraint_id": "machine_hours",
+      "constraint_type": "inequality",
+      "raw_residual": 0.0,
+      "scaled_residual": 0.0,
+      "absolute_tolerance": 1e-09,
+      "relative_tolerance": 1e-09,
+      "satisfied": true
+    }
+  ],
+  "baseline_objective": 26.0,
+  "absolute_improvement": 32.0,
+  "improvement_ratio": 1.2307692307692308,
+  "improvement_ratio_reported": 1.2307692307692308,
+  "improvement_ratio_consistent": true,
+  "baseline_near_zero": false,
+  "bounds_valid": true,
+  "bound_violations": [],
+  "integrality_valid": true,
+  "integrality_violations": [],
+  "sensitivity_status": "completed",
+  "sensitivity_checks_passed": true,
+  "sensitivity_results": [
+    {
+      "parameter": "profit_x",
+      "perturbation": "+5%",
+      "relative_objective_change": 0.03,
+      "solution_structure_changed": false,
+      "main_conclusion_reversed": false,
+      "classification": "stable",
+      "derived_classification": "stable",
+      "classification_valid": true
+    }
+  ],
+  "optimality_claim_requested": "best_found_in_search",
+  "optimality_claim_allowed": "best_found_in_search",
+  "optimality_claim_consistent": true,
+  "global_optimality_verified": false,
+  "valid": true
+}

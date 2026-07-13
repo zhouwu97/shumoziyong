@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/a092_experiment_protocol.schema.json",
+  "title": "A092 确认性实验协议",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_id", "patch_id", "patch_status", "state", "pilot_evidence_allowed", "case_roles", "paired_runs", "controls", "tolerances", "sensitivity_thresholds", "promotion_thresholds", "solution_p0", "experiment_invalid"],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1},
+    "schema_version": {"const": "1.0.0"},
+    "protocol_id": {"const": "A092-CONFIRMATORY-V1"},
+    "patch_id": {"const": "A092"},
+    "patch_status": {"const": "review_ready"},
+    "state": {"const": "frozen_for_stage3"},
+    "pilot_evidence_allowed": {"const": false},
+    "case_roles": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "object"}},
+    "paired_runs": {"type": "object"},
+    "controls": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "tolerances": {"type": "object"},
+    "sensitivity_thresholds": {"type": "object"},
+    "promotion_thresholds": {"type": "object"},
+    "solution_p0": {"type": "object"},
+    "experiment_invalid": {"type": "object"}
+  }
+}

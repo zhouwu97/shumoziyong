@@ -1,0 +1,11 @@
+{
+  "config_id": "A092-BASELINE-V1",
+  "prompt_components": ["prompt_base/prompt_base_v1.0.md", "prompt_plugins/plugin_optimization_v1.md"],
+  "target_patch": null,
+  "reasoning_effort": "same_as_treatment",
+  "temperature": 0,
+  "tool_permissions": "same_as_treatment",
+  "time_limit": "same_as_treatment",
+  "iteration_limit": "same_as_treatment"
+}
+

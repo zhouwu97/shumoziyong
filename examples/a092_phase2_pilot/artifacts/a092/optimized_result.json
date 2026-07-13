@@ -1,0 +1,8 @@
+{
+  "method": "启发式搜索",
+  "decision_variables": {
+    "x": 6.0,
+    "y": 2.0
+  },
+  "objective_reported": 58.0
+}

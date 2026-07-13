@@ -1,0 +1,10 @@
+{
+  "manifest_id": "A092-CASE-ROLES-V1",
+  "frozen": true,
+  "roles": [
+    {"role": "positive", "problem_id": "2024-C", "scope": "full_problem", "minimum_pairs": 2},
+    {"role": "boundary", "problem_id": "2023-B", "scope": "questions_1_and_2_only", "minimum_pairs": 2},
+    {"role": "negative", "problem_id": "2016-C", "scope": "full_problem", "minimum_pairs": 1}
+  ]
+}
+

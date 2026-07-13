@@ -1,0 +1,17 @@
+{
+  "claims": [
+    {
+      "claim_id": "PILOT-C-001",
+      "claim": "候选方案收益为 58，且通过独立约束检查。",
+      "source_result": "artifacts/a092/validator_result.json",
+      "source_fields": [
+        "objective_recomputed",
+        "feasible"
+      ],
+      "validator_record": "artifacts/a092/validator_result.json",
+      "figure_or_table": null,
+      "paper_location": "pilot_report",
+      "supported": true
+    }
+  ]
+}

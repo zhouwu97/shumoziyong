@@ -1,0 +1,116 @@
+{
+  "$schema": "../schemas/a092_experiment_protocol.schema.json",
+  "schema_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V1",
+  "patch_id": "A092",
+  "patch_status": "review_ready",
+  "state": "frozen_for_stage3",
+  "pilot_evidence_allowed": false,
+  "case_roles": [
+    {
+      "role": "positive",
+      "problem_id": "2024-C",
+      "scope": "full_problem",
+      "reason": "多期种植方案具有固定收益评价器、真实决策变量、硬约束和可独立复算结果，预期七项规则大部分启用。",
+      "expected_modules": {
+        "R1": "enabled",
+        "R2": "enabled",
+        "R3": "enabled",
+        "R4": "enabled",
+        "R5": "enabled",
+        "R6": "enabled",
+        "R7": "enabled"
+      }
+    },
+    {
+      "role": "boundary",
+      "problem_id": "2023-B",
+      "scope": "questions_1_and_2_only",
+      "reason": "该范围需要覆盖宽度机理、数值计算和代码，但不要求完整方案优化，可检验 Patch 是否按范围关闭优化专属模块。",
+      "fixed_evaluator_exists": true,
+      "full_optimization_chain_required": false,
+      "expected_modules": {
+        "R1": "enabled",
+        "R2": "enabled",
+        "R3": "not_applicable",
+        "R4": "enabled",
+        "R5": "partially_enabled",
+        "R6": "not_applicable",
+        "R7": "partially_enabled"
+      },
+      "closed_module_reason": "问题一、二是几何评价与计算泛化，不产生需要与基线竞争的优化方案，也不应强行制造敏感性实验。"
+    },
+    {
+      "role": "negative",
+      "problem_id": "2016-C",
+      "scope": "full_problem",
+      "reason": "电池放电曲线仍需拟合、插值、预测和代码计算，但不存在工程评价器—基线—设计变量优化完整链。",
+      "expected_modules": {
+        "R1": "not_applicable",
+        "R2": "not_applicable",
+        "R3": "not_applicable",
+        "R4": "partially_enabled",
+        "R5": "not_applicable",
+        "R6": "not_applicable",
+        "R7": "partially_enabled"
+      }
+    }
+  ],
+  "paired_runs": {
+    "positive": {"minimum_pairs": 2, "order": ["baseline_1", "treatment_1", "treatment_2", "baseline_2"]},
+    "boundary": {"minimum_pairs": 2, "order": ["treatment_1", "baseline_1", "baseline_2", "treatment_2"]},
+    "negative": {"minimum_pairs": 1, "optional_second_pair": true, "order": ["baseline_1", "treatment_1"]},
+    "screening_stop_conditions": ["treatment_solution_p0", "treatment_wrong_trigger", "significant_score_drop", "validator_unavailable", "experiment_invalid"]
+  },
+  "controls": [
+    "same_model_and_version",
+    "same_reasoning_effort",
+    "same_sampling_settings",
+    "same_problem_materials",
+    "same_tool_permissions",
+    "same_code_execution_permissions",
+    "same_time_limit",
+    "same_iteration_limit",
+    "same_human_confirmation_policy",
+    "same_gate_rules",
+    "same_paper_length_limits",
+    "fresh_context_and_run_id",
+    "no_cross_run_solution_reads"
+  ],
+  "tolerances": {
+    "objective_absolute": 1e-6,
+    "variable_absolute": 1e-8,
+    "integrality_absolute": 1e-8,
+    "constraint_absolute": 1e-6,
+    "constraint_relative": 1e-5,
+    "baseline_epsilon": 1e-9,
+    "improvement_ratio_absolute": 1e-6,
+    "mip_gap_maximum": 0.001
+  },
+  "sensitivity_thresholds": {
+    "stable_max_absolute_relative_change": 0.05,
+    "moderately_sensitive_max_absolute_relative_change": 0.15,
+    "structural_change_is_highly_sensitive": true,
+    "conclusion_reversal_is_highly_sensitive": true,
+    "positive_default_parameter_count": 3,
+    "boundary_may_disable": true,
+    "negative_must_not_force": true
+  },
+  "promotion_thresholds": {
+    "positive": {"pair_score_gain_principle": 5, "model_plus_validation_gain": 3, "consistent_direction_required": true, "minimum_repeated_behavior_improvements": 2},
+    "boundary": {"average_score_change_minimum": -2, "minimum_closed_or_partial_modules": 2, "stable_dimension_drop_forbidden": true},
+    "negative": {"score_change_minimum": -2, "score_change_maximum": 2, "full_engineering_chain_forbidden": true},
+    "overall": {"all_three_roles_must_pass": true, "unhandled_experiment_invalid_forbidden": true, "repeatable_checkable_gain_required": true}
+  },
+  "solution_p0": {
+    "P0-A": ["core_mechanism_error", "key_formula_error", "wrong_objective_direction", "wrong_variable_semantics", "missing_key_constraint", "data_leakage", "invalid_conclusion_due_to_model"],
+    "P0-B": ["objective_not_independently_recomputable", "final_solution_infeasible", "paper_result_conflict", "missing_key_result", "solver_success_used_as_feasibility"]
+  },
+  "experiment_invalid": {
+    "E1": "unfair_baseline_treatment_conditions",
+    "E2": "post_hoc_protocol_change",
+    "E3": "blinding_leakage",
+    "E4": "missing_input_or_scoring_evidence"
+  }
+}
+

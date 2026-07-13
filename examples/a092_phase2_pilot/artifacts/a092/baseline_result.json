@@ -1,0 +1,9 @@
+{
+  "method": "人工可行规则",
+  "decision_variables": {
+    "x": 2.0,
+    "y": 2.0
+  },
+  "objective": 26.0,
+  "feasible": true
+}

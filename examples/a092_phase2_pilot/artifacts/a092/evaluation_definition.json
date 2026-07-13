@@ -1,0 +1,10 @@
+{
+  "function": "8*x + 5*y",
+  "objective_direction": "maximize",
+  "units": "收益单位",
+  "shared_by": [
+    "baseline",
+    "candidate",
+    "validator"
+  ]
+}

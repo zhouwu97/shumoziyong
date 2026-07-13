@@ -1,0 +1,11 @@
+{
+  "config_id": "A092-TREATMENT-V1",
+  "prompt_components": ["prompt_base/prompt_base_v1.0.md", "prompt_plugins/plugin_optimization_v1.md", "prompt_patches/patch_A092_engineering_optimization.md"],
+  "target_patch": "A092",
+  "reasoning_effort": "same_as_baseline",
+  "temperature": 0,
+  "tool_permissions": "same_as_baseline",
+  "time_limit": "same_as_baseline",
+  "iteration_limit": "same_as_baseline"
+}
+

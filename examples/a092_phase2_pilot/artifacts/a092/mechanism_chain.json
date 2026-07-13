@@ -1,0 +1,21 @@
+{
+  "mechanism_chain": {
+    "inputs": [
+      "两类产品的单位收益",
+      "两类设备容量"
+    ],
+    "transformations": [
+      "产量占用总产能与设备工时"
+    ],
+    "intermediate_states": [
+      "产品 x、y 的产量组合"
+    ],
+    "loss_terms": [
+      "超出总产能",
+      "超出设备工时"
+    ],
+    "outputs": [
+      "总收益"
+    ]
+  }
+}

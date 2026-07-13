@@ -1,0 +1,16 @@
+{
+  "runtime_contract_id": "A092-RUNTIME-V1",
+  "gate_range": "0-5",
+  "fresh_context_per_run": true,
+  "cross_run_reads_allowed": false,
+  "human_confirmation_policy": "identical_between_arms",
+  "paper_limits": {
+    "page_limit": 20,
+    "abstract_chinese_char_limit": 800,
+    "figure_limit": 12,
+    "table_limit": 12,
+    "appendix_rule": "same_between_arms"
+  },
+  "required_stage3_outputs": ["Gate 0-5 artifacts", "validator_result.json", "paper_claim_map.json", "blind_score_sheet.json"]
+}
+

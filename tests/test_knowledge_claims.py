@@ -14,14 +14,14 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from validate_repository import RepositoryValidator  # noqa: E402
 
 
-def test_unverified_card_keeps_empty_claims_without_fabrication() -> None:
+def test_verified_a092_card_contains_source_grounded_claims() -> None:
     card = json.loads(
         (ROOT / "papers" / "2023_A092_知识卡片.json").read_text(encoding="utf-8")
     )
-    assert card["source"]["verification_status"] == "unverified"
-    assert card["source"]["claims"] == []
+    assert card["source"]["verification_status"] == "verified"
+    assert len(card["source"]["claims"]) == 7
     validator = RepositoryValidator()
-    assert validator.validate_schema(card, "knowledge_card.schema.json", "unverified card")
+    assert validator.validate_schema(card, "knowledge_card.schema.json", "verified A092 card")
 
 
 def test_verified_card_requires_claim_level_source_evidence() -> None:
@@ -29,19 +29,12 @@ def test_verified_card_requires_claim_level_source_evidence() -> None:
         (ROOT / "papers" / "2023_A092_知识卡片.json").read_text(encoding="utf-8")
     )
     card["source"]["verification_status"] = "verified"
+    verified_claim = copy.deepcopy(card["source"]["claims"][0])
+    card["source"]["claims"] = []
     validator = RepositoryValidator()
     assert not validator.validate_schema(card, "knowledge_card.schema.json", "empty verified card")
 
-    card["source"]["claims"] = [
-        {
-            "claim_id": "A092-C001",
-            "page": 12,
-            "source_excerpt": "A source-grounded excerpt of sufficient length.",
-            "confidence": "high",
-            "transfer_scope": "Transfer only the optimization decomposition strategy.",
-            "misuse_risk": "Do not copy problem-specific formulas or numerical values.",
-        }
-    ]
+    card["source"]["claims"] = [verified_claim]
     validator = RepositoryValidator()
     assert validator.validate_schema(card, "knowledge_card.schema.json", "verified claim card")
 
@@ -52,12 +45,19 @@ def test_unverified_source_cannot_enter_regression_verified(monkeypatch: pytest.
     )
     patches = copy.deepcopy(patches)
     patches[0]["status"] = "regression_verified"
+    card = json.loads(
+        (ROOT / "papers" / "2023_A092_知识卡片.json").read_text(encoding="utf-8")
+    )
+    card["source"]["verification_status"] = "unverified"
+    card["source"]["claims"] = []
     validator = RepositoryValidator()
     original_load = validator.load_json
 
     def load_json(path: str):
         if str(path).replace("\\", "/") == "prompt_patches/patch_index.json":
             return patches
+        if str(path).replace("\\", "/") == "papers/2023_A092_知识卡片.json":
+            return card
         return original_load(path)
 
     monkeypatch.setattr(validator, "load_json", load_json)

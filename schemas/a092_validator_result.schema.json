@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/a092_validator_result.schema.json",
+  "title": "A092 Validator v0 输出",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "validator", "objective_direction", "feasible",
+    "objective_reported", "objective_recomputed", "objective_difference",
+    "objective_consistent", "max_raw_constraint_violation",
+    "max_scaled_constraint_violation", "violated_constraints", "constraint_results",
+    "baseline_objective", "absolute_improvement", "improvement_ratio",
+    "improvement_ratio_reported", "improvement_ratio_consistent", "baseline_near_zero",
+    "bounds_valid", "bound_violations", "integrality_valid", "integrality_violations",
+    "sensitivity_status", "sensitivity_checks_passed", "sensitivity_results",
+    "optimality_claim_requested", "optimality_claim_allowed",
+    "optimality_claim_consistent", "global_optimality_verified", "valid"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "validator": {"const": "a092_validator_v0"},
+    "objective_direction": {"enum": ["maximize", "minimize"]},
+    "feasible": {"type": "boolean"},
+    "objective_reported": {"type": "number"},
+    "objective_recomputed": {"type": "number"},
+    "objective_difference": {"type": "number", "minimum": 0},
+    "objective_consistent": {"type": "boolean"},
+    "max_raw_constraint_violation": {"type": "number", "minimum": 0},
+    "max_scaled_constraint_violation": {"type": "number", "minimum": 0},
+    "violated_constraints": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "constraint_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["constraint_id", "constraint_type", "raw_residual", "scaled_residual", "absolute_tolerance", "relative_tolerance", "satisfied"],
+        "properties": {
+          "constraint_id": {"type": "string", "minLength": 1},
+          "constraint_type": {"enum": ["inequality", "equality"]},
+          "raw_residual": {"type": "number", "minimum": 0},
+          "scaled_residual": {"type": "number", "minimum": 0},
+          "absolute_tolerance": {"type": "number", "minimum": 0},
+          "relative_tolerance": {"type": "number", "minimum": 0},
+          "satisfied": {"type": "boolean"}
+        }
+      }
+    },
+    "baseline_objective": {"type": "number"},
+    "absolute_improvement": {"type": "number"},
+    "improvement_ratio": {"type": ["number", "null"]},
+    "improvement_ratio_reported": {"type": ["number", "null"]},
+    "improvement_ratio_consistent": {"type": "boolean"},
+    "baseline_near_zero": {"type": "boolean"},
+    "bounds_valid": {"type": "boolean"},
+    "bound_violations": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "integrality_valid": {"type": "boolean"},
+    "integrality_violations": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "sensitivity_status": {"enum": ["completed", "not_applicable"]},
+    "sensitivity_checks_passed": {"type": "boolean"},
+    "sensitivity_results": {"type": "array", "items": {"type": "object"}},
+    "optimality_claim_requested": {"$ref": "#/$defs/claimLevel"},
+    "optimality_claim_allowed": {"$ref": "#/$defs/claimLevel"},
+    "optimality_claim_consistent": {"type": "boolean"},
+    "global_optimality_verified": {"type": "boolean"},
+    "valid": {"type": "boolean"}
+  },
+  "$defs": {
+    "claimLevel": {
+      "enum": [
+        "global_optimum_verified", "solver_certified_optimum",
+        "best_feasible_in_enumerated_space", "best_found_in_search",
+        "locally_optimal_candidate", "feasible_improved_solution", "unverified_candidate"
+      ]
+    }
+  }
+}
+
