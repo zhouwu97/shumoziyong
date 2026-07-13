@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from formal_result.errors import FormalResultVerificationError
+from formal_result.derivation import verify_formal_result_derivation
 from formal_result.execution_contract import compile_execution_command
 from formal_result.run_execution_attestation import (
     validate_execution_time_window,
@@ -290,6 +291,59 @@ def test_decision_variables_change_breaks_derivation_binding(tmp_path: Path) -> 
         verify_run_execution_attestation(run, FORMAL_RESULT_ID)
 
 
+def test_derivation_contract_cannot_self_authorize_irrelevant_mapping(
+    tmp_path: Path,
+) -> None:
+    run = _copy(tmp_path)
+    contract = {
+        "contract_version": "1.0.0",
+        "raw_output_path": "result.json",
+        "mappings": [
+            {
+                "source_pointer": "/objective",
+                "target_artifact": "decision_variables.json",
+                "target_pointer": "/payload/x",
+            }
+        ],
+    }
+    derivation_path = run / "collector_derivation_attestation.json"
+    payload_path = run / "formal_result_payload_manifest.json"
+    derivation = _load(derivation_path)
+    payload = _load(payload_path)
+    derivation["result_derivation_contract"] = contract
+    payload["result_derivation_contract"] = contract
+    _write(derivation_path, derivation)
+    _write(payload_path, payload)
+    with pytest.raises(FormalResultVerificationError, match="受信工程合同"):
+        verify_formal_result_derivation(run, FORMAL_RESULT_ID)
+
+
+def test_derivation_raw_output_path_cannot_escape_output(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    derivation_path = run / "collector_derivation_attestation.json"
+    payload_path = run / "formal_result_payload_manifest.json"
+    derivation = _load(derivation_path)
+    payload = _load(payload_path)
+    derivation["result_derivation_contract"]["raw_output_path"] = (
+        "../../formal_results/formal-m3a-fixture-001/decision_variables.json"
+    )
+    payload["result_derivation_contract"] = derivation["result_derivation_contract"]
+    _write(derivation_path, derivation)
+    _write(payload_path, payload)
+    with pytest.raises(FormalResultVerificationError, match="raw_output_path|Schema"):
+        verify_formal_result_derivation(run, FORMAL_RESULT_ID)
+
+
+def test_collector_script_must_match_bound_source_commit(tmp_path: Path) -> None:
+    run = _copy(tmp_path)
+    derivation_path = run / "collector_derivation_attestation.json"
+    derivation = _load(derivation_path)
+    derivation["collector_script_sha256"] = "f" * 64
+    _write(derivation_path, derivation)
+    with pytest.raises(FormalResultVerificationError, match="Collector 脚本 SHA"):
+        verify_formal_result_derivation(run, FORMAL_RESULT_ID)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
@@ -347,8 +401,31 @@ def test_fixture_binds_host_read_controls_and_cleanup() -> None:
         "blocked_read_repo_unlisted",
         "blocked_read_other_temp",
         "blocked_read_user_home",
+        "blocked_read_random_unregistered_host_file",
     }
     assert all(item["status"] == "passed" for item in record["read_negative_controls"])
+    assert record["read_isolation_mode"] == "default_deny"
+    assert record["allowed_read_roots"] == [
+        "runtime",
+        "code",
+        "input",
+        "execution_spec.json",
+        "run_execution_runtime_manifest.json",
+    ]
+    assert record["allowed_write_roots"] == ["output", "tmp"]
+    assert record["denied_host_roots"]
+    assert record["system_runtime_read_roots"] == [
+        "%SYSTEMROOT%",
+        "%PROGRAMFILES%",
+        "%PROGRAMFILES_X86%",
+        "%PROGRAMDATA%\\Microsoft",
+    ]
+    assert all(root.endswith(":\\") for root in record["denied_host_roots"])
+    assert "UseRuleSpecificity=y" in record["sandbox_policy_settings"]
+    assert "UsePrivacyMode=y" in record["sandbox_policy_settings"]
+    assert not any(
+        "SENTINEL" in setting for setting in record["sandbox_policy_settings"]
+    )
     assert record["cleanup"]["preexisting_configuration_restored"] is True
     assert record["cleanup"]["sandbox_paths_after"] == []
 

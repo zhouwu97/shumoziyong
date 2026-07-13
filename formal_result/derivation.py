@@ -3,9 +3,20 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import re
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
+from .collector_policy import (
+    COLLECTOR_ID,
+    COLLECTOR_SCRIPT_PATH,
+    DERIVATION_CONTRACT_ID,
+    TRUSTED_DOMAIN_POLICY,
+    collector_script_sha256_at_commit,
+    derivation_contract_sha256,
+    domain_policy_sha256,
+    trusted_derivation_contract,
+)
 from .errors import FormalResultVerificationError
 from .hashing import file_sha256, semantic_sha256
 from .schema import validate_schema
@@ -48,6 +59,38 @@ def core_semantic_hashes(formal_root: Path) -> dict[str, str]:
     return {name: semantic_sha256(_load(formal_root / name, name)) for name in CORE_ARTIFACTS}
 
 
+def _trusted_raw_output(
+    run_root: Path, contract: Mapping[str, Any], output_manifest: Mapping[str, Any]
+) -> dict[str, Any]:
+    raw_name = str(contract["raw_output_path"])
+    pure = PurePosixPath(raw_name)
+    if (
+        pure.is_absolute()
+        or not pure.parts
+        or any(part in {"", ".", ".."} for part in pure.parts)
+        or "\\" in raw_name
+        or not re.fullmatch(r"[A-Za-z0-9._/-]+\.json", raw_name)
+    ):
+        raise FormalResultVerificationError("派生合同 raw_output_path 不是安全 POSIX 相对路径")
+    output_root = (run_root / "workspace" / "output").resolve()
+    raw_path = output_root.joinpath(*pure.parts).resolve()
+    try:
+        raw_path.relative_to(output_root)
+    except ValueError as exc:
+        raise FormalResultVerificationError("派生合同 raw_output_path 越出 output") from exc
+    entries = {
+        str(item.get("path")): item
+        for item in output_manifest.get("files", [])
+        if isinstance(item, Mapping)
+    }
+    entry = entries.get(raw_name)
+    if entry is None:
+        raise FormalResultVerificationError("派生 raw output 不属于 Run Output Manifest")
+    if entry.get("sha256") != file_sha256(raw_path):
+        raise FormalResultVerificationError("派生 raw output SHA 与 Run Output Manifest 不一致")
+    return _load(raw_path, "Sandbox raw output")
+
+
 def verify_formal_result_derivation(
     run_root: Path, formal_result_id: str
 ) -> dict[str, Any]:
@@ -72,6 +115,7 @@ def verify_formal_result_derivation(
             raise FormalResultVerificationError(f"Formal Result 派生身份不匹配：{field}")
     if payload["execution_id"] != derivation["execution_id"]:
         raise FormalResultVerificationError("Formal Result 派生 execution_id 不匹配")
+    output_manifest = _load(output_manifest_path, "run_output_manifest.json")
     output_sha = file_sha256(output_manifest_path)
     if payload["run_output_manifest_sha256"] != output_sha or derivation[
         "run_output_manifest_sha256"
@@ -86,11 +130,43 @@ def verify_formal_result_derivation(
             raise FormalResultVerificationError("Formal Result core digest 不匹配")
     if payload["collector_derivation_attestation_sha256"] != file_sha256(derivation_path):
         raise FormalResultVerificationError("Payload Manifest 未绑定 Collector Derivation Attestation")
+    if derivation["collector_id"] != COLLECTOR_ID:
+        raise FormalResultVerificationError("Collector ID 未被 M3A 策略批准")
+    if derivation["collector_script_path"] != COLLECTOR_SCRIPT_PATH:
+        raise FormalResultVerificationError("Collector 脚本路径未被 M3A 策略批准")
+    source_commit = str(derivation["collector_source_commit"])
+    expected_script_sha = collector_script_sha256_at_commit(
+        source_commit, str(derivation["collector_script_path"])
+    )
+    if derivation["collector_script_sha256"] != expected_script_sha:
+        raise FormalResultVerificationError("Collector 脚本 SHA 与 source commit 不一致")
+    contract_id = str(derivation["derivation_contract_id"])
+    trusted_contract = trusted_derivation_contract(contract_id)
+    if derivation["derivation_contract_sha256"] != derivation_contract_sha256():
+        raise FormalResultVerificationError("派生合同 SHA 未绑定受信合同")
+    if derivation["domain_policy_sha256"] != domain_policy_sha256():
+        raise FormalResultVerificationError("Domain policy SHA 未绑定受信策略")
     contract = payload["result_derivation_contract"]
     if derivation["result_derivation_contract"] != contract:
         raise FormalResultVerificationError("Collector 与 Payload 的派生合同不一致")
-    raw_path = run_root / "workspace" / "output" / str(contract["raw_output_path"])
-    raw = _load(raw_path, "Sandbox raw output")
+    if contract != trusted_contract:
+        raise FormalResultVerificationError("产物自带派生合同不等于受信工程合同")
+    raw = _trusted_raw_output(run_root, contract, output_manifest)
+    if raw.get("solver_status") not in TRUSTED_DOMAIN_POLICY["allowed_solver_statuses"]:
+        raise FormalResultVerificationError("raw output solver_status 未被 Domain policy 批准")
+    if raw.get("negative_tests_status") != TRUSTED_DOMAIN_POLICY[
+        "required_negative_test_status"
+    ]:
+        raise FormalResultVerificationError("raw output 未证明负控整体通过")
+    negative_tests = raw.get("negative_tests")
+    if not isinstance(negative_tests, list) or [
+        item.get("test_id") for item in negative_tests if isinstance(item, Mapping)
+    ] != TRUSTED_DOMAIN_POLICY["required_negative_tests"] or any(
+        not isinstance(item, Mapping)
+        or item.get("status") != TRUSTED_DOMAIN_POLICY["required_negative_test_status"]
+        for item in negative_tests
+    ):
+        raise FormalResultVerificationError("raw output 未按固定 Domain policy 提供负控证据")
     core_values = {name: _load(formal_root / name, name) for name in CORE_ARTIFACTS}
     for mapping in contract["mappings"]:
         source = _pointer(raw, mapping["source_pointer"], "Sandbox raw output")

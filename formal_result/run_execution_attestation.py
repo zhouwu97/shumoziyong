@@ -24,6 +24,15 @@ from .sandboxie_environment import (
     load_and_verify_sandboxie_environment_report,
 )
 from .schema import validate_schema
+from .runtime_isolation import (
+    ALLOWED_READ_ROOTS,
+    ALLOWED_WRITE_ROOTS,
+    READ_ISOLATION_MODE,
+    RUNTIME_MANIFEST_FILENAME,
+    SYSTEM_RUNTIME_READ_ROOTS,
+    verify_default_deny_roots,
+    verify_runtime_manifest,
+)
 
 
 ATTESTATION_FILENAME = "sandboxie_run_execution_attestation.json"
@@ -131,6 +140,7 @@ def verify_run_execution_attestation(
         "attestation": run_root / ATTESTATION_FILENAME,
         "output_manifest": run_root / OUTPUT_MANIFEST_FILENAME,
         "execution_record": run_root / EXECUTION_RECORD_FILENAME,
+        "runtime_manifest": run_root / RUNTIME_MANIFEST_FILENAME,
     }
     for label, path in paths.items():
         _regular_file(path, label)
@@ -167,6 +177,7 @@ def verify_run_execution_attestation(
         "input_manifest_sha256": file_sha256(input_manifest_path),
         "output_manifest_sha256": file_sha256(paths["output_manifest"]),
         "execution_record_sha256": file_sha256(paths["execution_record"]),
+        "runtime_manifest_sha256": file_sha256(paths["runtime_manifest"]),
         "formal_result_payload_manifest_sha256": derivation_summary[
             "payload_manifest_sha256"
         ],
@@ -236,29 +247,54 @@ def verify_run_execution_attestation(
     requirements_lock = Path(__file__).resolve().parents[1] / "requirements.lock"
     if record.get("requirements_lock_sha256") != file_sha256(requirements_lock):
         raise FormalResultVerificationError("执行记录 requirements.lock SHA-256 不匹配")
+    runtime_manifest = _load_object(paths["runtime_manifest"], RUNTIME_MANIFEST_FILENAME)
+    verify_runtime_manifest(runtime_manifest)
+    runtime_manifest_sha = file_sha256(paths["runtime_manifest"])
+    if record.get("runtime_manifest_sha256") != runtime_manifest_sha:
+        raise FormalResultVerificationError("执行记录未绑定 Runtime Manifest")
+    if runtime_manifest.get("requirements_lock_sha256") != file_sha256(requirements_lock):
+        raise FormalResultVerificationError("Runtime Manifest 未绑定 requirements.lock")
+    if runtime_manifest.get("files"):
+        executable_entry = next(
+            (
+                item
+                for item in runtime_manifest["files"]
+                if item["path"] == runtime_manifest["python_executable_path"]
+            ),
+            None,
+        )
+        if executable_entry is None or executable_entry["sha256"] != python_sha:
+            raise FormalResultVerificationError("Runtime Manifest 中的 Python SHA 不匹配")
     recomputed_launch_sha = launch_command_sha256(
         compiled,
         start_exe_sha256=attestation["start_exe_sha256"],
         python_sha256=python_sha,
+        runtime_manifest_sha256=runtime_manifest_sha,
         sandboxie_box_name=attestation["sandboxie_box_name"],
     )
     if record.get("launch_command_sha256") != recomputed_launch_sha or attestation.get(
         "launch_command_sha256"
     ) != recomputed_launch_sha:
         raise FormalResultVerificationError("launch_command_sha256 未绑定 Execution Spec 编译结果")
+    denied_roots = verify_default_deny_roots(record.get("denied_host_roots"))
+    if record.get("read_isolation_mode") != READ_ISOLATION_MODE:
+        raise FormalResultVerificationError("Run 读取隔离未声明为 default_deny")
+    if record.get("allowed_read_roots") != ALLOWED_READ_ROOTS:
+        raise FormalResultVerificationError("Run 读取白名单与固定策略不一致")
+    if record.get("allowed_write_roots") != ALLOWED_WRITE_ROOTS:
+        raise FormalResultVerificationError("Run 写入白名单与固定策略不一致")
+    if record.get("system_runtime_read_roots") != SYSTEM_RUNTIME_READ_ROOTS:
+        raise FormalResultVerificationError("Privacy Mode 系统 Runtime 根声明不一致")
     required_policy = {
-        "ClosedFilePath=%RUN_ROOT%",
-        "ClosedFilePath=%REPO_SENTINEL%",
-        "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
-        "ClosedFilePath=%USER_HOME_SENTINEL%",
+        "UsePrivacyMode=y",
+        "UseRuleSpecificity=y",
         "HideMessage=2203",
-        "ReadFilePath=%EXECUTION_ROOT%\\code",
-        "ReadFilePath=%EXECUTION_ROOT%\\input",
-        "ReadFilePath=%EXECUTION_ROOT%\\execution_spec.json",
-        "OpenFilePath=%EXECUTION_ROOT%\\output",
-        "OpenFilePath=%EXECUTION_ROOT%\\tmp",
+        *(f"ReadFilePath=%EXECUTION_ROOT%\\{item}" for item in ALLOWED_READ_ROOTS),
+        *(f"OpenFilePath=%EXECUTION_ROOT%\\{item}" for item in ALLOWED_WRITE_ROOTS),
     }
-    if not required_policy.issubset(set(record.get("sandbox_policy_settings", []))):
+    if not denied_roots or not required_policy.issubset(
+        set(record.get("sandbox_policy_settings", []))
+    ):
         raise FormalResultVerificationError("Sandboxie 策略未形成批准目录与宿主读取负控边界")
     controls = record.get("read_negative_controls")
     required_controls = {
@@ -266,6 +302,7 @@ def verify_run_execution_attestation(
         "blocked_read_repo_unlisted",
         "blocked_read_other_temp",
         "blocked_read_user_home",
+        "blocked_read_random_unregistered_host_file",
     }
     if not isinstance(controls, list) or {
         item.get("control_id") for item in controls if isinstance(item, Mapping)
