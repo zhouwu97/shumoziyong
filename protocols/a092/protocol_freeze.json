@@ -1,12 +1,12 @@
 {
   "freeze_record_version": "1.0.0",
   "protocol_id": "A092-CONFIRMATORY-V1",
-  "protocol_commit": "8d414b8ca2cb9d923d3918d3976854c80c434950",
+  "protocol_commit": "67bdedb4e56d700559b20db5ca1b310363e07178",
   "protocol_sha256": "f99340820f23253cf4c35e9b2f210d865185266ae2bb2ca9a45e579cddacad97",
   "patch_sha256": "8b94788be8a4bd1d48684f6610b4c0ff795c76644015ba78b2b88e9587db6ef1",
   "scoring_rubric_sha256": "4f03840f45e2622811ce165881be6e31d7287272e7bfb2af26b7c04174c941de",
-  "baseline_config_sha256": "23417e34394b02cf993182d107beeada17ca15d55c9c5e859ceeb17cabb119e7",
-  "treatment_config_sha256": "cca063e73fc10b13e9c093d4b33521663d85760b7e8b97193dfd778bdc3d2389",
+  "baseline_config_sha256": "d2cd801c888d5da97b261175291da7ac469eb37456626268b78ddb42eb433d8a",
+  "treatment_config_sha256": "78da22dd967ee729af7c86e6949f9738f09e9e37ce596154df6d8fb3b0183c2a",
   "runtime_pack_sha256": "b0756625904d18080a198c2fb0c549c104f90087e5126b89aaf1afe5a2767cb6",
   "case_role_manifest_sha256": "324baea782be08cf343273dc10d5df44bc64dc923be4656925eec03b4d9de895",
   "formal_result_contract_sha256": "59a39363b2348cb728b9af8252278c87858a80b7c8b95efe10fc2395db192e19",
@@ -32,6 +32,7 @@
   "deviation_records": {
     "protocols/a092/protocol_deviation_001.json": "38a09547b49a0a39053fcb5652cd485226d7caabefa580e3e4a19346145f164c",
     "protocols/a092/protocol_deviation_002.json": "ea550b43f85732ce0f9f7c3bb3895766aa3f38d7888dfac2cfc27ad839b3d300",
-    "protocols/a092/protocol_deviation_003.json": "9563588fcb074c8f59a99c0d09053022b07d8f675efbeae71146a8bbb1c20e04"
+    "protocols/a092/protocol_deviation_003.json": "9563588fcb074c8f59a99c0d09053022b07d8f675efbeae71146a8bbb1c20e04",
+    "protocols/a092/protocol_deviation_004.json": "6dcd48bbd46431ab67fb9c9833c626a49bda06f6e95fdfa3558284a63be1c8a0"
   }
 }
