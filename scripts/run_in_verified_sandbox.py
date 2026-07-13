@@ -152,13 +152,33 @@ def _ps_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def _process_ids(name: str) -> set[int]:
+def _process_ids(name: str) -> tuple[set[int], int]:
     command = (
         f"@(Get-Process -Name {_ps_quote(name)} -ErrorAction SilentlyContinue | "
         "Select-Object -ExpandProperty Id) -join ','"
     )
     result = _run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command])
-    return {int(item) for item in result.stdout.strip().split(",") if item.strip().isdigit()}
+    process_ids = {
+        int(item) for item in result.stdout.strip().split(",") if item.strip().isdigit()
+    }
+    return process_ids, result.returncode
+
+
+def _run_start_with_retry(
+    command: list[str], *, timeout: int, cwd: Path | None = None
+) -> tuple[subprocess.CompletedProcess[str], list[int]]:
+    """仅允许 SBIE2203 瞬时码出现在最终成功之前。"""
+    result: subprocess.CompletedProcess[str] | None = None
+    attempt_exit_codes: list[int] = []
+    for attempt in range(3):
+        result = _run(command, timeout=timeout, cwd=cwd)
+        attempt_exit_codes.append(result.returncode)
+        if result.returncode != TRANSIENT_START_EXIT:
+            break
+        if attempt < 2:
+            time.sleep(1)
+    assert result is not None
+    return result, attempt_exit_codes
 
 
 def _sandbox_paths(box: str) -> list[str]:
@@ -201,16 +221,7 @@ def _read_negative_control(
         str(start), f"/box:{box}", "/silent", "/wait", "powershell.exe",
         "-NoProfile", "-NonInteractive", "-Command", probe,
     ]
-    result: subprocess.CompletedProcess[str] | None = None
-    attempt_exit_codes: list[int] = []
-    for attempt in range(3):
-        result = _run(command, timeout=30, cwd=cwd)
-        attempt_exit_codes.append(result.returncode)
-        if result.returncode != TRANSIENT_START_EXIT:
-            break
-        if attempt < 2:
-            time.sleep(1)
-    assert result is not None
+    result, attempt_exit_codes = _run_start_with_retry(command, timeout=30, cwd=cwd)
     return {
         "control_id": control_id,
         "target_class": control_id.removeprefix("blocked_read_"),
@@ -524,7 +535,8 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     result: subprocess.CompletedProcess[str] | None = None
     candidate_attempt_exit_codes: list[int] = []
     negative_controls: list[dict[str, Any]] = []
-    controller_pids_before = sorted(_process_ids("SbieCtrl"))
+    controller_before, controller_before_exit = _process_ids("SbieCtrl")
+    controller_pids_before = sorted(controller_before)
     sections_before_result = _run([str(sbie_ini), "query", "*"])
     sections_before = sorted(
         line.strip() for line in sections_before_result.stdout.splitlines() if line.strip()
@@ -561,7 +573,9 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         execution_error = exc
     finally:
         terminate = _run([str(start), f"/box:{box}", "/silent", "/terminate_all"], timeout=30)
-        listed = _run([str(start), f"/box:{box}", "/silent", "/listpids"], timeout=30)
+        listed, listpids_attempts = _run_start_with_retry(
+            [str(start), f"/box:{box}", "/silent", "/listpids"], timeout=30
+        )
         delete = _run(
             [str(start), f"/box:{box}", "/silent", "delete_sandbox_silent"],
             timeout=45,
@@ -569,7 +583,8 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         paths_after = _wait_sandbox_removed(box)
         remove_config = _run([str(sbie_ini), "set", box, "*", ""], timeout=30)
         query_config = _run([str(sbie_ini), "query", box, "*"], timeout=30)
-        controller_pids_after = sorted(_process_ids("SbieCtrl"))
+        controller_after, controller_after_exit = _process_ids("SbieCtrl")
+        controller_pids_after = sorted(controller_after)
         remaining_pids = [
             int(line.strip())
             for line in listed.stdout.splitlines()
@@ -583,28 +598,47 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         )
         cleanup = {
             "terminate_exit_code": terminate.returncode,
+            "listpids_exit_code": listed.returncode,
+            "listpids_attempt_exit_codes": listpids_attempts,
             "delete_exit_code": delete.returncode,
             "box_processes_after": remaining_pids,
             "sandbox_paths_after": paths_after,
             "controller_pids_before": controller_pids_before,
+            "controller_query_before_exit_code": controller_before_exit,
+            "controller_query_after_exit_code": controller_after_exit,
             "new_controller_pids_after": sorted(
                 set(controller_pids_after) - set(controller_pids_before)
             ),
             "configuration_remove_exit_code": remove_config.returncode,
-            "box_configuration_removed": not query_config.stdout.strip(),
+            "query_box_exit_code": query_config.returncode,
+            "box_configuration_removed": (
+                query_config.returncode == 0 and not query_config.stdout.strip()
+            ),
             "preexisting_configuration_sections": sections_before,
+            "sections_before_query_exit_code": sections_before_result.returncode,
             "configuration_sections_after": sections_after,
-            "preexisting_configuration_restored": sections_after == sections_before,
+            "sections_after_query_exit_code": sections_after_result.returncode,
+            "preexisting_configuration_restored": (
+                sections_before_result.returncode == 0
+                and sections_after_result.returncode == 0
+                and sections_after == sections_before
+            ),
         }
         user_sentinel.unlink(missing_ok=True)
         shutil.rmtree(other_temp_root, ignore_errors=True)
     cleanup_passed = (
         cleanup.get("terminate_exit_code") == 0
+        and cleanup.get("listpids_exit_code") == 0
         and cleanup.get("delete_exit_code") == 0
         and cleanup.get("box_processes_after") == []
         and cleanup.get("sandbox_paths_after") == []
         and cleanup.get("new_controller_pids_after") == []
         and cleanup.get("configuration_remove_exit_code") == 0
+        and cleanup.get("query_box_exit_code") == 0
+        and cleanup.get("sections_before_query_exit_code") == 0
+        and cleanup.get("sections_after_query_exit_code") == 0
+        and cleanup.get("controller_query_before_exit_code") == 0
+        and cleanup.get("controller_query_after_exit_code") == 0
         and cleanup.get("box_configuration_removed") is True
         and cleanup.get("preexisting_configuration_restored") is True
     )

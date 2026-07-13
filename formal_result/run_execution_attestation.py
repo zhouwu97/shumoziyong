@@ -115,6 +115,34 @@ def validate_execution_time_window(
         raise FormalResultVerificationError("Run 执行时间窗口非法")
 
 
+def validate_cleanup_record(cleanup: Any) -> None:
+    """清理状态的所有观察命令必须成功，禁止空 stdout 失败即通过。"""
+    attempts = cleanup.get("listpids_attempt_exit_codes") if isinstance(cleanup, Mapping) else None
+    if not isinstance(cleanup, Mapping) or not (
+        cleanup.get("terminate_exit_code") == 0
+        and cleanup.get("listpids_exit_code") == 0
+        and isinstance(attempts, list)
+        and attempts
+        and attempts[-1] == 0
+        and all(code == TRANSIENT_START_EXIT for code in attempts[:-1])
+        and cleanup.get("delete_exit_code") == 0
+        and cleanup.get("box_processes_after") == []
+        and cleanup.get("sandbox_paths_after") == []
+        and cleanup.get("new_controller_pids_after") == []
+        and cleanup.get("configuration_remove_exit_code") == 0
+        and cleanup.get("query_box_exit_code") == 0
+        and cleanup.get("sections_before_query_exit_code") == 0
+        and cleanup.get("sections_after_query_exit_code") == 0
+        and cleanup.get("controller_query_before_exit_code") == 0
+        and cleanup.get("controller_query_after_exit_code") == 0
+        and cleanup.get("box_configuration_removed") is True
+        and cleanup.get("preexisting_configuration_restored") is True
+        and cleanup.get("configuration_sections_after")
+        == cleanup.get("preexisting_configuration_sections")
+    ):
+        raise FormalResultVerificationError("Sandboxie 清理证明未通过")
+
+
 def verify_run_execution_attestation(
     run_root: Path,
     formal_result_id: str,
@@ -314,19 +342,7 @@ def verify_run_execution_attestation(
     ):
         raise FormalResultVerificationError("候选命令启动尝试记录非法")
     cleanup = record.get("cleanup")
-    if not isinstance(cleanup, Mapping) or not (
-        cleanup.get("terminate_exit_code") == 0
-        and cleanup.get("delete_exit_code") == 0
-        and cleanup.get("box_processes_after") == []
-        and cleanup.get("sandbox_paths_after") == []
-        and cleanup.get("new_controller_pids_after") == []
-        and cleanup.get("configuration_remove_exit_code") == 0
-        and cleanup.get("box_configuration_removed") is True
-        and cleanup.get("preexisting_configuration_restored") is True
-        and cleanup.get("configuration_sections_after")
-        == cleanup.get("preexisting_configuration_sections")
-    ):
-        raise FormalResultVerificationError("Sandboxie 清理证明未通过")
+    validate_cleanup_record(cleanup)
     expected_acceptance = {
         str(check["check_id"]) for check in compiled["acceptance_checks"]
     }

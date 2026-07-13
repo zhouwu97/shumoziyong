@@ -19,6 +19,7 @@ from formal_result.derivation import verify_formal_result_derivation
 from formal_result.execution_contract import compile_execution_command
 from formal_result.hashing import file_sha256
 from formal_result.run_execution_attestation import (
+    validate_cleanup_record,
     validate_execution_time_window,
     verify_run_execution_attestation,
 )
@@ -448,6 +449,26 @@ def test_fixture_binds_host_read_controls_and_cleanup() -> None:
     assert "UsePrivacyMode=y" not in record["sandbox_policy_settings"]
     assert record["cleanup"]["preexisting_configuration_restored"] is True
     assert record["cleanup"]["sandbox_paths_after"] == []
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "listpids_exit_code",
+        "query_box_exit_code",
+        "sections_before_query_exit_code",
+        "sections_after_query_exit_code",
+        "controller_query_before_exit_code",
+        "controller_query_after_exit_code",
+    ],
+)
+def test_cleanup_query_failure_with_empty_observation_fails_closed(field: str) -> None:
+    cleanup = _load(FIXTURE / "sandboxie_run_execution_record.json")["cleanup"]
+    cleanup[field] = 1
+    cleanup["box_processes_after"] = []
+    cleanup["configuration_sections_after"] = []
+    with pytest.raises(FormalResultVerificationError, match="清理证明"):
+        validate_cleanup_record(cleanup)
 
 
 @pytest.mark.parametrize(
