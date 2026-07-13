@@ -148,6 +148,29 @@ def _snapshot(root: Path) -> dict[str, str]:
     }
 
 
+def _reject_unsafe_output_links(output_root: Path) -> None:
+    """在读取、归档或复制前拒绝输出树中的链接对象。"""
+    def reject_link(path: Path) -> None:
+        is_junction = getattr(path, "is_junction", lambda: False)
+        if path.is_symlink():
+            raise RuntimeError(f"执行输出包含 symlink：{path}")
+        if is_junction():
+            raise RuntimeError(f"执行输出包含 junction：{path}")
+
+    if not output_root.is_dir():
+        raise RuntimeError(f"执行输出目录不存在或不是目录：{output_root}")
+    reject_link(output_root)
+    for parent, directory_names, file_names in os.walk(output_root, followlinks=False):
+        parent_path = Path(parent)
+        for name in directory_names:
+            reject_link(parent_path / name)
+        for name in file_names:
+            output_path = parent_path / name
+            reject_link(output_path)
+            if os.stat(output_path, follow_symlinks=False).st_nlink != 1:
+                raise RuntimeError(f"执行输出包含 hardlink：{output_path}")
+
+
 def _ps_quote(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -658,6 +681,7 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         shutil.rmtree(execution_root, ignore_errors=True)
         raise RuntimeError("Sandbox 内未生成真实子进程 stdout/stderr")
 
+    _reject_unsafe_output_links(execution_root / "output")
     after = _snapshot(execution_root)
     immutable_before = {key: value for key, value in before.items() if not key.startswith(("output/", "tmp/"))}
     immutable_after = {key: value for key, value in after.items() if not key.startswith(("output/", "tmp/"))}
@@ -809,7 +833,20 @@ def main() -> int:
     parser.add_argument("--formal-result-id", required=True)
     args = parser.parse_args()
     summary = execute_in_verified_sandbox(args.run_dir, args.formal_result_id)
-    print(json.dumps({"run_id": summary["identity"]["run_id"], "formal_result_eligible": summary["formal_result_eligible"]}, ensure_ascii=False))
+    output = {
+        "run_id": summary["identity"]["run_id"],
+        "formal_result_activation_status": summary["formal_result_activation_status"],
+        "formal_result_eligible": summary["formal_result_eligible"],
+        "formal_result_eligibility_scope": summary["formal_result_eligibility_scope"],
+        "execution_trust_model": summary["execution_trust_model"],
+        "git_head": summary["git_head"],
+        "git_state_clean": summary["git_state_clean"],
+        "targeted_host_read_controls_passed": summary["targeted_host_read_controls_passed"],
+        "default_deny_host_reads_verified": summary["default_deny_host_reads_verified"],
+    }
+    if isinstance(summary.get("privacy_mode_available"), bool):
+        output["privacy_mode_available"] = summary["privacy_mode_available"]
+    print(json.dumps(output, ensure_ascii=False))
     return 0
 
 

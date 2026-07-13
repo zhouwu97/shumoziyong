@@ -26,6 +26,7 @@ from formal_result.run_execution_attestation import (
 from formal_result.trusted_local import collect_git_state, trusted_local_eligibility_scope
 from formal_result.verifier import verify_formal_result_bundle
 from run_workflow import verify_gate_artifacts, verify_run, verify_run_seal
+import run_in_verified_sandbox as sandbox_runner
 
 
 FIXTURE = ROOT / "tests" / "fixtures" / "m3a_verified_run"
@@ -147,6 +148,115 @@ def test_verify_run_rejects_scope_inconsistent_with_attestation(
 def test_eligible_true_without_scope_fails_closed() -> None:
     with pytest.raises(ValueError, match="trusted_local 资格范围"):
         trusted_local_eligibility_scope({"formal_result_eligible": True})
+
+
+def test_cli_outputs_verified_trusted_local_scope(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    """CLI 只能逐字段输出已验证 summary，不重新推导资格状态。"""
+    summary = {
+        "identity": {"run_id": "run-cli-scope"},
+        "formal_result_activation_status": "run_execution_verified",
+        "formal_result_eligible": True,
+        "formal_result_eligibility_scope": "trusted_local",
+        "execution_trust_model": "trusted_local",
+        "git_head": "a" * 40,
+        "git_state_clean": True,
+        "targeted_host_read_controls_passed": True,
+        "default_deny_host_reads_verified": False,
+        "privacy_mode_available": False,
+    }
+    monkeypatch.setattr(sandbox_runner, "execute_in_verified_sandbox", lambda *_args: summary)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_in_verified_sandbox.py",
+            "--run-dir",
+            str(tmp_path / "run"),
+            "--formal-result-id",
+            "formal-cli-scope",
+        ],
+    )
+
+    assert sandbox_runner.main() == 0
+
+    assert json.loads(capsys.readouterr().out) == {
+        "run_id": "run-cli-scope",
+        "formal_result_activation_status": "run_execution_verified",
+        "formal_result_eligible": True,
+        "formal_result_eligibility_scope": "trusted_local",
+        "execution_trust_model": "trusted_local",
+        "git_head": "a" * 40,
+        "git_state_clean": True,
+        "targeted_host_read_controls_passed": True,
+        "default_deny_host_reads_verified": False,
+        "privacy_mode_available": False,
+    }
+
+
+def test_output_tree_accepts_regular_file(tmp_path: Path) -> None:
+    """普通输出文件仍可进入归档与复制流程。"""
+    output = tmp_path / "output"
+    output.mkdir()
+    (output / "result.json").write_text("{}\n", encoding="utf-8")
+
+    sandbox_runner._reject_unsafe_output_links(output)
+
+
+def test_output_tree_rejects_symlink(tmp_path: Path) -> None:
+    """输出符号链接不得在归档前被解析或复制。"""
+    output = tmp_path / "output"
+    output.mkdir()
+    external = tmp_path / "external.json"
+    external.write_text("{}\n", encoding="utf-8")
+    linked = output / "result.json"
+    try:
+        linked.symlink_to(external)
+    except OSError as exc:
+        pytest.skip(f"当前平台不允许创建 symlink：{exc}")
+
+    with pytest.raises(RuntimeError, match="symlink"):
+        sandbox_runner._reject_unsafe_output_links(output)
+
+
+def test_output_tree_rejects_hardlink(tmp_path: Path) -> None:
+    """输出硬链接不得绕过执行输出的单文件所有权边界。"""
+    output = tmp_path / "output"
+    output.mkdir()
+    external = tmp_path / "external.json"
+    external.write_text("{}\n", encoding="utf-8")
+    linked = output / "result.json"
+    try:
+        os.link(external, linked)
+    except OSError as exc:
+        pytest.skip(f"当前平台不允许创建 hardlink：{exc}")
+
+    with pytest.raises(RuntimeError, match="hardlink"):
+        sandbox_runner._reject_unsafe_output_links(output)
+
+
+def test_output_tree_rejects_junction(tmp_path: Path) -> None:
+    """Windows junction 不得使输出树跳转到执行根目录外。"""
+    if os.name != "nt":
+        pytest.skip("junction 攻击测试仅适用于 Windows")
+    output = tmp_path / "output"
+    output.mkdir()
+    external = tmp_path / "external-output"
+    external.mkdir()
+    (external / "result.json").write_text("{}\n", encoding="utf-8")
+    junction = output / "nested"
+    result = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(junction), str(external)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        pytest.skip(f"当前环境不允许创建 junction：{result.stderr or result.stdout}")
+
+    with pytest.raises(RuntimeError, match="junction"):
+        sandbox_runner._reject_unsafe_output_links(output)
 
 
 def test_verify_run_accepts_repository_relative_run_path(monkeypatch: pytest.MonkeyPatch) -> None:
