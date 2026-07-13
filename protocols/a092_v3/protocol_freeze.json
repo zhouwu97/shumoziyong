@@ -3,7 +3,7 @@
   "protocol_id": "A092-CONFIRMATORY-V3",
   "state": "frozen_pre_execution",
   "execution_started": false,
-  "component_manifest_sha256": "fae75866a965a1c1de24ea5cd106e4eac993f53d6d12d7a8a9724ed98eb8fc85",
+  "component_manifest_sha256": "d1655cdc1b290d21568abc69f414199d7c83a125b806612b59e001aa941baf4d",
   "components": {
     "protocols/a092_v3/a092_confirmatory_v3.json": "04062776657724d19e7fa23e9b85ee28ad2e79def4f4897e63df28101561b999",
     "schemas/a092_confirmatory_v3.schema.json": "656a94d94e1a8a23a933266be847f8b1c5d7416c577e5b9319e6593294986253",
@@ -25,6 +25,6 @@
     "protocols/a092/stage3_execution_prompt.md": "5e5de916e0870391bdb0a66ad4f06ee378672bcc9996c87ab79eaae3e15bb036",
     "protocols/a092/baseline_config.json": "d2cd801c888d5da97b261175291da7ac469eb37456626268b78ddb42eb433d8a",
     "protocols/a092/treatment_config.json": "78da22dd967ee729af7c86e6949f9738f09e9e37ce596154df6d8fb3b0183c2a",
-    "examples/a092_phase2_pilot_v2/pilot_result.json": "279d75e1d4627c4c1382afa0b021bcd0e05f46bddbea7df9acb7eab6f352809e"
+    "examples/a092_phase2_pilot_v2/pilot_result.json": "59fcf5bc63fc4cca68bab05253593098e4314f09e437a8da1101b67a19cddc9c"
   }
 }

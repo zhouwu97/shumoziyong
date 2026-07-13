@@ -46,5 +46,6 @@ def test_confirmatory_v3_freeze_hashes_every_bound_component() -> None:
     module = module_from_spec(spec)
     spec.loader.exec_module(module)
     record = module.build_freeze_record()
+    assert record == _load_json("protocols/a092_v3/protocol_freeze.json")
     for component, expected in record["components"].items():
         assert hashlib.sha256((ROOT / component).read_bytes()).hexdigest() == expected
