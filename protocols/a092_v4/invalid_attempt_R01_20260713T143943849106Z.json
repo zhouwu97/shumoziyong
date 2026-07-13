@@ -1,0 +1,43 @@
+{
+  "record_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V4",
+  "run_id": "R01",
+  "attempt_id": "attempt-20260713T143943849106Z-0c0c7229d491",
+  "started_at": "2026-07-13T14:39:43.870767+00:00",
+  "completed_at": "2026-07-13T14:53:06.006896+00:00",
+  "disposition": "invalid_provider_gateway_failure",
+  "experiment_invalid_code": "provider_transport_unavailable",
+  "reason": "三次短健康探针通过后，新 R01 在第 18 轮请求时仍因 CC Switch 中转上游 502 失败。响应明确为 Cloudflare origin_bad_gateway，说明长会话传输链不稳定，未完成候选执行。",
+  "observed_engine_init": {
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "permission_mode": "bypassPermissions",
+    "engine_valid": true
+  },
+  "provider_transport": {
+    "base_url": "http://127.0.0.1:15721",
+    "gateway_process": "cc-switch.exe",
+    "upstream_status": 502,
+    "upstream_error": "Cloudflare origin_bad_gateway",
+    "failed_turn": 18,
+    "retry_after_seconds": 60
+  },
+  "runner_events_sha256": "7ef4b95bf4262564ec626e17ccbc49e75d33ac614f4a940113b8afa109166285",
+  "runner_metadata_sha256": "13edafcb3ebdbecd442506c1846008b5793deb94a0494edf30b64419958e030b",
+  "partial_artifacts": [
+    "code/data_io.py",
+    "code/plant2023.csv",
+    "code/stats2023.csv"
+  ],
+  "candidate_precheck": {
+    "formal_result_created": false,
+    "results_created": false,
+    "paper_or_report_created": false,
+    "external_validator_not_run": true
+  },
+  "required_workspace_created": true,
+  "formal_result_created": false,
+  "official_result_directory_created": false,
+  "counts_toward_confirmatory_pairs": false,
+  "next_protocol_requirement": "在中转上游能够稳定完成长会话前，不得再次启动正式 R01；恢复后必须创建新的唯一 attempt，且不得复用本次目录或中间产物。"
+}
