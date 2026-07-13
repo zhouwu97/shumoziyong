@@ -28,6 +28,14 @@
     "q3_independently_recomputed": false,
     "mathematical_result_complete": false
   },
+  "diagnosis": {
+    "completed": true,
+    "q1_root_cause": "decision_variable_serialization_precision_loss",
+    "q1_first_divergence_stage": "decision_variables_original_precision_to_solution_json_six_decimal_rounding",
+    "q2_reason": "stochastic_reproduction_evidence_missing",
+    "q3_reason": "stochastic_reproduction_evidence_missing",
+    "a092_v4_change_required": false
+  },
   "publication": {
     "local_full_artifact_retained": true,
     "full_artifact_published": false,
@@ -38,6 +46,10 @@
     "strict_validation": {
       "path": "strict_validation.json",
       "sha256": "cecd3f36429b221ef7f77077ac029a1c1e6f6144f3ddb3a308d9fc4c36f02723"
+    },
+    "strict_validation_diagnosis": {
+      "path": "tmp/opencode_deepseek_official_2024c_trial_20260714T000200/results/strict_validation_diagnosis.json",
+      "sha256": "afe63c175fe1f48bf03d0f408ba7c0baa9d0d4884517848f0c852f74d6979e9f"
     },
     "local_full_artifact_tree": {
       "algorithm": "sha256",

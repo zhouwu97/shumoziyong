@@ -1,0 +1,58 @@
+{
+  "trial_id": "opencode_deepseek_official_2024c_trial_20260714T000200",
+  "counts_toward_a092_v4": false,
+  "diagnostic_scope": "minimal_public_diagnostic_evidence",
+  "q1": {
+    "status": "failed",
+    "absolute_errors": [0.1164, 0.0505],
+    "root_cause": "decision_variable_serialization_precision_loss",
+    "first_divergence_stage": "decision_variables_original_precision_to_solution_json_six_decimal_rounding",
+    "evidence": {
+      "candidate_serialization": "solution[key] = round(v, 6)",
+      "reported_objective": "unrounded PuLP objective value",
+      "q1_1_unrounded_minus_six_decimal_recomputed": 0.1163865476846695,
+      "q1_2_unrounded_minus_six_decimal_recomputed": -0.05045749992132187,
+      "q1_1_unrounded_minus_four_decimal_export_simulation": 4.73876029253006,
+      "q1_2_unrounded_minus_four_decimal_export_simulation": 2.7860662639141083,
+      "price_rule_not_first_divergence": true,
+      "floating_point_accumulation_not_root_cause": true,
+      "sales_key_contract_mismatch": {
+        "candidate": "crop_id",
+        "strict_contract": ["crop_id", "season"],
+        "separate_from_tiny_q1_serialization_error": true
+      }
+    }
+  },
+  "q2": {
+    "status": "not_recomputed",
+    "reason": "stochastic_reproduction_evidence_missing",
+    "candidate_artifact_has_complete_decision_variables": true,
+    "missing": [
+      "frozen sampled sales and statistic parameters",
+      "selected median-scenario index",
+      "per-scenario objectives bound to sampled parameters",
+      "immutable sampling/runtime provenance"
+    ]
+  },
+  "q3": {
+    "status": "not_recomputed",
+    "reason": "stochastic_reproduction_evidence_missing",
+    "candidate_artifact_has_complete_decision_variables": true,
+    "missing": [
+      "frozen sampled parameter realizations",
+      "simulation sample data",
+      "replayable correlation/dependency evidence tied to the result",
+      "per-plot legume yield-boost realizations",
+      "immutable sampling/runtime provenance"
+    ]
+  },
+  "constraints": {
+    "all_four_scenarios_passed": true,
+    "scope": "candidate-supplied constraint checks only"
+  },
+  "protocol_assessment": {
+    "a092_v4_change_required": false,
+    "reason": "Observed defects belong to the candidate output and evidence record, not the frozen validator contract."
+  },
+  "overall": "diagnostic_only"
+}
