@@ -1,7 +1,7 @@
 {
   "freeze_record_version": "1.0.0",
   "protocol_id": "A092-CONFIRMATORY-V1",
-  "protocol_commit": "d89c85f67ee45d3d8724e1a42e7a821d4c9a0217",
+  "protocol_commit": "b263db352d78a42c0bd5d28be9a69248af9ed8fd",
   "protocol_sha256": "f99340820f23253cf4c35e9b2f210d865185266ae2bb2ca9a45e579cddacad97",
   "patch_sha256": "8b94788be8a4bd1d48684f6610b4c0ff795c76644015ba78b2b88e9587db6ef1",
   "scoring_rubric_sha256": "4f03840f45e2622811ce165881be6e31d7287272e7bfb2af26b7c04174c941de",
@@ -9,7 +9,8 @@
   "treatment_config_sha256": "cca063e73fc10b13e9c093d4b33521663d85760b7e8b97193dfd778bdc3d2389",
   "runtime_pack_sha256": "b0756625904d18080a198c2fb0c549c104f90087e5126b89aaf1afe5a2767cb6",
   "case_role_manifest_sha256": "324baea782be08cf343273dc10d5df44bc64dc923be4656925eec03b4d9de895",
-  "validator_sha256": "ad941d46d2eea4b1407b2a6d8b67bbfd1d34c322be5a3fe30e02f84704328700",
+  "formal_result_contract_sha256": "59a39363b2348cb728b9af8252278c87858a80b7c8b95efe10fc2395db192e19",
+  "validator_sha256": "52832b0d89e5189d8d9c7ec581db6665a0e056fa1f68d145ffe7cc57e839b535",
   "validator_files": {
     "validators/common/__init__.py": "fada0e8a83b30395b4e54b7b3e47e740f0aba44eee1b3889754091aa9ab0da4d",
     "validators/common/claim_level.py": "e47a0aeda8f9a99e467ece61a1160b04eeba1ff21c31de8f7f07428d8640d354",
@@ -17,11 +18,18 @@
     "validators/common/residuals.py": "51a7942ce8a91f0aee76dff9da1cb7e1000829323f9b471f0cb21f18709637bb",
     "validators/common/sensitivity.py": "b4bde7a587d106f81e96c44388663dcbf7060142c24ee334c19e8b5369a27fd2",
     "validators/common/types.py": "98aabfd3a0e50fba9058d917e9b6255d4f3d0f2f1d4e50bb5b972502a3f01f6a",
-    "validators/common/validator.py": "8a47e74c26b8ab44f52360d8aed2f545d91ed1abcfc5d7b7912277e1f19c3b2c"
+    "validators/common/validator.py": "8a47e74c26b8ab44f52360d8aed2f545d91ed1abcfc5d7b7912277e1f19c3b2c",
+    "validators/problem_boundary/__init__.py": "7b1d28a7ad4dd0f1863158858fe277b8cfc12b2dc2849cfca40e1eead8d5b47b",
+    "validators/problem_boundary/validate.py": "40f5371b0f03c2457c2f3b16779ab3613ed9f906d8c4b0aa31ba0bb201e1947f",
+    "validators/problem_negative/__init__.py": "3e7053785bb779b5c1050fc8dbfa5691918ea3d7fe15f928c6ccb7a3ac42be1a",
+    "validators/problem_negative/validate.py": "390cc881f7796cf3f418c0a1177beeed531db80ad0a713e2061af3e1615fac11",
+    "validators/problem_positive/__init__.py": "3a19a89fd20f4858e187052221158a47d999cc1dff8a0fea1bc3f2817a33f39e",
+    "validators/problem_positive/validate.py": "d716440e038f972fb87d2b208da170f9164d7c2b521d1fa6588333fc159738ba"
   },
   "pilot_evidence_allowed": false,
   "protocol_deviation": true,
   "deviation_records": {
-    "protocols/a092/protocol_deviation_001.json": "38a09547b49a0a39053fcb5652cd485226d7caabefa580e3e4a19346145f164c"
+    "protocols/a092/protocol_deviation_001.json": "38a09547b49a0a39053fcb5652cd485226d7caabefa580e3e4a19346145f164c",
+    "protocols/a092/protocol_deviation_002.json": "ea550b43f85732ce0f9f7c3bb3895766aa3f38d7888dfac2cfc27ad839b3d300"
   }
 }
