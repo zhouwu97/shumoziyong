@@ -25,7 +25,13 @@
     "validation_records": [
       "tests/old_problems/旧题测试_工程优化_2024C官方T3_2026-07-05.md",
       "tests/old_problems/旧题测试_工程优化_2023B官方T3_2026-07-02.md",
-      "tests/old_problems/旧题测试_工程优化_2024B官方T4_2026-07-09.md"
+      "tests/old_problems/旧题测试_工程优化_2024B官方T4_2026-07-09.md",
+      "docs/reports/2023B_VALIDATOR_FORMULA_PILOT.md",
+      "docs/reports/2024C_OBJECTIVE_RECOMPUTATION_DIAGNOSIS.md",
+      "docs/reports/A092_V2_PILOT_REPORT.md",
+      "examples/a092_phase2_pilot_v2/pilot_result.json",
+      "protocols/a092_v2/a092_confirmatory_v2.json",
+      "protocols/a092_v2/protocol_freeze.json"
     ],
     "priority": 10
   },

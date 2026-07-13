@@ -2,7 +2,8 @@
   "freeze_record_version": "1.0.0",
   "formula_contract_version": "2023b_q1_q2_v2",
   "status": "formula_frozen_for_a092_v2_design",
-  "full_confirmatory_protocol_frozen": false,
+  "full_confirmatory_protocol_frozen": true,
+  "full_confirmatory_protocol": "protocols/a092_v2/a092_confirmatory_v2.json",
   "source_pdf": {
     "path": "official_materials/2023_B/problem/B题.pdf",
     "sha256": "e709e066139ea0a4bb64aa7e56ea097725a1f2b4e5161fc8c7e50c48be079396",

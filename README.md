@@ -324,10 +324,16 @@ A092 第一轮确认性实验已经完成。
 - 正控和边界题均出现独立数学验证失败；
 - 负控实验因执行并发覆盖和外部用量限制未形成有效配对；
 - 本轮结果不证明 A092 无效，只说明当前证据不足以晋级。
+- 进程树清理、唯一 attempt 目录与原子结果提升已经实现并通过测试；
+- 2023-B v2 公式适配器与 2024-C v2 数据/目标合同已经复核并冻结；
+- A092 v2 Pilot 已通过七类门槛注入，`A092-CONFIRMATORY-V2` 已冻结但尚未执行。
 
 详细报告：
 
 - [数学建模质量计划阶段三最终报告](docs/reports/MODELING_QUALITY_PHASE3_FINAL_REPORT.md)
+- [2023-B Validator 公式 Pilot](docs/reports/2023B_VALIDATOR_FORMULA_PILOT.md)
+- [2024-C 目标复算错误诊断](docs/reports/2024C_OBJECTIVE_RECOMPUTATION_DIAGNOSIS.md)
+- [A092 v2 外部验证门槛 Pilot](docs/reports/A092_V2_PILOT_REPORT.md)
 
 ### 正式比赛说明
 
@@ -337,11 +343,10 @@ A092 当前仍为 `review_ready`，因此不会进入正式 `new_problem` Runtim
 
 ## 当前开发重点
 
-1. 修复运行超时后的完整进程树清理、唯一 `attempt_id` 目录和结果目录原子提升，禁止同一 Run 存在两个 active attempt。
-2. 以题面原始公式、2–3 个手算小点和符号/方向故障注入复核 2023-B 数学适配器口径，确认后重新冻结。
-3. 强化外部 Validator 对论文 Claim 的阻断：验证失败时不得使用目标值、改进率或最优性强结论。
-4. 分层定位 2024-C 正控中 `objective_reported` 与 `objective_recomputed` 不一致的根因。
-5. 完成 A092 修订、新 Pilot 和预注册后，再考虑冻结并执行 `a092_confirmatory_v2`。
+1. 对 `A092-CONFIRMATORY-V2` 做执行前预检，确认冻结组件哈希、外部用量和唯一 active attempt 状态。
+2. 严格按冻结顺序执行新的 Baseline/Treatment 配对，任何无效 attempt 不计入配对数。
+3. 先由 v2 外部 Validator 判定数据契约、目标与硬约束，再进行盲评和配对比较。
+4. 只有正控、边界和负控均形成有效证据后，才重新评估 A092 是否满足 `regression_verified`。
 
 ## 使用原则
 

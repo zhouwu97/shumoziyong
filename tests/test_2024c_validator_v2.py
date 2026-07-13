@@ -139,7 +139,11 @@ def test_v2_validator_freeze_binds_diagnosis_and_code() -> None:
     )
 
     assert freeze["status"] == "validator_frozen_for_a092_v2_design"
-    assert freeze["full_confirmatory_protocol_frozen"] is False
+    assert freeze["full_confirmatory_protocol_frozen"] is True
+    assert (
+        freeze["full_confirmatory_protocol"]
+        == "protocols/a092_v2/a092_confirmatory_v2.json"
+    )
     for relative, digest in freeze["official_inputs"].items():
         assert _sha256(ROOT / relative) == digest
     for relative, digest in freeze["validator_files"].items():

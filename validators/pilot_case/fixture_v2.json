@@ -1,0 +1,5 @@
+{
+  "profit": {"x": 8.0, "y": 5.0},
+  "capacity": {"total": 10.0, "machine_hours": 14.0},
+  "time_slots": ["2023_boundary", "2024_period_1", "2024_period_2"]
+}

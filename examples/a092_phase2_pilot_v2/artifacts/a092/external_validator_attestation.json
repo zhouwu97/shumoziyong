@@ -1,0 +1,27 @@
+{
+  "schema_version": "2.0.0",
+  "validator_id": "a092_v2_pilot_external_adapter",
+  "status": "passed",
+  "adapter_path": "validators/pilot_case/external_adapter_v2.py",
+  "adapter_sha256": "0586d92586fe3a4826614015abe59465beed31b2f20d840f227213c8c1870c57",
+  "candidate_evaluator_path": "validators/pilot_case/candidate_evaluator_v2.py",
+  "contract_path": "protocols/a092_v2/external_validator_contract.md",
+  "contract_sha256": "530d637873bb66ca9d9e235b4120163af4e80d1e6de4e4104466e4e77551f470",
+  "input_sha256": "f002d984cc47a3caada03dcee0839f5e2a13176ebfaa1d18528a4ca94fc1ca8d",
+  "solution_sha256": "e55c5e18626847b3e4d9c39138967925c5530d2cc554e58954cc8d37675e30cc",
+  "candidate_evaluator_sha256": "ed190a2ebba5398717244466b0f4da1065abd56278ba02c1e61abc6ba8a10d4e",
+  "frozen_before_candidate": true,
+  "implementation_independent": true,
+  "data_contract_passed": true,
+  "objective_passed": true,
+  "constraints_passed": true,
+  "optimality_evidence_passed": true,
+  "experiment_disposition": "valid",
+  "candidate_disposition": "accepted",
+  "claim_permissions": {
+    "objective_value": true,
+    "improvement_rate": true,
+    "strong_optimality": true
+  },
+  "failure_reasons": []
+}

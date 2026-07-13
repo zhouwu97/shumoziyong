@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/a092_data_contract_audit.schema.json",
+  "title": "A092 v2 数据契约审计",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "input_files", "preprocessing", "hand_checked_fixtures"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "input_files": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    "preprocessing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["merged_cells", "missing_values", "unit_conversions", "aggregation_keys", "time_slot_order", "boundary_state"],
+      "properties": {
+        "merged_cells": {"$ref": "#/$defs/check"},
+        "missing_values": {"$ref": "#/$defs/check"},
+        "unit_conversions": {"$ref": "#/$defs/check"},
+        "aggregation_keys": {"$ref": "#/$defs/check"},
+        "time_slot_order": {"$ref": "#/$defs/check"},
+        "boundary_state": {"$ref": "#/$defs/check"}
+      }
+    },
+    "hand_checked_fixtures": {
+      "type": "array", "minItems": 2, "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["fixture_id", "expected", "actual", "tolerance", "passed"],
+        "properties": {
+          "fixture_id": {"type": "string", "minLength": 1},
+          "expected": {"type": "number"},
+          "actual": {"type": "number"},
+          "tolerance": {"type": "number", "minimum": 0},
+          "passed": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "evidence"],
+      "properties": {
+        "status": {"enum": ["passed", "failed", "not_applicable"]},
+        "evidence": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

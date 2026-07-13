@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/a092_external_validator_attestation.schema.json",
+  "title": "A092 v2 外部 Validator 证明",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "validator_id", "status", "adapter_path", "adapter_sha256",
+    "candidate_evaluator_path",
+    "contract_path", "contract_sha256", "input_sha256", "solution_sha256",
+    "candidate_evaluator_sha256", "frozen_before_candidate",
+    "implementation_independent", "data_contract_passed", "objective_passed",
+    "constraints_passed", "optimality_evidence_passed", "experiment_disposition", "candidate_disposition",
+    "claim_permissions", "failure_reasons"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "validator_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["passed", "failed"]},
+    "adapter_path": {"type": "string", "minLength": 1},
+    "adapter_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_evaluator_path": {"type": "string", "minLength": 1},
+    "contract_path": {"type": "string", "minLength": 1},
+    "contract_sha256": {"$ref": "#/$defs/sha256"},
+    "input_sha256": {"$ref": "#/$defs/sha256"},
+    "solution_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_evaluator_sha256": {"$ref": "#/$defs/sha256"},
+    "frozen_before_candidate": {"type": "boolean"},
+    "implementation_independent": {"type": "boolean"},
+    "data_contract_passed": {"type": "boolean"},
+    "objective_passed": {"type": "boolean"},
+    "constraints_passed": {"type": "boolean"},
+    "optimality_evidence_passed": {"type": "boolean"},
+    "experiment_disposition": {"enum": ["valid", "invalid"]},
+    "candidate_disposition": {"enum": ["accepted", "rejected"]},
+    "claim_permissions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["objective_value", "improvement_rate", "strong_optimality"],
+      "properties": {
+        "objective_value": {"type": "boolean"},
+        "improvement_rate": {"type": "boolean"},
+        "strong_optimality": {"type": "boolean"}
+      }
+    },
+    "failure_reasons": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

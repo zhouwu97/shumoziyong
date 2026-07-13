@@ -261,6 +261,25 @@
     "复杂优化可先利用前一问结果发现结构，再进行降维求解。",
     "结果分析应同时给出表格、趋势图、空间分布图和优化对比图。"
   ],
+  "runtime_calibration_v2": {
+    "calibration_date": "2026-07-13",
+    "evidence_type": "repository_runtime_experiment",
+    "source_claims_unchanged": true,
+    "patch_status": "review_ready",
+    "findings": [
+      "候选程序自检不能替代候选生成过程之外的固定外部 Validator。",
+      "外部适配器必须在候选执行前冻结，并绑定 adapter、contract、input、solution 和候选评价器哈希。",
+      "数据契约必须审计合并单元格、缺失值、单位换算、聚合键、时间槽顺序和历史边界状态。",
+      "目标复算与硬约束检查必须分别通过，才能允许论文使用目标值和改进率；最优性强结论还需要独立证明证据。",
+      "外部 Validator 自身的预处理或手算 fixture 失败应判实验无效，不应归因于候选方案。"
+    ],
+    "evidence_records": [
+      "docs/reports/2023B_VALIDATOR_FORMULA_PILOT.md",
+      "docs/reports/2024C_OBJECTIVE_RECOMPUTATION_DIAGNOSIS.md",
+      "docs/reports/A092_V2_PILOT_REPORT.md",
+      "examples/a092_phase2_pilot_v2/pilot_result.json"
+    ]
+  },
   "risks": [
     "模型评价部分偏短。",
     "遗传算法参数和收敛性说明不足。",

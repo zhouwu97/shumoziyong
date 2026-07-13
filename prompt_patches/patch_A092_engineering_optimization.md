@@ -9,7 +9,7 @@
 
 ## 职责边界
 
-`plugin_optimization_v1` 已负责目标、变量、约束、简单方法优先、算法质疑、降维、基线和敏感性计划。本补丁只增加七项可机器检查的结果可靠性行为，不推荐具体算法，不复述通用优化定义。
+`plugin_optimization_v1` 已负责目标、变量、约束、简单方法优先、算法质疑、降维、基线和敏感性计划。本补丁只增加七项可机器检查的结果可靠性行为，不推荐具体算法，不复述通用优化定义。这里的“独立”均指候选解生成过程之外、在候选执行前冻结的固定适配器；候选程序再次调用自身评价函数不构成独立验证。
 
 不满足固定评价器或工程优化链时，可以逐项关闭；关闭模块必须输出 `status=not_applicable`、原因及其对核心结论的影响，禁止为补齐文件虚构内容。
 
@@ -21,11 +21,11 @@
 
 机器产物：`artifacts/a092/mechanism_chain.json`。
 
-### A092-R2 固定方案评价器
+### A092-R2 固定评价口径与数据契约
 
-优化前实现 `evaluate_solution(solution, problem_data)`。基线、候选、最终方案、目标复算和关键约束必须共用同一口径；结果出现后不得改评价器。
+优化前定义候选侧 `evaluate_solution(solution, problem_data)`，并冻结外部 Validator 的题目口径。两者必须共享题意和数学合同，但不得共享同一实现。冻结内容至少包括输入文件哈希、合并单元格与缺失值处理、单位换算、派生聚合键、时间槽顺序、历史边界状态，以及 2–3 个可手算小例子。任一手算例或预处理审计失败时，本次实验无效，不得归因于候选方案。
 
-机器产物：`artifacts/a092/evaluation_definition.json`。
+机器产物：`artifacts/a092/evaluation_definition.json`、`artifacts/a092/data_contract_audit.json`。
 
 ### A092-R3 简单可复算基线
 
@@ -35,13 +35,13 @@
 
 ### A092-R4 目标独立复算
 
-不得直接把求解器内部目标写入论文；同时输出 `objective_reported`、`objective_recomputed` 和 `objective_difference`。改进率按冻结协议计算，baseline 接近零时只报告绝对改进。
+不得直接把求解器内部目标写入论文。由候选生成过程之外的固定适配器从序列化候选解复算，同时输出 `objective_reported`、`objective_recomputed` 和 `objective_difference`。适配器必须在候选执行前冻结，并记录 adapter、contract、input、solution 和候选评价器的 SHA256；外部适配器与候选评价器使用同一函数、同一实现文件或相同实现哈希时，不能声明独立复算。改进率只按外部复算值和冻结协议计算，baseline 接近零时只报告绝对改进。
 
-机器产物：`artifacts/a092/validator_result.json`。
+机器产物：`artifacts/a092/validator_result.json`、`artifacts/a092/external_validator_attestation.json`。
 
 ### A092-R5 关键约束独立检查
 
-`solver_status=success` 不能代替可行性。将不等式写为 `g_i(x)<=0`、等式写为 `h_j(x)=0`，按冻结的绝对或缩放相对容差输出残差、违反量和满足状态；同时检查变量边界与整数性。
+`solver_status=success` 不能代替可行性。由外部适配器将不等式写为 `g_i(x)<=0`、等式写为 `h_j(x)=0`，按冻结的绝对或缩放相对容差输出残差、违反量和满足状态；同时检查变量边界与整数性。目标一致与硬约束可行必须分别判定。时间序列约束必须按实际相邻槽位检查，并显式包含题面给定的历史边界状态，禁止只按年份或序号跳跃检查。
 
 机器产物：`artifacts/a092/validator_result.json`。
 
@@ -55,7 +55,7 @@
 
 ### A092-R7 最优性降级与证据绑定
 
-最优性只允许从验证证据派生：严格证明、合法求解器证书、完整有限空间穷举、启发式搜索、局部求解或仅改进可行解分别对应不同等级。启发式普通 `success` 不得写成全局最优。论文定量结论必须绑定结果字段、Validator 记录及图表/表格位置。
+最优性只允许从验证证据派生：严格证明、合法求解器证书、完整有限空间穷举、启发式搜索、局部求解或仅改进可行解分别对应不同等级。启发式普通 `success` 不得写成全局最优。只有外部目标复算和全部硬约束均通过，论文才可使用目标值和改进率；最优性强结论还必须有相应等级的独立证明、证书或穷举证据。任一门未通过时必须阻断对应 Claim。外部 Validator 的冻结、独立性、数据契约或手算 Pilot 失败时，应标记 `experiment_invalid`，不得把该失败记为候选方案 P0。论文定量结论必须绑定结果字段、外部 Validator 证明及图表/表格位置。
 
 机器产物：`artifacts/a092/optimality_claim.json`、`artifacts/a092/claim_map.json`。
 

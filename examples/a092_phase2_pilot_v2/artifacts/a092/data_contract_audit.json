@@ -1,0 +1,58 @@
+{
+  "schema_version": "2.0.0",
+  "input_files": [
+    {
+      "path": "validators/pilot_case/fixture_v2.json",
+      "sha256": "f002d984cc47a3caada03dcee0839f5e2a13176ebfaa1d18528a4ca94fc1ca8d"
+    }
+  ],
+  "preprocessing": {
+    "merged_cells": {
+      "status": "passed",
+      "evidence": "输入为 JSON，无合并单元格；已显式核对字段层级。"
+    },
+    "missing_values": {
+      "status": "passed",
+      "evidence": "profit、capacity 和 time_slots 均执行非空检查。"
+    },
+    "unit_conversions": {
+      "status": "passed",
+      "evidence": "本 Pilot 全部量为同一无量纲收益/容量口径。"
+    },
+    "aggregation_keys": {
+      "status": "passed",
+      "evidence": "目标按变量名 x、y 聚合，不允许仅按显示标签汇总。"
+    },
+    "time_slot_order": {
+      "status": "passed",
+      "evidence": "固定按 2023 边界、2024 第一时段、2024 第二时段排序。"
+    },
+    "boundary_state": {
+      "status": "passed",
+      "evidence": "2023_boundary 显式进入时间槽序列。"
+    }
+  },
+  "hand_checked_fixtures": [
+    {
+      "fixture_id": "origin",
+      "expected": 0.0,
+      "actual": 0.0,
+      "tolerance": 1e-09,
+      "passed": true
+    },
+    {
+      "fixture_id": "candidate",
+      "expected": 58.0,
+      "actual": 58.0,
+      "tolerance": 1e-09,
+      "passed": true
+    },
+    {
+      "fixture_id": "capacity_edge",
+      "expected": 50.0,
+      "actual": 50.0,
+      "tolerance": 1e-09,
+      "passed": true
+    }
+  ]
+}

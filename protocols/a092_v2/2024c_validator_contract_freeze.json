@@ -2,7 +2,8 @@
   "freeze_record_version": "1.0.0",
   "validator_contract_version": "2024c_positive_v2",
   "status": "validator_frozen_for_a092_v2_design",
-  "full_confirmatory_protocol_frozen": false,
+  "full_confirmatory_protocol_frozen": true,
+  "full_confirmatory_protocol": "protocols/a092_v2/a092_confirmatory_v2.json",
   "data_contract": {
     "merged_plot_ids_forward_filled": true,
     "smart_greenhouse_first_season_source": "普通大棚第一季",
