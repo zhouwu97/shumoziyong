@@ -1,0 +1,28 @@
+{
+  "record_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V4",
+  "run_id": "R01",
+  "attempt_id": "attempt-20260713T104754564244Z-34b02fef4d10",
+  "started_at": "2026-07-13T10:47:54.589450+00:00",
+  "completed_at": "2026-07-13T10:48:12.290896+00:00",
+  "disposition": "invalid_provider_context_mismatch",
+  "experiment_invalid_code": "E9",
+  "reason": "上游响应自称 Kiro CLI 并报告远端 Linux 工作目录，未执行本地 Claude Code 建模任务",
+  "observed_engine_init": {
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "permission_mode": "bypassPermissions"
+  },
+  "contradictory_response_context": {
+    "agent_name": "Kiro",
+    "reported_platform": "Linux",
+    "reported_working_directory": "/srv/ops-sync-11/gaoa281/platform/terminal/event-proxy-suite/gateway"
+  },
+  "runner_events_sha256": "cab5b9d97193c9f3e73d072e67dceca7d066d68154645f39c7699d5536d32fcc",
+  "runner_metadata_sha256": "358773fdca325cdd214f961c90c309d1b8e52a828e00f167b2a1aa1a004453ab",
+  "required_workspace_created": false,
+  "formal_result_created": false,
+  "official_result_directory_created": false,
+  "counts_toward_confirmatory_pairs": false,
+  "next_protocol_requirement": "候选产物完整性和外部 Validator 预检必须在原子提升之前通过"
+}
