@@ -1,1 +1,1 @@
-{"objective": 13}
+{"objective": 13, "solver_status": "optimal", "negative_tests_status": "passed", "negative_tests": [{"test_id": "missing-input", "status": "passed"}, {"test_id": "tampered-output", "status": "passed"}]}

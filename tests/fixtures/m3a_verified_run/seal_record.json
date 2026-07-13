@@ -1,18 +1,18 @@
 {
   "seal_version": "1.0.0",
   "run_id": "m3a_fixture_run_20260713",
-  "sealed_at": "2026-07-13T01:27:00+08:00",
+  "sealed_at": "2026-07-13T09:08:52+08:00",
   "run_manifest_sha256": "5405644d2836c01722b6b70648efb9edd16892addc9c33f202fe249b622ad679",
   "transitions_sha256": "c728c16ea5621d73d062a284aa50d5ef71dcde3ca73b4c31a70e46a18b8e7ef8",
-  "evidence_manifest_sha256": "c9efbdf711817b1425f927dd50046b5675a0f4998b37d3a5b8d56674263aa8ec",
+  "evidence_manifest_sha256": "623b63dc8efd2e12660737e5e578d718789a551e66f45712ba02b2ac2796bbd4",
   "formal_result_policy": "required_v1",
   "execution_contract_version": "1.0.0",
   "formal_result_contract_version": "1.0.0",
   "canonicalization_version": "1.0.0",
   "gate_artifact_contract_version": "1.0.0",
   "formal_result_id": "formal-m3a-fixture-001",
-  "formal_result_envelope_sha256": "594486d870750b59cebd7d36e3edcf045f202c22d05b43bdcfee4bb7aa8f1cc1",
-  "formal_result_envelope_semantic_sha256": "6402c88fc0116653d0e5e268849250609f2fb4f6b16348012010aaa995982d4a",
+  "formal_result_envelope_sha256": "a8e90bd53dc4df9f73facea8e1da245afd705435409efefdc2da79121dbe4a77",
+  "formal_result_envelope_semantic_sha256": "908d42b9a9011879ac6daa22d0f515dfdc749f7491eb32a4951c9ee30fb60622",
   "formal_result_activation_status": "run_execution_verified",
   "sandboxie_environment_observed": true,
   "sandboxie_environment_verified": true,
@@ -29,7 +29,7 @@
   "sandboxie_configuration_backup_sha256": "5d67157d5b1b9a83449bfc853669ed700172f6951cb12c9b142e97e3952bd7d7",
   "trusted_environment_registry_sha256": "9bf0bd15fc9fdb4703c078979f3492e5639058a569692077b936eb1b4e15333e",
   "trusted_environment_key_entry_semantic_sha256": "7eb7e71c0e341c00ecb94bdd2554bf7d97f7fda82f6ebb9cad4b2321830f0db4",
-  "sandboxie_run_execution_attestation_sha256": "6f983c03b451ceb07b90250468101ee5df29d71e2bfb6e0c8cf627fa13bc0486",
-  "sandboxie_run_execution_attestation_semantic_sha256": "8a72f7d227da4f04525fd05367b53656a2ed1ba1bdae756f4ebd2ab8fd777086",
-  "sandboxie_execution_id": "sandboxie-exec-84fe69e93acf43ab84ec41c6fd9cbb35"
+  "sandboxie_run_execution_attestation_sha256": "91bfee6766485aff4861c15680277167fd357dbfb3b623e9197e73eb9b114765",
+  "sandboxie_run_execution_attestation_semantic_sha256": "22330a88565660a45667b25d0ed8a4a8111a34bdeb63d68ff0924bace4e13000",
+  "sandboxie_execution_id": "sandboxie-exec-28037fb7a0cf4d2bbf4c28dc98adb249"
 }

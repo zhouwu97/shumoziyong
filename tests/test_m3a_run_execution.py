@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from formal_result.errors import FormalResultVerificationError
 from formal_result.derivation import verify_formal_result_derivation
 from formal_result.execution_contract import compile_execution_command
+from formal_result.hashing import file_sha256
 from formal_result.run_execution_attestation import (
     validate_execution_time_window,
     verify_run_execution_attestation,
@@ -341,6 +342,7 @@ def test_derivation_contract_cannot_self_authorize_irrelevant_mapping(
     derivation["result_derivation_contract"] = contract
     payload["result_derivation_contract"] = contract
     _write(derivation_path, derivation)
+    payload["collector_derivation_attestation_sha256"] = file_sha256(derivation_path)
     _write(payload_path, payload)
     with pytest.raises(FormalResultVerificationError, match="受信工程合同"):
         verify_formal_result_derivation(run, FORMAL_RESULT_ID)
@@ -368,6 +370,10 @@ def test_collector_script_must_match_bound_source_commit(tmp_path: Path) -> None
     derivation = _load(derivation_path)
     derivation["collector_script_sha256"] = "f" * 64
     _write(derivation_path, derivation)
+    payload_path = run / "formal_result_payload_manifest.json"
+    payload = _load(payload_path)
+    payload["collector_derivation_attestation_sha256"] = file_sha256(derivation_path)
+    _write(payload_path, payload)
     with pytest.raises(FormalResultVerificationError, match="Collector 脚本 SHA"):
         verify_formal_result_derivation(run, FORMAL_RESULT_ID)
 

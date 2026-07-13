@@ -20,8 +20,8 @@
     {
       "path": "formal_result_manifest.json",
       "media_type": "application/json",
-      "file_sha256": "ae8617058cd7eedccbfd15c01c40afd43dc9f791032ca84340a83c7daa906fcd",
-      "semantic_sha256": "d43dd2238ec8410e455202afd69c555347f37c43f6c8fdb5eabcb6d0b5aafc3d",
+      "file_sha256": "977f3424a24ac82f58180c3bd5347a36a246179ab0a1987061ebe52a6cd77f20",
+      "semantic_sha256": "72790ee9f7764654bce34752f2de34b3daf641d7f17b9df7477f5ecd71811be0",
       "schema": "formal_result_bundle_manifest.schema.json"
     },
     {
@@ -41,15 +41,15 @@
     {
       "path": "optimality_certificate.json",
       "media_type": "application/json",
-      "file_sha256": "f08c68a640e5508c00d4640564ae2557c7c3682a6372149f46619eea2c7ef214",
-      "semantic_sha256": "10bc6b18595122db9bf593249b84c2f24617b2669bceca9444155a895640a368",
+      "file_sha256": "8dfbf7b5aad7664fe273f40ba7f1bcde039e3608b9339cf4efa93f7a24864352",
+      "semantic_sha256": "cc65fd3c5bc407336fc8ca81fd7c4e214593ea9b29eefa8eaa7cdc4429d4bc48",
       "schema": "formal_result_core_artifact.schema.json"
     },
     {
       "path": "collector_attestation.json",
       "media_type": "application/json",
-      "file_sha256": "dffa97f1a5aa0117adc06c114e1ad03aff7fcb3b55c1abbe2b1e1ef4130a2ec7",
-      "semantic_sha256": "06f06f79d61f935f0ff670d15e994c566c8842cff06fddfdb98179bb8ab6bcf5",
+      "file_sha256": "aeee2186f05f562eef3dfd219488c96ac581b73d028165ba939c5cb0875a6316",
+      "semantic_sha256": "9dd57fbce62dfdfe1fbece5c174f28ee18d7116964e5876fbadc50294f38838a",
       "schema": "collector_attestation.schema.json"
     },
     {
@@ -69,15 +69,15 @@
     {
       "path": "code_manifest.json",
       "media_type": "application/json",
-      "file_sha256": "5e327894fa5ebe66343ea7e0610af6e1f5428732b9b207cf41c07a54d005b6cd",
-      "semantic_sha256": "c4bb4cd0d1ad9da9086df849cd8a151fc0fd05ed977a6de370df5a26bf7d33e1",
+      "file_sha256": "7644e706c6b5c2a63b832294ea9e2353c8e7dcc0787eebfaef20652e999e6251",
+      "semantic_sha256": "6bd7467dd1a2b61445db95cec809473e64aaecf08fe95a1a700303651d225cdc",
       "schema": "formal_result_provenance_manifest.schema.json"
     },
     {
       "path": "environment_manifest.json",
       "media_type": "application/json",
-      "file_sha256": "15d98c47f1177e2b268d75157592c0d8e8ad5b69afc4cd4cc146edf825c16f6f",
-      "semantic_sha256": "69df7bb884e1f4caeb866c5f1f0a4856fa14767ea31e98a5c5afb579b1d7a1d9",
+      "file_sha256": "9ff9b1f59e0970154aa53e28f13f8ba6726846d8cfbd34d8553e92a3e4fd48ec",
+      "semantic_sha256": "6cfca2e46dfa5199787063f320d6558f32fca3df1bdabbe0dc3200d7e38e9bb6",
       "schema": "formal_result_provenance_manifest.schema.json"
     },
     {
@@ -112,14 +112,14 @@
     "optimality_certificate.json"
   ],
   "semantic_hashes": {
-    "formal_result_manifest.json": "d43dd2238ec8410e455202afd69c555347f37c43f6c8fdb5eabcb6d0b5aafc3d",
+    "formal_result_manifest.json": "72790ee9f7764654bce34752f2de34b3daf641d7f17b9df7477f5ecd71811be0",
     "decision_variables.json": "9b04b3c92ba16e5f85ee15b5b34847d00bf6ecccdc74789f85f123d4bcb2827c",
     "optimization_validation.json": "b244e4e80bdb47508a5d7dcd70d44c3cc69d37112d1d364a57f69cbfabae5c0a",
-    "optimality_certificate.json": "10bc6b18595122db9bf593249b84c2f24617b2669bceca9444155a895640a368",
-    "collector_attestation.json": "06f06f79d61f935f0ff670d15e994c566c8842cff06fddfdb98179bb8ab6bcf5",
+    "optimality_certificate.json": "cc65fd3c5bc407336fc8ca81fd7c4e214593ea9b29eefa8eaa7cdc4429d4bc48",
+    "collector_attestation.json": "9dd57fbce62dfdfe1fbece5c174f28ee18d7116964e5876fbadc50294f38838a",
     "negative_tests.json": "ee17bab2efcfff33cc8971f8cf9e8a02255e5db4eb5929170a332add0b228fe0",
     "input_manifest.json": "e6522174dd10718f2ac6d43442f505e7e6f7dc8c192db17de3f73d3d24b3ccfc",
-    "code_manifest.json": "c4bb4cd0d1ad9da9086df849cd8a151fc0fd05ed977a6de370df5a26bf7d33e1",
-    "environment_manifest.json": "69df7bb884e1f4caeb866c5f1f0a4856fa14767ea31e98a5c5afb579b1d7a1d9"
+    "code_manifest.json": "6bd7467dd1a2b61445db95cec809473e64aaecf08fe95a1a700303651d225cdc",
+    "environment_manifest.json": "6cfca2e46dfa5199787063f320d6558f32fca3df1bdabbe0dc3200d7e38e9bb6"
   }
 }

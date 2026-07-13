@@ -3,8 +3,8 @@
   "artifact_type": "collector_derivation_attestation",
   "run_id": "m3a_fixture_run_20260713",
   "formal_result_id": "formal-m3a-fixture-001",
-  "execution_id": "sandboxie-exec-84fe69e93acf43ab84ec41c6fd9cbb35",
-  "run_output_manifest_sha256": "742a4767c5faddc9101c7e4c619295f49c54ab67a37f07ed86ad7ce100145183",
+  "execution_id": "sandboxie-exec-28037fb7a0cf4d2bbf4c28dc98adb249",
+  "run_output_manifest_sha256": "5e89c00f2c1fd5bb69c4433d72717543c545e5aa5fc508485ec7810364a4554e",
   "result_derivation_contract": {
     "contract_version": "1.0.0",
     "raw_output_path": "result.json",
@@ -18,16 +18,57 @@
         "source_pointer": "/objective",
         "target_artifact": "optimization_validation.json",
         "target_pointer": "/payload/metrics/objective"
+      },
+      {
+        "source_pointer": "/solver_status",
+        "target_artifact": "optimality_certificate.json",
+        "target_pointer": "/status"
+      },
+      {
+        "source_pointer": "/solver_status",
+        "target_artifact": "optimality_certificate.json",
+        "target_pointer": "/payload/solver_status"
+      },
+      {
+        "source_pointer": "/negative_tests_status",
+        "target_artifact": "negative_tests.json",
+        "target_pointer": "/status"
+      },
+      {
+        "source_pointer": "/negative_tests/0/test_id",
+        "target_artifact": "negative_tests.json",
+        "target_pointer": "/payload/results/0/test_id"
+      },
+      {
+        "source_pointer": "/negative_tests/0/status",
+        "target_artifact": "negative_tests.json",
+        "target_pointer": "/payload/results/0/status"
+      },
+      {
+        "source_pointer": "/negative_tests/1/test_id",
+        "target_artifact": "negative_tests.json",
+        "target_pointer": "/payload/results/1/test_id"
+      },
+      {
+        "source_pointer": "/negative_tests/1/status",
+        "target_artifact": "negative_tests.json",
+        "target_pointer": "/payload/results/1/status"
       }
     ]
   },
   "formal_core_semantic_sha256": {
     "decision_variables.json": "9b04b3c92ba16e5f85ee15b5b34847d00bf6ecccdc74789f85f123d4bcb2827c",
     "optimization_validation.json": "b244e4e80bdb47508a5d7dcd70d44c3cc69d37112d1d364a57f69cbfabae5c0a",
-    "optimality_certificate.json": "10bc6b18595122db9bf593249b84c2f24617b2669bceca9444155a895640a368",
+    "optimality_certificate.json": "cc65fd3c5bc407336fc8ca81fd7c4e214593ea9b29eefa8eaa7cdc4429d4bc48",
     "negative_tests.json": "ee17bab2efcfff33cc8971f8cf9e8a02255e5db4eb5929170a332add0b228fe0"
   },
-  "formal_result_core_digest": "9c16788bf3e63bab3b48b9289d9a797ee25726e5c3995da533d12e7a1fbe21ef",
+  "formal_result_core_digest": "aebc339e4651b5aab568f0e4729e87b09691a103341a243346ffc4293e9252c0",
   "collector_id": "m3a-json-pointer-collector-v1",
-  "derived_at": "2026-07-13T01:26:25+08:00"
+  "collector_source_commit": "52ab8b22daff1f6a8239c2a0849f56d124cdc47b",
+  "collector_script_path": "scripts/run_in_verified_sandbox.py",
+  "collector_script_sha256": "88009ddc259367b3d57e7584eab88251134aa4d6eb1ba7f065c70d158f3347c3",
+  "derivation_contract_id": "m3a-engineering-objective-v1",
+  "derivation_contract_sha256": "0440f9d58360a4920ca91ace8498ae4537aa283a0e4abcd416e900e965f06a3b",
+  "domain_policy_sha256": "7a5e7945240d4967c61b6754aeb8f14e412b3ad1b5db7695c584d16b5cac8b66",
+  "derived_at": "2026-07-13T09:07:49+08:00"
 }

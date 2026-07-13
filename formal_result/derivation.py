@@ -86,6 +86,8 @@ def _trusted_raw_output(
     entry = entries.get(raw_name)
     if entry is None:
         raise FormalResultVerificationError("派生 raw output 不属于 Run Output Manifest")
+    if not raw_path.is_file() or raw_path.is_symlink():
+        raise FormalResultVerificationError("Run Output Manifest 声明的 raw output 缺失或不是普通文件")
     if entry.get("sha256") != file_sha256(raw_path):
         raise FormalResultVerificationError("派生 raw output SHA 与 Run Output Manifest 不一致")
     return _load(raw_path, "Sandbox raw output")

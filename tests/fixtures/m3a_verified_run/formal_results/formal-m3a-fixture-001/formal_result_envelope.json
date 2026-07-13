@@ -15,11 +15,11 @@
   "execution_spec_file_sha256": "cf4a49d518f84efdf90861d872849d937b2c551f908f73ab0bddf486ac3be532",
   "execution_spec_semantic_sha256": "f5a09dfb0bc4d13e1e42fdfe310d9ad40ef874c24186b31cae70f2fa5ffa7166",
   "domain_manifest_path": "formal_results/formal-m3a-fixture-001/domain_manifest.json",
-  "domain_manifest_file_sha256": "a104f05667bed7cf5cf1335e647091cab5653badef58c8c3877ed4b1a2f32d71",
-  "domain_manifest_semantic_sha256": "83ddc31ef3c53b967bf31d1a8e1c02c43fc7a0a1abd8f3484a8187fd4fc9c2a5",
+  "domain_manifest_file_sha256": "8b79787aac438a2d550a7c8aae483951c3ceb65d6a18d170d296f24f12d5b9ad",
+  "domain_manifest_semantic_sha256": "2c613d6189d5459e9417640aa85e7b5bb89223e8c5fbc01c46ec3b56fa4c3382",
   "formal_result_manifest_path": "formal_results/formal-m3a-fixture-001/formal_result_manifest.json",
-  "formal_result_manifest_file_sha256": "ae8617058cd7eedccbfd15c01c40afd43dc9f791032ca84340a83c7daa906fcd",
-  "formal_result_manifest_semantic_sha256": "d43dd2238ec8410e455202afd69c555347f37c43f6c8fdb5eabcb6d0b5aafc3d",
-  "collector_attestation_semantic_sha256": "06f06f79d61f935f0ff670d15e994c566c8842cff06fddfdb98179bb8ab6bcf5",
+  "formal_result_manifest_file_sha256": "977f3424a24ac82f58180c3bd5347a36a246179ab0a1987061ebe52a6cd77f20",
+  "formal_result_manifest_semantic_sha256": "72790ee9f7764654bce34752f2de34b3daf641d7f17b9df7477f5ecd71811be0",
+  "collector_attestation_semantic_sha256": "9dd57fbce62dfdfe1fbece5c174f28ee18d7116964e5876fbadc50294f38838a",
   "created_by": "trusted_collector"
 }
