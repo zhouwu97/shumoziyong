@@ -1,0 +1,47 @@
+{
+  "$schema": "../../schemas/a092_confirmatory_v4.schema.json",
+  "schema_version": "4.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V4",
+  "patch_id": "A092",
+  "patch_status": "review_ready",
+  "state": "frozen_pre_execution",
+  "execution_started": false,
+  "pilot_evidence_allowed": false,
+  "supersedes": "A092-CONFIRMATORY-V3",
+  "supersession_reason": "v3 的 dontAsk 模式拒绝代码执行；无正式结果产生",
+  "execution_engine": {
+    "cli": "Claude Code",
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "effort": "high",
+    "output_format": "stream-json",
+    "session_persistence": false,
+    "permission_mode": "bypassPermissions"
+  },
+  "prerequisites": {
+    "v3_invalid_attempt_record": "protocols/a092_v3/invalid_attempt_R01.json",
+    "attempt_isolation_tests": "tests/test_execution_isolation.py",
+    "boundary_validator_freeze": "protocols/a092_v2/2023b_validator_formula_freeze.json",
+    "positive_validator_freeze": "protocols/a092_v2/2024c_validator_contract_freeze.json",
+    "a092_v2_pilot": "examples/a092_phase2_pilot_v2/pilot_result.json",
+    "claude_permission_probe": "PowerShell write/read probe passed with bypassPermissions on 2026-07-13",
+    "required_status": "all_passed_before_any_confirmatory_attempt"
+  },
+  "case_roles": [
+    {"role": "positive", "problem_id": "2024-C", "scope": "full_problem", "external_adapter": "validators/problem_positive_v2/validate.py", "required_claim_gates": ["objective_passed", "constraints_passed"]},
+    {"role": "boundary", "problem_id": "2023-B", "scope": "questions_1_and_2_only", "external_adapter": "validators/problem_boundary_v2/validate.py", "optimization_modules": "not_applicable"},
+    {"role": "negative", "problem_id": "2016-C", "scope": "full_problem", "external_adapter": "validators/problem_negative/validate.py", "required_behavior": "partial_recomputation_without_forced_engineering_optimization_chain"}
+  ],
+  "paired_runs": {
+    "positive": {"minimum_valid_pairs": 2, "order": ["baseline_1", "treatment_1", "treatment_2", "baseline_2"]},
+    "boundary": {"minimum_valid_pairs": 2, "order": ["treatment_1", "baseline_1", "baseline_2", "treatment_2"]},
+    "negative": {"minimum_valid_pairs": 1, "order": ["baseline_1", "treatment_1"]},
+    "invalid_attempts_do_not_count": true
+  },
+  "attempt_isolation": {"unique_attempt_id_directory": true, "one_active_attempt_per_run": true, "timeout_terminates_complete_process_tree": true, "success_promoted_atomically_by_parent": true, "failed_attempt_retained": true},
+  "external_validation": {"adapter_frozen_before_candidate": true, "candidate_process_separate": true, "same_function_or_implementation_hash_forbidden": true, "quantitative_claim_gate": "objective_passed_and_constraints_passed", "strong_optimality_gate": "objective_passed_and_constraints_passed_and_optimality_evidence_passed"},
+  "controls": ["same_claude_model_and_version", "same_reasoning_effort", "same_permission_mode", "same_problem_materials", "same_time_and_iteration_limits", "fresh_context_and_unique_attempt_id", "no_cross_run_solution_reads"],
+  "tolerances": {"objective_absolute": 1e-6, "variable_absolute": 1e-8, "integrality_absolute": 1e-8, "constraint_absolute": 1e-6, "constraint_relative": 1e-5, "mip_gap_maximum": 0.001},
+  "promotion_thresholds": {"positive_minimum_valid_pairs": 2, "boundary_minimum_valid_pairs": 2, "negative_minimum_valid_pairs": 1, "all_three_roles_must_pass": true, "all_external_claim_gates_must_pass": true},
+  "experiment_invalid": {"E5": "overlapping_active_attempts_or_shared_result_directory", "E6": "timeout_process_tree_cleanup_not_proven", "E7": "unfair_or_unavailable_execution_permissions", "E8": "post_hoc_protocol_change", "E9": "execution_engine_model_or_permission_drift"}
+}

@@ -1,0 +1,25 @@
+{
+  "record_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V3",
+  "run_id": "R01",
+  "attempt_id": "attempt-20260713T095519522682Z-8e6682882911",
+  "started_at": "2026-07-13T09:55:19.522682+00:00",
+  "disposition": "invalid_pre_execution_permission_probe",
+  "experiment_invalid_code": "E7",
+  "reason": "dontAsk 拒绝 Bash 和 PowerShell，代码执行条件不满足冻结控制要求",
+  "observed_engine": {
+    "cli": "Claude Code",
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "permission_mode": "dontAsk",
+    "session_id": "8887590e-74fb-4470-be9d-aad5479b2177"
+  },
+  "permission_denial_events": 4,
+  "runner_events_sha256": "84aa030974e39728c0f29160dca0259bb92b757e86a9f0f0ebc8a744b2341050",
+  "runner_events_bytes": 278823,
+  "stale_lock_audit_sha256": "b8e5f05308b2e20d4db3dd17480dcb73d054872cff46d0f239f543443bde5a7b",
+  "process_tree_terminated": true,
+  "official_result_directory_created": false,
+  "counts_toward_confirmatory_pairs": false,
+  "superseded_by": "A092-CONFIRMATORY-V4"
+}
