@@ -1,0 +1,5 @@
+{
+  "status": "not_performed",
+  "reason": "无干净有效配对可用于晋级，且独立 Codex 评审在 R10 前已触发用量上限。",
+  "promotion_impact": "不影响失败结论；硬门槛已明确不满足。"
+}

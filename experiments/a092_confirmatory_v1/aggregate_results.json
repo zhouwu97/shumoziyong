@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0.0",
+  "experiment_id": "a092_confirmatory_v1",
+  "completed_model_runs": 7,
+  "skipped_runs": [
+    "R03",
+    "R04"
+  ],
+  "invalid_runs": [
+    "R09",
+    "R10"
+  ],
+  "solution_p0_runs": [
+    "R01",
+    "R02",
+    "R05",
+    "R06",
+    "R07",
+    "R08"
+  ],
+  "clean_valid_pairs": [],
+  "positive_screening": {
+    "status": "failed",
+    "treatment_solution_p0": true,
+    "second_pair_skipped": true
+  },
+  "boundary_confirmatory": {
+    "status": "failed",
+    "completed_pairs": 2,
+    "all_independent_validators_failed": true,
+    "adapter_scope_risk": "四次最大偏差均约 705.584，需在下一轮预注册前复核方向定义。"
+  },
+  "negative_control": {
+    "status": "experiment_invalid",
+    "baseline_numeric_validator_valid": true,
+    "baseline_semantics_safe": true,
+    "treatment_completed": false
+  },
+  "blind_scoring": {
+    "status": "not_performed",
+    "reason": "无干净有效配对可用于晋级，且独立 Codex 评审在 R10 前已触发用量上限。",
+    "promotion_impact": "不影响失败结论；硬门槛已明确不满足。"
+  },
+  "promotion_conditions_met": false,
+  "final_patch_status": "review_ready",
+  "decision": "do_not_promote",
+  "required_follow_up": [
+    "在下一轮预注册前复核 2023-B 方向与深度符号约定。",
+    "修复长命令超时后孤立子进程并发覆盖问题。",
+    "额度恢复后以冻结或重新预注册的完整协议重跑负控 Treatment。",
+    "修订 A092 后重新 Pilot，再启动新的确认性实验版本。"
+  ]
+}

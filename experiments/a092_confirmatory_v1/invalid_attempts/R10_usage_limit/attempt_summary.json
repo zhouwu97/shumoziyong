@@ -1,0 +1,21 @@
+{
+  "sequence": 10,
+  "problem": "2016-C",
+  "arm": "treatment",
+  "pair": "negative_1",
+  "run_id": "R10",
+  "execution_status": "failed_before_model_work",
+  "classification": "experiment_invalid",
+  "return_code": 1,
+  "model": "gpt-5.6-sol",
+  "model_reasoning_effort": "high",
+  "sampling_control": "codex_cli_model_default",
+  "prompt_sha256": "dbbacd74e82450d0b447b45e3c123185770e21f106a8f1fa8fe5a2c5146ae7ca",
+  "runner_metadata_sha256": "a5a1fff9fd3c326857be63206832ec4a2a629413f927be38ab619237511241c0",
+  "runner_events_sha256": "1ef04e5bac40bd13a4df070d25dccf59e4355034cbc1ab47101210dea0628077",
+  "runner_stderr_sha256": "faa87c7c241c0adb0f0cf8a3dcc70fcd3b3c62d0f68700d2b11af1cc2da2b1b5",
+  "usage": {},
+  "reason": "Codex 用量上限导致 turn.failed；提示可在 2026-07-20 08:31 后重试。",
+  "error_message": "You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Jul 20th, 2026 8:31 AM.",
+  "eligible_for_patch_effect_estimate": false
+}

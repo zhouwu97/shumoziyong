@@ -1,0 +1,1182 @@
+{
+  "R01": {
+    "runner_metadata": {
+      "run_id": "R01",
+      "problem_id": "2024-C",
+      "scope": "full_problem",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T03:50:40.077266+00:00",
+      "completed_at": "2026-07-13T04:23:55.048622+00:00",
+      "return_code": 0,
+      "thread_id": "019f5999-334e-73d3-bf77-a027395b69ee",
+      "usage": {
+        "input_tokens": 6701716,
+        "cached_input_tokens": 6445056,
+        "output_tokens": 37244,
+        "reasoning_output_tokens": 6244
+      },
+      "prompt_sha256": "645f98d70a5cdcf929e121c728206afb3fae94e9afc3451d1914e8c550dfb4ab"
+    },
+    "validator_independent": {
+      "validator": "a092_2024c_full_v1",
+      "objective_tolerance": 1e-06,
+      "constraint_tolerance": 1e-06,
+      "scenario_reports": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 40774639.798695,
+          "objective_recomputed": 25079911.38141167,
+          "objective_difference": 15694728.417283326,
+          "violated_constraints": [],
+          "max_raw_constraint_violation": 0.0,
+          "valid": false
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 59324260.51175,
+          "objective_recomputed": 54368178.268695,
+          "objective_difference": 4956082.243055001,
+          "violated_constraints": [
+            "continuous_crop:F1:17:2025",
+            "continuous_crop:F1:22:2026",
+            "continuous_crop:F1:22:2029",
+            "continuous_crop:F1:29:2027",
+            "continuous_crop:F1:29:2030",
+            "continuous_crop:F2:22:2026",
+            "continuous_crop:F2:22:2029",
+            "continuous_crop:F2:29:2025",
+            "continuous_crop:F2:29:2028",
+            "continuous_crop:F3:22:2026",
+            "continuous_crop:F3:22:2029",
+            "continuous_crop:F3:29:2025",
+            "continuous_crop:F3:29:2028",
+            "continuous_crop:F4:22:2025",
+            "continuous_crop:F4:29:2027",
+            "continuous_crop:F4:29:2030"
+          ],
+          "max_raw_constraint_violation": 1.7763568394002505e-15,
+          "valid": false
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40488419.079394,
+          "objective_recomputed": 25104329.67546027,
+          "objective_difference": 15384089.403933726,
+          "violated_constraints": [
+            "continuous_crop:F4:22:2025",
+            "legume_window:D8:2025-2027"
+          ],
+          "max_raw_constraint_violation": 1.0000000010279564e-06,
+          "valid": false
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40920239.237815,
+          "objective_recomputed": 25555925.5419756,
+          "objective_difference": 15364313.695839401,
+          "violated_constraints": [
+            "capacity:2028:D6:第一季",
+            "legume_window:D2:2023-2025",
+            "legume_window:D3:2023-2025",
+            "legume_window:D3:2024-2026",
+            "water_system:2028:D6:第一季",
+            "water_system:2030:D5:第二季"
+          ],
+          "max_raw_constraint_violation": 1.0000000010279564e-06,
+          "valid": false
+        }
+      ],
+      "q3_correlation_claim_requires_separate_evidence": true,
+      "valid": false
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R01",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    }
+  },
+  "R02": {
+    "runner_metadata": {
+      "run_id": "R02",
+      "problem_id": "2024-C",
+      "scope": "full_problem",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T04:25:01.363748+00:00",
+      "completed_at": "2026-07-13T05:01:15.045527+00:00",
+      "return_code": 0,
+      "thread_id": "019f59b8-a7fd-7b02-914e-635d1e85d30f",
+      "usage": {
+        "input_tokens": 8057301,
+        "cached_input_tokens": 7753728,
+        "output_tokens": 55859,
+        "reasoning_output_tokens": 13949
+      },
+      "prompt_sha256": "c1970d881b71bfd2cbcce222ed541ff497400cc8d4c5e76eb7627d0caae78b03"
+    },
+    "validator_independent": {
+      "validator": "a092_2024c_full_v1",
+      "objective_tolerance": 1e-06,
+      "constraint_tolerance": 1e-06,
+      "scenario_reports": [
+        {
+          "scenario_id": "q1_waste",
+          "objective_reported": 22119933.25,
+          "objective_recomputed": 9593434.583333334,
+          "objective_difference": 12526498.666666666,
+          "violated_constraints": [],
+          "max_raw_constraint_violation": 0.0,
+          "valid": false
+        },
+        {
+          "scenario_id": "q1_discount",
+          "objective_reported": 54065488.287914,
+          "objective_recomputed": 48775286.78791351,
+          "objective_difference": 5290201.500000492,
+          "violated_constraints": [
+            "continuous_crop:F1:29:2025",
+            "continuous_crop:F1:29:2026",
+            "continuous_crop:F1:29:2027",
+            "continuous_crop:F1:29:2028",
+            "continuous_crop:F2:22:2026",
+            "continuous_crop:F4:29:2025",
+            "continuous_crop:F4:29:2026",
+            "continuous_crop:F4:29:2029",
+            "continuous_crop:F4:29:2030"
+          ],
+          "max_raw_constraint_violation": 0.0,
+          "valid": false
+        },
+        {
+          "scenario_id": "q2_frozen",
+          "objective_reported": 40918763.736438,
+          "objective_recomputed": 26535442.979638837,
+          "objective_difference": 14383320.756799161,
+          "violated_constraints": [
+            "continuous_crop:F1:22:2030",
+            "continuous_crop:F2:21:2029",
+            "continuous_crop:F2:22:2025",
+            "continuous_crop:F2:22:2030",
+            "continuous_crop:F3:21:2029",
+            "continuous_crop:F3:28:2028",
+            "continuous_crop:F4:22:2027",
+            "continuous_crop:F4:22:2028",
+            "continuous_crop:F4:24:2030"
+          ],
+          "max_raw_constraint_violation": 1.000017846308765e-10,
+          "valid": false
+        },
+        {
+          "scenario_id": "q3_frozen",
+          "objective_reported": 40918763.736438,
+          "objective_recomputed": 26535442.979638837,
+          "objective_difference": 14383320.756799161,
+          "violated_constraints": [
+            "continuous_crop:F1:22:2030",
+            "continuous_crop:F2:21:2029",
+            "continuous_crop:F2:22:2025",
+            "continuous_crop:F2:22:2030",
+            "continuous_crop:F3:21:2029",
+            "continuous_crop:F3:28:2028",
+            "continuous_crop:F4:22:2027",
+            "continuous_crop:F4:22:2028",
+            "continuous_crop:F4:24:2030"
+          ],
+          "max_raw_constraint_violation": 1.000017846308765e-10,
+          "valid": false
+        }
+      ],
+      "q3_correlation_claim_requires_separate_evidence": true,
+      "valid": false
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R02",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    }
+  },
+  "R05": {
+    "runner_metadata": {
+      "run_id": "R05",
+      "problem_id": "2023-B",
+      "scope": "questions_1_and_2_only",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T05:02:26.425507+00:00",
+      "completed_at": "2026-07-13T05:17:03.697236+00:00",
+      "return_code": 0,
+      "thread_id": "019f59da-e99b-7a81-943a-89deb9de80c7",
+      "usage": {
+        "input_tokens": 1579161,
+        "cached_input_tokens": 1449216,
+        "output_tokens": 38037,
+        "reasoning_output_tokens": 8381
+      },
+      "prompt_sha256": "7ed6906f9db7af930f41e26f0ae84a8073c7920b53aa0edbabcf1e498a09333a"
+    },
+    "validator_independent": {
+      "validator": "a092_2023b_q1_q2_v1",
+      "max_absolute_difference": 705.5840560000332,
+      "tolerance": 1e-06,
+      "objective_applicable": false,
+      "constraints_applicable": false,
+      "sensitivity_applicable": false,
+      "valid": false,
+      "expected": {
+        "q1": {
+          "distances_m": [
+            -800,
+            -600,
+            -400,
+            -200,
+            0,
+            200,
+            400,
+            600,
+            800
+          ],
+          "depth_m": [
+            90.94873725534954,
+            85.71155294151215,
+            80.47436862767478,
+            75.23718431383739,
+            70.0,
+            64.76281568616261,
+            59.52563137232523,
+            54.28844705848784,
+            49.05126274465046
+          ],
+          "coverage_width_m": [
+            315.8133282933294,
+            297.6275605855835,
+            279.44179287783766,
+            261.25602517009173,
+            243.07025746234586,
+            224.88448975459994,
+            206.69872204685407,
+            188.51295433910818,
+            170.3271866313623
+          ],
+          "overlap_ratio": [
+            null,
+            0.32801922104761017,
+            0.28428744340531364,
+            0.2344674161302529,
+            0.17719262698776672,
+            0.11065453994517171,
+            0.03240814447481499,
+            -0.06093504661874993,
+            -0.17421067038967952
+          ]
+        },
+        "q2": {
+          "distances_nm": [
+            0,
+            0.3,
+            0.6,
+            0.9,
+            1.2,
+            1.5,
+            1.8,
+            2.1
+          ],
+          "rows": [
+            {
+              "beta_deg": 0,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 45,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 90,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 135,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 180,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 225,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 270,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 315,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R05",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    }
+  },
+  "R06": {
+    "runner_metadata": {
+      "run_id": "R06",
+      "problem_id": "2023-B",
+      "scope": "questions_1_and_2_only",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T05:17:17.971380+00:00",
+      "completed_at": "2026-07-13T05:36:58.906593+00:00",
+      "return_code": 0,
+      "thread_id": "019f59e8-83d2-7173-807f-fea172cd03ed",
+      "usage": {
+        "input_tokens": 2106563,
+        "cached_input_tokens": 1948160,
+        "output_tokens": 48605,
+        "reasoning_output_tokens": 12025
+      },
+      "prompt_sha256": "62d20f8987f098f4dc5b5bf4f3be1fda36324d0515b1651c553439c3a2e25d1d"
+    },
+    "validator_independent": {
+      "validator": "a092_2023b_q1_q2_v1",
+      "max_absolute_difference": 705.5840560004863,
+      "tolerance": 1e-06,
+      "objective_applicable": false,
+      "constraints_applicable": false,
+      "sensitivity_applicable": false,
+      "valid": false,
+      "expected": {
+        "q1": {
+          "distances_m": [
+            -800,
+            -600,
+            -400,
+            -200,
+            0,
+            200,
+            400,
+            600,
+            800
+          ],
+          "depth_m": [
+            90.94873725534954,
+            85.71155294151215,
+            80.47436862767478,
+            75.23718431383739,
+            70.0,
+            64.76281568616261,
+            59.52563137232523,
+            54.28844705848784,
+            49.05126274465046
+          ],
+          "coverage_width_m": [
+            315.8133282933294,
+            297.6275605855835,
+            279.44179287783766,
+            261.25602517009173,
+            243.07025746234586,
+            224.88448975459994,
+            206.69872204685407,
+            188.51295433910818,
+            170.3271866313623
+          ],
+          "overlap_ratio": [
+            null,
+            0.32801922104761017,
+            0.28428744340531364,
+            0.2344674161302529,
+            0.17719262698776672,
+            0.11065453994517171,
+            0.03240814447481499,
+            -0.06093504661874993,
+            -0.17421067038967952
+          ]
+        },
+        "q2": {
+          "distances_nm": [
+            0,
+            0.3,
+            0.6,
+            0.9,
+            1.2,
+            1.5,
+            1.8,
+            2.1
+          ],
+          "rows": [
+            {
+              "beta_deg": 0,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 45,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 90,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 135,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 180,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 225,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 270,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 315,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R06",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    }
+  },
+  "R07": {
+    "runner_metadata": {
+      "run_id": "R07",
+      "problem_id": "2023-B",
+      "scope": "questions_1_and_2_only",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T05:37:14.731525+00:00",
+      "completed_at": "2026-07-13T05:50:50.815923+00:00",
+      "return_code": 0,
+      "thread_id": "019f59fa-c6d3-7eb2-9f4f-35604a1b4883",
+      "usage": {
+        "input_tokens": 1432687,
+        "cached_input_tokens": 1297152,
+        "output_tokens": 37867,
+        "reasoning_output_tokens": 8741
+      },
+      "prompt_sha256": "db8df41a48b5db67ced1fd70ed65fbbc7f0ae6990168f3b37d491d7ed9e782ff"
+    },
+    "validator_independent": {
+      "validator": "a092_2023b_q1_q2_v1",
+      "max_absolute_difference": 705.5840561834863,
+      "tolerance": 1e-06,
+      "objective_applicable": false,
+      "constraints_applicable": false,
+      "sensitivity_applicable": false,
+      "valid": false,
+      "expected": {
+        "q1": {
+          "distances_m": [
+            -800,
+            -600,
+            -400,
+            -200,
+            0,
+            200,
+            400,
+            600,
+            800
+          ],
+          "depth_m": [
+            90.94873725534954,
+            85.71155294151215,
+            80.47436862767478,
+            75.23718431383739,
+            70.0,
+            64.76281568616261,
+            59.52563137232523,
+            54.28844705848784,
+            49.05126274465046
+          ],
+          "coverage_width_m": [
+            315.8133282933294,
+            297.6275605855835,
+            279.44179287783766,
+            261.25602517009173,
+            243.07025746234586,
+            224.88448975459994,
+            206.69872204685407,
+            188.51295433910818,
+            170.3271866313623
+          ],
+          "overlap_ratio": [
+            null,
+            0.32801922104761017,
+            0.28428744340531364,
+            0.2344674161302529,
+            0.17719262698776672,
+            0.11065453994517171,
+            0.03240814447481499,
+            -0.06093504661874993,
+            -0.17421067038967952
+          ]
+        },
+        "q2": {
+          "distances_nm": [
+            0,
+            0.3,
+            0.6,
+            0.9,
+            1.2,
+            1.5,
+            1.8,
+            2.1
+          ],
+          "rows": [
+            {
+              "beta_deg": 0,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 45,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 90,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 135,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 180,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 225,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 270,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 315,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R07",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    }
+  },
+  "R08": {
+    "runner_metadata": {
+      "run_id": "R08",
+      "problem_id": "2023-B",
+      "scope": "questions_1_and_2_only",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T05:51:02.338343+00:00",
+      "completed_at": "2026-07-13T06:06:37.753906+00:00",
+      "return_code": 0,
+      "thread_id": "019f5a07-677c-7a91-bba7-b250e6cad47e",
+      "usage": {
+        "input_tokens": 1982101,
+        "cached_input_tokens": 1817856,
+        "output_tokens": 41508,
+        "reasoning_output_tokens": 8883
+      },
+      "prompt_sha256": "d9f24a6ca5895cbeff11e1458a7ed30778cf8d86498431f0154ada67fe13e30b"
+    },
+    "validator_independent": {
+      "validator": "a092_2023b_q1_q2_v1",
+      "max_absolute_difference": 705.5840561834863,
+      "tolerance": 1e-06,
+      "objective_applicable": false,
+      "constraints_applicable": false,
+      "sensitivity_applicable": false,
+      "valid": false,
+      "expected": {
+        "q1": {
+          "distances_m": [
+            -800,
+            -600,
+            -400,
+            -200,
+            0,
+            200,
+            400,
+            600,
+            800
+          ],
+          "depth_m": [
+            90.94873725534954,
+            85.71155294151215,
+            80.47436862767478,
+            75.23718431383739,
+            70.0,
+            64.76281568616261,
+            59.52563137232523,
+            54.28844705848784,
+            49.05126274465046
+          ],
+          "coverage_width_m": [
+            315.8133282933294,
+            297.6275605855835,
+            279.44179287783766,
+            261.25602517009173,
+            243.07025746234586,
+            224.88448975459994,
+            206.69872204685407,
+            188.51295433910818,
+            170.3271866313623
+          ],
+          "overlap_ratio": [
+            null,
+            0.32801922104761017,
+            0.28428744340531364,
+            0.2344674161302529,
+            0.17719262698776672,
+            0.11065453994517171,
+            0.03240814447481499,
+            -0.06093504661874993,
+            -0.17421067038967952
+          ]
+        },
+        "q2": {
+          "distances_nm": [
+            0,
+            0.3,
+            0.6,
+            0.9,
+            1.2,
+            1.5,
+            1.8,
+            2.1
+          ],
+          "rows": [
+            {
+              "beta_deg": 0,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 45,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 90,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 135,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 180,
+              "coverage_width_m": [
+                415.6921938165304,
+                365.293332673671,
+                314.8944715308114,
+                264.4956103879519,
+                214.09674924509238,
+                163.6978881022329,
+                113.29902695937335,
+                62.90016581651382
+              ]
+            },
+            {
+              "beta_deg": 225,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            },
+            {
+              "beta_deg": 270,
+              "coverage_width_m": [
+                416.69186993545,
+                366.17180724333195,
+                315.6517445512138,
+                265.13168185909575,
+                214.61161916697768,
+                164.09155647485957,
+                113.57149378274147,
+                63.05143109062335
+              ]
+            },
+            {
+              "beta_deg": 315,
+              "coverage_width_m": [
+                416.1915233474199,
+                365.7321230843504,
+                315.2727228212808,
+                264.8133225582113,
+                214.35392229514179,
+                163.89452203207225,
+                113.43512176900268,
+                62.97572150593312
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R08",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    }
+  },
+  "R09": {
+    "runner_metadata": {
+      "run_id": "R09",
+      "problem_id": "2016-C",
+      "scope": "full_problem",
+      "model": "gpt-5.6-sol",
+      "model_reasoning_effort": "high",
+      "sampling_control": "codex_cli_model_default",
+      "codex_cli_version": "0.144.0-alpha.4",
+      "sandbox": "danger-full-access",
+      "web_search": false,
+      "human_confirmation": false,
+      "started_at": "2026-07-13T06:07:00.836445+00:00",
+      "completed_at": "2026-07-13T06:35:37.629656+00:00",
+      "return_code": 0,
+      "thread_id": "019f5a16-0790-7272-8726-28affe9fa538",
+      "usage": {
+        "input_tokens": 6589407,
+        "cached_input_tokens": 6221312,
+        "output_tokens": 50734,
+        "reasoning_output_tokens": 11469
+      },
+      "prompt_sha256": "d3365bb976fb3687d1625229fbeedd7408198b3e09077230b9dc5eec61b03f6d"
+    },
+    "validator_independent": {
+      "validator": "a092_2016c_prediction_v1",
+      "curve_checks": [
+        {
+          "curve_id": "20A",
+          "mre_reported": 0.00030998425601534463,
+          "mre_recomputed": 0.00030998425601534463,
+          "difference": 0.0,
+          "valid": true
+        },
+        {
+          "curve_id": "30A",
+          "mre_reported": 0.0006431106608392872,
+          "mre_recomputed": 0.0006431106608392872,
+          "difference": 0.0,
+          "valid": true
+        },
+        {
+          "curve_id": "40A",
+          "mre_reported": 0.0007713760807637162,
+          "mre_recomputed": 0.0007713760807637161,
+          "difference": 1.0842021724855044e-19,
+          "valid": true
+        },
+        {
+          "curve_id": "50A",
+          "mre_reported": 0.000743416779006708,
+          "mre_recomputed": 0.0007434167790067079,
+          "difference": 1.0842021724855044e-19,
+          "valid": true
+        },
+        {
+          "curve_id": "60A",
+          "mre_reported": 0.0007655345826907263,
+          "mre_recomputed": 0.0007655345826907264,
+          "difference": 1.0842021724855044e-19,
+          "valid": true
+        },
+        {
+          "curve_id": "70A",
+          "mre_reported": 0.0005651202387598786,
+          "mre_recomputed": 0.0005651202387598786,
+          "difference": 0.0,
+          "valid": true
+        },
+        {
+          "curve_id": "80A",
+          "mre_reported": 0.00019000016774627248,
+          "mre_recomputed": 0.00019000016774627242,
+          "difference": 5.421010862427522e-20,
+          "valid": true
+        },
+        {
+          "curve_id": "90A",
+          "mre_reported": 0.00023401134007486246,
+          "mre_recomputed": 0.00023401134007486235,
+          "difference": 1.0842021724855044e-19,
+          "valid": true
+        },
+        {
+          "curve_id": "100A",
+          "mre_reported": 0.00024426313253427743,
+          "mre_recomputed": 0.0002442631325342774,
+          "difference": 5.421010862427522e-20,
+          "valid": true
+        }
+      ],
+      "remaining_time_predictions_valid": true,
+      "engineering_optimization_applicable": false,
+      "optimality_claim_allowed": "unverified_candidate",
+      "valid": true
+    },
+    "isolation_audit": {
+      "audit": "a092_run_isolation_v1",
+      "run_id": "R09",
+      "events_sha256_checked": true,
+      "forbidden_reference_count": 0,
+      "findings": [],
+      "valid": true
+    },
+    "external_experiment_validity": {
+      "audit": "a092_external_experiment_validity_v1",
+      "run_id": "R09",
+      "status": "experiment_invalid",
+      "reason": "同一会话在旧版分析进程仍运行时修改脚本并并发启动新进程，多个版本先后覆盖正式结果与清单，破坏单一实现到单一产物的执行链。",
+      "independent_numeric_validation_valid": true,
+      "isolation_audit_valid": true,
+      "eligible_for_patch_effect_estimate": false
+    }
+  },
+  "R10": {
+    "sequence": 10,
+    "problem": "2016-C",
+    "arm": "treatment",
+    "pair": "negative_1",
+    "run_id": "R10",
+    "execution_status": "failed_before_model_work",
+    "classification": "experiment_invalid",
+    "return_code": 1,
+    "model": "gpt-5.6-sol",
+    "model_reasoning_effort": "high",
+    "sampling_control": "codex_cli_model_default",
+    "prompt_sha256": "dbbacd74e82450d0b447b45e3c123185770e21f106a8f1fa8fe5a2c5146ae7ca",
+    "runner_metadata_sha256": "a5a1fff9fd3c326857be63206832ec4a2a629413f927be38ab619237511241c0",
+    "runner_events_sha256": "1ef04e5bac40bd13a4df070d25dccf59e4355034cbc1ab47101210dea0628077",
+    "runner_stderr_sha256": "faa87c7c241c0adb0f0cf8a3dcc70fcd3b3c62d0f68700d2b11af1cc2da2b1b5",
+    "usage": {},
+    "reason": "Codex 用量上限导致 turn.failed；提示可在 2026-07-20 08:31 后重试。",
+    "error_message": "You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at Jul 20th, 2026 8:31 AM.",
+    "eligible_for_patch_effect_estimate": false
+  }
+}
