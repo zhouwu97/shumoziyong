@@ -1,0 +1,14 @@
+{
+  "deviation_id": "A092-DEV-003",
+  "recorded_before_formal_runs": true,
+  "protocol_deviation": true,
+  "reason": "阶段二协议冻结了输出清单与控制变量，但未固化实际发送给每个新上下文的统一执行模板。为防止运行间人工提示漂移，在任何正式运行前增加并哈希统一模板。",
+  "changes": [
+    "新增不含评分权重、晋级门槛或 Treatment 预期的统一执行模板",
+    "固定 Gate 0-5 文件名、论文篇幅、结果合同和证据要求",
+    "每次运行仅替换 run_id、题号范围、题目专用说明和已冻结提示词栈"
+  ],
+  "affected_runs": [],
+  "rerun_required": true,
+  "fulfillment_condition": "阶段三全部正式运行由同一模板机械生成 prompt_exact.md"
+}

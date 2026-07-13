@@ -51,6 +51,7 @@ def build_freeze_record(protocol_commit: str) -> dict[str, Any]:
         "runtime_pack_sha256": ROOT / "protocols" / "a092" / "runtime_pack.json",
         "case_role_manifest_sha256": ROOT / "protocols" / "a092" / "case_role_manifest.json",
         "formal_result_contract_sha256": ROOT / "protocols" / "a092" / "formal_result_contract.md",
+        "stage3_execution_prompt_sha256": ROOT / "protocols" / "a092" / "stage3_execution_prompt.md",
     }
     return {
         "freeze_record_version": "1.0.0",
