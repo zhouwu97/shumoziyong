@@ -1,0 +1,40 @@
+{
+  "validation_scope": "Independent post-run validation of the DeepSeek official-provider trial",
+  "validated_at": "2026-07-14T00:00:00+08:00",
+  "commands": [
+    "python -m compileall -q code",
+    "python code\\recompute_objective.py",
+    "python code\\check_constraints.py"
+  ],
+  "compilation": "pass",
+  "objective_validation": {
+    "q1_1": {
+      "status": "failed_strict_absolute_tolerance",
+      "tolerance_yuan": 0.000001,
+      "absolute_discrepancy_yuan": 0.1164,
+      "note": "Relative discrepancy is negligible, but the reported solution does not meet the strict absolute threshold."
+    },
+    "q1_2": {
+      "status": "failed_strict_absolute_tolerance",
+      "tolerance_yuan": 0.000001,
+      "absolute_discrepancy_yuan": 0.0505,
+      "note": "Relative discrepancy is negligible, but the reported solution does not meet the strict absolute threshold."
+    },
+    "q2": {
+      "status": "incomplete",
+      "note": "Only a base-parameter recomputation exists; the selected stochastic scenario parameters were not retained."
+    },
+    "q3": {
+      "status": "incomplete",
+      "note": "Only a base-parameter estimate exists; perturbed and correlation parameters were not retained."
+    }
+  },
+  "constraint_validation": {
+    "q1_1": "37/37 pass",
+    "q1_2": "30/30 pass",
+    "q2": "30/30 pass",
+    "q3": "30/30 pass"
+  },
+  "final_status": "not_accepted_as_mathematically_complete",
+  "required_follow_up": "Persist full-precision decisions and Q2/Q3 effective parameters, then rerun independent objective recomputation."
+}

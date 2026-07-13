@@ -1,0 +1,78 @@
+{
+  "record_version": "1.0.0",
+  "trial_id": "OPENCODE-DEEPSEEK-2024C-20260714",
+  "trial_type": "diagnostic_independent_run",
+  "counts_toward_a092_v4": false,
+  "promotion_evidence": false,
+  "problem_id": "2024-C",
+  "execution": {
+    "cli": "OpenCode",
+    "cli_version": "1.17.18",
+    "provider": "DeepSeek official",
+    "model": "deepseek/deepseek-v4-pro"
+  },
+  "relationship_to_a092": {
+    "protocol_modified": false,
+    "formal_r01_created": false,
+    "formal_r02_created": false,
+    "reason_not_counted": "execution engine and model do not match A092 v4 frozen controls"
+  },
+  "validation_summary": {
+    "constraints_passed": true,
+    "q1_absolute_errors_yuan": [
+      0.1164,
+      0.0505
+    ],
+    "q1_passes_strict_absolute_tolerance": false,
+    "q2_independently_recomputed": false,
+    "q3_independently_recomputed": false,
+    "mathematical_result_complete": false
+  },
+  "publication": {
+    "local_full_artifact_retained": true,
+    "full_artifact_published": false,
+    "event_log_published": false,
+    "provider_configuration_published": false
+  },
+  "artifact_hashes": {
+    "strict_validation": {
+      "path": "strict_validation.json",
+      "sha256": "cecd3f36429b221ef7f77077ac029a1c1e6f6144f3ddb3a308d9fc4c36f02723"
+    },
+    "local_full_artifact_tree": {
+      "algorithm": "sha256",
+      "canonicalization": "sorted UTF-8 lines: sha256, two spaces, POSIX relative path, LF terminator",
+      "entry_count": 47,
+      "excluded_paths": [
+        ".omo/",
+        ".codegraph/",
+        "full_artifact_manifest.sha256"
+      ],
+      "sha256": "d8317d5e82ec1c288c1e416717bb91f7abb451acfc77af9257c823d71fc98844"
+    },
+    "trial_summary": {
+      "path": "direct_trial_result.json",
+      "sha256": "d68575fae930230116f3972c88dc0cf201fd6425d9b3708400ec0f036434d910"
+    },
+    "result_files": {
+      "results/solution_q1_1.json": "a6382ff5aca7775fccac511c70e140f3e22456a8008948607d41233e0c06a778",
+      "results/solution_q1_2.json": "c68e5bd2fedba24b949163d1c700e7b271310cbae375f78186693a8d5c4e8e87",
+      "results/solution_q2.json": "0bc575a30033b2982b8a9274b301a3f41efc72f39778842d643a45a36d4ea3c0",
+      "results/solution_q3.json": "fb1549c8874b906960f3c0b076eb62d0bbd2111ac2913e817ecd591c3b7cac48"
+    },
+    "code_files": {
+      "code/load_data.py": "ed1c5bb59df28268f5343678294786d07f5a97129b98d929259bc8c3ed0218db",
+      "code/build_model.py": "e35239a577e29df7bd216a9aa6c51aac72738217fa75e10dffaf6a46146ef0b8",
+      "code/build_model_q2.py": "67b6a42ca48f97f4da7c71d63d6c97a72bcda1329d12d247a3403b1c365c512e",
+      "code/build_model_q3.py": "e1231ea6f99f2757e96200ad00c378387f6e52757a6d1d0fd61e6aa8aab94e33",
+      "code/recompute_objective.py": "b528dcb6942c2c4393ba372461d18ae3beb29702c32c37255433346becb13483",
+      "code/check_constraints.py": "d01aacd2cf797c157458d07a615f9d25638ab4a31674dec53a24bd6153199396"
+    },
+    "input_files": {
+      "materials/attachments/附件1.xlsx": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932",
+      "materials/attachments/附件2.xlsx": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce",
+      "materials/material_manifest.json": "340354a313b0db5d315dea76899f1a8a4bf47b84ea0ffd3d4bf7f4202e347a7f"
+    },
+    "formal_result": null
+  }
+}
