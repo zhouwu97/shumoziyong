@@ -1,0 +1,41 @@
+{
+  "record_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V4",
+  "run_id": "R01",
+  "attempt_id": "attempt-20260713T115618396358Z-34c1ff4d5189",
+  "started_at": "2026-07-13T11:56:18.417355+00:00",
+  "completed_at": "2026-07-13T12:34:32.402503+00:00",
+  "disposition": "invalid_provider_gateway_failure",
+  "experiment_invalid_code": "provider_gateway_upstream_502",
+  "reason": "本地 Claude Code 初始化元数据符合冻结配置，但 CC Switch 中转在候选执行期间连续 10 次返回上游 502 SendRequest 错误，运行未完成。",
+  "observed_engine_init": {
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "permission_mode": "bypassPermissions",
+    "engine_valid": true
+  },
+  "provider_transport": {
+    "base_url": "http://127.0.0.1:15721",
+    "gateway_process": "cc-switch.exe",
+    "terminal_error": "API Error: 502 请求转发失败: 上游请求失败: client error (SendRequest)"
+  },
+  "runner_events_sha256": "ffc0528b52d15329a763c174df0dba7042b752db08c3ee396e8f837e194dba89",
+  "runner_metadata_sha256": "f1d22591f7b9842d1fd3b4e48dc632cf7e26fcd5a95d21baa3db24cbdc9fae2a",
+  "partial_artifacts": [
+    "gate0",
+    "gate1",
+    "gate2",
+    "code/data_loader.py"
+  ],
+  "candidate_precheck": {
+    "formal_result_created": false,
+    "results_created": false,
+    "paper_or_report_created": false,
+    "external_validator_not_run": true
+  },
+  "required_workspace_created": true,
+  "formal_result_created": false,
+  "official_result_directory_created": false,
+  "counts_toward_confirmatory_pairs": false,
+  "next_protocol_requirement": "待 CC Switch 上游请求稳定后，创建新的唯一 R01 attempt；不得复用本次目录或计入有效配对。"
+}
