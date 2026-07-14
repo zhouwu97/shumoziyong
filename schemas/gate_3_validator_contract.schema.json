@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version", "validator_path", "validator_sha256", "supported_check_ids",
-    "report_schema_path", "required_observations"
+    "report_schema_path", "report_schema_sha256", "required_observations"
   ],
   "properties": {
     "schema_version": {"const": "1.0.0"},
@@ -19,6 +19,7 @@
       "items": {"type": "string", "minLength": 1}
     },
     "report_schema_path": {"type": "string", "pattern": "^validators/.+\\.json$"},
+    "report_schema_sha256": {"$ref": "#/$defs/sha256"},
     "required_observations": {
       "type": "object",
       "additionalProperties": {
