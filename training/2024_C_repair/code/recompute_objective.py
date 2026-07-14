@@ -39,7 +39,8 @@ def recompute_objective(
         working[field] = working.apply(lambda row: parameter(row, field), axis=1)
     working["production"] = working["area"] * working["yield_per_mu"]
     working["planting_cost"] = working["area"] * working["cost_per_mu"]
-    group_columns = ["year", "crop_id", "plot_type", "season"]
+    # 冻结合同按作物和季次合并全部地块类型的产量，再施加销售上限。
+    group_columns = ["year", "crop_id", "season"]
     grouped = (
         working.groupby(group_columns, as_index=False)
         .agg(production=("production", "sum"), planting_cost=("planting_cost", "sum"), demand=("demand", "first"), price=("price", "first"))

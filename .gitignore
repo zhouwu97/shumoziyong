@@ -26,3 +26,8 @@ export/cumcm_runtime_pack.manifest.json
 # 工作流和比赛材料命令生成的 Run 目录不纳入版本控制。
 runs/
 
+# 2024-C 随机场景原件较大；提交种子、生成代码、摘要和 SHA-256，而非重复 CSV。
+training/2024_C_repair/results/q2_stochastic/scenario_samples.csv
+training/2024_C_repair/results/q3_stochastic/scenario_samples.csv
+training/2024_C_repair/results/q3_stochastic/independent_comparison_samples.csv
+

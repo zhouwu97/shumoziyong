@@ -4,49 +4,49 @@
   "max_absolute_error": 0.0,
   "tolerance": 1e-06,
   "cases": {
-    "q1_unsold": {
-      "case_id": "q1_unsold",
-      "reported_objective": 38477236.5,
-      "recomputed_objective": 38477236.5,
+    "q1_waste": {
+      "case_id": "q1_waste",
+      "reported_objective": 31744309.079917915,
+      "recomputed_objective": 31744309.079917915,
       "absolute_error": 0.0,
       "tolerance": 1e-06,
       "passed": true,
       "solver_status": 1,
       "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
-      "solver_objective_with_tiebreak": 38477229.92
+      "solver_objective_with_tiebreak": 31744300.449917912
     },
-    "q1_discount50": {
-      "case_id": "q1_discount50",
-      "reported_objective": 63403474.625,
-      "recomputed_objective": 63403474.625,
+    "q1_discount": {
+      "case_id": "q1_discount",
+      "reported_objective": 42411529.79268293,
+      "recomputed_objective": 42411529.79268293,
       "absolute_error": 0.0,
       "tolerance": 1e-06,
       "passed": true,
       "solver_status": 1,
       "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
-      "solver_objective_with_tiebreak": 63403466.595
+      "solver_objective_with_tiebreak": 42411523.77268293
     },
-    "q2": {
-      "case_id": "q2",
-      "reported_objective": 29437942.835558355,
-      "recomputed_objective": 29437942.835558355,
+    "q2_frozen": {
+      "case_id": "q2_frozen",
+      "reported_objective": 28116634.04064746,
+      "recomputed_objective": 28116634.04064746,
       "absolute_error": 0.0,
       "tolerance": 1e-06,
       "passed": true,
       "solver_status": 1,
       "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
-      "solver_objective_with_tiebreak": 29437931.365558356
+      "solver_objective_with_tiebreak": 28116625.29064746
     },
-    "q3": {
-      "case_id": "q3",
-      "reported_objective": 29136973.13139849,
-      "recomputed_objective": 29136973.13139849,
+    "q3_frozen": {
+      "case_id": "q3_frozen",
+      "reported_objective": 28116634.04064746,
+      "recomputed_objective": 28116634.04064746,
       "absolute_error": 0.0,
       "tolerance": 1e-06,
       "passed": true,
       "solver_status": 1,
       "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
-      "solver_objective_with_tiebreak": 29136957.821398497
+      "solver_objective_with_tiebreak": 28116625.29064746
     }
   }
 }

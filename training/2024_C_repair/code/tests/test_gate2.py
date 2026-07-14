@@ -49,6 +49,16 @@ class Gate2FaultInjectionTests(unittest.TestCase):
         )
         self.assertGreater(len(check_continuous_crop(solution, self.data)), 0)
 
+    def test_ordinary_greenhouse_same_season_continuous_crop_is_detected(self) -> None:
+        greenhouse = str(self.data.plots.loc[self.data.plots["地块类型"] == "普通大棚", "地块名称"].iloc[0])
+        solution = plan(
+            [
+                {"plot_id": greenhouse, "year": 2024, "season": "第一季", "crop_id": 17, "area": 1.0},
+                {"plot_id": greenhouse, "year": 2025, "season": "第一季", "crop_id": 17, "area": 1.0},
+            ]
+        )
+        self.assertGreater(len(check_continuous_crop(solution, self.data)), 0)
+
     def test_2023_to_2024_boundary_is_detected(self) -> None:
         # A1 在 2023 年种小麦（编号 6），故 2024 单季继续种小麦应被拒绝。
         solution = plan([{"plot_id": "A1", "year": 2024, "season": "单季", "crop_id": 6, "area": 1.0}])

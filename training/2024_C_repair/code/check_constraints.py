@@ -69,16 +69,16 @@ def check_continuous_crop(solution: pd.DataFrame, data: ProblemData) -> list[dic
     violations = []
     for plot_id, plot in data.plots.iterrows():
         plot_type = str(plot["地块类型"])
-        if plot_type in {"平旱地", "梯田", "山坡地", "水浇地"}:
-            slot_pairs = [(year, "单季", year + 1, "单季") for year in YEARS[:-1]]
-        elif plot_type == "智慧大棚":
-            slot_pairs = []
+        slot_pairs = [
+            (year, season, year + 1, season)
+            for season in data.slots(plot_type)
+            for year in YEARS[:-1]
+        ]
+        if plot_type == "智慧大棚":
             for year in YEARS:
                 slot_pairs.append((year, "第一季", year, "第二季"))
                 if year < YEARS[-1]:
                     slot_pairs.append((year, "第二季", year + 1, "第一季"))
-        else:
-            slot_pairs = []
         for year_a, season_a, year_b, season_b in slot_pairs:
             shared = set(data.eligible_crops(plot_type, season_a)) & set(data.eligible_crops(plot_type, season_b))
             for crop_id in shared:
@@ -91,11 +91,14 @@ def check_2023_to_2024_boundary(solution: pd.DataFrame, data: ProblemData) -> li
     violations = []
     for plot_id, plot in data.plots.iterrows():
         plot_type = str(plot["地块类型"])
-        first_slots = ("第一季",) if plot_type in {"普通大棚", "智慧大棚"} else data.slots(plot_type)
-        for season in first_slots:
-            for crop_id in data.historical_last_crops(plot_id) & set(data.eligible_crops(plot_type, season)):
+        for season in data.slots(plot_type):
+            for crop_id in data.history_crops_for_season(plot_id, season) & set(data.eligible_crops(plot_type, season)):
                 if _is_active(solution, plot_id, 2024, season, crop_id):
                     violations.append({"plot_id": plot_id, "crop_id": crop_id, "season": season})
+        if plot_type == "智慧大棚":
+            for crop_id in data.history_crops_for_season(plot_id, "第二季") & set(data.eligible_crops(plot_type, "第一季")):
+                if _is_active(solution, plot_id, 2024, "第一季", crop_id):
+                    violations.append({"plot_id": plot_id, "crop_id": crop_id, "season": "第一季", "rule": "2023第二季到2024第一季"})
     return violations
 
 

@@ -16,7 +16,7 @@ def solve_q3(data: ProblemData, output_root: Path) -> dict[str, object]:
     save_scenarios(samples, output_root, Q3_SEED, "q3_training")
     parameters = robust_parameters(samples)
     model = build_model(data, parameters, alpha=0.0)
-    result = solve_model(model)
+    result = solve_model(model, time_limit=30.0)
     if result.x is None:
         raise RuntimeError(f"q3 未生成可验证解：{result.message}")
     outcome = export_case("q3", model, result, data, parameters, 0.0, output_root)

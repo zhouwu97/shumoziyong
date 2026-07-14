@@ -63,7 +63,7 @@ def _scenario_rows(data: ProblemData, seed: int, count: int, correlated: bool) -
                 demand_shock = {crop: 0.0 for crop in crop_ids}
             for crop_id, plot_type, slot in groups:
                 base_yield, base_cost, base_price = data.parameters((crop_id, plot_type, slot))
-                base_demand = data.demand_2023.get((crop_id, plot_type, slot), 0.0)
+                base_demand = data.demand_2023.get((crop_id, slot), 0.0)
                 family = _crop_family(crop_id)
                 demand_multiplier = (1.0 + demand_rate[crop_id] + demand_shock[crop_id]) ** year_index
                 yield_multiplier = max(0.01, 1.0 + yield_shock[crop_id])
@@ -110,10 +110,44 @@ def deterministic_parameters(data: ProblemData) -> pd.DataFrame:
                     "crop_id": crop_id,
                     "plot_type": plot_type,
                     "season": slot,
-                    "demand": data.demand_2023.get((crop_id, plot_type, slot), 0.0),
+                    "demand": data.demand_2023.get((crop_id, slot), 0.0),
                     "yield_per_mu": yield_per_mu,
                     "cost_per_mu": cost_per_mu,
                     "price": price,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def frozen_benchmark_parameters(data: ProblemData) -> pd.DataFrame:
+    """生成公开冻结合同规定的 Q2/Q3 确定性代表参数。"""
+    rows = []
+    for year in YEARS:
+        k = year - 2023
+        for crop_id, plot_type, slot in all_groups(data):
+            yield_per_mu, cost_per_mu, price = data.parameters((crop_id, plot_type, slot))
+            if crop_id in {6, 7}:
+                demand = data.demand_2023.get((crop_id, slot), 0.0) * (1.075**k)
+            else:
+                demand = data.demand_2023.get((crop_id, slot), 0.0)
+            if crop_id <= 16:
+                price_factor = 1.0
+            elif crop_id <= 37:
+                price_factor = 1.05**k
+            elif crop_id == 41:
+                price_factor = 0.95**k
+            else:
+                price_factor = 0.97**k
+            rows.append(
+                {
+                    "year": year,
+                    "crop_id": crop_id,
+                    "plot_type": plot_type,
+                    "season": slot,
+                    "demand": demand,
+                    "yield_per_mu": yield_per_mu * 0.95,
+                    "cost_per_mu": cost_per_mu * (1.05**k),
+                    "price": price * price_factor,
                 }
             )
     return pd.DataFrame(rows)

@@ -1,5 +1,5 @@
 {
-  "q1_unsold": {
+  "q1_waste": {
     "violation_counts": {
       "land_capacity": 0,
       "crop_land_compatibility": 0,
@@ -22,7 +22,7 @@
       "sales_limit": []
     }
   },
-  "q1_discount50": {
+  "q1_discount": {
     "violation_counts": {
       "land_capacity": 0,
       "crop_land_compatibility": 0,
@@ -45,7 +45,7 @@
       "sales_limit": []
     }
   },
-  "q2": {
+  "q2_frozen": {
     "violation_counts": {
       "land_capacity": 0,
       "crop_land_compatibility": 0,
@@ -68,7 +68,7 @@
       "sales_limit": []
     }
   },
-  "q3": {
+  "q3_frozen": {
     "violation_counts": {
       "land_capacity": 0,
       "crop_land_compatibility": 0,

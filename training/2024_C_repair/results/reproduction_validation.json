@@ -1,12 +1,12 @@
 {
-  "q2": {
+  "q2_stochastic": {
     "seed": 2024071402,
     "same_shape": true,
     "same_text": true,
     "max_absolute_error": 0.0,
     "passed": true
   },
-  "q3": {
+  "q3_stochastic": {
     "seed": 2024071403,
     "same_shape": true,
     "same_text": true,

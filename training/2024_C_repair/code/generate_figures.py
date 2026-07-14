@@ -24,8 +24,8 @@ def save_all(fig: plt.Figure, stem: str) -> None:
 
 def main() -> None:
     objectives = json.loads((RESULTS / "objective_validation.json").read_text(encoding="utf-8"))["cases"]
-    labels = ["Q1-unsold", "Q1-50%", "Q2-robust", "Q3-correlated"]
-    values = [objectives[key]["recomputed_objective"] / 1e6 for key in ("q1_unsold", "q1_discount50", "q2", "q3")]
+    labels = ["Q1-waste", "Q1-50%", "Q2-frozen", "Q3-frozen"]
+    values = [objectives[key]["recomputed_objective"] / 1e6 for key in ("q1_waste", "q1_discount", "q2_frozen", "q3_frozen")]
     fig, ax = plt.subplots(figsize=(8.2, 4.8), constrained_layout=True)
     bars = ax.bar(labels, values, color=["#4C78A8", "#72B7B2", "#F58518", "#E45756"], edgecolor="#333333")
     ax.set_ylabel("Recomputed objective (million yuan)")
@@ -35,15 +35,15 @@ def main() -> None:
         ax.text(bar.get_x() + bar.get_width() / 2, value, f"{value:.2f}", ha="center", va="bottom", fontsize=9)
     save_all(fig, "figure_1_objective_recomputation")
 
-    q2_values = pd.read_csv(RESULTS / "q3" / "q2_on_independent_samples.csv")["objective"] / 1e6
-    q3_values = pd.read_csv(RESULTS / "q3" / "q3_on_independent_samples.csv")["objective"] / 1e6
+    q2_values = pd.read_csv(RESULTS / "q3_stochastic" / "q2_on_independent_samples.csv")["objective"] / 1e6
+    q3_values = pd.read_csv(RESULTS / "q3_stochastic" / "q3_on_independent_samples.csv")["objective"] / 1e6
     fig, ax = plt.subplots(figsize=(7.2, 4.8), constrained_layout=True)
     box = ax.boxplot([q2_values, q3_values], tick_labels=["Q2 plan", "Q3 plan"], patch_artist=True)
     for patch, color in zip(box["boxes"], ["#4C78A8", "#E45756"], strict=True):
         patch.set_facecolor(color)
         patch.set_alpha(0.75)
     ax.set_ylabel("Objective on independent correlated samples (million yuan)")
-    ax.set_title("Independent Q3-scenario comparison (n=256)")
+    ax.set_title("Independent Q3-scenario comparison (n=64)")
     ax.grid(axis="y", alpha=0.25)
     save_all(fig, "figure_2_independent_risk_comparison")
 

@@ -31,7 +31,7 @@ class ProblemData:
     crops: pd.DataFrame
     history: pd.DataFrame
     statistics: pd.DataFrame
-    demand_2023: dict[tuple[int, str, str], float]
+    demand_2023: dict[tuple[int, str], float]
 
     def eligible_crops(self, plot_type: str, slot: str) -> tuple[int, ...]:
         """按附件 1 返回给定地块类型与季次允许的作物编号。"""
@@ -91,6 +91,13 @@ class ProblemData:
             season = "单季"
         return set(rows.loc[rows["种植季次"] == season, "作物编号"].astype(int))
 
+    def history_crops_for_season(self, plot_id: str, season: str) -> set[int]:
+        """返回指定地块在 2023 年指定季次实际种植的作物。"""
+        rows = self.history.loc[
+            (self.history["种植地块"] == plot_id) & (self.history["种植季次"] == season)
+        ]
+        return set(rows["作物编号"].astype(int))
+
 
 def load_data() -> ProblemData:
     """读取附件 1、附件 2，绝不写回官方材料。"""
@@ -124,9 +131,11 @@ def load_data() -> ProblemData:
     statistics["销售单价中点"] = statistics["销售单价/(元/斤)"].map(_midpoint)
 
     provisional = ProblemData(plots, crops, history, statistics, {})
-    demand: dict[tuple[int, str, str], float] = {}
+    demand: dict[tuple[int, str], float] = {}
     for _, row in history.iterrows():
-        key = provisional.stat_key(int(row["作物编号"]), str(row["地块类型"]), str(row["种植季次"]))
+        crop_id = int(row["作物编号"])
+        season = str(row["种植季次"])
+        key = provisional.stat_key(crop_id, str(row["地块类型"]), season)
         yield_per_mu, _, _ = provisional.parameters(key)
-        demand[key] = demand.get(key, 0.0) + float(row["种植面积/亩"]) * yield_per_mu
+        demand[(crop_id, season)] = demand.get((crop_id, season), 0.0) + float(row["种植面积/亩"]) * yield_per_mu
     return ProblemData(plots, crops, history, statistics, demand)

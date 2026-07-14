@@ -1,0 +1,11 @@
+{
+  "case_id": "q3_frozen",
+  "reported_objective": 28116634.04064746,
+  "recomputed_objective": 28116634.04064746,
+  "absolute_error": 0.0,
+  "tolerance": 1e-06,
+  "passed": true,
+  "solver_status": 1,
+  "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+  "solver_objective_with_tiebreak": 28116625.29064746
+}

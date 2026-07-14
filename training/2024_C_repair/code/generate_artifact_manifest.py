@@ -10,9 +10,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 ARTIFACTS = {
-    "q2_training_samples": (RESULTS / "q2" / "scenario_samples.csv", 2024071402),
-    "q3_training_samples": (RESULTS / "q3" / "scenario_samples.csv", 2024071403),
-    "q3_independent_comparison_samples": (RESULTS / "q3" / "independent_comparison_samples.csv", 2024071499),
+    "q2_stochastic_training_samples": (RESULTS / "q2_stochastic" / "scenario_samples.csv", 2024071402),
+    "q3_stochastic_training_samples": (RESULTS / "q3_stochastic" / "scenario_samples.csv", 2024071403),
+    "q3_stochastic_independent_comparison_samples": (
+        RESULTS / "q3_stochastic" / "independent_comparison_samples.csv",
+        2024071499,
+    ),
 }
 
 

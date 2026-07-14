@@ -1,0 +1,23 @@
+{
+  "violation_counts": {
+    "land_capacity": 0,
+    "crop_land_compatibility": 0,
+    "water_mode": 0,
+    "continuous_crop": 0,
+    "history_boundary": 0,
+    "three_year_legume": 0,
+    "integrality_nonnegative": 0,
+    "sales_limit": 0
+  },
+  "total_hard_violations": 0,
+  "details": {
+    "land_capacity": [],
+    "crop_land_compatibility": [],
+    "water_mode": [],
+    "continuous_crop": [],
+    "history_boundary": [],
+    "three_year_legume": [],
+    "integrality_nonnegative": [],
+    "sales_limit": []
+  }
+}

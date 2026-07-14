@@ -23,7 +23,7 @@ class BuiltModel:
     x_index: dict[tuple[str, int, str, int], int]
     z_index: dict[tuple[str, int, str, int], int]
     mode_index: dict[tuple[str, int], int]
-    q_index: dict[tuple[int, int, str, str], int]
+    q_index: dict[tuple[int, int, str], int]
     parameter_lookup: dict[tuple[int, int, str, str], dict[str, float]]
 
 
@@ -67,13 +67,11 @@ def _adjacent_pairs(data: ProblemData) -> list[tuple[tuple[str, int, str], tuple
     pairs: list[tuple[tuple[str, int, str], tuple[str, int, str]]] = []
     for _, plot in data.plots.iterrows():
         plot_id, plot_type = str(plot["地块名称"]), str(plot["地块类型"])
-        if plot_type in {"平旱地", "梯田", "山坡地"}:
+        # 除智慧大棚外，合同规定每一个可用季次都按相邻年份检查。
+        for slot in data.slots(plot_type):
             for year in YEARS[:-1]:
-                pairs.append(((plot_id, year, "单季"), (plot_id, year + 1, "单季")))
-        elif plot_type == "水浇地":
-            for year in YEARS[:-1]:
-                pairs.append(((plot_id, year, "单季"), (plot_id, year + 1, "单季")))
-        elif plot_type == "智慧大棚":
+                pairs.append(((plot_id, year, slot), (plot_id, year + 1, slot)))
+        if plot_type == "智慧大棚":
             for year in YEARS:
                 pairs.append(((plot_id, year, "第一季"), (plot_id, year, "第二季")))
                 if year < YEARS[-1]:
@@ -91,7 +89,7 @@ def build_model(data: ProblemData, parameters: pd.DataFrame, alpha: float) -> Bu
     x_index: dict[tuple[str, int, str, int], int] = {}
     z_index: dict[tuple[str, int, str, int], int] = {}
     mode_index: dict[tuple[str, int], int] = {}
-    q_index: dict[tuple[int, int, str, str], int] = {}
+    q_index: dict[tuple[int, int, str], int] = {}
 
     def add_variable(cost: float, lower: float, upper: float, integer: bool) -> int:
         index = len(objective)
@@ -124,12 +122,17 @@ def build_model(data: ProblemData, parameters: pd.DataFrame, alpha: float) -> Bu
                     )
                     z_index[key] = add_variable(0.01, 0.0, 1.0, True)
 
-    # 正常销售量按附件统计维度建立，不把不同类型或季次合并。
-    groups = sorted({(crop_id, data.plots.loc[plot_id, "地块类型"], slot) for plot_id, _, slot, crop_id in x_index})
+    # 正常销售量按公开合同的作物—季次维度建立，跨地块类型合并。
+    groups = sorted({(crop_id, slot) for _, _, slot, crop_id in x_index})
     for year in YEARS:
-        for crop_id, plot_type, slot in groups:
-            parameter = params[(year, crop_id, plot_type, slot)]
-            q_index[(year, crop_id, plot_type, slot)] = add_variable(
+        for crop_id, slot in groups:
+            matching = [value for key, value in params.items() if key[0] == year and key[1] == crop_id and key[3] == slot]
+            if not matching:
+                raise KeyError(f"参数表缺少销售组 {(year, crop_id, slot)}")
+            parameter = matching[0]
+            if any(abs(value["demand"] - parameter["demand"]) > 1e-9 or abs(value["price"] - parameter["price"]) > 1e-9 for value in matching[1:]):
+                raise ValueError(f"销售组 {(year, crop_id, slot)} 的需求或单价不一致")
+            q_index[(year, crop_id, slot)] = add_variable(
                 -(1.0 - alpha) * parameter["price"], 0.0, parameter["demand"], False
             )
 
@@ -172,15 +175,16 @@ def build_model(data: ProblemData, parameters: pd.DataFrame, alpha: float) -> Bu
                 upper=1.0,
             )
 
-    # 2023→2024 历史边界：仅禁止历史最后实际季中已种的同一作物。
+    # 2023→2024 历史边界：同季跨年；智慧大棚再补连续季次边界。
     for _, plot in data.plots.iterrows():
         plot_id = str(plot["地块名称"])
         plot_type = str(plot["地块类型"])
-        prior_crops = data.historical_last_crops(plot_id)
-        first_slots = ("第一季",) if plot_type in {"普通大棚", "智慧大棚"} else data.slots(plot_type)
-        for slot in first_slots:
-            for crop_id in prior_crops & set(data.eligible_crops(plot_type, slot)):
+        for slot in data.slots(plot_type):
+            for crop_id in data.history_crops_for_season(plot_id, slot) & set(data.eligible_crops(plot_type, slot)):
                 rows.add({z_index[(plot_id, 2024, slot, crop_id)]: 1.0}, upper=0.0)
+        if plot_type == "智慧大棚":
+            for crop_id in data.history_crops_for_season(plot_id, "第二季") & set(data.eligible_crops(plot_type, "第一季")):
+                rows.add({z_index[(plot_id, 2024, "第一季", crop_id)]: 1.0}, upper=0.0)
 
     # C04：含 2023 历史的六个完整滚动三年豆类窗口。
     for _, plot in data.plots.iterrows():
@@ -206,9 +210,10 @@ def build_model(data: ProblemData, parameters: pd.DataFrame, alpha: float) -> Bu
             rows.add(coefficients, lower=required)
 
     # C05：正常销售量不得超过产量，也不得超过相应统计组的销售基线/情景值。
-    for (year, crop_id, plot_type, slot), q_variable in q_index.items():
+    for (year, crop_id, slot), q_variable in q_index.items():
         coefficients = {q_variable: 1.0}
         for _, plot in data.plots.iterrows():
+            plot_type = str(plot["地块类型"])
             if plot["地块类型"] == plot_type and crop_id in data.eligible_crops(plot_type, slot):
                 x_variable = x_index[(str(plot["地块名称"]), year, slot, crop_id)]
                 coefficients[x_variable] = -params[(year, crop_id, plot_type, slot)]["yield_per_mu"]

@@ -9,10 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 CASE_MAP = {
-    "q1_waste": "q1_unsold",
-    "q1_discount": "q1_discount50",
-    "q2_frozen": "q2",
-    "q3_frozen": "q3",
+    "q1_waste": "q1_waste",
+    "q1_discount": "q1_discount",
+    "q2_frozen": "q2_frozen",
+    "q3_frozen": "q3_frozen",
 }
 
 
