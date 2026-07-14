@@ -64,7 +64,9 @@ def test_real_sandboxie_fixture_propagates_eligibility_to_gate_evidence_seal_and
     assert seal["formal_result_eligible"] is True
     assert report["verified_gates"] == [0, 1, 2, 3, 4, 5]
     assert report["sealed"] is True
-    assert report["formal_result_eligible"] is True
+    assert report["formal_result_eligible"] is False
+    assert report["structural_validation"] == "passed"
+    assert report["mathematical_validation"] == "unverified"
     expected_scope = {
         "formal_result_eligibility_scope": "trusted_local",
         "execution_trust_model": "trusted_local",
@@ -74,7 +76,7 @@ def test_real_sandboxie_fixture_propagates_eligibility_to_gate_evidence_seal_and
         "default_deny_host_reads_verified": False,
         "privacy_mode_available": False,
     }
-    for layer in (summary, gate_3["formal_result"], evidence, seal, report):
+    for layer in (summary, gate_3["formal_result"], evidence, seal):
         assert {field: layer[field] for field in expected_scope} == expected_scope
 
 
@@ -263,7 +265,8 @@ def test_verify_run_accepts_repository_relative_run_path(monkeypatch: pytest.Mon
     monkeypatch.chdir(ROOT)
     report = verify_run(Path("tests/fixtures/m3a_verified_run"))
     assert report["sealed"] is True
-    assert report["formal_result_eligible"] is True
+    assert report["formal_result_eligible"] is False
+    assert report["mathematical_validation"] == "unverified"
 
 
 @pytest.mark.parametrize(
