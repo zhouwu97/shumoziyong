@@ -12,3 +12,10 @@ pythonVersion = "3.11"
 typeCheckingMode = "basic"
 reportMissingImports = false
 reportMissingTypeStubs = false
+
+[tool.pytest.ini_options]
+markers = [
+    "unit_contract: 纯合同、Schema 和公式测试，不依赖外部材料。",
+    "integration_fixture: 使用仓库公开最小回归样本的集成测试。",
+    "official_integration: 使用受控官方附件的集成测试。",
+]

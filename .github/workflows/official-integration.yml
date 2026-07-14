@@ -1,0 +1,48 @@
+name: Official Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-integration:
+    name: official-integration
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment: official-materials
+    env:
+      PYTHONUTF8: "1"
+      SHUMO_REQUIRE_OFFICIAL_TESTS: "1"
+      SHUMO_OFFICIAL_MATERIALS_DIR: ${{ github.workspace }}/.official-materials
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require controlled materials repository configuration
+        env:
+          MATERIALS_REPOSITORY: ${{ vars.SHUMO_OFFICIAL_MATERIALS_REPOSITORY }}
+          MATERIALS_TOKEN: ${{ secrets.SHUMO_OFFICIAL_MATERIALS_READ_TOKEN }}
+        run: |
+          test -n "$MATERIALS_REPOSITORY" || { echo "Missing SHUMO_OFFICIAL_MATERIALS_REPOSITORY variable"; exit 1; }
+          test -n "$MATERIALS_TOKEN" || { echo "Missing SHUMO_OFFICIAL_MATERIALS_READ_TOKEN secret"; exit 1; }
+      - name: Restore controlled official materials
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.SHUMO_OFFICIAL_MATERIALS_REPOSITORY }}
+          token: ${{ secrets.SHUMO_OFFICIAL_MATERIALS_READ_TOKEN }}
+          path: .official-materials
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install --require-hashes -r requirements.lock
+      - name: Validate official 2024-C integration
+        run: python -m pytest -q -m official_integration

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from official_integration import official_2024c_attachments
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -51,11 +52,9 @@ def test_negative_adapter_recomputes_mre_and_rejects_fake_value() -> None:
     assert validate_negative(payload)["valid"] is False
 
 
+@pytest.mark.official_integration
 def test_positive_adapter_loads_official_material_contract() -> None:
-    attachment_1 = ROOT / "official_materials" / "2024_C" / "attachments" / "附件1.xlsx"
-    attachment_2 = ROOT / "official_materials" / "2024_C" / "attachments" / "附件2.xlsx"
-    if not attachment_1.is_file() or not attachment_2.is_file():
-        pytest.skip("官方大体积附件未在当前 checkout 中下载")
+    attachment_1, attachment_2 = official_2024c_attachments()
     data = load_problem_data(attachment_1, attachment_2)
 
     assert len(data["plots"]) == 54
