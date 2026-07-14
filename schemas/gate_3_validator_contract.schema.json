@@ -6,7 +6,9 @@
   "additionalProperties": false,
   "required": [
     "schema_version", "validator_path", "validator_sha256", "supported_check_ids",
-    "report_schema_path", "report_schema_sha256", "required_observations"
+    "report_schema_path", "report_schema_sha256", "required_observations",
+    "check_types", "observation_rules", "required_input_roles", "exact_input_set",
+    "timeout_seconds"
   ],
   "properties": {
     "schema_version": {"const": "1.0.0"},
@@ -28,7 +30,51 @@
         "uniqueItems": true,
         "items": {"type": "string", "minLength": 1}
       }
-    }
+    },
+    "check_types": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": [
+          "independent_recomputation", "constraint_residual",
+          "decision_output_consistency", "variable_domain", "solver_status",
+          "random_seed_replay", "sample_manifest_consistency"
+        ]
+      }
+    },
+    "observation_rules": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["comparison", "threshold"],
+          "properties": {
+            "comparison": {"enum": ["le", "lt", "ge", "gt", "eq", "ne"]},
+            "threshold": {"type": "number"}
+          }
+        }
+      }
+    },
+    "required_input_roles": {
+      "type": "object",
+      "minProperties": 1,
+      "required": [
+        "problem_data", "candidate_solution", "model_parameters", "solver_log"
+      ],
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["min_items"],
+        "properties": {
+          "min_items": {"type": "integer", "minimum": 1},
+          "max_items": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "exact_input_set": {"type": "boolean"},
+    "timeout_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 3600}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}

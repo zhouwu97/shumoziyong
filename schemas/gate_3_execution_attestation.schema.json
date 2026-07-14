@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/gate_3_execution_attestation.schema.json",
+  "title": "Gate 3 Validator 父进程执行证明",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "validator_path", "validator_sha256",
+    "validator_contract_path", "validator_contract_sha256", "argv", "cwd",
+    "python_executable", "started_at", "ended_at", "duration_seconds", "exit_code",
+    "stdout_path", "stdout_sha256", "stderr_path", "stderr_sha256",
+    "input_manifest_path", "input_manifest_sha256", "report_path", "report_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "status": {
+      "enum": ["completed", "nonzero_exit", "timed_out", "missing_report", "invalid_report"]
+    },
+    "validator_path": {"type": "string", "pattern": "^validators/.+"},
+    "validator_sha256": {"$ref": "#/$defs/sha256"},
+    "validator_contract_path": {"type": "string", "pattern": "^validators/.+\\.json$"},
+    "validator_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "argv": {
+      "type": "array",
+      "minItems": 6,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "cwd": {"type": "string", "minLength": 1},
+    "python_executable": {"type": "string", "minLength": 1},
+    "started_at": {"type": "string", "format": "date-time"},
+    "ended_at": {"type": "string", "format": "date-time"},
+    "duration_seconds": {"type": "number", "minimum": 0},
+    "exit_code": {"type": "integer"},
+    "stdout_path": {"type": "string", "minLength": 1},
+    "stdout_sha256": {"$ref": "#/$defs/sha256"},
+    "stderr_path": {"type": "string", "minLength": 1},
+    "stderr_sha256": {"$ref": "#/$defs/sha256"},
+    "input_manifest_path": {"type": "string", "minLength": 1},
+    "input_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "report_path": {"type": "string", "minLength": 1},
+    "report_sha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "exit_code": {"const": 0},
+          "report_sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "timed_out"}}, "required": ["status"]},
+      "then": {"properties": {"exit_code": {"const": -1}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

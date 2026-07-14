@@ -43,6 +43,20 @@ FORMAL_IDENTITY_DEFAULTS = {
     "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
 }
 GATE_3_EVIDENCE_CONTRACT_VERSION = "1.0.0"
+PROFILE_EXECUTABLE_EVIDENCE_CONTRACTS = {
+    "engineering_optimization": GATE_3_EVIDENCE_CONTRACT_VERSION,
+}
+
+
+def _profile_requires_executable_evidence(run_manifest: Mapping[str, Any]) -> bool:
+    """仅对显式绑定当前 Gate 3 合同的 Profile 强制执行证据。"""
+    required_version = PROFILE_EXECUTABLE_EVIDENCE_CONTRACTS.get(
+        str(run_manifest.get("profile"))
+    )
+    return (
+        required_version is not None
+        and run_manifest.get("gate_3_evidence_contract_version") == required_version
+    )
 
 
 def formal_result_state_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
@@ -1772,17 +1786,10 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         executable_evidence = collect_gate_3_math_validation(
             run_dir, result_report, result_manifest
         )
-        requires_executable_evidence = (
-            run_manifest.get("gate_3_evidence_contract_version")
-            == GATE_3_EVIDENCE_CONTRACT_VERSION
-            and run_manifest.get("profile") == "engineering_optimization"
-        )
+        requires_executable_evidence = _profile_requires_executable_evidence(run_manifest)
         if (
-            executable_evidence["mathematical_validation"] == "failed"
-            or (
-                requires_executable_evidence
-                and executable_evidence["mathematical_validation"] != "passed"
-            )
+            requires_executable_evidence
+            and executable_evidence["mathematical_validation"] != "passed"
         ):
             evidence_errors = executable_evidence["errors"]
             assert isinstance(evidence_errors, list)
@@ -2757,7 +2764,11 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         promotion_errors.append("晋级证据必须使用 Gate 语义完成契约 v2")
     if not state["completed"] or state["max_gate"] != 5:
         promotion_errors.append("Gate 0-5 尚未完整完成")
-    if gate_3_validation["mathematical_validation"] != "passed":
+    requires_executable_evidence = _profile_requires_executable_evidence(manifest)
+    if (
+        requires_executable_evidence
+        and gate_3_validation["mathematical_validation"] != "passed"
+    ):
         promotion_errors.append(
             "Gate 3 数学检查未获机器证据确认："
             + str(gate_3_validation["mathematical_validation"])
@@ -2841,7 +2852,10 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             formal_scope.update(trusted_local_eligibility_scope(formal_summary))
         except (OSError, ValueError, json.JSONDecodeError):
             pass
-    if gate_3_validation["mathematical_validation"] != "passed":
+    if (
+        requires_executable_evidence
+        and gate_3_validation["mathematical_validation"] != "passed"
+    ):
         formal_result_eligible = False
     return {
         "run_id": manifest.get("run_id"),

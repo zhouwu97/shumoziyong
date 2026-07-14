@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import gate3_evidence  # noqa: E402
 from gate3_evidence import collect_gate_3_math_validation, validate_gate_3_check_evidence  # noqa: E402
+from gate3_executor import execute_gate_3_validator  # noqa: E402
 import run_workflow  # noqa: E402
 
 
@@ -76,48 +77,46 @@ def _refresh_report(run: Path, evidence: dict[str, object]) -> None:
         item["report_sha256"] = _sha(path)
 
 
-def _evidence(run: Path, *, deterministic: bool = True) -> dict[str, object]:
+def _evidence(
+    run: Path,
+    *,
+    deterministic: bool = True,
+    candidate_value: float = 1.0,
+) -> dict[str, object]:
     solution = run / "results" / "solution.json"
+    fixture_inputs = run / "inputs"
     solution.parent.mkdir(parents=True)
-    solution.write_text('{"x": 1}\n', encoding="utf-8")
-    inputs = run / "validation" / "input_manifest.json"
-    inputs.parent.mkdir(parents=True)
-    inputs.write_text(
-        json.dumps({"artifacts": [{"path": "results/solution.json", "sha256": _sha(solution), "role": "candidate_solution"}]}),
+    fixture_inputs.mkdir(parents=True)
+    solution.write_text(
+        json.dumps(
+            {
+                "x": candidate_value,
+                "reported_objective": candidate_value**2,
+            }
+        )
+        + "\n",
         encoding="utf-8",
     )
-    check_ids = [
-        "objective_recomputation", "constraint_residual", "decision_output_consistency",
-        "variable_domain", "solver_status",
-    ]
-    if not deterministic:
-        check_ids.extend(["random_seed_replay", "sample_manifest_consistency"])
-    evidence: dict[str, object] = {
-        "schema_version": "1.0.0",
-        "checks": [
-            {
-                "check_id": check_id,
-                "check_type": "independent_recomputation",
-                "validator_path": VALIDATOR_PATH,
-                "validator_sha256": _sha(ROOT / VALIDATOR_PATH),
-                "validator_contract_path": CONTRACT_PATH,
-                "validator_contract_sha256": _sha(ROOT / CONTRACT_PATH),
-                "input_manifest_path": "validation/input_manifest.json",
-                "input_manifest_sha256": _sha(inputs),
-                "report_path": "validation/report.json",
-                "report_sha256": "0" * 64,
-                "exit_code": 0,
-                "observations": [
-                    {"name": name, "value": value, "comparison": comparison, "threshold": threshold, "passed": True}
-                    for name, value, comparison, threshold in _observation_spec(check_id)
-                ],
-                "passed": True,
-            }
-            for check_id in check_ids
-        ],
-    }
-    _refresh_report(run, evidence)
-    return evidence
+    (fixture_inputs / "problem.json").write_text(
+        '{"lower_bound": 0, "upper_bound": 10}\n', encoding="utf-8"
+    )
+    (fixture_inputs / "parameters.json").write_text(
+        '{"objective_coefficient": 1, "tolerance": 0.000001}\n', encoding="utf-8"
+    )
+    (fixture_inputs / "solver_log.json").write_text(
+        json.dumps({"exit_code": 0, "replay_value": candidate_value}) + "\n",
+        encoding="utf-8",
+    )
+    return execute_gate_3_validator(
+        run,
+        CONTRACT_PATH,
+        {
+            "problem_data": ["inputs/problem.json"],
+            "candidate_solution": ["results/solution.json"],
+            "model_parameters": ["inputs/parameters.json"],
+            "solver_log": ["inputs/solver_log.json"],
+        },
+    )
 
 
 def _write_evidence(run: Path, evidence: dict[str, object]) -> None:
@@ -287,3 +286,48 @@ def test_combined_validator_can_report_multiple_distinct_checks(tmp_path: Path) 
     result = collect_gate_3_math_validation(tmp_path, _report(), _manifest(deterministic=False))
     assert result["mathematical_validation"] == "passed"
     assert result["formal_result_eligible"] is True
+
+
+def test_failed_validator_check_blocks_mathematical_validation(tmp_path: Path) -> None:
+    evidence = _evidence(tmp_path, candidate_value=11.0)
+    _write_evidence(tmp_path, evidence)
+
+    result = collect_gate_3_math_validation(tmp_path, _report(), _manifest())
+
+    assert result["mathematical_validation"] == "failed"
+    assert result["formal_result_eligible"] is False
+    assert any("必需机器检查未通过" in error for error in result["errors"])
+
+
+def test_non_engineering_profile_never_requires_executable_evidence() -> None:
+    assert not run_workflow._profile_requires_executable_evidence(
+        {
+            "profile": "general",
+            "gate_3_evidence_contract_version": "1.0.0",
+        }
+    )
+
+
+def test_profile_without_executable_contract_not_blocked_when_evidence_not_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    not_required = {
+        "structural_validation": "passed",
+        "mathematical_validation": "not_required",
+        "formal_result_eligible": False,
+        "errors": [],
+    }
+    monkeypatch.setattr(
+        run_workflow,
+        "collect_gate_3_math_validation",
+        lambda _run, _report_value, _manifest_value: not_required,
+    )
+
+    report = run_workflow.verify_run(FIXTURE)
+
+    assert report["mathematical_validation"] == "not_required"
+    assert report["formal_result_eligible"] is True
+    assert not any(
+        "Gate 3 数学检查未获机器证据确认" in error
+        for error in report["promotion_readiness_errors"]
+    )
