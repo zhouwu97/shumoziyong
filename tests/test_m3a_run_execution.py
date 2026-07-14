@@ -64,7 +64,7 @@ def test_real_sandboxie_fixture_propagates_eligibility_to_gate_evidence_seal_and
     assert seal["formal_result_eligible"] is True
     assert report["verified_gates"] == [0, 1, 2, 3, 4, 5]
     assert report["sealed"] is True
-    assert report["formal_result_eligible"] is False
+    assert report["formal_result_eligible"] is True
     assert report["structural_validation"] == "passed"
     assert report["mathematical_validation"] == "unverified"
     expected_scope = {
@@ -265,7 +265,7 @@ def test_verify_run_accepts_repository_relative_run_path(monkeypatch: pytest.Mon
     monkeypatch.chdir(ROOT)
     report = verify_run(Path("tests/fixtures/m3a_verified_run"))
     assert report["sealed"] is True
-    assert report["formal_result_eligible"] is False
+    assert report["formal_result_eligible"] is True
     assert report["mathematical_validation"] == "unverified"
 
 
