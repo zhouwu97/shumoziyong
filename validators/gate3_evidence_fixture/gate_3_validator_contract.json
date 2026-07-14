@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "validator_path": "validators/gate3_evidence_fixture/validate.py",
+  "validator_sha256": "986e55cf2e875e82bf89d7ea779d5cc1a00adf521354ccc218ad9d2e67d2944d",
+  "supported_check_ids": [
+    "objective_recomputation",
+    "constraint_residual",
+    "decision_output_consistency",
+    "variable_domain",
+    "solver_status",
+    "random_seed_replay",
+    "sample_manifest_consistency"
+  ],
+  "report_schema_path": "validators/gate3_evidence_fixture/report.schema.json",
+  "required_observations": {
+    "objective_recomputation": ["reported_objective", "recomputed_objective", "absolute_error"],
+    "constraint_residual": ["max_constraint_residual"],
+    "decision_output_consistency": ["decision_output_match"],
+    "variable_domain": ["max_domain_violation"],
+    "solver_status": ["solver_exit_code"],
+    "random_seed_replay": ["replay_max_abs_error"],
+    "sample_manifest_consistency": ["sample_manifest_match"]
+  }
+}

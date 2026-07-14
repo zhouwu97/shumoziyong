@@ -332,7 +332,101 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
     }
     for filename, payload in payloads[gate]:
         (run_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+    if gate == 3 and run_manifest.get("gate_3_evidence_contract_version") == "1.0.0":
+        _write_gate_3_fixture_evidence(run_dir)
     write_gate_artifact_manifest(run_dir, gate, completed_at="2026-07-11T00:00:00Z")
+
+
+def _write_gate_3_fixture_evidence(run_dir: Path) -> None:
+    """为新 Gate 语义 Run 写入具有五个独立区段的综合 Validator 夹具报告。"""
+    validator_relative = "validators/gate3_evidence_fixture/validate.py"
+    contract_relative = "validators/gate3_evidence_fixture/gate_3_validator_contract.json"
+    validator_sha = hashlib.sha256((ROOT / validator_relative).read_bytes()).hexdigest()
+    contract_sha = hashlib.sha256((ROOT / contract_relative).read_bytes()).hexdigest()
+    input_path = run_dir / "validation" / "input_manifest.json"
+    input_path.parent.mkdir(exist_ok=True)
+    runtime_pack = run_dir / "runtime_pack.md"
+    input_path.write_text(
+        json.dumps(
+            {
+                "artifacts": [
+                    {
+                        "path": "runtime_pack.md",
+                        "sha256": hashlib.sha256(runtime_pack.read_bytes()).hexdigest(),
+                        "role": "candidate_solution",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    input_sha = hashlib.sha256(input_path.read_bytes()).hexdigest()
+    values = {
+        "objective_recomputation": [
+            ("reported_objective", 1.0, "eq", 1.0),
+            ("recomputed_objective", 1.0, "eq", 1.0),
+            ("absolute_error", 0.0, "le", 1e-6),
+        ],
+        "constraint_residual": [("max_constraint_residual", 0.0, "le", 1e-6)],
+        "decision_output_consistency": [("decision_output_match", 1.0, "eq", 1.0)],
+        "variable_domain": [("max_domain_violation", 0.0, "le", 1e-6)],
+        "solver_status": [("solver_exit_code", 0.0, "eq", 0.0)],
+    }
+    checks = []
+    for check_id, observations in values.items():
+        checks.append(
+            {
+                "check_id": check_id,
+                "check_type": "independent_recomputation",
+                "validator_path": validator_relative,
+                "validator_sha256": validator_sha,
+                "validator_contract_path": contract_relative,
+                "validator_contract_sha256": contract_sha,
+                "input_manifest_path": "validation/input_manifest.json",
+                "input_manifest_sha256": input_sha,
+                "report_path": "validation/report.json",
+                "report_sha256": "0" * 64,
+                "exit_code": 0,
+                "observations": [
+                    {
+                        "name": name,
+                        "value": value,
+                        "comparison": comparison,
+                        "threshold": threshold,
+                        "passed": True,
+                    }
+                    for name, value, comparison, threshold in observations
+                ],
+                "passed": True,
+            }
+        )
+    report_path = run_dir / "validation" / "report.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "validator_path": validator_relative,
+                "validator_sha256": validator_sha,
+                "input_manifest_sha256": input_sha,
+                "checks": [
+                    {
+                        "check_id": check["check_id"],
+                        "observations": [
+                            {"name": item["name"], "value": item["value"]}
+                            for item in check["observations"]
+                        ],
+                    }
+                    for check in checks
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    report_sha = hashlib.sha256(report_path.read_bytes()).hexdigest()
+    for check in checks:
+        check["report_sha256"] = report_sha
+    (run_dir / "gate_3_check_evidence.json").write_text(
+        json.dumps({"schema_version": "1.0.0", "checks": checks}), encoding="utf-8"
+    )
 
 
 def _prepare_completed_gate_run(run_dir: Path, reviewer: str = "test_reviewer") -> None:
