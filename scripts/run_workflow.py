@@ -42,6 +42,7 @@ FORMAL_IDENTITY_DEFAULTS = {
     "canonicalization_version": FORMAL_CONTRACT_VERSION,
     "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
 }
+GATE_3_EVIDENCE_CONTRACT_VERSION = "1.0.0"
 
 
 def formal_result_state_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
@@ -705,6 +706,7 @@ def create_gate_run_core(
         "excluded_patches": excluded_patches,
         "evidence_purpose": evidence_purpose,
         "initial_state": initial_state,
+        "gate_3_evidence_contract_version": GATE_3_EVIDENCE_CONTRACT_VERSION,
         **FORMAL_IDENTITY_DEFAULTS,
         "runtime_profile_snapshot_sha256": sha256_bytes(
             (run_dir / "runtime_profile.snapshot.json").read_bytes()
@@ -1770,7 +1772,18 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         executable_evidence = collect_gate_3_math_validation(
             run_dir, result_report, result_manifest
         )
-        if executable_evidence["mathematical_validation"] == "failed":
+        requires_executable_evidence = (
+            run_manifest.get("gate_3_evidence_contract_version")
+            == GATE_3_EVIDENCE_CONTRACT_VERSION
+            and run_manifest.get("profile") == "engineering_optimization"
+        )
+        if (
+            executable_evidence["mathematical_validation"] == "failed"
+            or (
+                requires_executable_evidence
+                and executable_evidence["mathematical_validation"] != "passed"
+            )
+        ):
             evidence_errors = executable_evidence["errors"]
             assert isinstance(evidence_errors, list)
             raise ValueError(

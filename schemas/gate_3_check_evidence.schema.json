@@ -20,6 +20,7 @@
       "additionalProperties": false,
       "required": [
         "check_id", "check_type", "validator_path", "validator_sha256",
+        "validator_contract_path", "validator_contract_sha256",
         "input_manifest_path", "input_manifest_sha256", "report_path",
         "report_sha256", "exit_code", "observations", "passed"
       ],
@@ -34,6 +35,8 @@
         },
         "validator_path": {"type": "string", "pattern": "^validators/.+"},
         "validator_sha256": {"$ref": "#/$defs/sha256"},
+        "validator_contract_path": {"type": "string", "pattern": "^validators/.+\\.json$"},
+        "validator_contract_sha256": {"$ref": "#/$defs/sha256"},
         "input_manifest_path": {"type": "string", "minLength": 1},
         "input_manifest_sha256": {"$ref": "#/$defs/sha256"},
         "report_path": {"type": "string", "minLength": 1},
