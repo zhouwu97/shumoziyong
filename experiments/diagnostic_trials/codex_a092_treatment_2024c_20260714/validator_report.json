@@ -1,0 +1,63 @@
+{
+  "validator": "a092_2024c_full_v2",
+  "data_contract_version": "2024c_official_attachments_v2",
+  "objective_tolerance": 1e-06,
+  "constraint_tolerance": 1e-05,
+  "scenario_reports": [
+    {
+      "scenario_id": "q1_waste",
+      "objective_reported": 26160826.75,
+      "objective_recomputed": 26160826.75,
+      "objective_difference": 0.0,
+      "objective_valid": true,
+      "violated_constraints": [
+        "continuous_crop:F3:30:2023-第二季->2024-第一季",
+        "continuous_crop:F4:34:2023-第二季->2024-第一季"
+      ],
+      "max_raw_constraint_violation": 0.0,
+      "constraints_valid": false,
+      "valid": false
+    },
+    {
+      "scenario_id": "q1_discount",
+      "objective_reported": 58216768.86094,
+      "objective_recomputed": 58216768.86094007,
+      "objective_difference": 6.705522537231445e-08,
+      "objective_valid": true,
+      "violated_constraints": [
+        "continuous_crop:F2:29:2023-第二季->2024-第一季"
+      ],
+      "max_raw_constraint_violation": 0.0,
+      "constraints_valid": false,
+      "valid": false
+    },
+    {
+      "scenario_id": "q2_frozen",
+      "objective_reported": 40050595.467508,
+      "objective_recomputed": 40050595.467507586,
+      "objective_difference": 4.172325134277344e-07,
+      "objective_valid": true,
+      "violated_constraints": [
+        "continuous_crop:F2:22:2023-第二季->2024-第一季"
+      ],
+      "max_raw_constraint_violation": 1.1102230246251565e-16,
+      "constraints_valid": false,
+      "valid": false
+    },
+    {
+      "scenario_id": "q3_frozen",
+      "objective_reported": 39889751.444231,
+      "objective_recomputed": 39889751.44423102,
+      "objective_difference": 1.4901161193847656e-08,
+      "objective_valid": true,
+      "violated_constraints": [
+        "continuous_crop:F2:22:2023-第二季->2024-第一季"
+      ],
+      "max_raw_constraint_violation": 1.1102230246251565e-16,
+      "constraints_valid": false,
+      "valid": false
+    }
+  ],
+  "q3_correlation_claim_requires_separate_evidence": true,
+  "valid": false
+}

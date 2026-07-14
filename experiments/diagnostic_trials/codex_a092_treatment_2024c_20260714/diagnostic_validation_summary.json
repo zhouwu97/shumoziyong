@@ -1,0 +1,89 @@
+{
+  "summary_version": "1.0.0",
+  "run_id": "R02",
+  "problem_id": "2024-C",
+  "arm": "treatment",
+  "evidence_class": "codex_diagnostic_only",
+  "execution_engine": {
+    "cli": "Codex",
+    "cli_version": "0.144.2",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "return_code": 0
+  },
+  "confirmatory_v4_protocol": {
+    "valid": false,
+    "formal_experiment_disposition": "invalid",
+    "reasons": [
+      "A092 v4 freezes Claude Code 2.1.207 and claude-opus-4-8",
+      "Codex execution is engine and protocol drift under E8/E9"
+    ],
+    "forbidden_cross_run_reference_count": 0,
+    "official_run_created": false,
+    "official_run_archived": false,
+    "collected": false
+  },
+  "external_math_validation": {
+    "validator": "a092_2024c_full_v2",
+    "validator_exit_code": 1,
+    "data_contract_passed": true,
+    "objective_scenarios_passed": 4,
+    "objective_scenarios_total": 4,
+    "maximum_objective_absolute_error": 4.172325134277344e-7,
+    "constraints_passed": false,
+    "constraint_violation_count": 5,
+    "scenario_results": [
+      {
+        "scenario_id": "q1_waste",
+        "objective_valid": true,
+        "constraint_violation_count": 2,
+        "violations": [
+          "continuous_crop:F3:30:2023-第二季->2024-第一季",
+          "continuous_crop:F4:34:2023-第二季->2024-第一季"
+        ]
+      },
+      {
+        "scenario_id": "q1_discount",
+        "objective_valid": true,
+        "constraint_violation_count": 1,
+        "violations": [
+          "continuous_crop:F2:29:2023-第二季->2024-第一季"
+        ]
+      },
+      {
+        "scenario_id": "q2_frozen",
+        "objective_valid": true,
+        "constraint_violation_count": 1,
+        "violations": [
+          "continuous_crop:F2:22:2023-第二季->2024-第一季"
+        ]
+      },
+      {
+        "scenario_id": "q3_frozen",
+        "objective_valid": true,
+        "constraint_violation_count": 1,
+        "violations": [
+          "continuous_crop:F2:22:2023-第二季->2024-第一季"
+        ]
+      }
+    ],
+    "candidate_disposition": "rejected",
+    "claim_permissions": {
+      "objective_value": false,
+      "improvement_rate": false,
+      "strong_optimality": false
+    }
+  },
+  "closure_checks": {
+    "input_hash_mismatch_count": 0,
+    "json_files_checked": 37,
+    "json_parse_error_count": 0,
+    "xlsx_files_checked": 4,
+    "xlsx_formula_error_count": 0,
+    "all_xlsx_cover_2024_through_2030": true,
+    "git_worktree_clean": true,
+    "claude_process_count_after_stop": 0,
+    "codex_diagnostic_process_count_after_completion": 0
+  },
+  "next_action": "Do not collect or compare with R01 as a confirmatory pair. Keep A092 v4 and R01 unchanged."
+}

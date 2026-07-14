@@ -1,0 +1,25 @@
+{
+  "protocol_id": "A092-CONFIRMATORY-V4",
+  "record_type": "non_frozen_protocol_conclusion",
+  "recorded_at": "2026-07-14",
+  "baseline": {
+    "run_id": "R01",
+    "execution_disposition": "valid",
+    "candidate_disposition": "rejected"
+  },
+  "treatment": {
+    "run_id": "R02",
+    "invalid_attempt_count": 2,
+    "completed_formal_run_count": 0,
+    "invalid_attempt_records": [
+      "protocols/a092_v4/invalid_attempt_R02_20260714T005831500630Z.json",
+      "protocols/a092_v4/invalid_attempt_R02_20260714T012152188639Z.json"
+    ]
+  },
+  "formal_pair_count": 0,
+  "mathematical_validator_disposition": "baseline_rejected_treatment_not_available",
+  "engine_audit_disposition": "treatment_execution_failed_twice",
+  "formal_protocol_disposition": "inconclusive_due_to_treatment_execution_failure",
+  "a092_promotion": false,
+  "retry_policy": "closed_no_more_claude_v4_r02_retries"
+}

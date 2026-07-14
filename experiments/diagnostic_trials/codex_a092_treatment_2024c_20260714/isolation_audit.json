@@ -1,0 +1,16 @@
+{
+  "audit": "a092_run_isolation_v4",
+  "run_id": "R02",
+  "events_sha256_checked": true,
+  "forbidden_reference_count": 0,
+  "findings": [],
+  "engine_findings": [
+    "claude_cli_version_mismatch",
+    "claude_model_mismatch",
+    "claude_permission_mode_mismatch",
+    "engine_valid_false",
+    "execution_engine_mismatch",
+    "protocol_id_mismatch"
+  ],
+  "valid": false
+}

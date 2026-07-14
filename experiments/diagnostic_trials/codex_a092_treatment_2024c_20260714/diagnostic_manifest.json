@@ -1,0 +1,41 @@
+{
+  "manifest_version": "1.0.0",
+  "trial_id": "codex_a092_treatment_2024c_20260714",
+  "trial_type": "diagnostic_treatment_run",
+  "protocol_reference": "A092-CONFIRMATORY-V4",
+  "counts_toward_v4": false,
+  "formal_protocol_disposition": "invalid_engine_drift",
+  "execution_engine": {
+    "cli": "Codex",
+    "cli_version": "0.144.2",
+    "model": "gpt-5.6-sol",
+    "reasoning_effort": "high",
+    "approval_policy": "never",
+    "sandbox": "danger-full-access",
+    "return_code": 0
+  },
+  "mathematical_validator_disposition": {
+    "data_contract_passed": true,
+    "objective_scenarios_passed": 4,
+    "objective_scenarios_total": 4,
+    "maximum_objective_absolute_error": 4.172325134277344e-7,
+    "constraints_passed": false,
+    "constraint_violation_count": 5,
+    "constraint_violation_type": "2023_to_2024_continuous_crop",
+    "candidate_disposition_if_eligible": "rejected"
+  },
+  "engine_audit_disposition": "valid_codex_diagnostic_but_invalid_for_v4",
+  "promotion": false,
+  "minimal_evidence": {
+    "diagnostic_validation_summary.json": "6aa4bfebb68ec92fd869592298b6a45577a708c622f69eedc2f37593d5a3040e",
+    "validator_report.json": "921de9bd3635e2818d9549c87f5606ea4cf98dc8dba30fdfd3637b1fe2dc00ea",
+    "isolation_audit.json": "c489ee7062b430299967961c9206211ea8f9a5a09c1bc48425758a3c71a14848"
+  },
+  "local_full_artifact": {
+    "path": "tmp/a092_codex_diagnostic_20260714/R02",
+    "canonicalization": "sorted UTF-8 lines: sha256, two spaces, POSIX relative path, LF terminator",
+    "entry_count": 87,
+    "canonical_tree_sha256": "0499b6d0b296cc9f0005ecea820cbebe8844c77d41549e097dd6cf6573701b1a",
+    "excluded_paths": ["full_artifact_manifest.sha256"]
+  }
+}
