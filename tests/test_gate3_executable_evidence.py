@@ -13,6 +13,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import gate3_evidence  # noqa: E402
 from gate3_evidence import collect_gate_3_math_validation, validate_gate_3_check_evidence  # noqa: E402
 import run_workflow  # noqa: E402
 
@@ -123,6 +124,20 @@ def _write_evidence(run: Path, evidence: dict[str, object]) -> None:
     (run / "gate_3_check_evidence.json").write_text(json.dumps(evidence), encoding="utf-8")
 
 
+def _use_isolated_validator_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """隔离 Validator 文件，允许负向测试安全篡改合同或报告 Schema。"""
+    isolated_root = tmp_path / "repository"
+    fixture_root = isolated_root / "validators" / "gate3_evidence_fixture"
+    shutil.copytree(ROOT / "validators" / "gate3_evidence_fixture", fixture_root)
+    schema_root = isolated_root / "schemas"
+    schema_root.mkdir(parents=True)
+    contract_schema = schema_root / "gate_3_validator_contract.schema.json"
+    shutil.copy2(ROOT / "schemas" / "gate_3_validator_contract.schema.json", contract_schema)
+    monkeypatch.setattr(gate3_evidence, "ROOT", isolated_root)
+    monkeypatch.setattr(gate3_evidence, "CONTRACT_SCHEMA_PATH", contract_schema)
+    return isolated_root
+
+
 def test_plain_passed_string_cannot_grant_formal_eligibility(tmp_path: Path) -> None:
     result = collect_gate_3_math_validation(tmp_path, _report(), _manifest())
     assert result["structural_validation"] == "passed"
@@ -147,6 +162,34 @@ def test_tampered_report_hash_rejected(tmp_path: Path) -> None:
     evidence = _evidence(tmp_path)
     (tmp_path / "validation" / "report.json").write_text('{"tampered": true}', encoding="utf-8")
     assert any("报告 SHA-256" in error for error in validate_gate_3_check_evidence(evidence, tmp_path))
+
+
+def test_tampered_report_schema_hash_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = tmp_path / "run"
+    evidence = _evidence(run)
+    isolated_root = _use_isolated_validator_root(tmp_path, monkeypatch)
+    report_schema = isolated_root / "validators" / "gate3_evidence_fixture" / "report.schema.json"
+    report_schema.write_text(report_schema.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    errors = validate_gate_3_check_evidence(evidence, run)
+    assert any("报告 Schema SHA-256 不匹配" in error for error in errors)
+
+
+def test_missing_report_schema_sha_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = tmp_path / "run"
+    evidence = _evidence(run)
+    isolated_root = _use_isolated_validator_root(tmp_path, monkeypatch)
+    contract_path = isolated_root / CONTRACT_PATH
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract.pop("report_schema_sha256", None)
+    contract_path.write_text(json.dumps(contract), encoding="utf-8")
+    for check in evidence["checks"]:
+        check["validator_contract_sha256"] = _sha(contract_path)
+    errors = validate_gate_3_check_evidence(evidence, run)
+    assert any("report_schema_sha256" in error for error in errors)
 
 
 def test_nonzero_exit_code_rejected(tmp_path: Path) -> None:

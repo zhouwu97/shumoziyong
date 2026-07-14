@@ -133,6 +133,8 @@ def _load_validator_contract(check: Mapping[str, Any]) -> tuple[dict[str, Any] |
         errors.append(f"{check_id} 的报告 Schema 不在允许 Validator 根目录内")
     elif not report_schema_path.is_file():
         errors.append(f"{check_id} 的报告 Schema 文件不存在")
+    elif _sha256(report_schema_path) != contract["report_schema_sha256"]:
+        errors.append(f"{check_id} 的报告 Schema SHA-256 不匹配")
     else:
         try:
             Draft202012Validator.check_schema(json.loads(report_schema_path.read_text(encoding="utf-8")))

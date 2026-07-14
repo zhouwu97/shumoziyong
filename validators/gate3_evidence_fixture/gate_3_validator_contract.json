@@ -12,6 +12,7 @@
     "sample_manifest_consistency"
   ],
   "report_schema_path": "validators/gate3_evidence_fixture/report.schema.json",
+  "report_schema_sha256": "ed82e354cff71e3132f242dacfb7f032fc8831587971ce6954809604232288f0",
   "required_observations": {
     "objective_recomputation": ["reported_objective", "recomputed_objective", "absolute_error"],
     "constraint_residual": ["max_constraint_residual"],
