@@ -1,0 +1,74 @@
+{
+  "record_version": "1.0.0",
+  "protocol_id": "A092-CONFIRMATORY-V4",
+  "run_id": "R02",
+  "attempt_id": "attempt-20260714T012152188639Z-94d627aa0651",
+  "started_at": "2026-07-14T01:21:52.206661+00:00",
+  "completed_at": "2026-07-14T02:06:35.174612+00:00",
+  "disposition": "invalid_incomplete_candidate_execution",
+  "experiment_invalid_code": "provider_retries_and_candidate_background_execution_incomplete",
+  "reason": "运行期间出现 27 次可恢复的上游 502 重试。候选将求解器放入后台；首次后台求解被候选主动停止，第二次后台求解在 Claude 等待超时后仍仅完成第一个场景的一部分。Claude 随后以等待说明正常结束，运行器终止后台任务，未生成任何 results 文件。",
+  "observed_engine_init": {
+    "cli_version": "2.1.207",
+    "model": "claude-opus-4-8",
+    "permission_mode": "bypassPermissions",
+    "engine_valid": true,
+    "return_code": 0
+  },
+  "provider_transport": {
+    "provider_failure_observed": true,
+    "gateway_failure_observed": true,
+    "gateway_status": 502,
+    "gateway_retry_event_count": 27,
+    "maximum_retry_attempt_observed": 9,
+    "terminal_gateway_failure": false,
+    "transport_recovered": true,
+    "engine_drift_observed": false
+  },
+  "execution_failure": {
+    "final_assistant_message": "The solver is working through the four scenarios (each caped at 180s). The objective is a healthy positive ~38M (CBC prints the negated internal value). I'll wait for the full run to complete rather than poll repeatedly.",
+    "background_tasks": [
+      {
+        "task_id": "bxciso0p1",
+        "description": "Run crop planning solver",
+        "final_status": "killed",
+        "stopped_by_candidate": true
+      },
+      {
+        "task_id": "bi2mlm0mo",
+        "description": "Compile and run full solver pipeline",
+        "final_status": "killed",
+        "stopped_by_candidate": false
+      }
+    ]
+  },
+  "runner_events_sha256": "0a2673fcb42715069ecc1c51472f14332680af865f88467c14d9e763c757744a",
+  "runner_metadata_sha256": "4d00d5e68fbc6cf0b26e114129f97405a305638a983645fa05b52e7ffbde2c76",
+  "candidate_precheck": {
+    "formal_result_created": false,
+    "results_file_count": 0,
+    "solver_code_file_count": 4,
+    "partial_gate_files_created": true,
+    "simulation_table_created": true,
+    "paper_or_report_created": false
+  },
+  "external_validator": {
+    "run_permitted": false,
+    "mathematical_adjudication_reached": false,
+    "missing_required_artifact": "results/formal_result.json",
+    "validator_report_created": false,
+    "isolation_audit_created": false,
+    "external_validator_attestation_created": false
+  },
+  "local_evidence_retention": {
+    "attempt_directory": "tmp/a092_confirmatory_v4/attempts/R02/attempt-20260714T012152188639Z-94d627aa0651",
+    "prepared_input_directory": "tmp/a092_confirmatory_v4/prepared_attempts/R02/attempt-20260714T012152188639Z-94d627aa0651"
+  },
+  "required_workspace_created": true,
+  "formal_result_created": false,
+  "official_result_directory_created": false,
+  "counts_toward_confirmatory_pairs": false,
+  "collect_permitted": false,
+  "pair_report_permitted": false,
+  "next_protocol_requirement": "清理活动状态后创建新的唯一 R02 attempt；不得复用本次代码、中间产物或 prepared 输入。"
+}
