@@ -1,0 +1,11 @@
+{
+  "protected_token_check": "passed",
+  "numbers_changed": [],
+  "formulas_changed": [],
+  "citations_changed": [],
+  "units_changed": [],
+  "rewritten_paragraphs": 3,
+  "manual_review_required": [
+    "第 4.3 节包含最优性表述，需核对结论强度"
+  ]
+}

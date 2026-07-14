@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "validation_id": "EXAMPLE-ONLY-cross-language-validation",
+  "example_only": true,
+  "execution_evidence_id": "EXAMPLE-ONLY-dual-language-run",
+  "output_manifests": {
+    "python_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "matlab_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "objective": {
+    "metric": "total_cost",
+    "direction": "minimize",
+    "python_value": 1024.5,
+    "matlab_value": 1024.5000001,
+    "absolute_tolerance": 0.000001,
+    "relative_tolerance": 0.000000001
+  },
+  "hard_constraints": [
+    {
+      "constraint_id": "capacity_limit",
+      "python": {
+        "satisfied": true,
+        "max_violation": 0.0
+      },
+      "matlab": {
+        "satisfied": true,
+        "max_violation": 0.0
+      },
+      "violation_tolerance": 0.00000001
+    }
+  ],
+  "business_aggregates": [
+    {
+      "aggregate_id": "selected_supplier_count",
+      "unit": "count",
+      "python_value": 26,
+      "matlab_value": 26,
+      "absolute_tolerance": 0,
+      "relative_tolerance": 0
+    }
+  ],
+  "optimality": {
+    "python_status": "optimal",
+    "matlab_status": "optimal"
+  },
+  "decision_variables": {
+    "comparison_mode": "equivalent_optimum",
+    "python_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "matlab_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  }
+}

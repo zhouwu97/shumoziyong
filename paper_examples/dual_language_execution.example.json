@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0.0",
+  "evidence_id": "EXAMPLE-ONLY-dual-language-run",
+  "example_only": true,
+  "profile": {
+    "profile_id": "cumcm_python_matlab_v1",
+    "required_languages": [
+      "python",
+      "matlab"
+    ],
+    "language_roles": {
+      "python": "primary_solver",
+      "matlab": "independent_reproducer"
+    }
+  },
+  "executions": {
+    "python": {
+      "language": "python",
+      "role": "primary_solver",
+      "status": "executed",
+      "verification_status": "verified",
+      "execution_observed": true,
+      "version": "Python 3.12.10",
+      "dependencies": [
+        {
+          "name": "numpy",
+          "version": "2.4.4"
+        },
+        {
+          "name": "scipy",
+          "version": "1.17.0"
+        }
+      ],
+      "command": [
+        "python",
+        "solver.py",
+        "--input",
+        "inputs/input_manifest.json"
+      ],
+      "cwd": "workspace/python_solver",
+      "started_at": "2026-07-15T09:00:00+08:00",
+      "ended_at": "2026-07-15T09:03:20+08:00",
+      "exit_code": 0,
+      "stdout_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_manifest": {
+        "path": "manifests/python_source_manifest.json",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "input_manifest": {
+        "path": "inputs/input_manifest.json",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "output_manifest": {
+        "path": "outputs/python_output_manifest.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    "matlab": {
+      "language": "matlab",
+      "role": "independent_reproducer",
+      "status": "executed",
+      "verification_status": "verified",
+      "execution_observed": true,
+      "version": "MATLAB R2025b",
+      "toolboxes": [
+        {
+          "name": "Optimization Toolbox",
+          "version": "25.2"
+        }
+      ],
+      "command": [
+        "matlab",
+        "-batch",
+        "run_independent_reproducer"
+      ],
+      "cwd": "workspace/matlab_reproducer",
+      "started_at": "2026-07-15T09:05:00+08:00",
+      "ended_at": "2026-07-15T09:09:40+08:00",
+      "exit_code": 0,
+      "stdout_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_manifest": {
+        "path": "manifests/matlab_source_manifest.json",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "input_manifest": {
+        "path": "inputs/input_manifest.json",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "output_manifest": {
+        "path": "outputs/matlab_output_manifest.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "isolation": {
+        "invokes_python": false,
+        "reads_python_intermediates": false,
+        "input_origin": "shared_official_inputs"
+      }
+    }
+  }
+}
