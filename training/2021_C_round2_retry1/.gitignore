@@ -1,0 +1,11 @@
+tmp/
+_docx_qa/
+code/**/__pycache__/
+*.pyc
+materials/*.pdf
+materials/*.xlsx
+paper/figures/*.tiff
+paper/output/阶段一.pdf
+paper_full_draft.docx
+paper_full_draft.md
+paper_draft.md

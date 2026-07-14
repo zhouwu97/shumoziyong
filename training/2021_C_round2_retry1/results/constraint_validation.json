@@ -1,0 +1,390 @@
+{
+  "by_problem": {
+    "2": {
+      "checks": {
+        "arrival_quantity": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "initial_inventory": {
+          "checked_count": 1,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "inventory_balance": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "material_conversion": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "order_nonnegative": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "order_transport_consistency": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "output_template_consistency": {
+          "checked_count": 86832,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "production_requirement": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "supplier_capacity": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "supplier_selection": {
+          "checked_count": 428,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "terminal_inventory": {
+          "checked_count": 1,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transport_loss": {
+          "checked_count": 192,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transporter_assignment": {
+          "checked_count": 9648,
+          "constraint_kind": "hard",
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "soft_split_occurrences": 0,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transporter_capacity": {
+          "checked_count": 192,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "units_and_aggregation": {
+          "checked_count": 3,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        }
+      },
+      "passed": true,
+      "total_hard_violations": 0
+    },
+    "3": {
+      "checks": {
+        "arrival_quantity": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "initial_inventory": {
+          "checked_count": 1,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "inventory_balance": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "material_conversion": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "order_nonnegative": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "order_transport_consistency": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "output_template_consistency": {
+          "checked_count": 86832,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "production_requirement": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "supplier_capacity": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "supplier_selection": {
+          "checked_count": 707,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "terminal_inventory": {
+          "checked_count": 1,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transport_loss": {
+          "checked_count": 192,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transporter_assignment": {
+          "checked_count": 9648,
+          "constraint_kind": "soft",
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "soft_split_occurrences": 48,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transporter_capacity": {
+          "checked_count": 192,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "units_and_aggregation": {
+          "checked_count": 3,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        }
+      },
+      "passed": true,
+      "total_hard_violations": 0
+    },
+    "4": {
+      "checks": {
+        "arrival_quantity": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "initial_inventory": {
+          "checked_count": 1,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "inventory_balance": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "material_conversion": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "order_nonnegative": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "order_transport_consistency": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "output_template_consistency": {
+          "checked_count": 86832,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "production_requirement": {
+          "checked_count": 24,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "supplier_capacity": {
+          "checked_count": 9648,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "supplier_selection": {
+          "checked_count": 804,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "terminal_inventory": {
+          "checked_count": 1,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transport_loss": {
+          "checked_count": 192,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transporter_assignment": {
+          "checked_count": 9648,
+          "constraint_kind": "soft",
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "soft_split_occurrences": 72,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "transporter_capacity": {
+          "checked_count": 192,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        },
+        "units_and_aggregation": {
+          "checked_count": 3,
+          "examples": [],
+          "max_violation": 0.0,
+          "passed": true,
+          "threshold": 1e-06,
+          "violation_count": 0
+        }
+      },
+      "passed": true,
+      "total_hard_violations": 0
+    }
+  },
+  "passed": true,
+  "total_hard_violations": 0
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "absolute_error": 0.0,
+    "aggregation_dimensions": [
+      "supplier",
+      "week",
+      "transporter"
+    ],
+    "passed": true,
+    "problem_part": "2",
+    "recomputed_objective": 491125.62053030357,
+    "relative_error": 0.0,
+    "reported_objective": 491125.62053030357,
+    "unit": "relative_cost"
+  },
+  {
+    "absolute_error": 0.0,
+    "aggregation_dimensions": [
+      "supplier",
+      "week",
+      "transporter"
+    ],
+    "passed": true,
+    "problem_part": "3",
+    "recomputed_objective": 69507.84062081393,
+    "relative_error": 0.0,
+    "reported_objective": 69507.84062081393,
+    "unit": "raw_m3"
+  },
+  {
+    "absolute_error": 0.0,
+    "aggregation_dimensions": [
+      "supplier",
+      "week",
+      "transporter"
+    ],
+    "passed": true,
+    "problem_part": "4",
+    "recomputed_objective": 800062.2110849528,
+    "relative_error": 0.0,
+    "reported_objective": 800062.2110849528,
+    "unit": "product_equivalent_m3"
+  }
+]

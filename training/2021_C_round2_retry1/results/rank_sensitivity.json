@@ -1,0 +1,297 @@
+{
+  "cases": {
+    "capacity_minus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9999497571023739,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S275",
+        "S201",
+        "S329",
+        "S340",
+        "S108",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 0.98,
+      "weights": {
+        "capacity": 0.4736842105263158,
+        "fulfilment": 0.10526315789473685,
+        "service": 0.2631578947368421,
+        "stability": 0.15789473684210525
+      }
+    },
+    "capacity_plus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9999484640866262,
+      "top10_overlap_count_with_current": 9,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S201",
+        "S140",
+        "S108",
+        "S275",
+        "S329",
+        "S340",
+        "S282",
+        "S395"
+      ],
+      "top50_overlap_rate_with_current": 0.98,
+      "weights": {
+        "capacity": 0.5238095238095238,
+        "fulfilment": 0.09523809523809523,
+        "service": 0.23809523809523808,
+        "stability": 0.14285714285714285
+      }
+    },
+    "current": {
+      "spearman_rank_correlation_with_current": 1.0,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S201",
+        "S275",
+        "S108",
+        "S329",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 1.0,
+      "weights": {
+        "capacity": 0.5,
+        "fulfilment": 0.1,
+        "service": 0.25,
+        "stability": 0.15
+      }
+    },
+    "equal": {
+      "spearman_rank_correlation_with_current": 0.9758019491473531,
+      "top10_overlap_count_with_current": 7,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S275",
+        "S329",
+        "S340",
+        "S268",
+        "S194",
+        "S131",
+        "S306",
+        "S282"
+      ],
+      "top50_overlap_rate_with_current": 0.82,
+      "weights": {
+        "capacity": 0.25,
+        "fulfilment": 0.25,
+        "service": 0.25,
+        "stability": 0.25
+      }
+    },
+    "fulfilment_minus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9997569130394266,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S201",
+        "S275",
+        "S108",
+        "S329",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 1.0,
+      "weights": {
+        "capacity": 0.5050505050505051,
+        "fulfilment": 0.09090909090909093,
+        "service": 0.25252525252525254,
+        "stability": 0.15151515151515152
+      }
+    },
+    "fulfilment_plus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9997650405669837,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S201",
+        "S275",
+        "S329",
+        "S108",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 1.0,
+      "weights": {
+        "capacity": 0.49504950495049505,
+        "fulfilment": 0.10891089108910892,
+        "service": 0.24752475247524752,
+        "stability": 0.1485148514851485
+      }
+    },
+    "service_minus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9997327151732904,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S201",
+        "S140",
+        "S275",
+        "S108",
+        "S329",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 0.98,
+      "weights": {
+        "capacity": 0.5128205128205129,
+        "fulfilment": 0.10256410256410257,
+        "service": 0.23076923076923078,
+        "stability": 0.15384615384615385
+      }
+    },
+    "service_plus_10pct": {
+      "spearman_rank_correlation_with_current": 0.999764671133913,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S201",
+        "S275",
+        "S108",
+        "S329",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 1.0,
+      "weights": {
+        "capacity": 0.48780487804878053,
+        "fulfilment": 0.09756097560975611,
+        "service": 0.26829268292682934,
+        "stability": 0.14634146341463417
+      }
+    },
+    "stability_minus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9997570977559619,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S201",
+        "S108",
+        "S275",
+        "S329",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 0.98,
+      "weights": {
+        "capacity": 0.5076142131979695,
+        "fulfilment": 0.10152284263959392,
+        "service": 0.25380710659898476,
+        "stability": 0.1370558375634518
+      }
+    },
+    "stability_plus_10pct": {
+      "spearman_rank_correlation_with_current": 0.9997968118110708,
+      "top10_overlap_count_with_current": 10,
+      "top10_supplier_ids": [
+        "S229",
+        "S361",
+        "S140",
+        "S201",
+        "S275",
+        "S329",
+        "S108",
+        "S340",
+        "S282",
+        "S131"
+      ],
+      "top50_overlap_rate_with_current": 0.98,
+      "weights": {
+        "capacity": 0.4926108374384236,
+        "fulfilment": 0.09852216748768472,
+        "service": 0.2463054187192118,
+        "stability": 0.1625615763546798
+      }
+    }
+  },
+  "focus_suppliers": {
+    "S140": {
+      "best_rank": 3,
+      "ranks_by_case": {
+        "capacity_minus_10pct": 3,
+        "capacity_plus_10pct": 4,
+        "current": 3,
+        "equal": 53,
+        "fulfilment_minus_10pct": 3,
+        "fulfilment_plus_10pct": 3,
+        "service_minus_10pct": 4,
+        "service_plus_10pct": 3,
+        "stability_minus_10pct": 3,
+        "stability_plus_10pct": 3
+      },
+      "top10_in_all_cases": false,
+      "worst_rank": 53
+    },
+    "S229": {
+      "best_rank": 1,
+      "ranks_by_case": {
+        "capacity_minus_10pct": 1,
+        "capacity_plus_10pct": 1,
+        "current": 1,
+        "equal": 1,
+        "fulfilment_minus_10pct": 1,
+        "fulfilment_plus_10pct": 1,
+        "service_minus_10pct": 1,
+        "service_plus_10pct": 1,
+        "stability_minus_10pct": 1,
+        "stability_plus_10pct": 1
+      },
+      "top10_in_all_cases": true,
+      "worst_rank": 1
+    },
+    "S361": {
+      "best_rank": 2,
+      "ranks_by_case": {
+        "capacity_minus_10pct": 2,
+        "capacity_plus_10pct": 2,
+        "current": 2,
+        "equal": 2,
+        "fulfilment_minus_10pct": 2,
+        "fulfilment_plus_10pct": 2,
+        "service_minus_10pct": 2,
+        "service_plus_10pct": 2,
+        "stability_minus_10pct": 2,
+        "stability_plus_10pct": 2
+      },
+      "top10_in_all_cases": true,
+      "worst_rank": 2
+    }
+  },
+  "generated_at": "2026-07-14T19:21:27+08:00",
+  "method": "四项极差归一化指标线性加权；除等权外，每次仅将一个当前权重相对调整±10%，再将四项权重归一化。",
+  "summary": {
+    "conclusion": "排序对小幅单项权重扰动稳定，但等权方案会改变头部次序；排序用于候选筛选，不等同于客观质量排名。",
+    "focus_suppliers_all_top10": false,
+    "minimum_spearman_rank_correlation": 0.9758019491473531,
+    "minimum_top10_overlap_count": 7,
+    "minimum_top50_overlap_rate": 0.82
+  },
+  "weight_semantics": "权重是业务假设，不是由题面或统计估计得到的客观最优权重。"
+}

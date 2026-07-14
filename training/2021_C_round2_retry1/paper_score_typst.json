@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-15T00:31:13+08:00",
+  "artifact": "paper/output/2021_C_paper_complete.pdf",
+  "scoring_scale": 100,
+  "dimensions": {
+    "problem_analysis": {"score": 9.0, "max": 10},
+    "mathematical_expression": {"score": 9.5, "max": 10},
+    "model_completeness": {"score": 9.5, "max": 10},
+    "result_interpretation": {"score": 9.0, "max": 10},
+    "logical_coherence": {"score": 9.0, "max": 10},
+    "figure_table_quality": {"score": 9.0, "max": 10},
+    "language_quality": {"score": 8.5, "max": 10},
+    "format_standardization": {"score": 9.5, "max": 10},
+    "reference_quality": {"score": 8.5, "max": 10},
+    "pdf_visual_quality": {"score": 9.5, "max": 10}
+  },
+  "total_score": 91.0,
+  "severity_counts": {"p0": 0, "p1": 0, "p2": 3},
+  "pass_threshold": 85,
+  "passed": true,
+  "evidence": {
+    "pages": 34,
+    "native_equations": 26,
+    "numbered_tables": 17,
+    "table_blocks_including_continuation": 18,
+    "figures": 8,
+    "references": 11,
+    "source_hashes_passed": "15/15",
+    "json_pointers_passed": "40/40",
+    "figure_source_hashes_passed": "9/9",
+    "cross_language_passed": true,
+    "maximum_cross_language_error": 1.6007106751203537e-10,
+    "visual_pages_passed": "34/34"
+  },
+  "minor_issues": [
+    "正式提交前仍需按当年竞赛系统要求补充或套用官方封面。",
+    "11 条参考文献足以支撑方法来源，但文献综述广度不是本文强项。",
+    "附录为满足双语言源码要求而较长，人工提交时需确认页数规则。"
+  ],
+  "old_markdown_score_reused": false
+}

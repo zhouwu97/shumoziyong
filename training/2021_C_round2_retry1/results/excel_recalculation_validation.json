@@ -1,0 +1,51 @@
+{
+  "engine": "LibreOffice Calc headless conversion",
+  "generated_at": "2026-07-14T19:18:28+08:00",
+  "passed": true,
+  "raw_solution_cell_consistency": {
+    "2": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    },
+    "3": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    },
+    "4": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    }
+  },
+  "records": [
+    {
+      "cached_formula_blank_count": 0,
+      "file": "附件A 订购方案数据结果.xlsx",
+      "formula_count": 72,
+      "formula_error_count": 0,
+      "formula_error_examples": [],
+      "passed": true,
+      "sha256": "6922f516ad8ec74a086c3049c0f3506559c7adec3d9170d76bf4797957e745d0"
+    },
+    {
+      "cached_formula_blank_count": 0,
+      "file": "附件B 转运方案数据结果.xlsx",
+      "formula_count": 1780,
+      "formula_error_count": 0,
+      "formula_error_examples": [],
+      "passed": true,
+      "sha256": "d331ba1f3a799a749ae9f418ea3fab3b813641ef9ba6e9efd635ddb607fc9fde"
+    }
+  ]
+}

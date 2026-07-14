@@ -1,0 +1,170 @@
+{
+  "version": "1.0",
+  "backend": "python",
+  "final_figure_count": 8,
+  "policy": {
+    "background": "white",
+    "internal_large_title": false,
+    "caption_owner": "typst",
+    "palette": "grayscale_with_hatch_and_line_style",
+    "solver_calls_allowed": false
+  },
+  "figures": [
+    {
+      "figure_id": "fig01_workflow",
+      "source_artifacts": [
+        {"path": "paper_source_lock.json", "sha256": "e6050a081733cb6c0a3e7a5eff001a789136996c9a031e6baad4536773254100"}
+      ],
+      "target_section": "05_data_preprocessing",
+      "purpose": "概括四问从评价、基数闭合、词典序优化到产能估计的递进关系，并标出独立验证闭环。",
+      "claim_ids": ["supplier_count", "problem2_minimum_supplier_count", "problem3_active_supplier_count", "problem4_weekly_capacity", "hard_constraint_violations"],
+      "caption": "四问建模与验证技术路线",
+      "conceptual": true,
+      "decision": "add",
+      "allow_color": false,
+      "grayscale_encoding": "box fill, border weight and arrow direction"
+    },
+    {
+      "figure_id": "fig02_supplier_metrics",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/01_supplier_metric_distributions.csv", "sha256": "2454887aac4926dc614096404c34290210415fa36ac7d4fe942caef4b9c10801"}
+      ],
+      "target_section": "05_data_preprocessing",
+      "purpose": "展示供应能力的长尾性及可靠性指标的离散，说明仅按规模排序不足。",
+      "claim_ids": ["supplier_count"],
+      "caption": "供应商四项评价指标分布",
+      "conceptual": false,
+      "decision": "retain",
+      "replaces": "01_supplier_metric_distributions",
+      "allow_color": false,
+      "grayscale_encoding": "four gray levels and median dashed lines"
+    },
+    {
+      "figure_id": "fig03_top20_suppliers",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/02_supplier_top20_scores.csv", "sha256": "c42e54d95bf96ee350008d6a1d0a32ee5dcfc35eb6b2a4012b84f7c29de74075"}
+      ],
+      "target_section": "06_problem1",
+      "purpose": "呈现基准业务权重下的前 20 家供应商得分，并用纹理区分三类原料。",
+      "claim_ids": ["top_supplier_1", "top_supplier_2", "s140_base_rank"],
+      "caption": "基准权重下综合得分前 20 家供应商",
+      "conceptual": false,
+      "decision": "retain",
+      "replaces": "02_supplier_top20_scores",
+      "allow_color": false,
+      "grayscale_encoding": "gray levels plus material hatches"
+    },
+    {
+      "figure_id": "fig04_rank_sensitivity",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/11_rank_weight_sensitivity.csv", "sha256": "f03690570d3f049c4efc15c35525770744425767b1428f6e6556d7d4aaeffe6b"}
+      ],
+      "target_section": "06_problem1",
+      "purpose": "区分小幅权重扰动下的局部稳定性与等权情景下的显著名次变化。",
+      "claim_ids": ["s140_base_rank", "s140_equal_rank", "rank_min_top50_overlap"],
+      "caption": "供应商排序的权重敏感性",
+      "conceptual": false,
+      "decision": "retain",
+      "replaces": "11_rank_weight_sensitivity",
+      "allow_color": false,
+      "grayscale_encoding": "solid and dashed lines with distinct markers"
+    },
+    {
+      "figure_id": "fig05_problem2_operations",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/05_problem2_transporter_load.csv", "sha256": "222ce3391fb52574b9b82f0db950fae5e8a83409b81e8565288642cb77126de1"},
+        {"path": "figures/paper/source_data/06_problem2_inventory_trajectory.csv", "sha256": "8783a989a1e50efc722365ff140d9d9044e62dcc3e77b6c9186ca992b416a706"}
+      ],
+      "target_section": "08_problem2_results",
+      "purpose": "联合说明低损耗转运商负载瓶颈以及到货量与安全库存下界的贴合。",
+      "claim_ids": ["transporter_weekly_capacity", "base_weekly_production", "initial_inventory", "problem2_weekly_loss"],
+      "caption": "问题二转运负载、到货量与库存轨迹",
+      "conceptual": false,
+      "decision": "merge",
+      "replaces": ["05_problem2_transporter_load", "06_problem2_inventory_trajectory"],
+      "allow_color": false,
+      "grayscale_encoding": "gray heatmap, marker shapes and line styles"
+    },
+    {
+      "figure_id": "fig06_material_mix",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/07_problem3_material_mix.csv", "sha256": "109773b6d5cc67eb3ea5683739a1899b4c773351fd93c89fb20ec0a71350aa8e"}
+      ],
+      "target_section": "10_problem3_results",
+      "purpose": "比较问题二与问题三的 A、B、C 类周供货结构和总原料量。",
+      "claim_ids": ["problem3_weekly_a", "problem3_weekly_b", "problem3_weekly_c"],
+      "caption": "问题二与问题三的周均原料结构",
+      "conceptual": false,
+      "decision": "retain",
+      "replaces": "07_problem3_material_mix",
+      "allow_color": false,
+      "grayscale_encoding": "stacked gray bars with hatches"
+    },
+    {
+      "figure_id": "fig07_capacity",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/09_problem4_capacity_comparison.csv", "sha256": "d207a9b1d1d430286aa805fe2f5d51ae8ce56b0e92c64f7fe29acf5cf4d8f0f8"}
+      ],
+      "target_section": "12_problem4_results",
+      "purpose": "比较基准周需求与模型预测最大周产能，并标示增幅。",
+      "claim_ids": ["base_weekly_production", "problem4_weekly_capacity", "problem4_increase_ratio"],
+      "caption": "基准周需求与模型预测最大周产能",
+      "conceptual": false,
+      "decision": "retain",
+      "replaces": "09_problem4_capacity_comparison",
+      "allow_color": false,
+      "grayscale_encoding": "two gray levels with distinct hatches"
+    },
+    {
+      "figure_id": "fig08_stress",
+      "source_artifacts": [
+        {"path": "figures/paper/source_data/10_sensitivity_and_stress_tests.csv", "sha256": "e9d28f212933bb964bc2f4831decdb46579a1edabbde56e051e077f68aa3f270"}
+      ],
+      "target_section": "13_sensitivity",
+      "purpose": "展示可行情景的供应商数量，并严格区分可行、不可行与限时内状态未知。",
+      "claim_ids": ["demand_plus_10_status", "key_supplier_minus_10_status", "key_supplier_outage_status"],
+      "caption": "问题二敏感性与压力测试",
+      "conceptual": false,
+      "decision": "retain",
+      "replaces": "10_sensitivity_and_stress_tests",
+      "allow_color": false,
+      "grayscale_encoding": "gray levels, hatches and explicit status text"
+    },
+    {
+      "figure_id": "candidate_material_capacity",
+      "source_artifacts": [],
+      "target_section": null,
+      "purpose": "原料类别数量与能力分布信息已由数据审计和式表解释覆盖。",
+      "claim_ids": ["material_supplier_a", "material_supplier_b", "material_supplier_c"],
+      "caption": null,
+      "conceptual": false,
+      "decision": "delete",
+      "replaces": "03_material_capacity_distribution",
+      "reason": "与四指标分布和数据审计表重复"
+    },
+    {
+      "figure_id": "candidate_weekly_orders",
+      "source_artifacts": [],
+      "target_section": null,
+      "purpose": "24 周完全重复轨迹主要反映平稳假设，正文解释比独立图更有效。",
+      "claim_ids": ["horizon_weeks"],
+      "caption": null,
+      "conceptual": false,
+      "decision": "delete",
+      "replaces": "04_problem2_weekly_orders",
+      "reason": "证据增量不足"
+    },
+    {
+      "figure_id": "candidate_transport_splitting",
+      "source_artifacts": [],
+      "target_section": null,
+      "purpose": "拆分次数和体积口径由正文表格并列呈现更清楚。",
+      "claim_ids": ["problem3_split_supplier_weeks"],
+      "caption": null,
+      "conceptual": false,
+      "decision": "delete",
+      "replaces": "08_problem3_transport_splitting",
+      "reason": "避免对不同分母的比例产生视觉误读"
+    }
+  ]
+}

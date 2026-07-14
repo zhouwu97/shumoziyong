@@ -1,0 +1,88 @@
+{
+  "by_problem": {
+    "2": {
+      "active_supplier_count": 26,
+      "positive_supplier_week_cells": {
+        "count_lt_1": 0,
+        "count_lt_10": 0,
+        "count_lt_100": 0,
+        "maximum": 7116.306122448979,
+        "median": 690.455806123719,
+        "minimum": 236.24166666666667,
+        "p10": 394.0416666666667,
+        "p90": 1499.5208333333333,
+        "positive_count": 624
+      },
+      "positive_weekly_order_by_supplier": {
+        "count_lt_1": 0,
+        "count_lt_10": 0,
+        "count_lt_100": 0,
+        "maximum": 7116.306122448979,
+        "median": 690.455806123719,
+        "minimum": 236.24166666666667,
+        "p10": 407.1978519668737,
+        "p90": 1444.4520833333331,
+        "positive_count": 26
+      }
+    },
+    "3": {
+      "active_supplier_count": 305,
+      "positive_supplier_week_cells": {
+        "count_lt_1": 0,
+        "count_lt_10": 4512,
+        "count_lt_100": 6432,
+        "maximum": 7116.306122448979,
+        "median": 5.427536231884058,
+        "minimum": 1.0169491525423728,
+        "p10": 1.675,
+        "p90": 134.83333333333331,
+        "positive_count": 7320
+      },
+      "positive_weekly_order_by_supplier": {
+        "count_lt_1": 0,
+        "count_lt_10": 188,
+        "count_lt_100": 268,
+        "maximum": 7116.306122448979,
+        "median": 5.427536231884058,
+        "minimum": 1.0169491525423728,
+        "p10": 1.685,
+        "p90": 134.49166666666667,
+        "positive_count": 305
+      }
+    },
+    "4": {
+      "active_supplier_count": 402,
+      "positive_supplier_week_cells": {
+        "count_lt_1": 0,
+        "count_lt_10": 5808,
+        "count_lt_100": 8424,
+        "maximum": 7116.306122448979,
+        "median": 5.8173140223831465,
+        "minimum": 1.0169491525423728,
+        "p10": 1.6222222222222222,
+        "p90": 173.4625,
+        "positive_count": 9648
+      },
+      "positive_weekly_order_by_supplier": {
+        "count_lt_1": 0,
+        "count_lt_10": 242,
+        "count_lt_100": 351,
+        "maximum": 7116.306122448979,
+        "median": 5.8173140223831465,
+        "minimum": 1.0169491525423728,
+        "p10": 1.6227906976744186,
+        "p90": 173.2858333333334,
+        "positive_count": 402
+      }
+    }
+  },
+  "distribution_basis": "方案按单周最优流复制到24周；供应商口径使用每家供应商24周最大正订购量，单元格口径另行报告。",
+  "generated_at": "2026-07-14T19:21:27+08:00",
+  "positive_threshold": 1e-06,
+  "problem3_assessment": {
+    "active_supplier_count": 305,
+    "conclusion": "未发现小于1 m3的数值碎片；大量供应商是连续LP在少C、少总原料、少损耗目标下的业务结果，但模型仍未惩罚启用数量。",
+    "has_sub_1_raw_m3_fragments": false,
+    "operability_limit": "若业务目标要求减少合作供应商，需要另建启用变量与固定成本；问题3题面当前目标下不构成硬约束违例。"
+  }
+}

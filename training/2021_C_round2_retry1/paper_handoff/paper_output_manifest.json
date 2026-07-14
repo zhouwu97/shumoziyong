@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "status": "complete_candidate_ready_for_human_review",
+  "primary_output": {
+    "path": "paper/output/2021_C_paper_complete.pdf",
+    "size_bytes": 1023009,
+    "sha256": "d88039b7ccfdb0ef7f3034ef75f893b8c71a93ae89deb7531259de8b5a3d4488",
+    "pages": 34,
+    "page_size": "A4"
+  },
+  "source": {
+    "entry": "paper/main.typ",
+    "style": "paper/style.typ",
+    "section_files": 19,
+    "section_lines": 625,
+    "compiler": "Typst 0.15.0",
+    "compile_command": ".\\tmp\\typst-bin\\typst-x86_64-pc-windows-msvc\\typst.exe compile paper\\main.typ paper\\output\\2021_C_paper_complete.pdf --root ."
+  },
+  "content_counts": {
+    "equations": 26,
+    "numbered_tables": 17,
+    "table_blocks_including_continuation": 18,
+    "figures": 8,
+    "references": 11,
+    "appendices": 6
+  },
+  "code": {
+    "python": {"files": 14, "lines": 3532, "command": "python code/run_training.py", "runtime_seconds": 58.52421210000466, "solver": "SciPy 1.17.0 / HiGHS"},
+    "matlab": {"files": 8, "lines": 552, "command": "matlab -batch \"addpath('code/matlab'); run_cross_language_validation(pwd)\"", "runtime_seconds": 14.7648263, "exit_status": 0, "solver": "intlinprog; linprog / HiGHS dual simplex"}
+  },
+  "validation_artifacts": [
+    "results/cross_language_validation.json",
+    "results/cross_language_validation.csv",
+    "results/matlab_execution_record.json",
+    "paper/reference_verification.md",
+    "paper_score_typst.json",
+    "paper_completion_review.md"
+  ],
+  "cross_language": {"passed": true, "maximum_error": 1.6007106751203537e-10, "hard_violations_python": 0, "hard_violations_matlab": 0},
+  "git": {"committed": false, "pushed": false}
+}

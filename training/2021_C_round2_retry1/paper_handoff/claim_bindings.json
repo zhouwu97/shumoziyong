@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "canonical_lock": "paper_source_lock.json",
+  "canonical_lock_sha256": "e6050a081733cb6c0a3e7a5eff001a789136996c9a031e6baad4536773254100",
+  "source_file_count": 15,
+  "claim_count": 48,
+  "audits": {
+    "source_sha256": {"checked": 15, "passed": 15},
+    "json_pointer": {"checked": 40, "passed": 40},
+    "derived_claims": 8
+  },
+  "claim_groups": {
+    "data_and_parameters": ["supplier_count", "transporter_count", "historical_weeks", "horizon_weeks", "base_weekly_production", "initial_inventory", "safety_stock_weeks", "transporter_weekly_capacity", "raw_per_product_a", "raw_per_product_b", "raw_per_product_c", "relative_cost_a", "relative_cost_b", "relative_cost_c", "material_supplier_a", "material_supplier_b", "material_supplier_c"],
+    "data_semantics": ["not_ordered_zero_supply", "ordered_zero_supply", "ordered_positive_supply", "supply_greater_than_order", "outlier_count", "outlier_threshold"],
+    "problem1": ["top_supplier_1", "top_supplier_2", "s140_base_rank", "s140_equal_rank", "rank_min_top50_overlap"],
+    "problem2": ["problem2_minimum_supplier_count", "problem2_top25_net_capacity", "problem2_top26_net_capacity", "problem2_weekly_cost", "problem2_weekly_loss"],
+    "problem3": ["problem3_active_supplier_count", "problem3_weekly_a", "problem3_weekly_b", "problem3_weekly_c", "problem3_split_supplier_weeks", "problem3_hard_carrier_status"],
+    "problem4": ["problem4_weekly_capacity", "problem4_increase_ratio"],
+    "validation_and_stress": ["hard_constraint_violations", "template_cells_checked", "fault_injection_total", "fault_injection_passed", "demand_plus_10_status", "key_supplier_minus_10_status", "key_supplier_outage_status"]
+  },
+  "policy": {"model_changes_allowed": false, "result_changes_allowed": false, "display_rounding_only": true}
+}
