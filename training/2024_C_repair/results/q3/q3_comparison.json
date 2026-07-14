@@ -1,0 +1,26 @@
+{
+  "comparison_seed": 2024071499,
+  "scenario_count": 256,
+  "q2": {
+    "scenario_count": 256,
+    "mean_objective": 33327031.1773546,
+    "std_objective": 226849.4665898296,
+    "p05_objective": 32926198.789016537,
+    "p10_objective": 33025507.972940657,
+    "cvar10_objective": 32913608.801788196,
+    "minimum_objective": 32772329.069453057,
+    "maximum_objective": 34111649.81580047
+  },
+  "q3": {
+    "scenario_count": 256,
+    "mean_objective": 33216056.093613043,
+    "std_objective": 230156.60633961865,
+    "p05_objective": 32828169.998857595,
+    "p10_objective": 32922311.708429776,
+    "cvar10_objective": 32805657.527649377,
+    "minimum_objective": 32624740.17079576,
+    "maximum_objective": 34044046.20535075
+  },
+  "mean_difference_q3_minus_q2": -110975.08374155685,
+  "cvar10_difference_q3_minus_q2": -107951.27413881943
+}

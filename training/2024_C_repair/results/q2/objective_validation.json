@@ -1,0 +1,11 @@
+{
+  "case_id": "q2",
+  "reported_objective": 29437942.835558355,
+  "recomputed_objective": 29437942.835558355,
+  "absolute_error": 0.0,
+  "tolerance": 1e-06,
+  "passed": true,
+  "solver_status": 1,
+  "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+  "solver_objective_with_tiebreak": 29437931.365558356
+}

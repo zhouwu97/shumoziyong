@@ -1,0 +1,8 @@
+# 完整随机情景原件本地保留；版本库提交可再生成代码、种子、摘要及 SHA-256。
+results/q2/scenario_samples.csv
+results/q3/scenario_samples.csv
+results/q3/independent_comparison_samples.csv
+__pycache__/
+code/__pycache__/
+code/tests/__pycache__/
+figures/*.svg

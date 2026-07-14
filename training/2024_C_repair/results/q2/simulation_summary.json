@@ -1,0 +1,10 @@
+{
+  "scenario_count": 128,
+  "mean_objective": 33393666.10969018,
+  "std_objective": 273412.2088937321,
+  "p05_objective": 32935223.268360037,
+  "p10_objective": 33022531.012619026,
+  "cvar10_objective": 32874777.683675263,
+  "minimum_objective": 32604085.171227843,
+  "maximum_objective": 34122859.895452976
+}

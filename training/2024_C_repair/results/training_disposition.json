@@ -1,0 +1,13 @@
+{
+  "training_attempt_disposition": "valid_completed",
+  "internal_model_disposition": "accepted_under_declared_assumptions",
+  "frozen_benchmark_disposition": "rejected",
+  "failure_components": {
+    "sales_cap_contract": "candidate_mismatch",
+    "rotation_contract": "candidate_requires_repair",
+    "q2_q3_frozen_scenarios": "benchmark_contract_not_exposed_before_execution"
+  },
+  "generalization_evidence": false,
+  "patch_promotion_evidence": false,
+  "next_action": "publish_public_benchmark_contract_then_one_alignment_repair"
+}

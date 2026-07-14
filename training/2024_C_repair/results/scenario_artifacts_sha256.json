@@ -1,0 +1,28 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "q2_training_samples",
+      "local_path": "results/q2/scenario_samples.csv",
+      "bytes": 10049636,
+      "sha256": "50d3d7a70d2a4fecd85df53a779e810a6c4d9b2d2ac0dbe65d2399c72096f66f",
+      "seed": 2024071402,
+      "regeneration_entrypoint": "code/scenario_generation.py"
+    },
+    {
+      "artifact_id": "q3_training_samples",
+      "local_path": "results/q3/scenario_samples.csv",
+      "bytes": 10451843,
+      "sha256": "ef08d339a60418dce5912d7f9ce6e1f5d0cf7695b7a138181afccde564258126",
+      "seed": 2024071403,
+      "regeneration_entrypoint": "code/scenario_generation.py"
+    },
+    {
+      "artifact_id": "q3_independent_comparison_samples",
+      "local_path": "results/q3/independent_comparison_samples.csv",
+      "bytes": 20997076,
+      "sha256": "a643c4b7d616404c53d9e367a5d400ea5b0e3f5a9de25b5125a04d58381533e8",
+      "seed": 2024071499,
+      "regeneration_entrypoint": "code/scenario_generation.py"
+    }
+  ]
+}

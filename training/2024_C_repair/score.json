@@ -1,0 +1,41 @@
+{
+  "review_mode": "artifact_only_independent_audit",
+  "score": 82,
+  "max_score": 100,
+  "rubric": {
+    "problem_interpretation_and_constraints": {
+      "score": 18,
+      "max": 25
+    },
+    "objective_recomputation_and_evidence": {
+      "score": 21,
+      "max": 25
+    },
+    "reproducibility": {
+      "score": 20,
+      "max": 20
+    },
+    "result_validation": {
+      "score": 16,
+      "max": 20
+    },
+    "paper_claim_discipline": {
+      "score": 7,
+      "max": 10
+    }
+  },
+  "objective_recomputation_passed": true,
+  "constraint_validation_passed": true,
+  "reproduction_passed": true,
+  "evidence_files_present": true,
+  "solver_optimality_certified": false,
+  "frozen_external_validator_executed": true,
+  "frozen_external_validator_passed": false,
+  "internal_artifact_score": 82,
+  "review_result": "blocked_external_validator",
+  "required_before_submission": [
+    "报告可行解的 HiGHS 相对间隙或延长求解以获得最优性证书；否则继续维持非最优表述。",
+    "若比赛提交要求 result1_1.xlsx、result1_2.xlsx、result2.xlsx，须从已验证 raw_solution.json 生成模板文件并再次核对。",
+    "若获得市场口径或子地块资料，需替换销售统计/豆类面积代理并重新完整验证。"
+  ]
+}
