@@ -67,6 +67,35 @@ $ min x $ <eq-objective>
     assert report["summary"]["failures"] == 0  # type: ignore[index]
 
 
+def test_complex_block_formula_in_plain_text_fails(tmp_path: Path) -> None:
+    main = tmp_path / "main.typ"
+    main.write_text("目标函数写作 ∑_(i=1)^n x_i = N。\n", encoding="utf-8")
+
+    report = check_paper_source(main)
+
+    assert report["passed"] is False
+    assert "complex_formula_as_plain_text" in issue_codes(report)
+
+
+def test_simple_inline_variable_does_not_trigger_formula_failure(tmp_path: Path) -> None:
+    main = tmp_path / "main.typ"
+    main.write_text("变量 $x$ 表示设备状态。\n", encoding="utf-8")
+
+    report = check_paper_source(main)
+
+    assert "complex_formula_as_plain_text" not in issue_codes(report)
+
+
+def test_critical_objective_formula_requires_traceable_label(tmp_path: Path) -> None:
+    main = tmp_path / "main.typ"
+    main.write_text("目标函数为 $ max N $。\n", encoding="utf-8")
+
+    report = check_paper_source(main)
+
+    assert report["passed"] is False
+    assert "critical_formula_missing_label" in issue_codes(report)
+
+
 def test_source_check_warns_about_formulaic_language_and_lists(tmp_path: Path) -> None:
     main = tmp_path / "main.typ"
     main.write_text(
