@@ -73,6 +73,43 @@ python scripts/run_workflow.py init --workflow new_problem --problem 2026-A --ma
 正式 Patch 状态；轻量提示词回归不产生 Gate 或晋级证据；`full_replay` 与 `new_problem`
 必须遵守完整 Gate 0—5 合同。
 
+## 开始一次旧题训练
+
+旧题训练使用 `full_replay`，必须先完成材料来源、历史陌生性和题解污染审计。已用于开发、
+修复或论文学习的题目只能作为回归题，不计入资格证据。
+
+```text
+私有候选池 → 人工确认未见 → 只复制最终选中的官方材料 → 从最新 main 创建干净 worktree
+→ 初始化 full_replay → Gate 0—2 人工确认 → 候选执行与独立重跑 → Gate 3—5
+→ Validator 与论文验收 → 记录训练边界
+```
+
+```powershell
+python scripts/run_workflow.py init `
+  --workflow full_replay `
+  --problem 2018-B `
+  --profile engineering_optimization `
+  --materials E:\AI\shumo_training_private\2018_B\official_materials
+```
+
+初始化后每次只推进一个 Gate：
+
+```powershell
+python scripts/run_workflow.py advance `
+  --run-dir runs\<run_id> `
+  --reviewer <审核人>
+```
+
+完成 Gate 5 后再执行：
+
+```powershell
+python scripts/run_workflow.py complete --run-dir runs\<run_id> --reviewer <审核人>
+python scripts/run_workflow.py verify --run-dir runs\<run_id>
+```
+
+训练题默认标记为 `qualification_rehearsal`。除非满足正式留出、独立重跑、数学验证和独立
+评审要求，否则不得修改 Profile maturity 或声明 `profile_qualified`。
+
 ## 当前稳定能力
 
 Runtime Pack、Gate 0—5、材料冻结、运行身份、Candidate Result 与 Formal Result 隔离等
