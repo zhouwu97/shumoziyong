@@ -135,6 +135,18 @@ def render_submission(
         "renderer_id": renderer_id,
         "files": build_file_manifest(template_dir),
     }
+    Draft202012Validator(
+        load_json_object(
+            ROOT / "schemas" / "paper_source_manifest.schema.json",
+            "paper source manifest schema",
+        )
+    ).validate(source_manifest)
+    Draft202012Validator(
+        load_json_object(
+            ROOT / "schemas" / "paper_template_manifest.schema.json",
+            "paper template manifest schema",
+        )
+    ).validate(template_manifest)
     write_json(source_manifest_path, source_manifest)
     write_json(profile_snapshot_path, profile)
     write_json(template_manifest_path, template_manifest)
