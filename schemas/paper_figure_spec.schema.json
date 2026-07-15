@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_figure_spec.schema.json",
+  "title": "投稿图表生产规格",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "figure_id",
+    "core_conclusion",
+    "archetype",
+    "purpose",
+    "claim_ids",
+    "source_data",
+    "chart",
+    "statistics",
+    "export",
+    "matlab_validation",
+    "review_risks"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "figure_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]+$"},
+    "core_conclusion": {"type": "string", "minLength": 10},
+    "archetype": {
+      "enum": [
+        "quantitative_grid",
+        "schematic_led_composite",
+        "image_plate_plus_quant",
+        "asymmetric_mixed_modality"
+      ]
+    },
+    "purpose": {"type": "string", "minLength": 10},
+    "claim_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]+$"}
+    },
+    "source_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^[^\\\\]+\\.csv$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x_column", "series", "x_label", "y_label", "width_mm", "height_mm"],
+      "properties": {
+        "type": {"enum": ["line", "scatter", "grouped_bar"]},
+        "x_column": {"type": "string", "minLength": 1},
+        "series": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["column", "label", "color", "marker", "line_style"],
+            "properties": {
+              "column": {"type": "string", "minLength": 1},
+              "label": {"type": "string", "minLength": 1},
+              "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+              "marker": {"enum": ["o", "s", "^", "D", "v", "x", "+"]},
+              "line_style": {"enum": ["-", "--", ":", "-."]}
+            }
+          }
+        },
+        "x_label": {"type": "string", "minLength": 1},
+        "y_label": {"type": "string", "minLength": 1},
+        "width_mm": {"type": "number", "minimum": 60, "maximum": 190},
+        "height_mm": {"type": "number", "minimum": 40, "maximum": 240}
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n_definition", "center_statistic", "spread", "baseline_definition"],
+      "properties": {
+        "n_definition": {"type": "string", "minLength": 1},
+        "center_statistic": {"type": "string", "minLength": 1},
+        "spread": {"type": "string", "minLength": 1},
+        "baseline_definition": {"type": "string", "minLength": 1}
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output_stem", "formats", "dpi"],
+      "properties": {
+        "output_stem": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]+$"},
+        "formats": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {"enum": ["svg", "pdf", "tiff", "png"]},
+          "allOf": [
+            {"contains": {"const": "svg"}},
+            {"contains": {"const": "pdf"}},
+            {"contains": {"const": "tiff"}},
+            {"contains": {"const": "png"}}
+          ]
+        },
+        "dpi": {"type": "integer", "minimum": 300, "maximum": 1200}
+      }
+    },
+    "matlab_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "tolerance"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "tolerance": {"type": "number", "minimum": 0}
+      }
+    },
+    "review_risks": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

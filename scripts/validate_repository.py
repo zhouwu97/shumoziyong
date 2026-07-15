@@ -1489,6 +1489,8 @@ class RepositoryValidator:
             "model_text_consistency_report.schema.json",
             "paper_profile.schema.json",
             "paper_humanization_report.schema.json",
+            "paper_figure_build_report.schema.json",
+            "paper_figure_spec.schema.json",
             "paper_render_attestation.schema.json",
             "paper_visual_review.schema.json",
             "paper_verify_report.schema.json",
