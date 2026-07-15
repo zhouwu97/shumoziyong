@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_humanization_report.schema.json",
+  "title": "受控 Humanizer 差分报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_sha256",
+    "output_sha256",
+    "protected_numbers_changed",
+    "protected_formulas_changed",
+    "protected_units_changed",
+    "protected_symbols_changed",
+    "citations_changed",
+    "figure_table_refs_changed",
+    "table_cells_changed",
+    "direction_phrases_changed",
+    "scope_phrases_changed",
+    "rewritten_paragraph_count",
+    "stock_phrases_removed",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "source_sha256": {"$ref": "#/$defs/sha256"},
+    "output_sha256": {"$ref": "#/$defs/sha256"},
+    "protected_numbers_changed": {"$ref": "#/$defs/changes"},
+    "protected_formulas_changed": {"$ref": "#/$defs/changes"},
+    "protected_units_changed": {"$ref": "#/$defs/changes"},
+    "protected_symbols_changed": {"$ref": "#/$defs/changes"},
+    "citations_changed": {"$ref": "#/$defs/changes"},
+    "figure_table_refs_changed": {"$ref": "#/$defs/changes"},
+    "table_cells_changed": {"$ref": "#/$defs/changes"},
+    "direction_phrases_changed": {"$ref": "#/$defs/changes"},
+    "scope_phrases_changed": {"$ref": "#/$defs/changes"},
+    "rewritten_paragraph_count": {"type": "integer", "minimum": 0},
+    "stock_phrases_removed": {"type": "integer", "minimum": 0},
+    "status": {"enum": ["passed", "failed"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "protected_numbers_changed": {"maxItems": 0},
+          "protected_formulas_changed": {"maxItems": 0},
+          "protected_units_changed": {"maxItems": 0},
+          "protected_symbols_changed": {"maxItems": 0},
+          "citations_changed": {"maxItems": 0},
+          "figure_table_refs_changed": {"maxItems": 0},
+          "table_cells_changed": {"maxItems": 0},
+          "direction_phrases_changed": {"maxItems": 0},
+          "scope_phrases_changed": {"maxItems": 0}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "before", "after"],
+        "properties": {
+          "index": {"type": "integer", "minimum": 0},
+          "before": {"type": ["string", "null"]},
+          "after": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}
