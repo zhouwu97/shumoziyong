@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_verify_report.schema.json",
+  "title": "提交论文统一预检报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "paper_kind",
+    "profile_id",
+    "template_id",
+    "renderer_id",
+    "status",
+    "checks",
+    "artifacts",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "paper_kind": {"const": "submission_paper"},
+    "profile_id": {"type": "string", "minLength": 1},
+    "template_id": {"type": "string", "minLength": 1},
+    "renderer_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["passed", "failed"]},
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_binding",
+        "render_attestation",
+        "humanization_diff",
+        "section_structure",
+        "formula_environment",
+        "claim_binding",
+        "model_text_consistency",
+        "internal_term_leakage",
+        "references",
+        "compile_result",
+        "pdf_metadata",
+        "pdf_rasterization",
+        "visual_review_record"
+      ],
+      "properties": {
+        "profile_binding": {"$ref": "#/$defs/check"},
+        "render_attestation": {"$ref": "#/$defs/check"},
+        "humanization_diff": {"$ref": "#/$defs/check"},
+        "section_structure": {"$ref": "#/$defs/check"},
+        "formula_environment": {"$ref": "#/$defs/check"},
+        "claim_binding": {"$ref": "#/$defs/check"},
+        "model_text_consistency": {"$ref": "#/$defs/check"},
+        "internal_term_leakage": {"$ref": "#/$defs/check"},
+        "references": {"$ref": "#/$defs/check"},
+        "compile_result": {"$ref": "#/$defs/check"},
+        "pdf_metadata": {"$ref": "#/$defs/check"},
+        "pdf_rasterization": {"$ref": "#/$defs/check"},
+        "visual_review_record": {"$ref": "#/$defs/check"}
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "failed", "warnings"],
+      "properties": {
+        "passed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "warnings": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {"properties": {"summary": {"properties": {"failed": {"const": 0}}}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issues"],
+      "properties": {
+        "status": {"enum": ["passed", "failed"]},
+        "issues": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}
