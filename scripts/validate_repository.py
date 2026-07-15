@@ -1487,6 +1487,7 @@ class RepositoryValidator:
             "gate_3_input_manifest.schema.json",
             "gate_3_validator_contract.schema.json",
             "paper_profile.schema.json",
+            "paper_render_attestation.schema.json",
             "paper_verify_report.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
