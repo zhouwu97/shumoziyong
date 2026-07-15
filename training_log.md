@@ -49,9 +49,15 @@
 | P9 | 0 |  |  |  |
 | P10 | 0 |  |  |  |
 
-## 当前工程优化 runtime 状态
+## 当前状态说明
 
-2024-C 农作物种植策略已完成 Gate 0-5 full smoke chain pass。2023-B 多波束测线问题已完成 Gate 0-5 full smoke chain pass。2024-B 生产过程中的决策问题已完成 Gate 0-2 third-mechanism generalization pass。三道题机制明显不同：2024-C 是多期农业资源配置和不确定性决策，2023-B 是空间覆盖、几何约束和测线布设优化，2024-B 是生产过程、质量检测、工序决策和成本收益权衡。当前机器可读状态为 maturity=`verified_candidate`、validation_level=`cross_mechanism`；该状态不是 `stable`，仍需更多机制题和正式求解质量验证。
+当前状态不在本日志中人工维护，统一由能力证据和政策脚本派生：
+
+- `docs/status/CURRENT_STATUS.md`
+- `runtime_profiles/engineering_optimization.json`
+
+下方历史记录中的 `candidate+`、`stable candidate`、`verified_candidate`、
+`cross_mechanism` 和 `L4` 均为旧训练流程标签，不构成当前机器状态或 Profile Qualification。
 
 ## 稳定版本记录
 
