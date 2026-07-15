@@ -13,7 +13,7 @@
     {
       "figure_id": "fig01_workflow",
       "source_artifacts": [
-        {"path": "paper_source_lock.json", "sha256": "e6050a081733cb6c0a3e7a5eff001a789136996c9a031e6baad4536773254100"}
+        {"path": "paper_source_lock.json", "sha256": "1438e6bda839a551843ec0b70db5f2a6cffac5309cd91e418f42b05a9f43309b"}
       ],
       "target_section": "05_data_preprocessing",
       "purpose": "概括四问从评价、基数闭合、词典序优化到产能估计的递进关系，并标出独立验证闭环。",
@@ -72,8 +72,8 @@
     {
       "figure_id": "fig05_problem2_operations",
       "source_artifacts": [
-        {"path": "figures/paper/source_data/05_problem2_transporter_load.csv", "sha256": "222ce3391fb52574b9b82f0db950fae5e8a83409b81e8565288642cb77126de1"},
-        {"path": "figures/paper/source_data/06_problem2_inventory_trajectory.csv", "sha256": "8783a989a1e50efc722365ff140d9d9044e62dcc3e77b6c9186ca992b416a706"}
+        {"path": "figures/paper/source_data/05_problem2_transporter_load.csv", "sha256": "37c0f3fe151261eb9a55f1378c15fc8da602a45feb0ab1d4a9990c7157647e65"},
+        {"path": "figures/paper/source_data/06_problem2_inventory_trajectory.csv", "sha256": "fd8e052bce0cf4f09e22f14ee7ae2c8e4de0fca9d3ae6292ca940cdacad50379"}
       ],
       "target_section": "08_problem2_results",
       "purpose": "联合说明低损耗转运商负载瓶颈以及到货量与安全库存下界的贴合。",
@@ -88,7 +88,7 @@
     {
       "figure_id": "fig06_material_mix",
       "source_artifacts": [
-        {"path": "figures/paper/source_data/07_problem3_material_mix.csv", "sha256": "109773b6d5cc67eb3ea5683739a1899b4c773351fd93c89fb20ec0a71350aa8e"}
+        {"path": "figures/paper/source_data/07_problem3_material_mix.csv", "sha256": "2df0af77681b18282fefb274f3547ba36243a0e6547d55ce75c0a02804644c41"}
       ],
       "target_section": "10_problem3_results",
       "purpose": "比较问题二与问题三的 A、B、C 类周供货结构和总原料量。",
@@ -118,10 +118,10 @@
     {
       "figure_id": "fig08_stress",
       "source_artifacts": [
-        {"path": "figures/paper/source_data/10_sensitivity_and_stress_tests.csv", "sha256": "e9d28f212933bb964bc2f4831decdb46579a1edabbde56e051e077f68aa3f270"}
+        {"path": "figures/paper/source_data/10_sensitivity_and_stress_tests.csv", "sha256": "902828479dc2e495ccbd79e1c2ffb14ef28c6bf9297914f1e89c57c2ee1b5fec"}
       ],
       "target_section": "13_sensitivity",
-      "purpose": "展示可行情景的供应商数量，并严格区分可行、不可行与限时内状态未知。",
+      "purpose": "展示完成全局最优证明情景的供应商数量，并单独标记已找到可行解但未证明最优的限时情景。",
       "claim_ids": ["demand_plus_10_status", "key_supplier_minus_10_status", "key_supplier_outage_status"],
       "caption": "问题二敏感性与压力测试",
       "conceptual": false,

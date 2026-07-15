@@ -1,5 +1,5 @@
 #import "../style.typ": three-line-table, paper-figure, source-note
-#let locked = json("../../paper_source_lock.json").claims
+#import "../style.typ": locked
 
 = 问题四求解结果
 
@@ -10,22 +10,26 @@
   (0.8fr, 1.7fr, 1fr, 1.6fr),
   ([原料], [损耗后到货量/m³], [换算系数], [产品等价量/m³]),
   (
-    [A], [8,601.929368], [$div 0.60$], [14,336.548946],
-    [B], [6,519.599100], [$div 0.66$], [9,878.180455],
-    [C], [6,567.261164], [$div 0.72$], [9,121.196061],
-    [合计], [21,688.789632], [-], [#locked.problem4_weekly_capacity.display],
+    [A], [8,601.93], [$div 0.60$], [14,336.55],
+    [B], [6,519.60], [$div 0.66$], [9,878.18],
+    [C], [6,567.26], [$div 0.72$], [9,121.20],
+    [合计], [21,688.79], [-], [#locked.problem4_weekly_capacity.display],
   ),
   alignments: (center, right, center, right),
   font-size: 9pt,
 )
 
-三类产品等价量相加得到 #locked.problem4_weekly_capacity.display m³/周，比基准 #locked.base_weekly_production.display m³/周增加 5,135.925462 m³/周，增幅为 #locked.problem4_increase_ratio.display。相应两周安全库存为 66,671.850924 m³产品等价量。
+三类产品等价量相加得到 #locked.problem4_weekly_capacity.display m³/周，比基准 #locked.base_weekly_production.display m³/周增加 #locked.problem4_weekly_inventory_build.display m³/周，增幅为 #locked.problem4_increase_ratio.display。相应两周安全库存为 #locked.problem4_steady_safety_stock.display m³产品等价量。
+
+== 从现有库存到稳态的两周爬坡
+
+企业当前库存为 #locked.initial_inventory.display m³，低于稳态安全库存 #locked.problem4_steady_safety_stock.display m³，尚需补足 #locked.problem4_inventory_gap.display m³。维持基准生产时，每周按最大到货方案采购可净积累 #locked.problem4_weekly_inventory_build.display m³，故恰需 #locked.problem4_ramp_weeks.display 周完成补库。一个保守的 24 周实施方案为：第 1--2 周生产 #locked.base_weekly_production.display m³、按 #locked.problem4_weekly_capacity.display m³到货并逐周积累库存；第 3--24 周生产与到货均为 #locked.problem4_weekly_capacity.display m³，进入稳态。该过渡方案的 24 周平均产量为 #locked.problem4_transition_average.display m³/周，较基准提高 #locked.problem4_transition_increase_ratio.display。
 
 #paper-figure(
   "figures/fig07_capacity.svg",
-  [图 7 #h(0.5em) 基准周需求与模型预测最大周产能。增幅为 #locked.problem4_increase_ratio.display，阴影范围用于强调两者差额。],
+  [基准周需求与模型预测最大周产能。增幅为 #locked.problem4_increase_ratio.display，阴影范围用于强调两者差额。],
 )
 
-低损耗转运能力仍是关键限制。T3、T6 达到或接近上限，T8 的负载增至 3,826.519524 m³/周，说明扩大原料供给后还需启用次优运输通道。继续提高产能不能只增加供应商能力，还需同步改善低损耗转运资源。
+低损耗转运能力仍是关键限制。T3、T6 达到或接近上限，T8 的负载增至 3,826.52 m³/周，说明扩大原料供给后还需启用次优运输通道。继续提高产能不能只增加供应商能力，还需同步改善低损耗转运资源。
 
-#source-note[#locked.problem4_weekly_capacity.display m³/周是历史统计与平稳参数条件下的“模型预测最大周产能”，不是企业未来可长期保证的产能。]
+#source-note[#locked.problem4_weekly_capacity.display m³/周是历史统计与平稳参数条件下、已提前建立相应安全库存后的确定性稳态上界，不是企业从当前库存即可实现或未来可长期保证的产能。]

@@ -287,13 +287,17 @@ def stress_figure() -> None:
 
     status_style = {
         "feasible": (GRAY["light"], "//", "可行"),
+        "feasible_not_proven_optimal": (GRAY["mid"], "..", "可行\n未证最优"),
         "infeasible": (GRAY["dark"], "xx", "不可行"),
+        "globally_infeasible": (GRAY["dark"], "xx", "全局不可行"),
         "unknown_time_limit": (GRAY["mid"], "..", "限时未知"),
+        "no_feasible_solution_found_within_limit": (GRAY["mid"], "..", "限时未找到"),
+        "unable_to_determine": (GRAY["mid"], "..", "无法判定"),
     }
     for idx, row in enumerate(rows):
         fill, hatch, label = status_style[row["feasibility_status"]]
         bar = axes[1].bar(idx, 1, color=fill, edgecolor=GRAY["black"], linewidth=0.6, hatch=hatch)[0]
-        text_color = "white" if row["feasibility_status"] == "infeasible" else "black"
+        text_color = "white" if row["feasibility_status"] in {"infeasible", "globally_infeasible"} else "black"
         axes[1].text(bar.get_x() + bar.get_width() / 2, 0.5, label, ha="center", va="center", color=text_color, fontsize=6.5, fontweight="bold")
     axes[1].set_xticks(np.arange(len(rows)), [row["scenario_label"] for row in rows], rotation=28, ha="right")
     axes[1].set_yticks([])

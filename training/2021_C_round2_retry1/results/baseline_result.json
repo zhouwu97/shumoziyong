@@ -10653,7 +10653,7 @@
         "max_violation": 0.0,
         "passed": true,
         "soft_split_occurrences": 0,
-        "threshold": 1e-06,
+        "threshold": 1e-05,
         "violation_count": 0
       },
       "transporter_capacity": {

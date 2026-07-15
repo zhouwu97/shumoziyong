@@ -1,4 +1,4 @@
-#let locked = json("../../paper_source_lock.json").claims
+#import "../style.typ": locked
 
 = 问题重述
 

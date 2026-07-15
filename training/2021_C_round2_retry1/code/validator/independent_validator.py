@@ -16,6 +16,10 @@ from openpyxl import load_workbook
 from common.common import HORIZON, OUTPUTS, ROOT, TOLERANCE, load_official_data
 
 
+# HiGHS 的整数容差经供应能力大 M 放大后会产生数毫升量级的运输残量。
+FLOW_ACTIVITY_TOLERANCE = 1e-5
+
+
 def _record(
     checked_count: int,
     violations: list[dict[str, Any]],
@@ -176,7 +180,7 @@ def check_transporter_capacity(solution: dict[str, Any], data: dict[str, Any]) -
 
 def check_supplier_transporter_assignment(solution: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
     shipments = _arrays(solution)["shipments"]
-    split = (shipments > TOLERANCE).sum(axis=2)
+    split = (shipments > FLOW_ACTIVITY_TOLERANCE).sum(axis=2)
     hard = bool(solution.get("model_metadata", {}).get("single_carrier_hard", False))
     bad = np.argwhere(split > 1)
     violations = [
@@ -186,6 +190,7 @@ def check_supplier_transporter_assignment(solution: dict[str, Any], data: dict[s
     return _record(
         split.size,
         violations,
+        threshold=FLOW_ACTIVITY_TOLERANCE,
         extra={"constraint_kind": "hard" if hard else "soft", "soft_split_occurrences": int((split > 1).sum())},
     )
 

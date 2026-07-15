@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-07-14T19:21:27+08:00",
+  "generated_at": "2026-07-15T02:25:12+08:00",
   "inventory_timing": {
     "arrival_interpretation": "当周到货是 shipments × (1-loss) 的接收量换算为产品等价量后进入库存；未使用尚未到达的发运量。",
     "by_problem": {
       "2": {
         "all_end_inventories_at_lower_bound": true,
-        "arrival_product_m3_per_week": 28199.999999999993,
+        "arrival_product_m3_per_week": 28200.000000013366,
         "demand_product_m3_per_week": 28200.0,
         "initial_inventory_product_m3": 56400.0,
         "maximum_balance_absolute_residual": 0.0,
-        "maximum_end_inventory_product_m3": 56400.0,
-        "minimum_end_inventory_product_m3": 56400.0,
+        "maximum_end_inventory_product_m3": 56400.00000032061,
+        "minimum_end_inventory_product_m3": 56400.00000001336,
         "safety_stock_lower_bound_product_m3": 56400.0
       },
       "3": {
@@ -73,21 +73,21 @@
   },
   "stress_tests": {
     "passed": true,
-    "required_paper_statement": "当前方案在基准需求下可行，但对需求上升和关键供应商长期中断较敏感，供应链冗余仍不足。",
+    "required_paper_statement": "完整候选网络在关键供应商能力下降10%和全期中断情景下仍得到全局最优可行解；需求增加10%时已找到可行 incumbent，但60秒内未证明采购成本最优。",
     "scenarios": {
       "demand_plus_10pct": {
-        "actual_status": "infeasible",
-        "expected_status": "infeasible",
+        "actual_status": "feasible_not_proven_optimal",
+        "expected_status": "feasible_not_proven_optimal",
         "passed": true
       },
       "key_supplier_capacity_minus_10pct": {
-        "actual_status": "unknown_time_limit",
-        "expected_status": "unknown_time_limit",
+        "actual_status": "feasible",
+        "expected_status": "feasible",
         "passed": true
       },
       "key_supplier_outage": {
-        "actual_status": "infeasible",
-        "expected_status": "infeasible",
+        "actual_status": "feasible",
+        "expected_status": "feasible",
         "passed": true
       }
     },
@@ -126,11 +126,11 @@
         "secondary_carrier_volume_raw_m3": 0.0,
         "secondary_carrier_volume_share": 0.0,
         "single_carrier_is_hard": true,
-        "solver_runtime_seconds": 3.021972000002279,
+        "solver_runtime_seconds": 32.383128400018904,
         "split_ratio_of_active_supplier_weeks": 0.0,
         "split_supplier_week_count": 0,
-        "total_transport_volume_raw_m3": 441094.5435537135,
-        "transport_loss_raw_m3": 2470.5164305043536,
+        "total_transport_volume_raw_m3": 441094.5435537821,
+        "transport_loss_raw_m3": 2470.516430499947,
         "volume_in_split_supplier_weeks_raw_m3": 0.0,
         "volume_in_split_supplier_weeks_share": 0.0
       },
@@ -140,7 +140,7 @@
         "secondary_carrier_volume_raw_m3": 21963.388174050233,
         "secondary_carrier_volume_share": 0.05058568209296071,
         "single_carrier_is_hard": false,
-        "solver_runtime_seconds": 0.08758330000273418,
+        "solver_runtime_seconds": 0.08554800000274554,
         "split_ratio_of_active_supplier_weeks": 0.006557377049180328,
         "split_supplier_week_count": 48,
         "total_transport_volume_raw_m3": 434181.912061369,
@@ -149,12 +149,12 @@
         "volume_in_split_supplier_weeks_share": 0.16838209363007456
       }
     },
-    "generated_at": "2026-07-14T19:21:27+08:00",
+    "generated_at": "2026-07-15T02:25:12+08:00",
     "hard_single_carrier_comparison": {
       "comparable_loss_change_available": false,
       "problem2": "正式模型本身强制单承运商，拆分为0，可直接作为硬约束基准。",
       "problem3": "既有失败路线在80秒内未返回可行解，状态只能记为unknown；因此不能给出损耗差，也不能写成不可行。连续LP三阶段运行时间见by_problem.3。"
     },
-    "positive_threshold": 1e-06
+    "positive_threshold": 1e-05
   }
 }

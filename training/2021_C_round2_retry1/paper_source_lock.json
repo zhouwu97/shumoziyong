@@ -1,78 +1,492 @@
 {
   "schema_version": "1.0",
-  "document": "2021-C Typst paper presentation rebuild",
+  "document": "2021-C Typst paper after optimization scope repair",
   "policy": {
     "source_of_truth": "Existing model and validation artifacts only",
     "model_changes_allowed": false,
     "result_changes_allowed": false,
     "display_rounding_only": true,
-    "notes": "Every locked claim records a source JSON pointer or an explicit derivation from locked source values."
+    "notes": "The directed model repair is complete. Future model or result changes require refreshing this lock; every claim records a JSON pointer or an explicit derivation."
+  },
+  "source_manifest": {
+    "path": "paper_handoff/claim_source_manifest.json",
+    "sha256": "ec8d4dc1cfdfd89723c2b0c5eec4791b53939692f9321d19fbf16bebf83fe0df"
   },
   "source_files": [
-    {"path": "assumptions.json", "sha256": "06c7def107dde8d78bdcc2b3844eded7b57f15f65be4a2a8385dc100ffee9e92"},
-    {"path": "results/baseline_result.json", "sha256": "af77d666d40dfcd961075a48d75989faaeb5ebbcbf8a49902fef1708252022ba"},
-    {"path": "results/formal_result.json", "sha256": "1d48d4a0e2a9622cf8c49e1e0a1dca5bd9e41f33a0e45b34787e316db88abfde"},
-    {"path": "results/data_quality_report.json", "sha256": "6a28f2150680d12c04ae2578723b859107c62ec2ee1623b6b7e523136fb4da4d"},
-    {"path": "results/supplier_analysis.json", "sha256": "7b0cc313aaa2cdff4f059b6eed5d7d3be96ce4ab7907c9ba063b06026eba779e"},
-    {"path": "results/rank_sensitivity.json", "sha256": "9ed254a1f8dec51d37e15e5702a24572e0d4d0ea91a67d0a820610f41c630444"},
-    {"path": "results/transport_split_analysis.json", "sha256": "94057f830cdabcb7f38b6123491580361cecc0467ab5737134ce26bcb79be7b3"},
-    {"path": "results/sensitivity_analysis.json", "sha256": "453d5002049ec6c5ce4c1affbc0b7cd226fbb736cfab6669aaa08ca65d2318a1"},
-    {"path": "results/final_human_audit_evidence.json", "sha256": "8de1289beb7c70fd6d580ad6b7a685190d320bdd7a0af1eb8af8926f2a7108dc"},
-    {"path": "results/objective_validation.json", "sha256": "135f67dec851a2055dbca87df5a9bcb8b90e7e654c8f0b39afc58d9b5f3b6cf7"},
-    {"path": "results/constraint_validation.json", "sha256": "9bf460e17955c92dd2c46afc52356d98e9f5ebe851300673da27f3d7c3dd4cfd"},
-    {"path": "results/fault_injection_report.json", "sha256": "1fb7653099d33f8a772f82dfc2976c1d81413b7dc7672742a7431261b7da3b9b"},
-    {"path": "results/output_template_validation.json", "sha256": "ad3ddc7b10f5544971f81c705db3cbc90647770e540451710347b8a287d4ab2d"},
-    {"path": "results/excel_recalculation_validation.json", "sha256": "da2b196073a156f4c94b7f3bd24454cf794823b83830e5b04792829f9132cf9c"},
-    {"path": "results/reproduction_validation.json", "sha256": "c10010b62f2dba1da4b12af81acb4be2341059732d66fd359b41eef30b8abafe"}
+    {
+      "path": "assumptions.json",
+      "sha256": "bede0aefc86dba5120ae186dc376212c0ec8df523874a651e83b69739a146474"
+    },
+    {
+      "path": "results/baseline_result.json",
+      "sha256": "349e782fd13dbbdaf39c3e9e93a55f3afaa21e0d214cacc295c3f951b50d10a2"
+    },
+    {
+      "path": "results/formal_result.json",
+      "sha256": "caf628238d4a4f7006aa1339ce9ebc8b82ef795629bae5a1296a737034214529"
+    },
+    {
+      "path": "results/data_quality_report.json",
+      "sha256": "6a28f2150680d12c04ae2578723b859107c62ec2ee1623b6b7e523136fb4da4d"
+    },
+    {
+      "path": "results/supplier_analysis.json",
+      "sha256": "7b0cc313aaa2cdff4f059b6eed5d7d3be96ce4ab7907c9ba063b06026eba779e"
+    },
+    {
+      "path": "results/rank_sensitivity.json",
+      "sha256": "47f9af4384c06e97479c7e5682bdd91017e8ee9f3e012c9f4c9d7e0eea3d0e2f"
+    },
+    {
+      "path": "results/transport_split_analysis.json",
+      "sha256": "61675c671eeef854f8765fe91d736e1a42124ebe748560c05f27eb57e12644cc"
+    },
+    {
+      "path": "results/sensitivity_analysis.json",
+      "sha256": "005b654bdc6b61971f4bace1ffd12eed31d225da207493691b2885aabd9e4194"
+    },
+    {
+      "path": "results/final_human_audit_evidence.json",
+      "sha256": "2f31647a692b4d9fecab8ad1f69eb50e689b972781c1fb5bc3f207a3624eb7f1"
+    },
+    {
+      "path": "results/objective_validation.json",
+      "sha256": "29a743a51b78a1e0c774b2067382382f657522bc0db5ef2b8100b55cc512af0f"
+    },
+    {
+      "path": "results/constraint_validation.json",
+      "sha256": "d46e811d354cc3aa16fda8bcf0858727959bc83f0cc1587c135bd960a0af4e5a"
+    },
+    {
+      "path": "results/fault_injection_report.json",
+      "sha256": "1fb7653099d33f8a772f82dfc2976c1d81413b7dc7672742a7431261b7da3b9b"
+    },
+    {
+      "path": "results/output_template_validation.json",
+      "sha256": "ad3ddc7b10f5544971f81c705db3cbc90647770e540451710347b8a287d4ab2d"
+    },
+    {
+      "path": "results/excel_recalculation_validation.json",
+      "sha256": "588d8aab2013ffd0baefe4648bd3c34d3d81625bd810d8a9f38c921ad609bdf5"
+    },
+    {
+      "path": "results/reproduction_validation.json",
+      "sha256": "c10010b62f2dba1da4b12af81acb4be2341059732d66fd359b41eef30b8abafe"
+    }
   ],
   "claims": {
-    "supplier_count": {"value": 402, "display": "402", "unit": "家", "source": "results/data_quality_report.json", "json_pointer": "/supplier_count"},
-    "transporter_count": {"value": 8, "display": "8", "unit": "家", "source": "results/data_quality_report.json", "json_pointer": "/transporter_count"},
-    "historical_weeks": {"value": 240, "display": "240", "unit": "周", "source": "results/data_quality_report.json", "json_pointer": "/historical_weeks"},
-    "horizon_weeks": {"value": 24, "display": "24", "unit": "周", "source": "assumptions.json", "json_pointer": "/horizon_weeks"},
-    "base_weekly_production": {"value": 28200.0, "display": "28,200", "unit": "m3 product/week", "source": "assumptions.json", "json_pointer": "/base_weekly_production_m3"},
-    "initial_inventory": {"value": 56400.0, "display": "56,400", "unit": "m3 product equivalent", "source": "assumptions.json", "json_pointer": "/initial_inventory_product_equivalent_m3"},
-    "safety_stock_weeks": {"value": 2, "display": "2", "unit": "week", "source": "assumptions.json", "json_pointer": "/safety_stock_weeks"},
-    "transporter_weekly_capacity": {"value": 6000.0, "display": "6,000", "unit": "m3 raw/week", "source": "assumptions.json", "json_pointer": "/transporter_weekly_capacity_raw_m3"},
-    "raw_per_product_a": {"value": 0.6, "display": "0.60", "unit": "m3 raw/m3 product", "source": "assumptions.json", "json_pointer": "/raw_m3_per_product_m3/A"},
-    "raw_per_product_b": {"value": 0.66, "display": "0.66", "unit": "m3 raw/m3 product", "source": "assumptions.json", "json_pointer": "/raw_m3_per_product_m3/B"},
-    "raw_per_product_c": {"value": 0.72, "display": "0.72", "unit": "m3 raw/m3 product", "source": "assumptions.json", "json_pointer": "/raw_m3_per_product_m3/C"},
-    "relative_cost_a": {"value": 1.2, "display": "1.2", "unit": "relative cost/m3", "source": "assumptions.json", "json_pointer": "/relative_purchase_cost/A"},
-    "relative_cost_b": {"value": 1.1, "display": "1.1", "unit": "relative cost/m3", "source": "assumptions.json", "json_pointer": "/relative_purchase_cost/B"},
-    "relative_cost_c": {"value": 1.0, "display": "1.0", "unit": "relative cost/m3", "source": "assumptions.json", "json_pointer": "/relative_purchase_cost/C"},
-    "material_supplier_a": {"value": 146, "display": "146", "unit": "supplier", "source": "results/data_quality_report.json", "json_pointer": "/materials/A"},
-    "material_supplier_b": {"value": 134, "display": "134", "unit": "supplier", "source": "results/data_quality_report.json", "json_pointer": "/materials/B"},
-    "material_supplier_c": {"value": 122, "display": "122", "unit": "supplier", "source": "results/data_quality_report.json", "json_pointer": "/materials/C"},
-    "not_ordered_zero_supply": {"value": 60599, "display": "60,599", "unit": "supplier-week", "source": "results/final_human_audit_evidence.json", "json_pointer": "/supply_capacity_semantics/supplier_week_counts/not_ordered_and_zero_supply"},
-    "ordered_zero_supply": {"value": 10097, "display": "10,097", "unit": "supplier-week", "source": "results/final_human_audit_evidence.json", "json_pointer": "/supply_capacity_semantics/supplier_week_counts/ordered_but_zero_supply"},
-    "ordered_positive_supply": {"value": 25784, "display": "25,784", "unit": "supplier-week", "source": "results/final_human_audit_evidence.json", "json_pointer": "/supply_capacity_semantics/supplier_week_counts/ordered_and_positive_supply"},
-    "supply_greater_than_order": {"value": 16703, "display": "16,703", "unit": "supplier-week", "source": "results/data_quality_report.json", "json_pointer": "/order_supply_relation/supply_greater_than_order"},
-    "outlier_count": {"value": 9071, "display": "9,071", "unit": "record", "source": "results/data_quality_report.json", "json_pointer": "/outlier_screen/count"},
-    "outlier_threshold": {"value": 277.0, "display": "277", "unit": "m3 raw", "source": "results/data_quality_report.json", "json_pointer": "/outlier_screen/threshold_raw_m3"},
-    "top_supplier_1": {"value": "S229", "display": "S229", "unit": "supplier id", "source": "results/supplier_analysis.json", "json_pointer": "/top50/0/supplier_id"},
-    "top_supplier_2": {"value": "S361", "display": "S361", "unit": "supplier id", "source": "results/supplier_analysis.json", "json_pointer": "/top50/1/supplier_id"},
-    "s140_base_rank": {"value": 3, "display": "3", "unit": "rank", "source": "results/rank_sensitivity.json", "json_pointer": "/focus_suppliers/S140/ranks_by_case/current"},
-    "s140_equal_rank": {"value": 53, "display": "53", "unit": "rank", "source": "results/rank_sensitivity.json", "json_pointer": "/focus_suppliers/S140/ranks_by_case/equal"},
-    "rank_min_top50_overlap": {"value": 0.82, "display": "82%", "unit": "ratio", "source": "results/rank_sensitivity.json", "json_pointer": "/summary/minimum_top50_overlap_rate"},
-    "problem2_minimum_supplier_count": {"value": 26, "display": "26", "unit": "supplier", "source": "results/baseline_result.json", "json_pointer": "/selection_minimum_count"},
-    "problem2_top25_net_capacity": {"value": 28044.405804, "display": "28,044.405804", "unit": "m3 product/week", "source": "results/baseline_result.json", "derivation": "Sort regular_order_capacity_raw_m3*(1-min_loss)/q_material descending and sum first 25"},
-    "problem2_top26_net_capacity": {"value": 28371.908757, "display": "28,371.908757", "unit": "m3 product/week", "source": "results/baseline_result.json", "derivation": "Same ordered net-capacity series, sum first 26"},
-    "problem2_weekly_cost": {"value": 20463.56752209598, "display": "20,463.567522", "unit": "relative cost/week", "source": "results/formal_result.json", "derivation": "/problems/2/objective/purchase_cost_relative divided by 24"},
-    "problem2_weekly_loss": {"value": 102.93818460434807, "display": "102.938185", "unit": "m3 raw/week", "source": "results/formal_result.json", "derivation": "/problems/2/objective/transport_loss_raw_m3 divided by 24"},
-    "problem3_active_supplier_count": {"value": 305, "display": "305", "unit": "supplier", "source": "results/formal_result.json", "json_pointer": "/problems/3/active_supplier_count"},
-    "problem3_weekly_a": {"value": 8627.379368319194, "display": "8,627.379368", "unit": "m3 raw/week", "source": "results/formal_result.json", "derivation": "/problems/3/objective/a_expected_supply_raw_m3 divided by 24"},
-    "problem3_weekly_b": {"value": 6567.373608370604, "display": "6,567.373608", "unit": "m3 raw/week", "source": "results/formal_result.json", "derivation": "(total_expected_supply_raw_m3-a_expected_supply_raw_m3-c_expected_supply_raw_m3)/24"},
-    "problem3_weekly_c": {"value": 2896.160025867247, "display": "2,896.160026", "unit": "m3 raw/week", "source": "results/formal_result.json", "derivation": "/problems/3/objective/c_expected_supply_raw_m3 divided by 24"},
-    "problem3_split_supplier_weeks": {"value": 48, "display": "48", "unit": "supplier-week", "source": "results/transport_split_analysis.json", "json_pointer": "/by_problem/3/split_supplier_week_count"},
-    "problem3_hard_carrier_status": {"value": "unknown_time_limit", "display": "限时内状态未知", "unit": "solver status", "source": "results/transport_split_analysis.json", "derivation": "Source statement says the 80-second hard single-carrier run returned no feasible solution and must be recorded as unknown, not infeasible."},
-    "problem4_weekly_capacity": {"value": 33335.925461873034, "display": "33,335.925462", "unit": "m3 product/week", "source": "results/final_human_audit_evidence.json", "json_pointer": "/problem4_capacity/reported_sustainable_weekly_capacity_product_m3"},
-    "problem4_increase_ratio": {"value": 0.18212501637847636, "display": "18.2125%", "unit": "ratio", "source": "results/final_human_audit_evidence.json", "json_pointer": "/problem4_capacity/capacity_increase_ratio"},
-    "hard_constraint_violations": {"value": 0, "display": "0", "unit": "violation", "source": "results/constraint_validation.json", "json_pointer": "/total_hard_violations"},
-    "template_cells_checked": {"value": 86832, "display": "86,832", "unit": "cell/problem", "source": "results/output_template_validation.json", "json_pointer": "/by_problem/2/checked_count"},
-    "fault_injection_total": {"value": 14, "display": "14", "unit": "case", "source": "results/fault_injection_report.json", "json_pointer": "/fault_injection_total"},
-    "fault_injection_passed": {"value": 14, "display": "14", "unit": "case", "source": "results/fault_injection_report.json", "json_pointer": "/fault_injection_passed"},
-    "demand_plus_10_status": {"value": "infeasible", "display": "不可行", "unit": "solver status", "source": "results/sensitivity_analysis.json", "json_pointer": "/scenarios/2/feasibility_status"},
-    "key_supplier_minus_10_status": {"value": "unknown_time_limit", "display": "限时内状态未知", "unit": "solver status", "source": "results/sensitivity_analysis.json", "json_pointer": "/scenarios/5/feasibility_status"},
-    "key_supplier_outage_status": {"value": "infeasible", "display": "不可行", "unit": "solver status", "source": "results/sensitivity_analysis.json", "json_pointer": "/scenarios/6/feasibility_status"}
+    "supplier_count": {
+      "value": 402,
+      "display": "402",
+      "unit": "家",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/supplier_count"
+    },
+    "transporter_count": {
+      "value": 8,
+      "display": "8",
+      "unit": "家",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/transporter_count"
+    },
+    "historical_weeks": {
+      "value": 240,
+      "display": "240",
+      "unit": "周",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/historical_weeks"
+    },
+    "horizon_weeks": {
+      "value": 24,
+      "display": "24",
+      "unit": "周",
+      "source": "assumptions.json",
+      "json_pointer": "/horizon_weeks"
+    },
+    "base_weekly_production": {
+      "value": 28200.0,
+      "display": "28,200",
+      "unit": "m3 product/week",
+      "source": "assumptions.json",
+      "json_pointer": "/base_weekly_production_m3"
+    },
+    "initial_inventory": {
+      "value": 56400.0,
+      "display": "56,400",
+      "unit": "m3 product equivalent",
+      "source": "assumptions.json",
+      "json_pointer": "/initial_inventory_product_equivalent_m3"
+    },
+    "safety_stock_weeks": {
+      "value": 2,
+      "display": "2",
+      "unit": "week",
+      "source": "assumptions.json",
+      "json_pointer": "/safety_stock_weeks"
+    },
+    "transporter_weekly_capacity": {
+      "value": 6000.0,
+      "display": "6,000",
+      "unit": "m3 raw/week",
+      "source": "assumptions.json",
+      "json_pointer": "/transporter_weekly_capacity_raw_m3"
+    },
+    "raw_per_product_a": {
+      "value": 0.6,
+      "display": "0.60",
+      "unit": "m3 raw/m3 product",
+      "source": "assumptions.json",
+      "json_pointer": "/raw_m3_per_product_m3/A"
+    },
+    "raw_per_product_b": {
+      "value": 0.66,
+      "display": "0.66",
+      "unit": "m3 raw/m3 product",
+      "source": "assumptions.json",
+      "json_pointer": "/raw_m3_per_product_m3/B"
+    },
+    "raw_per_product_c": {
+      "value": 0.72,
+      "display": "0.72",
+      "unit": "m3 raw/m3 product",
+      "source": "assumptions.json",
+      "json_pointer": "/raw_m3_per_product_m3/C"
+    },
+    "relative_cost_a": {
+      "value": 1.2,
+      "display": "1.2",
+      "unit": "relative cost/m3",
+      "source": "assumptions.json",
+      "json_pointer": "/relative_purchase_cost/A"
+    },
+    "relative_cost_b": {
+      "value": 1.1,
+      "display": "1.1",
+      "unit": "relative cost/m3",
+      "source": "assumptions.json",
+      "json_pointer": "/relative_purchase_cost/B"
+    },
+    "relative_cost_c": {
+      "value": 1.0,
+      "display": "1.0",
+      "unit": "relative cost/m3",
+      "source": "assumptions.json",
+      "json_pointer": "/relative_purchase_cost/C"
+    },
+    "material_supplier_a": {
+      "value": 146,
+      "display": "146",
+      "unit": "supplier",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/materials/A"
+    },
+    "material_supplier_b": {
+      "value": 134,
+      "display": "134",
+      "unit": "supplier",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/materials/B"
+    },
+    "material_supplier_c": {
+      "value": 122,
+      "display": "122",
+      "unit": "supplier",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/materials/C"
+    },
+    "not_ordered_zero_supply": {
+      "value": 60599,
+      "display": "60,599",
+      "unit": "supplier-week",
+      "source": "results/final_human_audit_evidence.json",
+      "json_pointer": "/supply_capacity_semantics/supplier_week_counts/not_ordered_and_zero_supply"
+    },
+    "ordered_zero_supply": {
+      "value": 10097,
+      "display": "10,097",
+      "unit": "supplier-week",
+      "source": "results/final_human_audit_evidence.json",
+      "json_pointer": "/supply_capacity_semantics/supplier_week_counts/ordered_but_zero_supply"
+    },
+    "ordered_positive_supply": {
+      "value": 25784,
+      "display": "25,784",
+      "unit": "supplier-week",
+      "source": "results/final_human_audit_evidence.json",
+      "json_pointer": "/supply_capacity_semantics/supplier_week_counts/ordered_and_positive_supply"
+    },
+    "supply_greater_than_order": {
+      "value": 16703,
+      "display": "16,703",
+      "unit": "supplier-week",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/order_supply_relation/supply_greater_than_order"
+    },
+    "outlier_count": {
+      "value": 9071,
+      "display": "9,071",
+      "unit": "record",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/outlier_screen/count"
+    },
+    "outlier_threshold": {
+      "value": 277.0,
+      "display": "277",
+      "unit": "m3 raw",
+      "source": "results/data_quality_report.json",
+      "json_pointer": "/outlier_screen/threshold_raw_m3"
+    },
+    "top_supplier_1": {
+      "value": "S229",
+      "display": "S229",
+      "unit": "supplier id",
+      "source": "results/supplier_analysis.json",
+      "json_pointer": "/top50/0/supplier_id"
+    },
+    "top_supplier_2": {
+      "value": "S361",
+      "display": "S361",
+      "unit": "supplier id",
+      "source": "results/supplier_analysis.json",
+      "json_pointer": "/top50/1/supplier_id"
+    },
+    "s140_base_rank": {
+      "value": 3,
+      "display": "3",
+      "unit": "rank",
+      "source": "results/rank_sensitivity.json",
+      "json_pointer": "/focus_suppliers/S140/ranks_by_case/current"
+    },
+    "s140_equal_rank": {
+      "value": 53,
+      "display": "53",
+      "unit": "rank",
+      "source": "results/rank_sensitivity.json",
+      "json_pointer": "/focus_suppliers/S140/ranks_by_case/equal"
+    },
+    "rank_min_top50_overlap": {
+      "value": 0.82,
+      "display": "82%",
+      "unit": "ratio",
+      "source": "results/rank_sensitivity.json",
+      "json_pointer": "/summary/minimum_top50_overlap_rate"
+    },
+    "problem2_minimum_supplier_count": {
+      "value": 26,
+      "display": "26",
+      "unit": "supplier",
+      "source": "results/baseline_result.json",
+      "json_pointer": "/selection_minimum_count"
+    },
+    "problem2_top25_net_capacity": {
+      "value": 28044.405804,
+      "display": "28,044.41",
+      "unit": "m3 product/week",
+      "source": "results/baseline_result.json",
+      "derivation": "Sort regular_order_capacity_raw_m3*(1-min_loss)/q_material descending and sum first 25"
+    },
+    "problem2_top26_net_capacity": {
+      "value": 28371.908757,
+      "display": "28,371.91",
+      "unit": "m3 product/week",
+      "source": "results/baseline_result.json",
+      "derivation": "Same ordered net-capacity series, sum first 26"
+    },
+    "problem2_weekly_cost": {
+      "value": 20463.567522105655,
+      "display": "20,463.57",
+      "unit": "relative cost/week",
+      "source": "results/formal_result.json",
+      "derivation": "/problems/2/objective/purchase_cost_relative divided by 24"
+    },
+    "problem2_weekly_loss": {
+      "value": 102.93818460416446,
+      "display": "102.94",
+      "unit": "m3 raw/week",
+      "source": "results/formal_result.json",
+      "derivation": "/problems/2/objective/transport_loss_raw_m3 divided by 24"
+    },
+    "problem3_active_supplier_count": {
+      "value": 305,
+      "display": "305",
+      "unit": "supplier",
+      "source": "results/formal_result.json",
+      "json_pointer": "/problems/3/active_supplier_count"
+    },
+    "problem3_weekly_a": {
+      "value": 8627.379368319194,
+      "display": "8,627.38",
+      "unit": "m3 raw/week",
+      "source": "results/formal_result.json",
+      "derivation": "/problems/3/objective/a_expected_supply_raw_m3 divided by 24"
+    },
+    "problem3_weekly_b": {
+      "value": 6567.373608370603,
+      "display": "6,567.37",
+      "unit": "m3 raw/week",
+      "source": "results/formal_result.json",
+      "derivation": "(total_expected_supply_raw_m3-a_expected_supply_raw_m3-c_expected_supply_raw_m3)/24"
+    },
+    "problem3_weekly_c": {
+      "value": 2896.1600258672474,
+      "display": "2,896.16",
+      "unit": "m3 raw/week",
+      "source": "results/formal_result.json",
+      "derivation": "/problems/3/objective/c_expected_supply_raw_m3 divided by 24"
+    },
+    "problem3_split_supplier_weeks": {
+      "value": 48,
+      "display": "48",
+      "unit": "supplier-week",
+      "source": "results/transport_split_analysis.json",
+      "json_pointer": "/by_problem/3/split_supplier_week_count"
+    },
+    "problem3_hard_carrier_status": {
+      "value": "unknown_time_limit",
+      "display": "限时内状态未知",
+      "unit": "solver status",
+      "source": "results/transport_split_analysis.json",
+      "derivation": "Source statement says the 80-second hard single-carrier run returned no feasible solution and must be recorded as unknown, not infeasible."
+    },
+    "problem4_weekly_capacity": {
+      "value": 33335.925461873034,
+      "display": "33,335.93",
+      "unit": "m3 product/week",
+      "source": "results/final_human_audit_evidence.json",
+      "json_pointer": "/problem4_capacity/reported_sustainable_weekly_capacity_product_m3"
+    },
+    "problem4_increase_ratio": {
+      "value": 0.18212501637847636,
+      "display": "18.21%",
+      "unit": "ratio",
+      "source": "results/final_human_audit_evidence.json",
+      "json_pointer": "/problem4_capacity/capacity_increase_ratio"
+    },
+    "problem4_weekly_inventory_build": {
+      "value": 5135.925461873034,
+      "display": "5,135.93",
+      "unit": "m3 product/week",
+      "source": "results/final_human_audit_evidence.json",
+      "derivation": "reported_sustainable_weekly_capacity_product_m3 minus assumptions.base_weekly_production_m3"
+    },
+    "problem4_steady_safety_stock": {
+      "value": 66671.85092374607,
+      "display": "66,671.85",
+      "unit": "m3 product equivalent",
+      "source": "results/final_human_audit_evidence.json",
+      "derivation": "2 times reported_sustainable_weekly_capacity_product_m3"
+    },
+    "problem4_inventory_gap": {
+      "value": 10271.850923746068,
+      "display": "10,271.85",
+      "unit": "m3 product equivalent",
+      "source": "results/final_human_audit_evidence.json",
+      "derivation": "2 times reported_sustainable_weekly_capacity_product_m3 minus assumptions.initial_inventory_product_equivalent_m3"
+    },
+    "problem4_ramp_weeks": {
+      "value": 2,
+      "display": "2",
+      "unit": "week",
+      "source": "results/final_human_audit_evidence.json",
+      "derivation": "ceil(problem4_inventory_gap divided by problem4_weekly_inventory_build)"
+    },
+    "problem4_transition_average": {
+      "value": 32907.93167338361,
+      "display": "32,907.93",
+      "unit": "m3 product/week",
+      "source": "results/final_human_audit_evidence.json",
+      "derivation": "(2 times assumptions.base_weekly_production_m3 plus 22 times reported_sustainable_weekly_capacity_product_m3) divided by assumptions.horizon_weeks"
+    },
+    "problem4_transition_increase_ratio": {
+      "value": 0.16694793168026978,
+      "display": "16.69%",
+      "unit": "ratio",
+      "source": "results/final_human_audit_evidence.json",
+      "derivation": "problem4_transition_average divided by assumptions.base_weekly_production_m3 minus 1"
+    },
+    "hard_constraint_violations": {
+      "value": 0,
+      "display": "0",
+      "unit": "violation",
+      "source": "results/constraint_validation.json",
+      "json_pointer": "/total_hard_violations"
+    },
+    "template_cells_checked": {
+      "value": 86832,
+      "display": "86,832",
+      "unit": "cell/problem",
+      "source": "results/output_template_validation.json",
+      "json_pointer": "/by_problem/2/checked_count"
+    },
+    "fault_injection_total": {
+      "value": 14,
+      "display": "14",
+      "unit": "case",
+      "source": "results/fault_injection_report.json",
+      "json_pointer": "/fault_injection_total"
+    },
+    "fault_injection_passed": {
+      "value": 14,
+      "display": "14",
+      "unit": "case",
+      "source": "results/fault_injection_report.json",
+      "json_pointer": "/fault_injection_passed"
+    },
+    "demand_plus_10_status": {
+      "value": "feasible_not_proven_optimal",
+      "display": "可行但未证明最优",
+      "unit": "solver status",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/2/feasibility_status"
+    },
+    "demand_plus_10_minimum_supplier_count": {
+      "value": 41,
+      "display": "41",
+      "unit": "supplier",
+      "source": "results/sensitivity_analysis.json",
+      "derivation": "The completed cardinality stage locked 41 suppliers before the recorded purchase-cost stage timed out."
+    },
+    "demand_plus_10_cost_incumbent": {
+      "value": 22521.704140046117,
+      "display": "22,521.70",
+      "unit": "relative cost/week",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/2/solver_status/incumbent"
+    },
+    "demand_plus_10_cost_best_bound": {
+      "value": 22521.703972921958,
+      "display": "22,521.70",
+      "unit": "relative cost/week",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/2/solver_status/best_bound"
+    },
+    "demand_plus_10_cost_gap": {
+      "value": 7.420582291077701e-09,
+      "display": "7.42e-9",
+      "unit": "relative MIP gap",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/2/solver_status/mip_gap"
+    },
+    "demand_plus_10_limited_stage": {
+      "value": "问题2采购成本最小化",
+      "display": "采购成本阶段",
+      "unit": "solver stage",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/2/solver_status/objective_name"
+    },
+    "key_supplier_minus_10_status": {
+      "value": "feasible",
+      "display": "最优可行",
+      "unit": "solver status",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/5/feasibility_status"
+    },
+    "key_supplier_outage_status": {
+      "value": "feasible",
+      "display": "最优可行",
+      "unit": "solver status",
+      "source": "results/sensitivity_analysis.json",
+      "json_pointer": "/scenarios/6/feasibility_status"
+    }
   }
 }

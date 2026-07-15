@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-07-14T23:51:40.965305</dc:date>
+    <dc:date>2026-07-15T02:24:44.005589</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -35,7 +35,7 @@ L 119.928 96.12
 L 119.928 35.28 
 L 17.448 35.28 
 z
-" clip-path="url(#p89ed3b2162)" style="fill: #e2e2e2; stroke: #111111; stroke-linejoin: miter"/>
+" clip-path="url(#p20f64097e0)" style="fill: #e2e2e2; stroke: #111111; stroke-linejoin: miter"/>
    </g>
    <g id="patch_3">
     <path d="M 145.548 96.12 
@@ -43,7 +43,7 @@ L 248.028 96.12
 L 248.028 35.28 
 L 145.548 35.28 
 z
-" clip-path="url(#p89ed3b2162)" style="fill: #d4d4d4; stroke: #111111; stroke-linejoin: miter"/>
+" clip-path="url(#p20f64097e0)" style="fill: #d4d4d4; stroke: #111111; stroke-linejoin: miter"/>
    </g>
    <g id="patch_4">
     <path d="M 273.648 96.12 
@@ -51,7 +51,7 @@ L 376.128 96.12
 L 376.128 35.28 
 L 273.648 35.28 
 z
-" clip-path="url(#p89ed3b2162)" style="fill: #c2c2c2; stroke: #111111; stroke-linejoin: miter"/>
+" clip-path="url(#p20f64097e0)" style="fill: #c2c2c2; stroke: #111111; stroke-linejoin: miter"/>
    </g>
    <g id="patch_5">
     <path d="M 401.748 96.12 
@@ -59,7 +59,7 @@ L 504.228 96.12
 L 504.228 35.28 
 L 401.748 35.28 
 z
-" clip-path="url(#p89ed3b2162)" style="fill: #b0b0b0; stroke: #111111; stroke-linejoin: miter"/>
+" clip-path="url(#p20f64097e0)" style="fill: #b0b0b0; stroke: #111111; stroke-linejoin: miter"/>
    </g>
    <g id="patch_6">
     <path d="M 68.688 147.6 
@@ -67,7 +67,7 @@ L 458.112 147.6
 L 458.112 121.08 
 L 68.688 121.08 
 z
-" clip-path="url(#p89ed3b2162)" style="fill: url(#h51a885c07f); stroke: #111111; stroke-linejoin: miter"/>
+" clip-path="url(#p20f64097e0)" style="fill: url(#hef354c8919); stroke: #111111; stroke-linejoin: miter"/>
    </g>
    <g id="text_1">
     <text style="font-size: 7.2px; font-family: 'Microsoft YaHei', 'SimHei', 'Arial', 'DejaVu Sans', sans-serif; text-anchor: middle" x="68.688" y="48.182812" transform="rotate(-0 68.688 48.182812)">问题一</text>
@@ -194,12 +194,12 @@ L 456.612 115.075577
   </g>
  </g>
  <defs>
-  <clipPath id="p89ed3b2162">
+  <clipPath id="p20f64097e0">
    <rect x="7.2" y="7.2" width="512.4" height="156"/>
   </clipPath>
  </defs>
  <defs>
-  <pattern id="h51a885c07f" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
+  <pattern id="hef354c8919" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
    <rect x="0" y="0" width="73" height="73" fill="#ffffff"/>
    <path d="M -36 36 
 L 36 -36 

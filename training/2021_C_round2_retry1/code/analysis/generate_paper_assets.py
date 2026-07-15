@@ -115,10 +115,10 @@ FIGURE_CONTRACTS = {
     },
     "10_sensitivity_and_stress_tests": {
         "paper_figure": 11,
-        "conclusion": "基准方案对需求增长和关键供应商全期中断缺少冗余，限时未知状态不能写成不可行。",
+        "conclusion": "完整候选网络可承受关键供应商能力下降和全期中断；需求增加10%时找到可行解但未证明成本最优。",
         "archetype": "quantitative grid",
         "evidence": "可行情景的供应商数量和全部压力情景的求解状态。",
-        "reviewer_risk": "unknown_time_limit 与 infeasible 必须使用不同编码和文字。",
+        "reviewer_risk": "feasible_not_proven_optimal 不得写成全局最优或不可行。",
     },
 }
 
@@ -628,7 +628,11 @@ def sensitivity_stress_tests(sensitivity: dict) -> None:
         "key_supplier_capacity_minus_10pct": "关键商能力 -10%",
         "key_supplier_outage": "关键商中断",
     }
-    feasible = [item for item in scenarios if item.get("feasible") is True]
+    feasible = [
+        item
+        for item in scenarios
+        if item.get("feasible") is True and "selected_supplier_count" in item and "objective" in item
+    ]
     fig, axes = plt.subplots(1, 2, figsize=(9.0, 4.2), constrained_layout=True)
     names = [label_map[item["scenario"]] for item in feasible]
     selected = [item["selected_supplier_count"] for item in feasible]
@@ -640,12 +644,20 @@ def sensitivity_stress_tests(sensitivity: dict) -> None:
     status_codes = []
     status_text = []
     for item in scenarios:
-        if item.get("feasible") is True:
+        scope_status = item.get("feasibility_status")
+        if scope_status == "feasible_not_proven_optimal":
+            status_codes.append(1)
+            status_text.append("可行未证")
+        elif item.get("feasible") is True:
             status_codes.append(0)
             status_text.append("可行")
-        elif item.get("feasibility_status") == "unknown_time_limit":
+        elif scope_status in {
+            "unknown_time_limit",
+            "no_feasible_solution_found_within_limit",
+            "unable_to_determine",
+        }:
             status_codes.append(1)
-            status_text.append("unknown")
+            status_text.append("未判定")
         else:
             status_codes.append(2)
             status_text.append("不可行")
@@ -665,7 +677,8 @@ def sensitivity_stress_tests(sensitivity: dict) -> None:
             {
                 "scenario": item["scenario"],
                 "scenario_label": label_map[item["scenario"]],
-                "feasibility_status": "feasible" if item.get("feasible") is True else item.get("feasibility_status", "unknown"),
+                "feasibility_status": item.get("feasibility_status")
+                or ("feasible" if item.get("feasible") is True else "unable_to_determine"),
                 "selected_supplier_count": item.get("selected_supplier_count", ""),
                 "weekly_purchase_cost_relative": item.get("objective", {}).get("purchase_cost_relative", "") / 24.0
                 if item.get("objective")

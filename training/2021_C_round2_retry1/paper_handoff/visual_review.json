@@ -1,45 +1,73 @@
 {
   "schema_version": "1.0",
   "pdf": "paper/output/2021_C_paper_complete.pdf",
+  "pdf_sha256": "0ac8c6b2fb3f706a3bbb14b9c84e61978ed7d2374846a71516cd477aeefed638",
+  "render_directory": "tmp/pdfs/final_20260715_1005",
   "render_dpi": 190,
-  "render_dimensions": [1571, 2222],
+  "render_dimensions": [
+    1571,
+    2222
+  ],
   "pages_checked": 34,
   "pages_passed": 34,
   "p0": 0,
-  "pages": [
-    {"page": 1, "status": "pass", "focus": "标题、摘要、关键词"},
-    {"page": 2, "status": "pass", "focus": "目录第一页"},
-    {"page": 3, "status": "pass", "focus": "目录第二页"},
-    {"page": 4, "status": "pass", "focus": "问题重述"},
-    {"page": 5, "status": "pass", "focus": "技术路线图与问题分析"},
-    {"page": 6, "status": "pass", "focus": "问题分析续页"},
-    {"page": 7, "status": "pass", "focus": "模型假设三线表"},
-    {"page": 8, "status": "pass", "focus": "符号表第一页"},
-    {"page": 9, "status": "pass", "focus": "符号表续表与式(1)"},
-    {"page": 10, "status": "pass", "focus": "数据审计与图2"},
-    {"page": 11, "status": "pass", "focus": "式(2)-(7)"},
-    {"page": 12, "status": "pass", "focus": "问题一表图"},
-    {"page": 13, "status": "pass", "focus": "图4、引用[3-4]与式(8)-(10)"},
-    {"page": 14, "status": "pass", "focus": "式(11)-(21)连续编号"},
-    {"page": 15, "status": "pass", "focus": "问题二表6与图5"},
-    {"page": 16, "status": "pass", "focus": "表7与问题三模型"},
-    {"page": 17, "status": "pass", "focus": "问题三表图"},
-    {"page": 18, "status": "pass", "focus": "式(25)-(26)与表10"},
-    {"page": 19, "status": "pass", "focus": "图7与压力测试"},
-    {"page": 20, "status": "pass", "focus": "图8、验证表与双语言段落"},
-    {"page": 21, "status": "pass", "focus": "模型评价与结论"},
-    {"page": 22, "status": "pass", "focus": "参考文献[1]-[11]与附录起始"},
-    {"page": 23, "status": "pass", "focus": "Python 文件清单与源码"},
-    {"page": 24, "status": "pass", "focus": "Python 源码"},
-    {"page": 25, "status": "pass", "focus": "Python 源码"},
-    {"page": 26, "status": "pass", "focus": "Python 源码"},
-    {"page": 27, "status": "pass", "focus": "Python 源码"},
-    {"page": 28, "status": "pass", "focus": "Python 源码"},
-    {"page": 29, "status": "pass", "focus": "Python 源码末页"},
-    {"page": 30, "status": "pass", "focus": "MATLAB 文件清单与问题二源码"},
-    {"page": 31, "status": "pass", "focus": "MATLAB 问题二源码"},
-    {"page": 32, "status": "pass", "focus": "MATLAB 问题三、四源码"},
-    {"page": 33, "status": "pass", "focus": "MATLAB 约束复核源码"},
-    {"page": 34, "status": "pass", "focus": "双语言对照与运行环境；终页自然留白"}
-  ]
+  "automated_checks": {
+    "pdfinfo_no_xref_error": true,
+    "pypdf_pages": 34,
+    "pdfplumber_pages": 34,
+    "rendered_pages": 34,
+    "blank_pages": [],
+    "minimum_ink_ratio": 0.015186655521058154,
+    "maximum_ink_ratio": 0.18284890233135345,
+    "duplicate_formula_prefix": false,
+    "old_fixed_supplier_phrase": false,
+    "old_lp_label": false
+  },
+  "manual_review": {
+    "contact_sheet_all_pages": "pass",
+    "key_pages": [
+      {
+        "page": 2,
+        "status": "pass",
+        "focus": "目录压缩为单页，无孤立条目"
+      },
+      {
+        "page": 7,
+        "status": "pass",
+        "focus": "单周到24周复制说明完整且未跨页断裂"
+      },
+      {
+        "page": 13,
+        "status": "pass",
+        "focus": "z_i 与 y_ijt 定义及约束清晰"
+      },
+      {
+        "page": 18,
+        "status": "pass",
+        "focus": "问题四稳态上界、两周爬坡与库存数字一致"
+      },
+      {
+        "page": 19,
+        "status": "pass",
+        "focus": "需求增加10%为41家且成本阶段未证最优"
+      },
+      {
+        "page": 21,
+        "status": "pass",
+        "focus": "结论与压力测试作用域一致"
+      },
+      {
+        "page": 34,
+        "status": "pass",
+        "focus": "附录终页无裁切、无绝对路径"
+      }
+    ],
+    "layout_findings": {
+      "clipped_text": 0,
+      "overlap": 0,
+      "broken_tables": 0,
+      "unreadable_glyphs": 0,
+      "unexpected_blank_pages": 0
+    }
+  }
 }

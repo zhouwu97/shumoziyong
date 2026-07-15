@@ -1,0 +1,23 @@
+{
+  "blind_generalization_evidence": false,
+  "decision": "development_case_passed_with_material_limitations",
+  "development_case_evidence": true,
+  "dimensions": {
+    "algorithm_quality": 8,
+    "competition_operability": 6,
+    "constraint_completeness": 8,
+    "data_quality": 8,
+    "independent_validation": 9,
+    "model_correctness": 8,
+    "paper_quality": 7,
+    "problem_understanding": 9,
+    "result_quality": 7,
+    "supplier_evaluation": 8
+  },
+  "overall_score": 78,
+  "p0_count": 0,
+  "p1_count": 2,
+  "p2_count": 3,
+  "profile_promotion_evidence": false,
+  "rationale": "P0均关闭；P1为未来供货期望假设及问题3供应商分散、问题3/4软分运的实施风险；P2为未建模季节性、绝对价格和仓储上限。终审后分数维持78。"
+}

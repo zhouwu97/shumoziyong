@@ -1,0 +1,43 @@
+{
+  "language": "matlab",
+  "role": "independent_reproducer",
+  "status": "executed",
+  "verification_status": "verified",
+  "execution_observed": true,
+  "version": "MATLAB 24.1.0.2537033 (R2024a)",
+  "toolboxes": [
+    {
+      "name": "Optimization Toolbox",
+      "version": "24.1"
+    }
+  ],
+  "command": [
+    "E:\\Matlab\\bin\\matlab.exe -batch \"addpath('code/matlab'); run_cross_language_validation(pwd)\""
+  ],
+  "cwd": "E:\\AI\\数模\\training\\2021_C_round2_retry1",
+  "started_at": "2026-07-15T01:58:29+08:00",
+  "ended_at": "2026-07-15T01:59:07+08:00",
+  "duration_seconds": 38.172445,
+  "exit_code": 0,
+  "stdout_path": "results/language_execution/matlab.stdout.log",
+  "stdout_sha256": "c8cd30a183633f66d57608a9e3fc6c7dfa0269a0b89e243574c9891702873280",
+  "stderr_path": "results/language_execution/matlab.stderr.log",
+  "stderr_sha256": "76bcd8fb01ea91f1416718fbfa4a0de85eabb9e13a69fb0def8bbdadfeb682bb",
+  "source_manifest": {
+    "path": "results/language_execution/matlab_source_manifest.json",
+    "sha256": "c471aad940b575da8398ba5ec43dde3281161d5a505059b1975d518007739a90"
+  },
+  "input_manifest": {
+    "path": "results/language_execution/shared_input_manifest.json",
+    "sha256": "c027f390be6bc9340da9dd6f13afad3745624f95fee3d337e07c70bd52abb501"
+  },
+  "output_manifest": {
+    "path": "results/language_execution/matlab_output_manifest.json",
+    "sha256": "7610bde23f365bdd01cc56e4390e7c33f1ae1e0d2895a32494d9a73ccd06e6e7"
+  },
+  "isolation": {
+    "invokes_python": false,
+    "reads_python_intermediates": false,
+    "input_origin": "shared_official_inputs"
+  }
+}

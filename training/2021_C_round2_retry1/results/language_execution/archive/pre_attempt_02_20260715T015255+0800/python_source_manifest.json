@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "2021c-attempt02-20260715T014642+0800-python-source",
+  "generated_at": "2026-07-15T01:46:42+08:00",
+  "root": ".",
+  "files": [
+    {
+      "path": "code/analysis/__init__.py",
+      "size_bytes": 43,
+      "sha256": "f1881dc72746dc566e48f8d75a14156a3ad0dd8e2ce358de4fda1b3449cdc897"
+    },
+    {
+      "path": "code/analysis/artifacts.py",
+      "size_bytes": 13427,
+      "sha256": "27e241fc311caabb26104a6def86feea64b83134e38af924711d1708cd6463a4"
+    },
+    {
+      "path": "code/analysis/build_paper_docx.py",
+      "size_bytes": 22698,
+      "sha256": "da9e89effe6405383d56fa5eda7ef538e2c65a348f7ecf0b2bf75118ec8a96e3"
+    },
+    {
+      "path": "code/analysis/generate_paper_assets.py",
+      "size_bytes": 34210,
+      "sha256": "782b0e44d24fdb3292441b042a8a9223c5c7b2c1449a153438870da550aca7a6"
+    },
+    {
+      "path": "code/analysis/generate_typst_paper_figures.py",
+      "size_bytes": 17293,
+      "sha256": "f53fd159d48cd4d3b4e179ed175ae22afa023036ad446d566215a363d66f3f9f"
+    },
+    {
+      "path": "code/common/__init__.py",
+      "size_bytes": 37,
+      "sha256": "891cf52998df8176b59fac285a34174a3cc1bce82ec4dc193c1a47ffa7bb773f"
+    },
+    {
+      "path": "code/common/common.py",
+      "size_bytes": 10230,
+      "sha256": "d777844370dc8cce8ab7c50724e386b4bdd06a5568c54b586262c5a7ec81251d"
+    },
+    {
+      "path": "code/final_human_audit.py",
+      "size_bytes": 24967,
+      "sha256": "ee81f1aad5050756c5ab661b326c0c3895d268e50ca03961812e571a75966a01"
+    },
+    {
+      "path": "code/run_training.py",
+      "size_bytes": 35616,
+      "sha256": "dc894fe3ccbc8592573007d0dca7392169d19605773a2520c21238b37c466780"
+    },
+    {
+      "path": "code/solver/__init__.py",
+      "size_bytes": 37,
+      "sha256": "99e5dc7af266cf8ca491ad55a9669697e129b50601032fdd8aa87c5968beb963"
+    },
+    {
+      "path": "code/solver/optimization.py",
+      "size_bytes": 24271,
+      "sha256": "6d803524834ec91ab7b886c881bd3e1df1406c5257b92e459eecb820298a874d"
+    },
+    {
+      "path": "code/tests/test_validator.py",
+      "size_bytes": 806,
+      "sha256": "41b81ebd44038ebf9e112a54802b5b3a66217f3dd268a2c0474361f83e3e01d6"
+    },
+    {
+      "path": "code/validator/__init__.py",
+      "size_bytes": 56,
+      "sha256": "e47139271dfd4f0c211488780b1ca4852186bc62d3ba3ea67064540d50ce433d"
+    },
+    {
+      "path": "code/validator/independent_validator.py",
+      "size_bytes": 20034,
+      "sha256": "b67793f0b8c9d9dc03b63ebeb28ec1611ffa6d98ece243e516f498f65e6c175c"
+    },
+    {
+      "path": "run_dual_language_evidence.py",
+      "size_bytes": 17477,
+      "sha256": "6f0396d8b336c8171616fe2d2f36bd009c6a3cffefae9ef8f7d2c6270de4a058"
+    }
+  ]
+}

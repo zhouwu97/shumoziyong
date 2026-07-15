@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "2021c-attempt02-20260715T014642+0800-shared-input",
+  "generated_at": "2026-07-15T01:46:42+08:00",
+  "root": ".",
+  "files": [
+    {
+      "path": "materials/附件1 近5年402家供应商的相关数据.xlsx",
+      "size_bytes": 673200,
+      "sha256": "1b93a7598b8f0489e3c054439967bca654a83654837908c833752617cf950e1b"
+    },
+    {
+      "path": "materials/附件2 近5年8家转运商的相关数据.xlsx",
+      "size_bytes": 22122,
+      "sha256": "29e1499b133aa88d765902081bfb827f78ffb4c091f5f75341fc37d844344685"
+    }
+  ]
+}

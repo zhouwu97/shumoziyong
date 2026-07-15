@@ -1,13 +1,13 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-07-15T00:29:04+08:00",
+  "generated_at": "2026-07-15T02:25:57+08:00",
   "independence_statement": "MATLAB optimization reads only official Excel and locked constants; Python artifacts are loaded only after MATLAB solving for comparison.",
   "tolerances": {
     "score": 1E-9,
     "continuous": 1E-6
   },
   "overall_pass": true,
-  "maximum_cross_language_error": 1.6007106751203537E-10,
+  "maximum_cross_language_error": 3.2060779631137848E-7,
   "problem1": {
     "top10_exact": true,
     "top50_exact": true,
@@ -16,8 +16,8 @@
   },
   "problem2": {
     "minimum_supplier_count": 26,
-    "purchase_cost_24week": 491125.62053030345,
-    "transport_loss_24week": 2470.5164305043468,
+    "purchase_cost_24week": 491125.62053030339,
+    "transport_loss_24week": 2470.516430504339,
     "exitflags": [
       1,
       1,
@@ -53,18 +53,18 @@
         "inventory": 0
       },
       "totalHardViolations": 0,
-      "arrivalProduct": 28199.999999999996,
+      "arrivalProduct": 28199.999999999993,
       "carrierLoad": [
         0,
-        5956.5852826890523,
-        6000.0000000000009,
+        5956.5852826887058,
+        6000.0000000001073,
         0,
         0,
-        5999.9999999999991,
+        6000.0000000000018,
         0,
-        422.35403204899535
+        422.3540320492603
       ],
-      "maxViolationMagnitude": 9.0949470177292824E-13
+      "maxViolationMagnitude": 1.0805933925439604E-10
     },
     "problem3": {
       "checks": {
@@ -160,25 +160,25 @@
     },
     {
       "metric": "problem2_purchase_cost_24week",
-      "python_value": "491125.620530304",
+      "python_value": "491125.620530536",
       "matlab_value": "491125.620530303",
-      "absolute_error": 1.1641532182693481E-10,
+      "absolute_error": 2.3230677470564842E-7,
       "tolerance": 1E-6,
       "passed": true
     },
     {
       "metric": "problem2_transport_loss_24week",
-      "python_value": "2470.51643050435",
-      "matlab_value": "2470.51643050435",
-      "absolute_error": 6.8212102632969618E-12,
+      "python_value": "2470.51643049995",
+      "matlab_value": "2470.51643050434",
+      "absolute_error": 4.3919499148614705E-9,
       "tolerance": 1E-6,
       "passed": true
     },
     {
       "metric": "problem2_inventory_end",
-      "python_value": "56400",
+      "python_value": "56400.0000003206",
       "matlab_value": "56400",
-      "absolute_error": 0,
+      "absolute_error": 3.2060779631137848E-7,
       "tolerance": 1E-6,
       "passed": true
     },

@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0.0",
+  "validation_id": "2021c-attempt02-20260715T015255+0800-cross-validation",
+  "example_only": false,
+  "execution_evidence_id": "2021c-attempt02-20260715T015255+0800",
+  "output_manifests": {
+    "python_sha256": "efe6ae008ee322e78870e961f2ef411a6323ca929476f39fe68c2c7aa4267545",
+    "matlab_sha256": "7610bde23f365bdd01cc56e4390e7c33f1ae1e0d2895a32494d9a73ccd06e6e7"
+  },
+  "objective": {
+    "metric": "problem2_purchase_cost_24week",
+    "direction": "minimize",
+    "python_value": "491125.620530536",
+    "matlab_value": "491125.620530303",
+    "absolute_tolerance": 1e-06,
+    "relative_tolerance": 1e-09
+  },
+  "hard_constraints": [
+    {
+      "constraint_id": "problem2_all_hard_constraints",
+      "python": {
+        "satisfied": true,
+        "max_violation": 0.0
+      },
+      "matlab": {
+        "satisfied": true,
+        "max_violation": 1.0805933925439604e-10
+      },
+      "violation_tolerance": 1e-06
+    },
+    {
+      "constraint_id": "problem3_all_hard_constraints",
+      "python": {
+        "satisfied": true,
+        "max_violation": 0.0
+      },
+      "matlab": {
+        "satisfied": true,
+        "max_violation": 9.094947017729282e-13
+      },
+      "violation_tolerance": 1e-06
+    },
+    {
+      "constraint_id": "problem4_all_hard_constraints",
+      "python": {
+        "satisfied": true,
+        "max_violation": 0.0
+      },
+      "matlab": {
+        "satisfied": true,
+        "max_violation": 9.094947017729282e-13
+      },
+      "violation_tolerance": 1e-06
+    }
+  ],
+  "business_aggregates": [
+    {
+      "aggregate_id": "selected_supplier_count",
+      "python_value": "26",
+      "matlab_value": "26",
+      "absolute_tolerance": 0.0,
+      "relative_tolerance": 1e-09
+    },
+    {
+      "aggregate_id": "problem2_transport_loss_24week",
+      "python_value": "2470.51643049995",
+      "matlab_value": "2470.51643050434",
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 1e-09
+    },
+    {
+      "aggregate_id": "problem3_total_raw_24week",
+      "python_value": "434181.912061369",
+      "matlab_value": "434181.912061369",
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 1e-09
+    },
+    {
+      "aggregate_id": "problem4_weekly_capacity",
+      "python_value": "33335.925461873",
+      "matlab_value": "33335.925461873",
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 1e-09
+    }
+  ],
+  "optimality": {
+    "python_status": "proven_optimal",
+    "matlab_status": "proven_optimal"
+  },
+  "decision_variables": {
+    "comparison_mode": "equivalent_optimum",
+    "python_manifest_sha256": "efe6ae008ee322e78870e961f2ef411a6323ca929476f39fe68c2c7aa4267545",
+    "matlab_manifest_sha256": "7610bde23f365bdd01cc56e4390e7c33f1ae1e0d2895a32494d9a73ccd06e6e7"
+  }
+}

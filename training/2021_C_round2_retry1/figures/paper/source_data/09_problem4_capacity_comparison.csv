@@ -1,0 +1,3 @@
+﻿scenario,weekly_capacity_m3,increase_ratio_vs_baseline
+baseline,28200.0,0.0
+model_predicted_maximum,33335.925461873034,0.18212501637847645

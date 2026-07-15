@@ -1,5 +1,5 @@
-#import "../style.typ": three-line-table
-#let locked = json("../../paper_source_lock.json").claims
+#import "../style.typ": three-line-table, source-note
+#import "../style.typ": locked
 
 = 模型假设
 
@@ -17,12 +17,15 @@
     [A5], [损耗率采用非零历史记录均值], [题面中损耗率 0 表示没有运输，不作为零损耗样本。],
     [A6], [不删除零值与极端值], [官方数据无数值缺失和负值；IQR 异常只标记不剔除。],
     [A7], [原料量允许连续], [问题二的承运商选择为二元；问题三、四采用连续运输流。],
-    [A8], [采购成本为相对成本], [C 类取 1，B、A 分别取 #locked.relative_cost_b.display、#locked.relative_cost_a.display，不能解释为人民币金额。],
+    [A8], [采购成本为相对成本], [C 类取 #locked.relative_cost_c.display，B、A 分别取 #locked.relative_cost_b.display、#locked.relative_cost_a.display，不能解释为人民币金额。],
     [A9], [未来参数平稳], [供应能力、损耗率、价格和需求不随周次变化，单周最优结构可复制到 #locked.horizon_weeks.display 周。],
   ),
   alignments: (center, left, left),
-  font-size: 9.4pt,
+ font-size: 9.4pt,
 )
+
+#pagebreak(weak: true)
+#source-note[单周—24 周口径：在需求、价格、供货能力和运输参数均保持平稳，且不存在周折扣、仓储上限和终端库存奖励时，各周优化结构相同。本文先求解代表性单周方案，再复制到未来 #locked.horizon_weeks.display 周，并依据库存平衡式逐周重建库存轨迹；正文报告成本和损耗均为周值，24 周总值为其 24 倍。供应商集合在 24 周内共享，$10^(-6)$ 是单周词典序目标锁定的数值容差。]
 
 这些假设中，A3 与 A9 对外推影响最大。历史常规期望供货上限不含未来概率区间，平稳参数也不描述季节性、趋势和突发中断。因此，后续的可行性与最优性结论均是“在给定参数和已建约束下”成立，而非对现实供应链的无条件保证。
 

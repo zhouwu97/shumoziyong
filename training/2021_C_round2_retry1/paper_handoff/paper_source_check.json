@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0.0",
+  "passed": true,
+  "main": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\main.typ",
+  "main_sha256": "23b7622002de96705b26514b3750bec80d1b92e5b0cc7290628eba023f4f5e3d",
+  "sources": [
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\main.typ",
+      "sha256": "23b7622002de96705b26514b3750bec80d1b92e5b0cc7290628eba023f4f5e3d"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\00_abstract.typ",
+      "sha256": "8638af18fda64cf313773f3c061f9f2d8845af19871cc5f78a75d3d5ace25fc4"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\01_problem_restatement.typ",
+      "sha256": "32d1be06697584ccdddd034f01dc3808b1f24a861270e4f59ed6f0d177792af0"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\02_problem_analysis.typ",
+      "sha256": "e2b40ae8e532222ca60569b6ba0a241e4597f72bedcf57b6389c2e17456234c4"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\03_assumptions.typ",
+      "sha256": "06e57e738e9ae119ae3128967be41ceb2f19f5ab1007475779abbb4b78790b1d"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\04_symbols.typ",
+      "sha256": "5d061ff5d1952a847833dbf382b4c15d6d797a9ffb6c951989a8ff9b84d26499"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\05_data_preprocessing.typ",
+      "sha256": "6321b9b7c5423ffb7b1012b55ec3905c583830f9c9c4af7e862740ed49cdd1ad"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\06_problem1.typ",
+      "sha256": "696b84aa464823f8c630189df440ca2680c1ed87580ef697f2ed4806d16233e1"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\07_problem2_model.typ",
+      "sha256": "19dc0c55e8ce1196444b1d70dc14e5799a084e182501a6dabe5b6839381da4e4"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\08_problem2_results.typ",
+      "sha256": "00f1f45d5c1677528f38b45e57eb52da8e28b9fbfc152163eca59ac14baf58e1"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\09_problem3_model.typ",
+      "sha256": "77b69f892f8f29af5dd7605634eec95421775ce62e12a757b2a03be4818e134f"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\10_problem3_results.typ",
+      "sha256": "472ac4d26d4307efe399cb82855caa97b7e3e26b3ff0860c9a9d360de127aa7f"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\11_problem4_model.typ",
+      "sha256": "ab8905d743a35396facf0bd50993ac1531d9fe5b9579a8db7719a83c91213981"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\12_problem4_results.typ",
+      "sha256": "0664620756294b61ffc77f6cf7c5714057bfc562fa68ab177aabb2af66672d29"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\13_sensitivity.typ",
+      "sha256": "b89e1828a0dc14fd6fc552463f52e316246fbe60e882a82fd1524e0fe7508363"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\14_validation.typ",
+      "sha256": "1e0c08b3eb12e7ea3458ecc3c9b831ec9cab7a5d6a3ec993618afb2f7ed6730a"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\15_model_evaluation.typ",
+      "sha256": "c04818a2f30ca06e45ec22f140b8ef6e44156725926a2565c141802e31c973e6"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\16_conclusion.typ",
+      "sha256": "aac292954350dd71bb5a7b44a6f80a9e751be3e220e125a3602ff54a7c766d46"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\17_references.typ",
+      "sha256": "491d153f2245dd35eef70a376e03002a7c0715a7fffd745f9309f96c9ca1b57f"
+    },
+    {
+      "path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\paper\\sections\\18_appendix.typ",
+      "sha256": "3fa32b92af271619c69c3cb88e4376ca31a428c5d51a288555162473b6d5e1f8"
+    }
+  ],
+  "summary": {
+    "files_checked": 20,
+    "failures": 0,
+    "warnings": 0
+  },
+  "lock_audit": {
+    "source_sha256": "15/15",
+    "manifest_sha256": "15/15",
+    "json_pointers": "44/44",
+    "derived_claims": 15,
+    "paper_source_lock_sha256": "1f260a9e3ec0aadbedffc9e40c87d8a2ac273b75f8d3d067d99b557b419a7083"
+  },
+  "issues": []
+}

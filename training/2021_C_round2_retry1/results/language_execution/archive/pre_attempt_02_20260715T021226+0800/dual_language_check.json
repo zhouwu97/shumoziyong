@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "passed": true,
+  "status": "passed",
+  "evidence_id": "2021c-attempt02-20260715T015255+0800",
+  "validation_id": "2021c-attempt02-20260715T015255+0800-cross-validation",
+  "summary": {
+    "failures": 0,
+    "blockers": 0,
+    "issues": 0
+  },
+  "issues": [],
+  "required_languages": [
+    "matlab",
+    "python"
+  ],
+  "cross_language_validation_required": true,
+  "solver_execution_performed_by_checker": false
+}

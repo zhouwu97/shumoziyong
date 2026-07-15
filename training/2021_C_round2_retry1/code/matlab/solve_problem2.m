@@ -1,33 +1,29 @@
 function result = solve_problem2(data)
-%SOLVE_PROBLEM2 用 intlinprog 独立求解最小基数及两阶段正式 MILP。
+%SOLVE_PROBLEM2 在全部供应商上独立求解基数、成本和损耗三阶段 MILP。
 
-bestLoss = min(data.lossMean);
-ability = data.regularCapacity .* (1 - bestLoss) ./ data.rawPerProduct;
+candidates = find(data.regularCapacity > data.tolerance);
+model = build_flow_model(data, candidates, true);
+flowIdx = 1:model.flowCount;
+assignIdx = model.flowCount + (1:model.flowCount);
+A0 = [model.A; sparse(1, flowIdx, -model.productCoefficient, 1, numel(model.lb))];
+b0 = [model.b; -data.demand];
 
-% 先用 402 个二元变量直接求最小供应商数。
-fSelection = ones(numel(ability), 1);
-ASelection = -ability';
-bSelection = -data.demand;
+% 第一阶段直接在完整运输模型中最小化启用供应商数。
+fSelection = zeros(numel(model.lb), 1);
+fSelection(assignIdx) = 1;
 selectionOptions = optimoptions("intlinprog", "Display", "off", ...
     "RelativeGapTolerance", 0, "AbsoluteGapTolerance", 1e-9, ...
     "ConstraintTolerance", 1e-9, "MaxTime", 300);
 tic;
 [z, minimumCount, exitflagSelection, outputSelection] = intlinprog( ...
-    fSelection, 1:numel(ability), ASelection, bSelection, [], [], ...
-    zeros(numel(ability), 1), ones(numel(ability), 1), selectionOptions);
+    fSelection, model.intcon, A0, b0, [], [], model.lb, model.ub, selectionOptions);
 selectionRuntime = toc;
 assert(exitflagSelection > 0, "问题二最小供应商模型未得到最优解");
 
-% 固定能力降序的最小基数集合，复现正式模型的确定性候选口径。
-[~, order] = sortrows([-ability, (1:numel(ability))'], [1, 2]);
-candidates = order(1:round(minimumCount));
-assert(sum(ability(candidates)) >= data.demand - data.tolerance, ...
-    "最小基数候选集合不能覆盖需求");
-
-model = build_flow_model(data, candidates, true);
-flowIdx = 1:model.flowCount;
-A0 = [model.A; sparse(1, flowIdx, -model.productCoefficient, 1, numel(model.lb))];
-b0 = [model.b; -data.demand];
+% 后续阶段只锁定最小基数值，不固定具体供应商名单。
+selectionRow = sparse(1, assignIdx, 1, 1, numel(model.lb));
+A1 = [A0; selectionRow; -selectionRow];
+b1 = [b0; round(minimumCount); -round(minimumCount)];
 costObjective = [model.costCoefficient; zeros(numel(model.lb) - model.flowCount, 1)];
 lossObjective = [model.lossCoefficient; zeros(numel(model.lb) - model.flowCount, 1)];
 options = optimoptions("intlinprog", "Display", "off", ...
@@ -36,22 +32,23 @@ options = optimoptions("intlinprog", "Display", "off", ...
 
 tic;
 [xCost, costValue, exitflagCost, outputCost] = intlinprog(costObjective, ...
-    model.intcon, A0, b0, [], [], model.lb, model.ub, options);
+    model.intcon, A1, b1, [], [], model.lb, model.ub, options);
 runtimeCost = toc;
 assert(exitflagCost > 0, "问题二采购成本阶段未得到最优解");
 
 costRow = sparse(1, flowIdx, model.costCoefficient, 1, numel(model.lb));
-A1 = [A0; costRow];
-b1 = [b0; costValue + data.tolerance];
+A2 = [A1; costRow];
+b2 = [b1; costValue + data.tolerance];
 tic;
 [xLoss, lossValue, exitflagLoss, outputLoss] = intlinprog(lossObjective, ...
-    model.intcon, A1, b1, [], [], model.lb, model.ub, options);
+    model.intcon, A2, b2, [], [], model.lb, model.ub, options);
 runtimeLoss = toc;
 assert(exitflagLoss > 0, "问题二运输损耗阶段未得到最优解");
 
 flow = reshape(xLoss(1:model.flowCount), model.m, model.n)';
 result.minimumSupplierCount = round(minimumCount);
-result.selectionVector = z;
+assignment = reshape(xLoss(assignIdx), model.m, model.n)';
+result.selectionVector = sum(assignment, 2);
 result.candidates = candidates;
 result.flow = flow;
 result.expectedSupply = sum(flow, 2);

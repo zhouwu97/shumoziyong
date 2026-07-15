@@ -1,5 +1,5 @@
 #import "../style.typ": three-line-table, source-note
-#let locked = json("../../paper_source_lock.json").claims
+#import "../style.typ": locked
 
 = 符号说明
 

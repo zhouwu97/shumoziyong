@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "start_time": "2026-07-15T02:17:49+08:00",
+  "end_time": "2026-07-15T02:18:16+08:00",
+  "runtime_seconds": 26.276979,
+  "matlab_version": "24.1.0.2537033 (R2024a)",
+  "release": "2024a",
+  "platform": "PCWIN64",
+  "optimization_toolbox_version": "24.1",
+  "intlinprog_available": true,
+  "linprog_available": true,
+  "command": "matlab -batch \"addpath('code/matlab'); run_cross_language_validation(pwd)\"",
+  "exit_status": 0,
+  "validation_pass": true,
+  "solvers": {
+    "problem2": "MATLAB intlinprog",
+    "problem3": "MATLAB linprog (HiGHS dual simplex)",
+    "problem4": "MATLAB linprog (HiGHS dual simplex)"
+  },
+  "stage_runtimes": {
+    "problem2_seconds": [
+      0.5899725,
+      4.667756,
+      15.497241
+    ],
+    "problem3_seconds": [
+      0.0891707,
+      0.0671124,
+      0.0239494
+    ],
+    "problem4_seconds": 0.0221176
+  }
+}

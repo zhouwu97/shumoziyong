@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "canonical_plan": "paper/figure_plan.json",
-  "canonical_plan_sha256": "c63b6acad2356c5bb80f9e6870e8580334144e8c7acf85f77c7b2352d074994c",
+  "canonical_plan_sha256": "545b8c564de40d7d1b6cb8bef298d8175048961149a6a3700b7a830f9c34b348",
   "final_figure_count": 8,
   "figures": [
     {"id": "fig01_workflow", "number": 1, "section": "问题分析", "decision": "add"},

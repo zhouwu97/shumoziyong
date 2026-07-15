@@ -63,7 +63,7 @@ def _solution_summary(solution: dict[str, Any]) -> dict[str, Any]:
 def _sensitivity_case(label: str, solver: Any, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
     """运行一个可重复的情景，并将不可行性显式保留为结果。"""
     try:
-        kwargs.setdefault("time_limit_seconds", 5.0)
+        kwargs.setdefault("time_limit_seconds", 60.0)
         solution, _status = solver(data, **kwargs)
         shipments = np.asarray(solution["shipments_raw_m3"], dtype=float)
         supply = np.asarray(solution["expected_supply_raw_m3"], dtype=float)
@@ -72,6 +72,7 @@ def _sensitivity_case(label: str, solver: Any, data: dict[str, Any], **kwargs: A
         return {
             "scenario": label,
             "feasible": True,
+            "feasibility_status": "feasible",
             "objective": solution["objective"],
             "selected_supplier_ids": solution["selected_supplier_ids"],
             "selected_supplier_count": len(solution["selected_supplier_ids"]),
@@ -82,9 +83,38 @@ def _sensitivity_case(label: str, solver: Any, data: dict[str, Any], **kwargs: A
         }
     except Exception as error:  # 情景不可行本身就是应报告的建模结果。
         message = str(error)
+        status = getattr(error, "status", {})
+        if status.get("feasible") is True:
+            return {
+                "scenario": label,
+                "feasible": True,
+                "feasibility_status": "feasible_not_proven_optimal",
+                "solver_status": status,
+                "error": message,
+            }
+        if status.get("status_code") == 2:
+            return {
+                "scenario": label,
+                "feasible": False,
+                "feasibility_status": "globally_infeasible",
+                "solver_status": status,
+                "error": message,
+            }
         if "Time limit reached" in message:
-            return {"scenario": label, "feasible": None, "feasibility_status": "unknown_time_limit", "error": message}
-        return {"scenario": label, "feasible": False, "feasibility_status": "infeasible", "error": message}
+            return {
+                "scenario": label,
+                "feasible": None,
+                "feasibility_status": "no_feasible_solution_found_within_limit",
+                "solver_status": status,
+                "error": message,
+            }
+        return {
+            "scenario": label,
+            "feasible": None,
+            "feasibility_status": "unable_to_determine",
+            "solver_status": status,
+            "error": message,
+        }
 
 
 def _generate_figures(analysis: dict[str, Any], sensitivity: dict[str, Any]) -> list[str]:
@@ -106,7 +136,15 @@ def _generate_figures(analysis: dict[str, Any], sensitivity: dict[str, Any]) -> 
     figure.savefig(figure_path.with_suffix(".svg"), bbox_inches="tight", facecolor="white")
     plt.close(figure)
 
-    scenarios = [item for item in sensitivity["scenarios"] if item["feasible"]]
+    scenarios = []
+    for item in sensitivity["scenarios"]:
+        objective = item.get("objective")
+        if (
+            item.get("feasible") is True
+            and isinstance(objective, dict)
+            and "purchase_cost_relative" in objective
+        ):
+            scenarios.append(item)
     figure, axis = plt.subplots(figsize=(10.5, 4.5), constrained_layout=True)
     labels = [item["scenario"] for item in scenarios]
     values = [item["objective"]["purchase_cost_relative"] / 24.0 for item in scenarios]

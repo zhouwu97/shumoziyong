@@ -2,6 +2,7 @@
 #let song-font = ("SimSun", "NSimSun", "Source Han Serif SC", "Times New Roman")
 #let hei-font = ("SimHei", "Microsoft YaHei", "SimSun")
 #let kai-font = ("KaiTi", "STKaiti", "SimSun")
+#let locked = json("../paper_source_lock.json").claims
 
 #let cn-numbering(..nums) = {
   let ns = nums.pos()
@@ -30,6 +31,13 @@
     leading: 0.72em,
     spacing: 0.38em,
   )
+  show raw.where(block: true): it => block(
+    width: 100%,
+    inset: 0.75em,
+    fill: white,
+    stroke: 0.45pt + rgb("b0b0b0"),
+    breakable: true,
+  )[#set text(font: ("Consolas", "Courier New"), size: 7.6pt); #it]
   set heading(numbering: cn-numbering)
   set enum(numbering: "1.")
   set math.equation(numbering: "(1)")
@@ -41,13 +49,6 @@
   show heading.where(level: 3): set text(font: hei-font, size: 12pt, weight: "bold", fill: black)
   show heading.where(level: 3): set block(above: 0.85em, below: 0.4em)
   show math.equation.where(block: true): set block(above: 0.65em, below: 0.65em)
-  show raw.where(block: true): it => block(
-    width: 100%,
-    inset: 0.75em,
-    fill: white,
-    stroke: 0.45pt + rgb("b0b0b0"),
-    breakable: true,
-  )[#set text(font: ("Consolas", "Courier New"), size: 7.6pt); #it]
   show figure.caption: it => text(font: song-font, size: 10.5pt, fill: black)[#it]
   body
 }
@@ -94,12 +95,13 @@
 ]
 
 #let toc-page() = {
+  set page(margin: (top: 2cm, bottom: 2cm, left: 2.5cm, right: 2.5cm))
   align(center)[#text(font: hei-font, size: 17pt, weight: "bold")[目 #h(1.5em) 录]]
-  v(1em)
+  v(0.6em)
   show outline.entry.where(level: 1): it => link(
     it.element.location(),
-    block(above: 7pt)[
-      #text(font: song-font, size: 11pt)[
+    block(above: 3pt)[
+      #text(font: song-font, size: 10.5pt)[
         #grid(
           columns: (auto, 1fr, auto),
           column-gutter: 0.5em,
@@ -110,7 +112,7 @@
       ]
     ],
   )
-  outline(title: none, depth: 3)
+  outline(title: none, depth: 2)
 }
 
 #let three-line-table(

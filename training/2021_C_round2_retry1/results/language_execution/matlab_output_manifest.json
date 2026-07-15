@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "2021c-attempt02-20260715T022018+0800-matlab-output",
+  "generated_at": "2026-07-15T02:26:00+08:00",
+  "root": ".",
+  "files": [
+    {
+      "path": "results/cross_language_validation.csv",
+      "size_bytes": 1860,
+      "sha256": "670459199ffb3c699e78f67912438e71d315fa5fe44bfad322b5dab33e00d79f"
+    },
+    {
+      "path": "results/cross_language_validation.json",
+      "size_bytes": 7393,
+      "sha256": "6170206495df01206ae0c514211298997234ac76765938ff737e857d1f1c5d25"
+    },
+    {
+      "path": "results/matlab_execution_record.json",
+      "size_bytes": 882,
+      "sha256": "361652d526d089542b7c0cc430acf517e878f68bcfd2f8f835d4b593dcdd024a"
+    }
+  ]
+}

@@ -8,6 +8,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +31,9 @@ KEY_RESULT_FILES = [
     "solver_status.json",
 ]
 KEY_OUTPUT_FILES = ["附件A 订购方案数据结果.xlsx", "附件B 转运方案数据结果.xlsx"]
+
+# HiGHS 的整数容差经供应能力大 M 放大后，可能留下数毫升量级的非活跃流。
+FLOW_ACTIVITY_TOLERANCE = 1e-5
 
 
 def _sha256(path: Path) -> str:
@@ -237,7 +243,7 @@ def _transport_split_analysis(solutions: dict[str, dict[str, Any]], solver_statu
     by_problem: dict[str, Any] = {}
     for part in ("2", "3"):
         shipments = np.asarray(solutions[part]["shipments_raw_m3"], dtype=float)
-        carrier_count = (shipments > TOLERANCE).sum(axis=2)
+        carrier_count = (shipments > FLOW_ACTIVITY_TOLERANCE).sum(axis=2)
         split_mask = carrier_count > 1
         supplier_week_active = carrier_count > 0
         supplier_week_volume = shipments.sum(axis=2)
@@ -261,7 +267,7 @@ def _transport_split_analysis(solutions: dict[str, dict[str, Any]], solver_statu
         }
     return {
         "generated_at": now_iso(),
-        "positive_threshold": TOLERANCE,
+        "positive_threshold": FLOW_ACTIVITY_TOLERANCE,
         "by_problem": by_problem,
         "hard_single_carrier_comparison": {
             "problem2": "正式模型本身强制单承运商，拆分为0，可直接作为硬约束基准。",
@@ -309,20 +315,25 @@ def _problem4_audit(solution: dict[str, Any], data: dict[str, Any]) -> dict[str,
 def _stress_audit(sensitivity: dict[str, Any]) -> dict[str, Any]:
     scenarios = {item["scenario"]: item for item in sensitivity["scenarios"]}
     expected = {
-        "demand_plus_10pct": "infeasible",
-        "key_supplier_outage": "infeasible",
-        "key_supplier_capacity_minus_10pct": "unknown_time_limit",
+        "demand_plus_10pct": "feasible_not_proven_optimal",
+        "key_supplier_outage": "feasible",
+        "key_supplier_capacity_minus_10pct": "feasible",
     }
     actual: dict[str, Any] = {}
     passed = True
     for name, status in expected.items():
         item = scenarios[name]
-        actual_status = "feasible" if item.get("feasible") is True else item.get("feasibility_status")
+        actual_status = item.get("feasibility_status")
+        if actual_status is None:
+            actual_status = "feasible" if item.get("feasible") is True else "unable_to_determine"
         actual[name] = {"expected_status": status, "actual_status": actual_status, "passed": actual_status == status}
         passed = passed and actual_status == status
     return {
         "scenarios": actual,
-        "required_paper_statement": "当前方案在基准需求下可行，但对需求上升和关键供应商长期中断较敏感，供应链冗余仍不足。",
+        "required_paper_statement": (
+            "完整候选网络在关键供应商能力下降10%和全期中断情景下仍得到全局最优可行解；"
+            "需求增加10%时已找到可行 incumbent，但60秒内未证明采购成本最优。"
+        ),
         "unknown_is_not_infeasible": True,
         "passed": passed,
     }
@@ -397,7 +408,72 @@ def _compare_snapshots(before: dict[str, Any], after: dict[str, Any]) -> dict[st
     }
 
 
+def _find_soffice() -> Path | None:
+    executable = shutil.which("soffice") or shutil.which("libreoffice")
+    if executable:
+        return Path(executable)
+    candidates = [
+        Path(r"C:\Program Files\LibreOffice\program\soffice.com"),
+        Path(r"C:\Program Files\LibreOffice\program\soffice.exe"),
+        Path(r"D:\libreoffice\program\soffice.com"),
+        Path(r"D:\libreoffice\program\soffice.exe"),
+    ]
+    return next((path for path in candidates if path.is_file()), None)
+
+
+def _recalculate_excel_outputs() -> dict[str, Any]:
+    soffice = _find_soffice()
+    if soffice is None:
+        return {
+            "passed": False,
+            "engine": None,
+            "records": [],
+            "error": "未找到 LibreOffice soffice，无法生成公式缓存。",
+        }
+
+    records = []
+    with tempfile.TemporaryDirectory(prefix="2021c_excel_recalc_") as temp_dir:
+        temp_root = Path(temp_dir)
+        output_dir = temp_root / "output"
+        profile_dir = temp_root / "profile"
+        output_dir.mkdir()
+        profile_dir.mkdir()
+        for name in KEY_OUTPUT_FILES:
+            source = OUTPUTS / name
+            command = [
+                str(soffice),
+                f"-env:UserInstallation={profile_dir.as_uri()}",
+                "--headless",
+                "--convert-to",
+                "xlsx",
+                "--outdir",
+                str(output_dir),
+                str(source),
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, check=False, timeout=120)
+            recalculated = output_dir / name
+            passed = result.returncode == 0 and recalculated.is_file()
+            if passed:
+                shutil.copy2(recalculated, source)
+                recalculated.unlink()
+            records.append(
+                {
+                    "file": name,
+                    "exit_code": result.returncode,
+                    "passed": passed,
+                    "stdout": result.stdout.strip(),
+                    "stderr": result.stderr.strip(),
+                }
+            )
+    return {
+        "passed": all(item["passed"] for item in records),
+        "engine": str(soffice),
+        "records": records,
+    }
+
+
 def _excel_recalculation_audit() -> dict[str, Any]:
+    recalculation = _recalculate_excel_outputs()
     records = []
     error_tokens = {"#REF!", "#DIV/0!", "#VALUE!", "#N/A", "#NAME?", "#NUM!", "#NULL!"}
     for name in KEY_OUTPUT_FILES:
@@ -440,10 +516,12 @@ def _excel_recalculation_audit() -> dict[str, Any]:
     }
     return {
         "engine": "LibreOffice Calc headless conversion",
+        "recalculation": recalculation,
         "generated_at": now_iso(),
         "records": records,
         "raw_solution_cell_consistency": consistency,
-        "passed": all(item["passed"] for item in records)
+        "passed": recalculation["passed"]
+        and all(item["passed"] for item in records)
         and all(item["passed"] for item in consistency.values()),
     }
 

@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "2021c-attempt02-claim-sources",
+  "generated_at": "2026-07-15T09:45:19+08:00",
+  "root": ".",
+  "file_count": 15,
+  "files": [
+    {
+      "path": "assumptions.json",
+      "sha256": "bede0aefc86dba5120ae186dc376212c0ec8df523874a651e83b69739a146474"
+    },
+    {
+      "path": "results/baseline_result.json",
+      "sha256": "349e782fd13dbbdaf39c3e9e93a55f3afaa21e0d214cacc295c3f951b50d10a2"
+    },
+    {
+      "path": "results/formal_result.json",
+      "sha256": "caf628238d4a4f7006aa1339ce9ebc8b82ef795629bae5a1296a737034214529"
+    },
+    {
+      "path": "results/data_quality_report.json",
+      "sha256": "6a28f2150680d12c04ae2578723b859107c62ec2ee1623b6b7e523136fb4da4d"
+    },
+    {
+      "path": "results/supplier_analysis.json",
+      "sha256": "7b0cc313aaa2cdff4f059b6eed5d7d3be96ce4ab7907c9ba063b06026eba779e"
+    },
+    {
+      "path": "results/rank_sensitivity.json",
+      "sha256": "47f9af4384c06e97479c7e5682bdd91017e8ee9f3e012c9f4c9d7e0eea3d0e2f"
+    },
+    {
+      "path": "results/transport_split_analysis.json",
+      "sha256": "61675c671eeef854f8765fe91d736e1a42124ebe748560c05f27eb57e12644cc"
+    },
+    {
+      "path": "results/sensitivity_analysis.json",
+      "sha256": "005b654bdc6b61971f4bace1ffd12eed31d225da207493691b2885aabd9e4194"
+    },
+    {
+      "path": "results/final_human_audit_evidence.json",
+      "sha256": "2f31647a692b4d9fecab8ad1f69eb50e689b972781c1fb5bc3f207a3624eb7f1"
+    },
+    {
+      "path": "results/objective_validation.json",
+      "sha256": "29a743a51b78a1e0c774b2067382382f657522bc0db5ef2b8100b55cc512af0f"
+    },
+    {
+      "path": "results/constraint_validation.json",
+      "sha256": "d46e811d354cc3aa16fda8bcf0858727959bc83f0cc1587c135bd960a0af4e5a"
+    },
+    {
+      "path": "results/fault_injection_report.json",
+      "sha256": "1fb7653099d33f8a772f82dfc2976c1d81413b7dc7672742a7431261b7da3b9b"
+    },
+    {
+      "path": "results/output_template_validation.json",
+      "sha256": "ad3ddc7b10f5544971f81c705db3cbc90647770e540451710347b8a287d4ab2d"
+    },
+    {
+      "path": "results/excel_recalculation_validation.json",
+      "sha256": "588d8aab2013ffd0baefe4648bd3c34d3d81625bd810d8a9f38c921ad609bdf5"
+    },
+    {
+      "path": "results/reproduction_validation.json",
+      "sha256": "c10010b62f2dba1da4b12af81acb4be2341059732d66fd359b41eef30b8abafe"
+    }
+  ]
+}

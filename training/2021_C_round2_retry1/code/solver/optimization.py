@@ -1,4 +1,4 @@
-"""本轮问题2至问题4的可审计 MILP 求解器。
+"""本轮问题二 MILP 与问题三、四 LP 的可审计求解器。
 
 每个模型只使用本轮 ``common`` 中由官方材料计算出的参数；转运分配与订货量导出
 均保留到完整精度，最终结果再交给独立检查器复算。
@@ -23,6 +23,14 @@ class MilpRun:
 
     x: np.ndarray
     status: dict[str, Any]
+
+
+class OptimizationStatusError(RuntimeError):
+    """携带结构化求解状态，避免压力测试把限时可行解误报为不可行。"""
+
+    def __init__(self, message: str, status: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 class ConstraintBuilder:
@@ -68,6 +76,12 @@ def _status(result: Any, start: float, objective_name: str, time_limit_seconds: 
         "status_text": str(result.message),
         "feasible": bool(result.x is not None),
         "optimality_proven": bool(result.success),
+        "incumbent": float(result.fun) if result.fun is not None else None,
+        "best_bound": (
+            float(result.mip_dual_bound)
+            if getattr(result, "mip_dual_bound", None) is not None
+            else None
+        ),
         "mip_gap": float(getattr(result, "mip_gap", np.nan)) if getattr(result, "mip_gap", None) is not None else None,
         "node_count": int(getattr(result, "mip_node_count", 0) or 0),
         "solver_objective": float(result.fun) if result.fun is not None else None,
@@ -94,7 +108,13 @@ def _solve(
     )
     status = _status(result, start, objective_name, time_limit_seconds)
     if result.x is None:
-        raise RuntimeError(f"{objective_name} 未得到可行解: {status['status_text']}")
+        raise OptimizationStatusError(
+            f"{objective_name} 未得到可行解: {status['status_text']}", status
+        )
+    if not result.success:
+        raise OptimizationStatusError(
+            f"{objective_name} 未证明最优: {status['status_text']}", status
+        )
     return MilpRun(np.maximum(result.x, 0.0), status)
 
 
@@ -360,7 +380,7 @@ def baseline_problem2(data: dict[str, Any], demand: float = DEMAND_BASE) -> dict
 def solve_problem2(data: dict[str, Any], demand: float = DEMAND_BASE, loss_multiplier: float = 1.0,
                    cap_multiplier: dict[str, float] | None = None,
                    time_limit_seconds: float = 300.0) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """问题2：先最小化供应商数，再在固定集合内词典序最小化采购成本与运输损耗。"""
+    """问题2：在全部可用供应商上依次最小化基数、采购成本和运输损耗。"""
     adjusted = dict(data)
     capacities = data["regular_order_capacity"].copy()
     if cap_multiplier:
@@ -371,27 +391,56 @@ def solve_problem2(data: dict[str, Any], demand: float = DEMAND_BASE, loss_multi
                 continue
             capacities[index] *= multiplier
     adjusted["regular_order_capacity"] = capacities
-    candidates = choose_minimum_supplier_set(adjusted, demand, loss_multiplier)
+    candidates = np.flatnonzero(adjusted["regular_order_capacity"] > TOLERANCE)
     builder, lower, upper, integrality, meta = _base_builder(adjusted, candidates, loss_multiplier)
     flow_count = len(candidates) * len(data["transporter_ids"])
     flow_indices = np.arange(flow_count)
+    assign_indices = meta["assign"].reshape(-1)
     stage0 = _with_constraint(builder, flow_indices, meta["product_coefficient"], demand, np.inf)
-    cost_objective = np.concatenate([meta["cost_coefficient"], np.zeros(len(lower) - flow_count)])
-    cost_run = _solve(cost_objective, stage0, lower, upper, integrality, "问题2采购成本最小化", time_limit_seconds)
-    cost_limit = float(cost_run.x[:flow_count] @ meta["cost_coefficient"])
-    stage1 = _with_constraint(stage0, flow_indices, meta["cost_coefficient"], -np.inf, cost_limit + TOLERANCE)
-    loss_objective = np.concatenate([meta["loss_coefficient"], np.zeros(len(lower) - flow_count)])
-    loss_run = _solve(loss_objective, stage1, lower, upper, integrality, "问题2运输损耗最小化", time_limit_seconds)
-    solution = _decode_solution(
-        adjusted, candidates, loss_run, meta, demand, "2", "最小基数能力覆盖后词典序成本-损耗 MILP"
+    selection_objective = np.concatenate(
+        [np.zeros(flow_count), np.ones(len(lower) - flow_count)]
     )
-    solution["selection_minimum_count"] = int(len(candidates))
-    solution["selected_supplier_ids"] = [data["supplier_ids"][index] for index in candidates]
+    selection_run = _solve(
+        selection_objective,
+        stage0,
+        lower,
+        upper,
+        integrality,
+        "问题2供应商基数最小化",
+        time_limit_seconds,
+    )
+    minimum_count = int(round(float(selection_run.x[assign_indices].sum())))
+    stage1 = _with_constraint(
+        stage0,
+        assign_indices,
+        np.ones(len(assign_indices)),
+        minimum_count,
+        minimum_count,
+    )
+    cost_objective = np.concatenate([meta["cost_coefficient"], np.zeros(len(lower) - flow_count)])
+    try:
+        cost_run = _solve(cost_objective, stage1, lower, upper, integrality, "问题2采购成本最小化", time_limit_seconds)
+    except OptimizationStatusError as error:
+        # 限时中断时保留已证明的基数阶段，避免压力测试丢失可行解的规模口径。
+        error.status["locked_supplier_count"] = minimum_count
+        error.status["selection_stage"] = selection_run.status
+        raise
+    cost_limit = float(cost_run.x[:flow_count] @ meta["cost_coefficient"])
+    stage2 = _with_constraint(stage1, flow_indices, meta["cost_coefficient"], -np.inf, cost_limit + TOLERANCE)
+    loss_objective = np.concatenate([meta["loss_coefficient"], np.zeros(len(lower) - flow_count)])
+    loss_run = _solve(loss_objective, stage2, lower, upper, integrality, "问题2运输损耗最小化", time_limit_seconds)
+    solution = _decode_solution(
+        adjusted, candidates, loss_run, meta, demand, "2", "全候选空间基数-成本-损耗词典序 MILP"
+    )
+    selected_local = np.flatnonzero(loss_run.x[meta["assign"]].sum(axis=1) > 0.5)
+    selected_indices = candidates[selected_local]
+    solution["selection_minimum_count"] = minimum_count
+    solution["selected_supplier_ids"] = [data["supplier_ids"][index] for index in selected_indices]
     solution["selection_capacity_product_equivalent_m3"] = float(
-        np.sum(adjusted["regular_order_capacity"][candidates] * (1.0 - np.min(meta["losses"])) / adjusted["raw_per_product"][candidates])
+        np.sum(adjusted["regular_order_capacity"][selected_indices] * (1.0 - np.min(meta["losses"])) / adjusted["raw_per_product"][selected_indices])
     )
     solution["objective"] = _objective_values(solution, adjusted)
-    return solution, [cost_run.status, loss_run.status]
+    return solution, [selection_run.status, cost_run.status, loss_run.status]
 
 
 def solve_problem3(data: dict[str, Any], demand: float = DEMAND_BASE, loss_multiplier: float = 1.0) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -415,11 +464,11 @@ def solve_problem3(data: dict[str, Any], demand: float = DEMAND_BASE, loss_multi
     stage2 = _with_constraint(stage1, flow_indices, meta["raw_coefficient"], -np.inf, raw_limit + TOLERANCE)
     loss_objective = np.concatenate([meta["loss_coefficient"], np.zeros(len(lower) - flow_count)])
     loss_run = _solve(loss_objective, stage2, lower, upper, integrality, "问题3运输损耗最小化")
-    solution = _decode_solution(data, candidates, loss_run, meta, demand, "3", "C最少-原料量最少-损耗最少的词典序 MILP")
+    solution = _decode_solution(data, candidates, loss_run, meta, demand, "3", "C最少-原料量最少-损耗最少的词典序 LP")
     solution["objective"] = _objective_values(solution, data)
     statuses = [c_run.status, raw_run.status, loss_run.status]
     for status in statuses:
-        status["model_type"] = "linear_program_with_soft_single_carrier_indicator"
+        status["model_type"] = "continuous_transport_relaxation_with_split_diagnostics"
     return solution, statuses
 
 
@@ -435,10 +484,10 @@ def solve_problem4(data: dict[str, Any], loss_multiplier: float = 1.0) -> tuple[
     objective = np.concatenate([-meta["product_coefficient"], np.zeros(len(lower) - flow_count)])
     run = _solve(objective, builder, lower, upper, integrality, "问题4可持续周产能最大化")
     gross_product = float(run.x[:flow_count] @ meta["product_coefficient"])
-    solution = _decode_solution(data, candidates, run, meta, gross_product, "4", "全供应网络产能最大化 MILP")
+    solution = _decode_solution(data, candidates, run, meta, gross_product, "4", "全供应网络产能最大化 LP")
     solution["maximum_weekly_production_m3"] = gross_product
     solution["capacity_increase_m3"] = gross_product - DEMAND_BASE
     solution["capacity_increase_ratio"] = gross_product / DEMAND_BASE - 1.0
     solution["objective"] = _objective_values(solution, data)
-    run.status["model_type"] = "linear_program_with_soft_single_carrier_indicator"
+    run.status["model_type"] = "continuous_transport_relaxation_with_split_diagnostics"
     return solution, [run.status]

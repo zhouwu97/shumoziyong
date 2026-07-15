@@ -1,0 +1,12 @@
+{
+  "selection_id": "engineering-optimization-round2-retry1",
+  "problem_id": "2021-C",
+  "title": "生产企业原材料的订购与运输",
+  "mechanism_category": "供应链、物流运输、库存决策、资源配置",
+  "candidate_count": 3,
+  "selection_score": 99,
+  "previously_used": false,
+  "solution_material_observed": false,
+  "selected_material_manifest_sha256": "2e09757b783e532ccebed3b03857aa78d7d094df6f130aca53479b123da898d0",
+  "eligible_for_unseen_development_training": true
+}

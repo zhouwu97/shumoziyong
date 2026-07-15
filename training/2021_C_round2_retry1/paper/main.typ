@@ -1,8 +1,5 @@
 #import "style.typ": *
 
-#let source-lock = json("../paper_source_lock.json")
-#let locked = source-lock.claims
-
 #show: paper-style
 
 #paper-title(
@@ -22,13 +19,10 @@
 #pagebreak()
 #include("sections/02_problem_analysis.typ")
 
-#pagebreak()
 #include("sections/03_assumptions.typ")
 
-#pagebreak()
 #include("sections/04_symbols.typ")
 
-#pagebreak()
 #include("sections/05_data_preprocessing.typ")
 #include("sections/06_problem1.typ")
 #include("sections/07_problem2_model.typ")

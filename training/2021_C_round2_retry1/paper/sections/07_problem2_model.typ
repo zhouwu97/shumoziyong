@@ -1,5 +1,5 @@
 #import "../style.typ": source-note
-#let locked = json("../../paper_source_lock.json").claims
+#import "../style.typ": locked
 
 = 问题二：最少供应商与订购运输模型
 
@@ -14,7 +14,7 @@ $
   quad s_(i t) = rho_i o_(i t).
 $ <eq-order-supply>
 
-式 @eq-order-supply 中，采购成本按企业实际收购的 $s_(i t)$ 计量，$o_(i t)$ 只用于形成订购方案。以 $z_i$ 表示是否选择供应商，并用最低预测损耗 $ell_min = min_j ell_j$ 构造必要能力覆盖模型：
+@eq-order-supply 中，采购成本按企业实际收购的 $s_(i t)$ 计量，$o_(i t)$ 只用于形成订购方案。以 $z_i$ 表示是否选择供应商，并用最低预测损耗 $ell_min = min_j ell_j$ 构造必要能力覆盖模型：
 
 $
   min sum_(i in cal(I)) z_i.
@@ -25,8 +25,10 @@ $
   quad z_i in {0, 1}.
 $ <eq-capacity-cover>
 
-式 @eq-cardinality 最小化供应商基数，式 @eq-capacity-cover 是正式模型的放松必要条件。将净产品能力记为 $b_i=u_i(1-ell_min)/q_(k(i))$ 并降序排列，则任意 25 家集合 $S$ 满足
+@eq-cardinality 最小化供应商基数，@eq-capacity-cover 是正式模型的放松必要条件。将净产品能力记为 $b_i=u_i(1-ell_min)/q_(k(i))$ 并降序排列，则任意 25 家集合 $S$ 满足
 $sum_(i in S)b_i <= sum_(r=1)^25 b_((r)) = #locked.problem2_top25_net_capacity.display < #locked.base_weekly_production.display$。加入第 26 家后覆盖量为 #locked.problem2_top26_net_capacity.display m³/周，且正式模型存在可行解。因此最少数量恰为 #locked.problem2_minimum_supplier_count.display，而不是一次启发式返回值。该数量只对应基准需求下的数学下界，不表示企业推荐维持的长期合作规模。
+
+能力排序只用于构造下界证明和透明基线，不用于固定正式候选名单。正式求解保留全部 #locked.supplier_count.display 家正能力供应商；代表性单周模型包含 3,216 个运输流变量和 3,216 个二元指派变量，供应商组合与转运分配同时由 MILP 决定。
 
 == 运输与库存约束
 
@@ -36,7 +38,14 @@ $
   s_(i t) = sum_(j in cal(J)) x_(i j t).
 $ <eq-flow-balance>
 
-供应能力限制为
+以单周是否启用的转运指派变量定义供应商启用变量：
+
+$
+  z_i = sum_(j in cal(J)) y_(i j t),
+  quad z_i in {0, 1}.
+$ <eq-supplier-enable>
+
+由于 @eq-single-carrier 限制 $sum_j y_(i j t) <= 1$，$z_i$ 与代码中供应商 $i$ 的指派变量之和在数学上等价，无需额外引入 402 个求解变量。供应能力限制为
 
 $
   0 <= s_(i t) <= u_i z_i.
@@ -52,7 +61,8 @@ $ <eq-carrier-cap>
 问题二把同一供应商同一周由一家转运商承运作为硬约束：
 
 $
-  sum_j y_(i j t) <= 1,
+  sum_j y_(i j t) = z_i,
+  quad sum_j y_(i j t) <= 1,
   quad 0 <= x_(i j t) <= u_i y_(i j t),
   quad y_(i j t) in {0, 1}.
 $ <eq-single-carrier>
@@ -83,30 +93,36 @@ $
   quad t = 1, dots, 24.
 $ <eq-safety-stock>
 
-式 @eq-flow-balance 至 @eq-safety-stock 分别约束供货守恒、历史能力、运输能力、单承运商、损耗后接收、产品换算和库存安全。库存平衡采用经典确定性库存结构 [6]，但能力与损耗参数来自本文的数据语义处理。
+@eq-flow-balance 至 @eq-safety-stock 分别约束供货守恒、历史能力、运输能力、单承运商、损耗后接收、产品换算和库存安全。库存平衡采用经典确定性库存结构 [6]，但能力与损耗参数来自本文的数据语义处理。
 
-== 两阶段词典序目标
+== 三阶段词典序目标
 
-在固定 #locked.problem2_minimum_supplier_count.display 家候选集合后，第一阶段最小化相对采购成本：
+第一阶段在全部候选中求得最优供应商基数 $K^star=#locked.problem2_minimum_supplier_count.display$。第二阶段只加入
+
+$
+  sum_i z_i = K^star,
+$ <eq-p2-count-lock>
+
+并在所有 $K^star$ 家组合中最小化相对采购成本：
 
 $
   Z_1 = min sum_(t,i) c_(k(i)) s_(i t).
 $ <eq-p2-cost>
 
-第二阶段最小化运输损耗：
+第三阶段最小化运输损耗：
 
 $
   Z_2 = min sum_(t,i,j) ell_j x_(i j t).
 $ <eq-p2-loss>
 
-式 @eq-p2-cost 和 @eq-p2-loss 分别对应第一、第二优先级。
+@eq-p2-cost 和 @eq-p2-loss 分别对应第二、第三优先级。
 
-设第一阶段最优值为 $Z_1^star$，第二阶段加入
+设第二阶段最优值为 $Z_1^star$，第三阶段加入
 
 $
   sum_(t,i) c_(k(i)) s_(i t) <= Z_1^star + 10^(-6).
 $ <eq-p2-lock>
 
-式 @eq-p2-lock 用绝对容差吸收浮点误差，同时保持采购成本优先于损耗。顺序求解符合词典序多目标优化的定义 [5]，也避免人为设置大权重造成尺度失真。
+@eq-p2-count-lock 只锁定供应商数量，不锁定具体名单；@eq-p2-lock 只锁定成本值，不锁定完整第二阶段解。$10^(-6)$ 是代表性单周成本目标的绝对容差，用于吸收浮点误差，同时保持采购成本优先于损耗。顺序求解符合词典序多目标优化的定义 [5]，也避免人为设置大权重造成尺度失真。
 
-#source-note[问题二采用混合整数线性规划。供应商数量、采购成本和运输损耗依次按“基数证明—成本最优—损耗最优”的逻辑确定。]
+#source-note[问题二采用完整候选空间混合整数线性规划。供应商数量、采购成本和运输损耗依次优化，后续阶段只锁定前序目标值。]
