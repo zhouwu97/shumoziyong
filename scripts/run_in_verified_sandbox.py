@@ -9,6 +9,7 @@ import json
 import os
 import secrets
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -118,6 +119,20 @@ def _manifest_items(manifest: Mapping[str, Any], field: str) -> list[dict[str, s
     return [{"path": str(item["path"]), "sha256": str(item["sha256"])} for item in items]
 
 
+def _is_windows_junction(path: Path) -> bool:
+    """兼容 Python 3.11 识别 Windows directory reparse point。"""
+    is_junction = getattr(path, "is_junction", None)
+    if is_junction is not None:
+        return bool(is_junction())
+    if os.name != "nt":
+        return False
+    try:
+        attributes = os.lstat(path).st_file_attributes
+    except FileNotFoundError:
+        return False
+    return bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT) and path.is_dir()
+
+
 def _copy_manifest_files(run_dir: Path, target: Path, items: list[dict[str, str]], prefix: str) -> None:
     marker = prefix.rstrip("/") + "/"
     for item in items:
@@ -129,8 +144,7 @@ def _copy_manifest_files(run_dir: Path, target: Path, items: list[dict[str, str]
         cursor = run_dir
         for part in PurePosixPath(item["path"]).parts:
             cursor /= part
-            is_junction = getattr(cursor, "is_junction", lambda: False)
-            if cursor.is_symlink() or is_junction():
+            if cursor.is_symlink() or _is_windows_junction(cursor):
                 raise ValueError(f"白名单物化拒绝 symlink 或 junction：{item['path']}")
         if os.stat(source, follow_symlinks=False).st_nlink != 1:
             raise ValueError(f"白名单物化拒绝链接文件：{item['path']}")
@@ -151,10 +165,9 @@ def _snapshot(root: Path) -> dict[str, str]:
 def _reject_unsafe_output_links(output_root: Path) -> None:
     """在读取、归档或复制前拒绝输出树中的链接对象。"""
     def reject_link(path: Path) -> None:
-        is_junction = getattr(path, "is_junction", lambda: False)
         if path.is_symlink():
             raise RuntimeError(f"执行输出包含 symlink：{path}")
-        if is_junction():
+        if _is_windows_junction(path):
             raise RuntimeError(f"执行输出包含 junction：{path}")
 
     if not output_root.is_dir():
