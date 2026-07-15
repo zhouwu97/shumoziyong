@@ -1,0 +1,18 @@
+{
+  "blind_generalization_evidence": false,
+  "clean_replay_passed": true,
+  "development_case_evidence": true,
+  "fault_injection_passed": "14/14",
+  "final_disposition": "development_case_passed_with_material_limitations",
+  "final_score": 78,
+  "formal_trusted_gate3_evidence": false,
+  "further_same_case_tuning_allowed": false,
+  "hard_constraint_violations": 0,
+  "objective_recomputation_passed": true,
+  "p0_count": 0,
+  "p1_count": 2,
+  "p2_count": 3,
+  "profile_promotion_evidence": false,
+  "training_case": "2021-C",
+  "training_type": "unseen_development_case"
+}

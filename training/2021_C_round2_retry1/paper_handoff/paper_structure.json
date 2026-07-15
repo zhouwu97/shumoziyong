@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "canonical_entry": "paper/main.typ",
+  "style": "paper/style.typ",
+  "section_count": 19,
+  "sections": [
+    {"order": 0, "file": "paper/sections/00_abstract.typ", "role": "摘要与关键词"},
+    {"order": 1, "file": "paper/sections/01_problem_restatement.typ", "role": "问题重述"},
+    {"order": 2, "file": "paper/sections/02_problem_analysis.typ", "role": "四问分析与技术路线", "figures": [1]},
+    {"order": 3, "file": "paper/sections/03_assumptions.typ", "role": "模型假设", "tables": [1]},
+    {"order": 4, "file": "paper/sections/04_symbols.typ", "role": "符号与量纲", "equations": [1], "tables": [2]},
+    {"order": 5, "file": "paper/sections/05_data_preprocessing.typ", "role": "数据预处理", "tables": [3], "figures": [2]},
+    {"order": 6, "file": "paper/sections/06_problem1.typ", "role": "供应商评价", "equations": [2,3,4,5,6,7], "tables": [4,5], "figures": [3,4]},
+    {"order": 7, "file": "paper/sections/07_problem2_model.typ", "role": "问题二 MILP", "equations": [8,9,10,11,12,13,14,15,16,17,18,19,20,21]},
+    {"order": 8, "file": "paper/sections/08_problem2_results.typ", "role": "问题二结果", "tables": [6,7], "figures": [5]},
+    {"order": 9, "file": "paper/sections/09_problem3_model.typ", "role": "问题三词典序 LP", "equations": [22,23,24]},
+    {"order": 10, "file": "paper/sections/10_problem3_results.typ", "role": "问题三结果", "tables": [8,9], "figures": [6]},
+    {"order": 11, "file": "paper/sections/11_problem4_model.typ", "role": "问题四最大产能 LP", "equations": [25,26]},
+    {"order": 12, "file": "paper/sections/12_problem4_results.typ", "role": "问题四结果", "tables": [10], "figures": [7]},
+    {"order": 13, "file": "paper/sections/13_sensitivity.typ", "role": "敏感性与压力测试", "tables": [11], "figures": [8]},
+    {"order": 14, "file": "paper/sections/14_validation.typ", "role": "独立复算与双语言验证", "tables": [12]},
+    {"order": 15, "file": "paper/sections/15_model_evaluation.typ", "role": "模型评价"},
+    {"order": 16, "file": "paper/sections/16_conclusion.typ", "role": "结论与边界"},
+    {"order": 17, "file": "paper/sections/17_references.typ", "role": "参考文献"},
+    {"order": 18, "file": "paper/sections/18_appendix.typ", "role": "附录 A-F", "tables": [13,14,15,16,17]}
+  ],
+  "status": "complete"
+}

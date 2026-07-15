@@ -1,0 +1,313 @@
+{
+  "collection_hash_method": "SHA-256(官方 material_manifest.json 原始字节)，该官方清单逐项绑定五个题面/附件的大小和 SHA-256。",
+  "collection_hash_passed": true,
+  "expected_collection_sha256": "2e09757b783e532ccebed3b03857aa78d7d094df6f130aca53479b123da898d0",
+  "files": [
+    {
+      "filename": "CUMCM2021-C.pdf",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\CUMCM2021-C.pdf",
+      "read_status": "passed",
+      "sha256": "4a592c20adad12d4f0678a783bfb47995bda03b1c7484adf254d96327f534056",
+      "sheets": [],
+      "size_bytes": 217723,
+      "source_manifest_match": {
+        "sha256": true,
+        "size": true
+      },
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\CUMCM2021-C.pdf"
+    },
+    {
+      "filename": "附件1 近5年402家供应商的相关数据.xlsx",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\附件1 近5年402家供应商的相关数据.xlsx",
+      "read_status": "passed",
+      "sha256": "1b93a7598b8f0489e3c054439967bca654a83654837908c833752617cf950e1b",
+      "sheets": [
+        {
+          "columns": 242,
+          "data_types": {
+            "int": 96480,
+            "str": 1046
+          },
+          "empty_cells_in_used_range": 484,
+          "merged_cell_count": 0,
+          "merged_cells": [],
+          "negative_cells": 0,
+          "nonempty_cells": 97526,
+          "rows": 405,
+          "sheet_name": "企业的订货量（m³）",
+          "zero_cells": 60599
+        },
+        {
+          "columns": 242,
+          "data_types": {
+            "int": 96480,
+            "str": 1046
+          },
+          "empty_cells_in_used_range": 0,
+          "merged_cell_count": 0,
+          "merged_cells": [],
+          "negative_cells": 0,
+          "nonempty_cells": 97526,
+          "rows": 403,
+          "sheet_name": "供应商的供货量（m³）",
+          "zero_cells": 70696
+        }
+      ],
+      "size_bytes": 673200,
+      "source_manifest_match": {
+        "sha256": true,
+        "size": true
+      },
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\附件1 近5年402家供应商的相关数据.xlsx"
+    },
+    {
+      "filename": "附件2 近5年8家转运商的相关数据.xlsx",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\附件2 近5年8家转运商的相关数据.xlsx",
+      "read_status": "passed",
+      "sha256": "29e1499b133aa88d765902081bfb827f78ffb4c091f5f75341fc37d844344685",
+      "sheets": [
+        {
+          "columns": 241,
+          "data_types": {
+            "float": 1316,
+            "int": 604,
+            "str": 249
+          },
+          "empty_cells_in_used_range": 0,
+          "merged_cell_count": 0,
+          "merged_cells": [],
+          "negative_cells": 0,
+          "nonempty_cells": 2169,
+          "rows": 9,
+          "sheet_name": "运输损耗率（%）",
+          "zero_cells": 479
+        }
+      ],
+      "size_bytes": 22122,
+      "source_manifest_match": {
+        "sha256": true,
+        "size": true
+      },
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\附件2 近5年8家转运商的相关数据.xlsx"
+    },
+    {
+      "filename": "附件A 订购方案数据结果.xlsx",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\附件A 订购方案数据结果.xlsx",
+      "read_status": "passed",
+      "sha256": "3119bcd215c20dc660417fb7da226e60e82ee8f17f5d538ca336871a79e467b6",
+      "sheets": [
+        {
+          "columns": 25,
+          "data_types": {
+            "str": 456
+          },
+          "empty_cells_in_used_range": 9769,
+          "merged_cell_count": 0,
+          "merged_cells": [],
+          "negative_cells": 0,
+          "nonempty_cells": 456,
+          "rows": 409,
+          "sheet_name": "问题2的订购方案结果",
+          "zero_cells": 0
+        },
+        {
+          "columns": 25,
+          "data_types": {
+            "str": 456
+          },
+          "empty_cells_in_used_range": 9769,
+          "merged_cell_count": 0,
+          "merged_cells": [],
+          "negative_cells": 0,
+          "nonempty_cells": 456,
+          "rows": 409,
+          "sheet_name": "问题3的订购方案结果",
+          "zero_cells": 0
+        },
+        {
+          "columns": 25,
+          "data_types": {
+            "str": 456
+          },
+          "empty_cells_in_used_range": 9769,
+          "merged_cell_count": 0,
+          "merged_cells": [],
+          "negative_cells": 0,
+          "nonempty_cells": 456,
+          "rows": 409,
+          "sheet_name": "问题4的订购方案结果",
+          "zero_cells": 0
+        }
+      ],
+      "size_bytes": 99251,
+      "source_manifest_match": {
+        "sha256": true,
+        "size": true
+      },
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\附件A 订购方案数据结果.xlsx"
+    },
+    {
+      "filename": "附件B 转运方案数据结果.xlsx",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\附件B 转运方案数据结果.xlsx",
+      "read_status": "passed",
+      "sha256": "807187bf799da3183c0ec81dad3c496869c19565b8dde44dccadc65c648d7d98",
+      "sheets": [
+        {
+          "columns": 194,
+          "data_types": {
+            "str": 1218
+          },
+          "empty_cells_in_used_range": 78128,
+          "merged_cell_count": 25,
+          "merged_cells": [
+            "AX5:BE5",
+            "BF5:BM5",
+            "BN5:BU5",
+            "BV5:CC5",
+            "B5:I5",
+            "J5:Q5",
+            "R5:Y5",
+            "Z5:AG5",
+            "AH5:AO5",
+            "FF5:FM5",
+            "FN5:FU5",
+            "FV5:GC5",
+            "GD5:GK5",
+            "A5:A6",
+            "DR5:DY5",
+            "DZ5:EG5",
+            "EH5:EO5",
+            "EP5:EW5",
+            "EX5:FE5",
+            "CD5:CK5",
+            "CL5:CS5",
+            "CT5:DA5",
+            "DB5:DI5",
+            "DJ5:DQ5",
+            "AP5:AW5"
+          ],
+          "negative_cells": 0,
+          "nonempty_cells": 1218,
+          "rows": 409,
+          "sheet_name": "问题2的转运方案结果",
+          "zero_cells": 0
+        },
+        {
+          "columns": 194,
+          "data_types": {
+            "str": 1217
+          },
+          "empty_cells_in_used_range": 78129,
+          "merged_cell_count": 25,
+          "merged_cells": [
+            "AX5:BE5",
+            "BF5:BM5",
+            "BN5:BU5",
+            "BV5:CC5",
+            "B5:I5",
+            "J5:Q5",
+            "R5:Y5",
+            "Z5:AG5",
+            "AH5:AO5",
+            "FF5:FM5",
+            "FN5:FU5",
+            "FV5:GC5",
+            "GD5:GK5",
+            "A5:A6",
+            "DR5:DY5",
+            "DZ5:EG5",
+            "EH5:EO5",
+            "EP5:EW5",
+            "EX5:FE5",
+            "CD5:CK5",
+            "CL5:CS5",
+            "CT5:DA5",
+            "DB5:DI5",
+            "DJ5:DQ5",
+            "AP5:AW5"
+          ],
+          "negative_cells": 0,
+          "nonempty_cells": 1217,
+          "rows": 409,
+          "sheet_name": "问题3的转运方案结果",
+          "zero_cells": 0
+        },
+        {
+          "columns": 194,
+          "data_types": {
+            "str": 1217
+          },
+          "empty_cells_in_used_range": 78129,
+          "merged_cell_count": 25,
+          "merged_cells": [
+            "AX5:BE5",
+            "BF5:BM5",
+            "BN5:BU5",
+            "BV5:CC5",
+            "B5:I5",
+            "J5:Q5",
+            "R5:Y5",
+            "Z5:AG5",
+            "AH5:AO5",
+            "FF5:FM5",
+            "FN5:FU5",
+            "FV5:GC5",
+            "GD5:GK5",
+            "A5:A6",
+            "DR5:DY5",
+            "DZ5:EG5",
+            "EH5:EO5",
+            "EP5:EW5",
+            "EX5:FE5",
+            "CD5:CK5",
+            "CL5:CS5",
+            "CT5:DA5",
+            "DB5:DI5",
+            "DJ5:DQ5",
+            "AP5:AW5"
+          ],
+          "negative_cells": 0,
+          "nonempty_cells": 1217,
+          "rows": 409,
+          "sheet_name": "问题4的转运方案结果",
+          "zero_cells": 0
+        }
+      ],
+      "size_bytes": 620902,
+      "source_manifest_match": {
+        "sha256": true,
+        "size": true
+      },
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\附件B 转运方案数据结果.xlsx"
+    },
+    {
+      "filename": "source_manifest.json",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\source_manifest.json",
+      "read_status": "passed",
+      "sha256": "718dc955183caea4553d11f2188d61c38d6e6e0e58f7ea295650e3a095fa360a",
+      "sheets": [],
+      "size_bytes": 384,
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\source_manifest.json"
+    },
+    {
+      "filename": "material_manifest.json",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\material_manifest.json",
+      "read_status": "passed",
+      "sha256": "2e09757b783e532ccebed3b03857aa78d7d094df6f130aca53479b123da898d0",
+      "sheets": [],
+      "size_bytes": 2245,
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\material_manifest.json"
+    },
+    {
+      "filename": "selection_record.json",
+      "original_path": "E:\\AI\\shumo_unseen_pool\\selected_round2\\selection_record.json",
+      "read_status": "passed",
+      "sha256": "a6ff4fe79d58b017955b4fa53c1b6c6f1b78beb6625ab93d6fe99f52b7435e55",
+      "sheets": [],
+      "size_bytes": 500,
+      "target_path": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials\\selection_record.json"
+    }
+  ],
+  "material_root": "E:\\AI\\数模\\training\\2021_C_round2_retry1\\materials",
+  "recomputed_collection_sha256": "2e09757b783e532ccebed3b03857aa78d7d094df6f130aca53479b123da898d0"
+}

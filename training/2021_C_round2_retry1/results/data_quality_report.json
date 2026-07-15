@@ -1,0 +1,57 @@
+{
+  "cleaning_decision": "不删除、不截尾任何官方极端值；异常值只在报告中标记，供应能力使用历史响应统计而非删除后样本。",
+  "duplicates": {
+    "supplier_id": 0,
+    "transporter_id": 0
+  },
+  "field_meanings": {
+    "供货量": "供应商实际提供的周原料量，0表示该周未供货。",
+    "损耗率": "(供货量-接收量)/供货量 × 100%，0表示未运输而非零损耗观测。",
+    "订货量": "企业向供应商发出的周订货量，0表示该周未订货。"
+  },
+  "historical_weeks": 240,
+  "loss_denominator": "供货量（发运量），不是接收量；分母为零时题面以0表示未运输，本轮不将其纳入损耗均值。",
+  "materials": {
+    "A": 146,
+    "B": 134,
+    "C": 122
+  },
+  "missing_values": {
+    "loss": 0,
+    "orders": 0,
+    "supply": 0
+  },
+  "negative_values": {
+    "loss": 0,
+    "orders": 0,
+    "supply": 0
+  },
+  "order_supply_relation": {
+    "interpretation": "供货大于订货是题面允许的实际响应；未订货时无正供货；已订货但零供货是真实失败事件。",
+    "positive_supply_when_order_zero": 0,
+    "supply_greater_than_order": 16703,
+    "zero_supply_when_order_positive": 10097
+  },
+  "outlier_screen": {
+    "count": 9071,
+    "method": "正值原料量的 Q3 + 3IQR，仅标记不删除",
+    "threshold_raw_m3": 277.0
+  },
+  "supplier_count": 402,
+  "transport_zero_with_loss": 0,
+  "transporter_count": 8,
+  "worksheets": {
+    "附件1": [
+      "企业的订货量（m³）",
+      "供应商的供货量（m³）"
+    ],
+    "附件2": [
+      "运输损耗率（%）"
+    ]
+  },
+  "zero_values": {
+    "loss": 479,
+    "orders": 60599,
+    "supply": 70696
+  }
+}

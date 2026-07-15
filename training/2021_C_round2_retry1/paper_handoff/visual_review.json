@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "pdf": "paper/output/2021_C_paper_complete.pdf",
+  "pdf_sha256": "0ac8c6b2fb3f706a3bbb14b9c84e61978ed7d2374846a71516cd477aeefed638",
+  "render_directory": "tmp/pdfs/final_20260715_1005",
+  "render_dpi": 190,
+  "render_dimensions": [
+    1571,
+    2222
+  ],
+  "pages_checked": 34,
+  "pages_passed": 34,
+  "p0": 0,
+  "automated_checks": {
+    "pdfinfo_no_xref_error": true,
+    "pypdf_pages": 34,
+    "pdfplumber_pages": 34,
+    "rendered_pages": 34,
+    "blank_pages": [],
+    "minimum_ink_ratio": 0.015186655521058154,
+    "maximum_ink_ratio": 0.18284890233135345,
+    "duplicate_formula_prefix": false,
+    "old_fixed_supplier_phrase": false,
+    "old_lp_label": false
+  },
+  "manual_review": {
+    "contact_sheet_all_pages": "pass",
+    "key_pages": [
+      {
+        "page": 2,
+        "status": "pass",
+        "focus": "目录压缩为单页，无孤立条目"
+      },
+      {
+        "page": 7,
+        "status": "pass",
+        "focus": "单周到24周复制说明完整且未跨页断裂"
+      },
+      {
+        "page": 13,
+        "status": "pass",
+        "focus": "z_i 与 y_ijt 定义及约束清晰"
+      },
+      {
+        "page": 18,
+        "status": "pass",
+        "focus": "问题四稳态上界、两周爬坡与库存数字一致"
+      },
+      {
+        "page": 19,
+        "status": "pass",
+        "focus": "需求增加10%为41家且成本阶段未证最优"
+      },
+      {
+        "page": 21,
+        "status": "pass",
+        "focus": "结论与压力测试作用域一致"
+      },
+      {
+        "page": 34,
+        "status": "pass",
+        "focus": "附录终页无裁切、无绝对路径"
+      }
+    ],
+    "layout_findings": {
+      "clipped_text": 0,
+      "overlap": 0,
+      "broken_tables": 0,
+      "unreadable_glyphs": 0,
+      "unexpected_blank_pages": 0
+    }
+  }
+}

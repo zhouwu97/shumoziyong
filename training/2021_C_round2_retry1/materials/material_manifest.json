@@ -1,0 +1,70 @@
+[
+  {
+    "path": "CUMCM2021-C.pdf",
+    "size_bytes": 217723,
+    "sha256": "4a592c20adad12d4f0678a783bfb47995bda03b1c7484adf254d96327f534056",
+    "mime_type": "application/pdf",
+    "readable": true,
+    "sheet_names": [],
+    "merged_cell_ranges": 0,
+    "has_empty_cells": false,
+    "has_mixed_types": false
+  },
+  {
+    "path": "附件1 近5年402家供应商的相关数据.xlsx",
+    "size_bytes": 673200,
+    "sha256": "1b93a7598b8f0489e3c054439967bca654a83654837908c833752617cf950e1b",
+    "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "readable": true,
+    "sheet_names": [
+      "企业的订货量（m³）",
+      "供应商的供货量（m³）"
+    ],
+    "merged_cell_ranges": 0,
+    "has_empty_cells": true,
+    "has_mixed_types": true
+  },
+  {
+    "path": "附件2 近5年8家转运商的相关数据.xlsx",
+    "size_bytes": 22122,
+    "sha256": "29e1499b133aa88d765902081bfb827f78ffb4c091f5f75341fc37d844344685",
+    "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "readable": true,
+    "sheet_names": [
+      "运输损耗率（%）"
+    ],
+    "merged_cell_ranges": 0,
+    "has_empty_cells": false,
+    "has_mixed_types": true
+  },
+  {
+    "path": "附件A 订购方案数据结果.xlsx",
+    "size_bytes": 99251,
+    "sha256": "3119bcd215c20dc660417fb7da226e60e82ee8f17f5d538ca336871a79e467b6",
+    "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "readable": true,
+    "sheet_names": [
+      "问题2的订购方案结果",
+      "问题3的订购方案结果",
+      "问题4的订购方案结果"
+    ],
+    "merged_cell_ranges": 0,
+    "has_empty_cells": true,
+    "has_mixed_types": true
+  },
+  {
+    "path": "附件B 转运方案数据结果.xlsx",
+    "size_bytes": 620902,
+    "sha256": "807187bf799da3183c0ec81dad3c496869c19565b8dde44dccadc65c648d7d98",
+    "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "readable": true,
+    "sheet_names": [
+      "问题2的转运方案结果",
+      "问题3的转运方案结果",
+      "问题4的转运方案结果"
+    ],
+    "merged_cell_ranges": 75,
+    "has_empty_cells": true,
+    "has_mixed_types": true
+  }
+]

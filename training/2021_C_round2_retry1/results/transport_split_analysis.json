@@ -1,0 +1,39 @@
+{
+  "by_problem": {
+    "2": {
+      "active_supplier_week_count": 624,
+      "maximum_carriers_per_supplier_week": 1,
+      "secondary_carrier_volume_raw_m3": 0.0,
+      "secondary_carrier_volume_share": 0.0,
+      "single_carrier_is_hard": true,
+      "solver_runtime_seconds": 32.383128400018904,
+      "split_ratio_of_active_supplier_weeks": 0.0,
+      "split_supplier_week_count": 0,
+      "total_transport_volume_raw_m3": 441094.5435537821,
+      "transport_loss_raw_m3": 2470.516430499947,
+      "volume_in_split_supplier_weeks_raw_m3": 0.0,
+      "volume_in_split_supplier_weeks_share": 0.0
+    },
+    "3": {
+      "active_supplier_week_count": 7320,
+      "maximum_carriers_per_supplier_week": 2,
+      "secondary_carrier_volume_raw_m3": 21963.388174050233,
+      "secondary_carrier_volume_share": 0.05058568209296071,
+      "single_carrier_is_hard": false,
+      "solver_runtime_seconds": 0.08554800000274554,
+      "split_ratio_of_active_supplier_weeks": 0.006557377049180328,
+      "split_supplier_week_count": 48,
+      "total_transport_volume_raw_m3": 434181.912061369,
+      "transport_loss_raw_m3": 2399.7528813642766,
+      "volume_in_split_supplier_weeks_raw_m3": 73108.45936920223,
+      "volume_in_split_supplier_weeks_share": 0.16838209363007456
+    }
+  },
+  "generated_at": "2026-07-15T02:25:12+08:00",
+  "hard_single_carrier_comparison": {
+    "comparable_loss_change_available": false,
+    "problem2": "正式模型本身强制单承运商，拆分为0，可直接作为硬约束基准。",
+    "problem3": "既有失败路线在80秒内未返回可行解，状态只能记为unknown；因此不能给出损耗差，也不能写成不可行。连续LP三阶段运行时间见by_problem.3。"
+  },
+  "positive_threshold": 1e-05
+}

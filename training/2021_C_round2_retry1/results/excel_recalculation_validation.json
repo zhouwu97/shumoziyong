@@ -1,0 +1,71 @@
+{
+  "engine": "LibreOffice Calc headless conversion",
+  "generated_at": "2026-07-15T02:25:23+08:00",
+  "passed": true,
+  "raw_solution_cell_consistency": {
+    "2": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    },
+    "3": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    },
+    "4": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    }
+  },
+  "recalculation": {
+    "engine": "D:\\libreoffice\\program\\soffice.COM",
+    "passed": true,
+    "records": [
+      {
+        "exit_code": 0,
+        "file": "附件A 订购方案数据结果.xlsx",
+        "passed": true,
+        "stderr": "",
+        "stdout": "convert E:\\AI\\数模\\training\\2021_C_round2_retry1\\outputs\\附件A 订购方案数据结果.xlsx as a Calc document -> C:\\Users\\haha\\AppData\\Local\\Temp\\2021c_excel_recalc_3k4aci6r\\output\\附件A 订购方案数据结果.xlsx using filter : Calc Office Open XML"
+      },
+      {
+        "exit_code": 0,
+        "file": "附件B 转运方案数据结果.xlsx",
+        "passed": true,
+        "stderr": "",
+        "stdout": "convert E:\\AI\\数模\\training\\2021_C_round2_retry1\\outputs\\附件B 转运方案数据结果.xlsx as a Calc document -> C:\\Users\\haha\\AppData\\Local\\Temp\\2021c_excel_recalc_3k4aci6r\\output\\附件B 转运方案数据结果.xlsx using filter : Calc Office Open XML"
+      }
+    ]
+  },
+  "records": [
+    {
+      "cached_formula_blank_count": 0,
+      "file": "附件A 订购方案数据结果.xlsx",
+      "formula_count": 72,
+      "formula_error_count": 0,
+      "formula_error_examples": [],
+      "passed": true,
+      "sha256": "2efdbfae6d6c80fe20eb791943c199ce8447cb98b4ce5a2303a4d962f36607cc"
+    },
+    {
+      "cached_formula_blank_count": 0,
+      "file": "附件B 转运方案数据结果.xlsx",
+      "formula_count": 1780,
+      "formula_error_count": 0,
+      "formula_error_examples": [],
+      "passed": true,
+      "sha256": "830fcce5dcc9cb01e6c3937501b5681b89204bb2411c920a5c95fe7c493b7245"
+    }
+  ]
+}

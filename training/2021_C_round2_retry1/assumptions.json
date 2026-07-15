@@ -1,0 +1,37 @@
+{
+  "base_weekly_production_m3": 28200.0,
+  "decision_precision": "内部使用双精度；报告与检查容差为1e-6。",
+  "future_supply_capacity": {
+    "formula": "mean(nonzero historical supply) * P(nonzero supply | historical order > 0)",
+    "interpretation": "常规重复下单下的期望可供货上限，不是保证供货量",
+    "name": "regular_order_capacity"
+  },
+  "horizon_weeks": 24,
+  "initial_inventory_product_equivalent_m3": 56400.0,
+  "inventory_pooling": "A、B、C可替代生产，库存按可生产产品立方米等价量统一记账。",
+  "material_hash_passed": true,
+  "order_response": {
+    "formula": "min(total historical supply / total historical order, 1)",
+    "interpretation": "为避免依赖超额供货，订货量换算时不使用大于1的兑现率"
+  },
+  "raw_m3_per_product_m3": {
+    "A": 0.6,
+    "B": 0.66,
+    "C": 0.72
+  },
+  "relative_purchase_cost": {
+    "A": 1.2,
+    "B": 1.1,
+    "C": 1.0
+  },
+  "safety_stock_weeks": 2,
+  "supplier_transporter_policy": "问题2将每个供应商每周至多一名转运商作为硬约束；问题3、4按题面‘尽量’的软语义统计并披露拆分。",
+  "template_contamination_check_passed": true,
+  "terminal_inventory_lower_bound_product_equivalent_m3": 56400.0,
+  "training_id": "engineering-optimization-round2-retry1",
+  "transport_loss_forecast": {
+    "formula": "mean(nonzero historical loss rate)",
+    "zero_interpretation": "题面规定0表示未运输，不作为零损耗观测纳入均值"
+  },
+  "transporter_weekly_capacity_raw_m3": 6000.0
+}

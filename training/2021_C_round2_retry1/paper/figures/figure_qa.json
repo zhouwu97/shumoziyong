@@ -1,0 +1,135 @@
+{
+  "backend": "python",
+  "figure_count": 8,
+  "figures": {
+    "fig01_workflow": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2341,
+        757
+      ],
+      "sha256": {
+        "svg": "85f7f4ae459f3b536f728ae4ecde4c33f34895ab7bb7cfba93d17e9282ef218b",
+        "pdf": "213091e965082e424acf25c61e848d869548186c7b5fce5a348b27cc5ead0051",
+        "png": "388abdfc1dbc3b9a00f0dd076a4a0e6db874e8ec0df911150c6bdfd586263b15",
+        "tiff": "aebc3574d9e057bbffefc955a8d1a3cc54dcd2e6f9707ac3f99c90203c8d8206"
+      },
+      "passed": true
+    },
+    "fig02_supplier_metrics": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2272,
+        1526
+      ],
+      "sha256": {
+        "svg": "7d529f39760622a283cf66e234d9bfe1bdd53a07b6e4a01667be9aefceaca251",
+        "pdf": "a7a5289fa8275a3a48c6cc2d266aa1943829ad1d3c4f09cdc30e8ffe91be062b",
+        "png": "d42845a2305fa3e86dc7c3d1271d9a27b36623aa06cb59f1390b360fabafb1a9",
+        "tiff": "a3cef7f74d1c461eee24bf8824a108a828990ea790566ef8adcbd4997bfd5cbc"
+      },
+      "passed": true
+    },
+    "fig03_top20_suppliers": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2323,
+        1725
+      ],
+      "sha256": {
+        "svg": "ffb1240c484a3c213db2f5d99b15b460d34f5b846f00f117fc198b70dd77ed0d",
+        "pdf": "b35b51cad9883bec549f5a3bd7a11e876750dcfc7473372231e9a3226ee8cbb1",
+        "png": "084168198f04ba036c8a8d6d2d23c1590b598a3aac8aa62d4af394e170eee015",
+        "tiff": "ccb5888c61bf2b724a3d11fef81b34cafd95bbfecc7df9c110bbb94845b26116"
+      },
+      "passed": true
+    },
+    "fig04_rank_sensitivity": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2301,
+        1425
+      ],
+      "sha256": {
+        "svg": "5c716de3f72757cdc1aa0faae47b0d612aaa031c8ec86ba06471e822fa4a83d2",
+        "pdf": "4105e3f4cc92422333eb50a5602536fa4e435ff5991fb37dbea9ff8302d77238",
+        "png": "3f9ca19264e8035219f98d6af0d6e40fb8696f99b75cd437284fb8fcd5921350",
+        "tiff": "8afc179c658f7fb0955653268ac71a7b344cad44dc4a5b1922872c4f828455c1"
+      },
+      "passed": true
+    },
+    "fig05_problem2_operations": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2343,
+        1989
+      ],
+      "sha256": {
+        "svg": "66c01d11aebbdac2d90b93db17b44f99b7ec77e0798263ccdc0ea20958b2afa1",
+        "pdf": "50df665432f1abff623dbd4e02bf781dc28d16357bc6d32c151cfb726f06e726",
+        "png": "79c27e40beb3ed9acc3276c193cbaf7eeeee6721d28bc5088588558ef2f622f7",
+        "tiff": "f455535838c0b32fdc2c1f51a9165a4c6ad63eb544f333e7171ef1576290b60d"
+      },
+      "passed": true
+    },
+    "fig06_material_mix": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2132,
+        1354
+      ],
+      "sha256": {
+        "svg": "f023701ad8fa3771a19834728540b85cd732e2c4fba9f2c70ff35ab497e625d7",
+        "pdf": "813c26fe7bd51dc3c7d66f33cf557f88cbd3ea128f8a25028e78262e734f6652",
+        "png": "85cffaaf37b60cb423b427d839491842fd785de2237b8c84e4eb5f8986cf6e6e",
+        "tiff": "bfd49fda53557e35375d20e045792763dd3c2b856c92d2e2c99f3ae342eb68fa"
+      },
+      "passed": true
+    },
+    "fig07_capacity": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2033,
+        1338
+      ],
+      "sha256": {
+        "svg": "a9f42ec18aeadc733696e40071a0dfe8945c5cb39ea78533f2789f63d585d0ca",
+        "pdf": "c46437cf28fdb452e5546b66066cb7f5ca63e5e853e03dd20ac01fc093f58201",
+        "png": "cadac8b6f3cfb46b165aa12077397acbfad30ab22fc801cefefd6767a7b9498b",
+        "tiff": "93e617d24f67836da84646fc704a1ade93bfd2f4a29debe5e93ec7921edd1396"
+      },
+      "passed": true
+    },
+    "fig08_stress": {
+      "all_formats_present": true,
+      "png_grayscale": true,
+      "svg_editable_text": true,
+      "png_pixel_size": [
+        2249,
+        1087
+      ],
+      "sha256": {
+        "svg": "fcbc8607cb04a23934fe906e44847256944cb7a1b32ed8975d9ab008109671ca",
+        "pdf": "5119eb2d3fb212738807be46e093b88fc6416eddf5f84c28fd0c072a27d4d80e",
+        "png": "586b731cbf9fffffb0c50c70bf54c24ba98dcbd100e36ad035a720e33cb804b2",
+        "tiff": "c111a0550536c2388d79dbbc54c6ffb29311444d3e3cecfb825077095b49abec"
+      },
+      "passed": true
+    }
+  },
+  "passed": true
+}
