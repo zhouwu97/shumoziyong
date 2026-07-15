@@ -1,0 +1,266 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-15T02:25:57+08:00",
+  "independence_statement": "MATLAB optimization reads only official Excel and locked constants; Python artifacts are loaded only after MATLAB solving for comparison.",
+  "tolerances": {
+    "score": 1E-9,
+    "continuous": 1E-6
+  },
+  "overall_pass": true,
+  "maximum_cross_language_error": 3.2060779631137848E-7,
+  "problem1": {
+    "top10_exact": true,
+    "top50_exact": true,
+    "score_max_error": 1.1102230246251565E-16,
+    "sensitivity_max_error": 4.4408920985006262E-16
+  },
+  "problem2": {
+    "minimum_supplier_count": 26,
+    "purchase_cost_24week": 491125.62053030339,
+    "transport_loss_24week": 2470.516430504339,
+    "exitflags": [
+      1,
+      1,
+      1
+    ]
+  },
+  "problem3": {
+    "a_supply_24week": 207057.10483966066,
+    "b_supply_24week": 157616.96660089446,
+    "c_supply_24week": 69507.840620813775,
+    "total_raw_24week": 434181.91206136893,
+    "transport_loss_24week": 2399.7528813642757,
+    "exitflags": [
+      1,
+      1,
+      1
+    ]
+  },
+  "problem4": {
+    "maximum_weekly_capacity": 33335.925461873012,
+    "exitflag": 1
+  },
+  "constraints": {
+    "problem2": {
+      "checks": {
+        "nonnegative": 0,
+        "supplierCapacity": 0,
+        "flowSupplyBalance": 0,
+        "transporterCapacity": 0,
+        "arrivalConsistency": 0,
+        "singleCarrier": 0,
+        "productionDemand": 0,
+        "inventory": 0
+      },
+      "totalHardViolations": 0,
+      "arrivalProduct": 28199.999999999993,
+      "carrierLoad": [
+        0,
+        5956.5852826887058,
+        6000.0000000001073,
+        0,
+        0,
+        6000.0000000000018,
+        0,
+        422.3540320492603
+      ],
+      "maxViolationMagnitude": 1.0805933925439604E-10
+    },
+    "problem3": {
+      "checks": {
+        "nonnegative": 0,
+        "supplierCapacity": 0,
+        "flowSupplyBalance": 0,
+        "transporterCapacity": 0,
+        "arrivalConsistency": 0,
+        "singleCarrier": 0,
+        "productionDemand": 0,
+        "inventory": 0
+      },
+      "totalHardViolations": 0,
+      "arrivalProduct": 28199.999999999993,
+      "carrierLoad": [
+        0,
+        6000,
+        6000.0000000000009,
+        0,
+        0,
+        5999.9999999999991,
+        0,
+        90.91300255703689
+      ],
+      "maxViolationMagnitude": 9.0949470177292824E-13
+    },
+    "problem4": {
+      "checks": {
+        "nonnegative": 0,
+        "supplierCapacity": 0,
+        "flowSupplyBalance": 0,
+        "transporterCapacity": 0,
+        "arrivalConsistency": 0,
+        "singleCarrier": 0,
+        "productionDemand": 0,
+        "inventory": 0
+      },
+      "totalHardViolations": 0,
+      "arrivalProduct": 33335.925461873041,
+      "carrierLoad": [
+        0,
+        5999.9999999999982,
+        6000,
+        0,
+        0,
+        6000.0000000000009,
+        0,
+        3826.5195237188345
+      ],
+      "maxViolationMagnitude": 9.0949470177292824E-13
+    }
+  },
+  "comparisons": [
+    {
+      "metric": "problem1_top10_exact",
+      "python_value": "S229;S361;S140;S201;S275;S108;S329;S340;S282;S131",
+      "matlab_value": "S229;S361;S140;S201;S275;S108;S329;S340;S282;S131",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    },
+    {
+      "metric": "problem1_top50_exact",
+      "python_value": "S229;S361;S140;S201;S275;S108;S329;S340;S282;S131;S268;S395;S306;S194;S356;S352;S151;S308;S330;S139;S247;S031;S143;S365;S294;S346;S266;S307;S040;S284;S123;S367;S189;S397;S218;S244;S005;S364;S180;S080;S067;S351;S348;S213;S076;S174;S221;S362;S237;S098",
+      "matlab_value": "S229;S361;S140;S201;S275;S108;S329;S340;S282;S131;S268;S395;S306;S194;S356;S352;S151;S308;S330;S139;S247;S031;S143;S365;S294;S346;S266;S307;S040;S284;S123;S367;S189;S397;S218;S244;S005;S364;S180;S080;S067;S351;S348;S213;S076;S174;S221;S362;S237;S098",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    },
+    {
+      "metric": "problem1_top50_score_max_error",
+      "python_value": "0",
+      "matlab_value": "1.11022302462516e-16",
+      "absolute_error": 1.1102230246251565E-16,
+      "tolerance": 1E-9,
+      "passed": true
+    },
+    {
+      "metric": "problem1_sensitivity_max_error",
+      "python_value": "0",
+      "matlab_value": "4.44089209850063e-16",
+      "absolute_error": 4.4408920985006262E-16,
+      "tolerance": 1E-9,
+      "passed": true
+    },
+    {
+      "metric": "problem2_minimum_supplier_count",
+      "python_value": "26",
+      "matlab_value": "26",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    },
+    {
+      "metric": "problem2_purchase_cost_24week",
+      "python_value": "491125.620530536",
+      "matlab_value": "491125.620530303",
+      "absolute_error": 2.3230677470564842E-7,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem2_transport_loss_24week",
+      "python_value": "2470.51643049995",
+      "matlab_value": "2470.51643050434",
+      "absolute_error": 4.3919499148614705E-9,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem2_inventory_end",
+      "python_value": "56400.0000003206",
+      "matlab_value": "56400",
+      "absolute_error": 3.2060779631137848E-7,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem3_a_supply_24week",
+      "python_value": "207057.104839661",
+      "matlab_value": "207057.104839661",
+      "absolute_error": 0,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem3_b_supply_24week",
+      "python_value": "157616.966600894",
+      "matlab_value": "157616.966600894",
+      "absolute_error": 0,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem3_c_supply_24week",
+      "python_value": "69507.8406208139",
+      "matlab_value": "69507.8406208138",
+      "absolute_error": 1.6007106751203537E-10,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem3_total_raw_24week",
+      "python_value": "434181.912061369",
+      "matlab_value": "434181.912061369",
+      "absolute_error": 1.1641532182693481E-10,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem3_transport_loss_24week",
+      "python_value": "2399.75288136428",
+      "matlab_value": "2399.75288136428",
+      "absolute_error": 9.0949470177292824E-13,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem4_maximum_weekly_capacity",
+      "python_value": "33335.925461873",
+      "matlab_value": "33335.925461873",
+      "absolute_error": 2.1827872842550278E-11,
+      "tolerance": 1E-6,
+      "passed": true
+    },
+    {
+      "metric": "problem2_hard_violations",
+      "python_value": "0",
+      "matlab_value": "0",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    },
+    {
+      "metric": "problem3_hard_violations",
+      "python_value": "0",
+      "matlab_value": "0",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    },
+    {
+      "metric": "problem4_hard_violations",
+      "python_value": "0",
+      "matlab_value": "0",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    },
+    {
+      "metric": "python_reported_hard_violations",
+      "python_value": "0",
+      "matlab_value": "0",
+      "absolute_error": 0,
+      "tolerance": 0,
+      "passed": true
+    }
+  ]
+}

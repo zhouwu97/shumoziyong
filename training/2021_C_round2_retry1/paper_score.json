@@ -1,0 +1,63 @@
+{
+  "artifact_review_score_reused": false,
+  "decision": "complete_draft_ready_for_human_review",
+  "dimensions": {
+    "problem_analysis_and_structure": 9,
+    "self_containment": 10,
+    "mathematical_modeling": 9,
+    "algorithm_and_reproducibility": 9,
+    "result_analysis": 9,
+    "independent_validation": 10,
+    "sensitivity_and_failure_analysis": 9,
+    "figures_and_tables": 9,
+    "claim_boundary_and_integrity": 10,
+    "competition_submission_readiness": 7
+  },
+  "overall_score": 90,
+  "score_basis": "对 paper_full_draft.md 的论文质量独立评分，不沿用模型工件 score.json 的 78 分。",
+  "deductions": [
+    {
+      "points": 2,
+      "reason": "常规期望供货上限由历史记录外推，未来供货能力缺少概率区间或稳健保证。"
+    },
+    {
+      "points": 2,
+      "reason": "问题三产生 305 家正订购供应商，连续目标未计固定合作与管理成本。"
+    },
+    {
+      "points": 1,
+      "reason": "问题三、四采用软拆分运输语义，硬单承运商版本尚无可比较的限时求解结果。"
+    },
+    {
+      "points": 2,
+      "reason": "模型采用平稳参数，未建立季节性、时间序列或随机优化模型。"
+    },
+    {
+      "points": 2,
+      "reason": "题面缺少绝对采购价格、仓储容量和中断概率，经济性与服务水平评价不完整。"
+    },
+    {
+      "points": 1,
+      "reason": "当前交付为 Markdown 完整初稿，尚未按具体竞赛模板完成分页和版式终审。"
+    }
+  ],
+  "verified_counts": {
+    "chinese_characters_approx": 12100,
+    "formula_count": 26,
+    "figure_count": 11,
+    "table_count": 13,
+    "reference_count": 11,
+    "figure_format_files": 44,
+    "figure_source_data_files": 11
+  },
+  "hard_boundaries_preserved": {
+    "weights_are_subjective": true,
+    "equal_weight_s140_rank_is_53": true,
+    "historical_capacity_is_not_a_guarantee": true,
+    "problem3_operational_dispersion_disclosed": true,
+    "soft_split_shipping_disclosed": true,
+    "problem4_capacity_is_model_predicted": true,
+    "unknown_not_equated_with_infeasible": true,
+    "no_claim_of_complete_supply_chain_risk_coverage": true
+  }
+}

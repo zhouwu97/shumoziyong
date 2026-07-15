@@ -1,0 +1,8 @@
+﻿scenario,scenario_label,feasibility_status,selected_supplier_count,weekly_purchase_cost_relative
+demand_minus_10pct,需求 -10%,feasible,21,18408.666896398503
+demand_base,基准,feasible,26,20463.567522105655
+demand_plus_10pct,需求 +10%,feasible_not_proven_optimal,,
+loss_low_80pct,损耗 ×0.8,feasible,26,20441.16190393042
+loss_high_120pct,损耗 ×1.2,feasible,26,20486.21402485266
+key_supplier_capacity_minus_10pct,关键商能力 -10%,feasible,26,20463.980327405206
+key_supplier_outage,关键商中断,feasible,27,20462.811414608845

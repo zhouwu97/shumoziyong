@@ -1,0 +1,160 @@
+{
+  "generated_at": "2026-07-15T02:25:12+08:00",
+  "inventory_timing": {
+    "arrival_interpretation": "当周到货是 shipments × (1-loss) 的接收量换算为产品等价量后进入库存；未使用尚未到达的发运量。",
+    "by_problem": {
+      "2": {
+        "all_end_inventories_at_lower_bound": true,
+        "arrival_product_m3_per_week": 28200.000000013366,
+        "demand_product_m3_per_week": 28200.0,
+        "initial_inventory_product_m3": 56400.0,
+        "maximum_balance_absolute_residual": 0.0,
+        "maximum_end_inventory_product_m3": 56400.00000032061,
+        "minimum_end_inventory_product_m3": 56400.00000001336,
+        "safety_stock_lower_bound_product_m3": 56400.0
+      },
+      "3": {
+        "all_end_inventories_at_lower_bound": true,
+        "arrival_product_m3_per_week": 28200.0,
+        "demand_product_m3_per_week": 28200.0,
+        "initial_inventory_product_m3": 56400.0,
+        "maximum_balance_absolute_residual": 0.0,
+        "maximum_end_inventory_product_m3": 56400.0,
+        "minimum_end_inventory_product_m3": 56400.0,
+        "safety_stock_lower_bound_product_m3": 56400.0
+      },
+      "4": {
+        "all_end_inventories_at_lower_bound": true,
+        "arrival_product_m3_per_week": 33335.925461873034,
+        "demand_product_m3_per_week": 33335.925461873034,
+        "initial_inventory_product_m3": 66671.85092374607,
+        "maximum_balance_absolute_residual": 0.0,
+        "maximum_end_inventory_product_m3": 66671.85092374607,
+        "minimum_end_inventory_product_m3": 66671.85092374607,
+        "safety_stock_lower_bound_product_m3": 66671.85092374607
+      }
+    },
+    "constant_56400_interpretation": "问题2、3中56,400 m3是两周基准生产需求的安全库存下界，也是显式期初库存假设；每周到货恰等于28,200 m3且目标不奖励囤货，因此期末库存逐周紧贴下界。",
+    "passed": true,
+    "problem4_note": "问题4的需求变量等于最大可持续周产能，因此其两周安全库存为最大产能的两倍，不是56,400 m3。",
+    "time_order": "期初库存 + 当周实际损耗后到货 - 当周生产消耗 = 期末库存。"
+  },
+  "p0_found": false,
+  "problem4_capacity": {
+    "absolute_difference": 0.0,
+    "baseline_weekly_capacity_product_m3": 28200.0,
+    "capacity_increase_product_m3": 5135.925461873034,
+    "capacity_increase_ratio": 0.18212501637847636,
+    "checks": {
+      "conversion_direction": "损耗后原料到货量除以每产品m3原料消耗系数0.60/0.66/0.72。",
+      "first_week_inventory_extrapolated": false,
+      "initial_inventory_in_capacity_objective": false,
+      "orders_not_used_as_arrivals": true,
+      "transport_loss_applied_once": true
+    },
+    "expected_supply_raw_m3": 21826.519523718835,
+    "independently_recomputed_capacity_product_m3": 33335.925461873034,
+    "interpretation": "在当前历史能力估计、连续供货和损耗假设下，预测可持续周产能为该值；不是企业一定能够长期实现的保证产能。",
+    "passed": true,
+    "product_equivalent_by_material_m3": {
+      "A": 14336.548946232642,
+      "B": 9878.180454753658,
+      "C": 9121.196060886734
+    },
+    "received_after_loss_raw_m3": 21688.78963171545,
+    "reported_sustainable_weekly_capacity_product_m3": 33335.925461873034
+  },
+  "rank_sensitivity": {
+    "conclusion": "排序对小幅单项权重扰动稳定，但等权方案会改变头部次序；排序用于候选筛选，不等同于客观质量排名。",
+    "focus_suppliers_all_top10": false,
+    "minimum_spearman_rank_correlation": 0.9758019491473531,
+    "minimum_top10_overlap_count": 7,
+    "minimum_top50_overlap_rate": 0.82
+  },
+  "stress_tests": {
+    "passed": true,
+    "required_paper_statement": "完整候选网络在关键供应商能力下降10%和全期中断情景下仍得到全局最优可行解；需求增加10%时已找到可行 incumbent，但60秒内未证明采购成本最优。",
+    "scenarios": {
+      "demand_plus_10pct": {
+        "actual_status": "feasible_not_proven_optimal",
+        "expected_status": "feasible_not_proven_optimal",
+        "passed": true
+      },
+      "key_supplier_capacity_minus_10pct": {
+        "actual_status": "feasible",
+        "expected_status": "feasible",
+        "passed": true
+      },
+      "key_supplier_outage": {
+        "actual_status": "feasible",
+        "expected_status": "feasible",
+        "passed": true
+      }
+    },
+    "unknown_is_not_infeasible": true
+  },
+  "supplier_usage": {
+    "active_supplier_count": 305,
+    "conclusion": "未发现小于1 m3的数值碎片；大量供应商是连续LP在少C、少总原料、少损耗目标下的业务结果，但模型仍未惩罚启用数量。",
+    "has_sub_1_raw_m3_fragments": false,
+    "operability_limit": "若业务目标要求减少合作供应商，需要另建启用变量与固定成本；问题3题面当前目标下不构成硬约束违例。"
+  },
+  "supply_capacity_semantics": {
+    "audit_conclusion": "能力估计未使用供货量/240周，也未把历史订购量本身当作能力；仍存在以历史期望代替未来确定供货的业务假设。",
+    "capacity_definitions": {
+      "conditional_on_order_mean_supply": 122.6277417017363,
+      "conservative_future_capacity": "当前 regular_order_capacity 已折入按单供货概率，但仍是历史期望而非保证量；压力测试另检验能力下降和中断。",
+      "historical_max_supply": "仅描述历史单周峰值，不作为可持续能力。",
+      "mean_supply_over_all_240_weeks": "描述历史业务实际发生量，受企业是否下单影响，不作为未来能力上限。",
+      "model_regular_order_capacity": "供应商非零供货均值 × P(非零供货|已下单)，是规律下单条件下的期望供货上限。"
+    },
+    "capacity_uses_all_240_week_denominator": false,
+    "global_historical_max_supply_raw_m3": 36972.0,
+    "historical_order_volume_used_as_capacity": false,
+    "supplier_week_counts": {
+      "not_ordered_and_zero_supply": 60599,
+      "not_ordered_but_positive_supply": 0,
+      "ordered_and_positive_supply": 25784,
+      "ordered_but_zero_supply": 10097
+    }
+  },
+  "transport_split": {
+    "by_problem": {
+      "2": {
+        "active_supplier_week_count": 624,
+        "maximum_carriers_per_supplier_week": 1,
+        "secondary_carrier_volume_raw_m3": 0.0,
+        "secondary_carrier_volume_share": 0.0,
+        "single_carrier_is_hard": true,
+        "solver_runtime_seconds": 32.383128400018904,
+        "split_ratio_of_active_supplier_weeks": 0.0,
+        "split_supplier_week_count": 0,
+        "total_transport_volume_raw_m3": 441094.5435537821,
+        "transport_loss_raw_m3": 2470.516430499947,
+        "volume_in_split_supplier_weeks_raw_m3": 0.0,
+        "volume_in_split_supplier_weeks_share": 0.0
+      },
+      "3": {
+        "active_supplier_week_count": 7320,
+        "maximum_carriers_per_supplier_week": 2,
+        "secondary_carrier_volume_raw_m3": 21963.388174050233,
+        "secondary_carrier_volume_share": 0.05058568209296071,
+        "single_carrier_is_hard": false,
+        "solver_runtime_seconds": 0.08554800000274554,
+        "split_ratio_of_active_supplier_weeks": 0.006557377049180328,
+        "split_supplier_week_count": 48,
+        "total_transport_volume_raw_m3": 434181.912061369,
+        "transport_loss_raw_m3": 2399.7528813642766,
+        "volume_in_split_supplier_weeks_raw_m3": 73108.45936920223,
+        "volume_in_split_supplier_weeks_share": 0.16838209363007456
+      }
+    },
+    "generated_at": "2026-07-15T02:25:12+08:00",
+    "hard_single_carrier_comparison": {
+      "comparable_loss_change_available": false,
+      "problem2": "正式模型本身强制单承运商，拆分为0，可直接作为硬约束基准。",
+      "problem3": "既有失败路线在80秒内未返回可行解，状态只能记为unknown；因此不能给出损耗差，也不能写成不可行。连续LP三阶段运行时间见by_problem.3。"
+    },
+    "positive_threshold": 1e-05
+  }
+}

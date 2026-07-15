@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "canonical_plan": "paper/figure_plan.json",
+  "canonical_plan_sha256": "545b8c564de40d7d1b6cb8bef298d8175048961149a6a3700b7a830f9c34b348",
+  "final_figure_count": 8,
+  "figures": [
+    {"id": "fig01_workflow", "number": 1, "section": "问题分析", "decision": "add"},
+    {"id": "fig02_supplier_metrics", "number": 2, "section": "数据预处理", "decision": "retain"},
+    {"id": "fig03_top20_suppliers", "number": 3, "section": "问题一", "decision": "retain"},
+    {"id": "fig04_rank_sensitivity", "number": 4, "section": "问题一", "decision": "retain"},
+    {"id": "fig05_problem2_operations", "number": 5, "section": "问题二结果", "decision": "merge"},
+    {"id": "fig06_material_mix", "number": 6, "section": "问题三结果", "decision": "retain"},
+    {"id": "fig07_capacity", "number": 7, "section": "问题四结果", "decision": "retain"},
+    {"id": "fig08_stress", "number": 8, "section": "敏感性与压力测试", "decision": "retain"}
+  ],
+  "render_policy": {"background": "white", "palette": "grayscale", "internal_large_title": false, "caption_owner": "typst"},
+  "source_hash_audit": {"checked": 9, "passed": 9}
+}

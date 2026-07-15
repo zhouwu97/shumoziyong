@@ -1,0 +1,29 @@
+{
+  "by_problem": {
+    "2": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    },
+    "3": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    },
+    "4": {
+      "checked_count": 86832,
+      "examples": [],
+      "max_violation": 0.0,
+      "passed": true,
+      "threshold": 1e-06,
+      "violation_count": 0
+    }
+  },
+  "passed": true
+}

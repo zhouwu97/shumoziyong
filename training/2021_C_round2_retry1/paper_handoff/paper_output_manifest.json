@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "status": "final_audited",
+  "evidence_id": "2021c-attempt02-20260715T022018+0800",
+  "primary_output": {
+    "path": "paper/output/2021_C_paper_complete.pdf",
+    "size_bytes": 1062501,
+    "sha256": "0ac8c6b2fb3f706a3bbb14b9c84e61978ed7d2374846a71516cd477aeefed638",
+    "pages": 34,
+    "page_size": "A4"
+  },
+  "source": {
+    "entry": "paper/main.typ",
+    "style": "paper/style.typ",
+    "section_files": 19,
+    "section_lines": 874,
+    "line_count_method": "Path.read_text(encoding='utf-8').splitlines()",
+    "compiler": "Typst 0.15.0",
+    "compile_command": "typst 0.15.0 compile --root . paper\\main.typ paper\\output\\2021_C_paper_complete.pdf"
+  },
+  "content_counts": {
+    "equations": 26,
+    "numbered_tables": 17,
+    "table_blocks_including_continuation": 18,
+    "figures": 8,
+    "references": 11,
+    "appendices": 6
+  },
+  "code": {
+    "python": {
+      "files": 14,
+      "lines": 4151,
+      "command": "python code/run_training.py",
+      "runtime_seconds": 290.5025850999955,
+      "solver": "SciPy 1.17.0 / HiGHS"
+    },
+    "matlab": {
+      "files": 8,
+      "lines": 606,
+      "command": "matlab -batch \"addpath('code/matlab'); run_cross_language_validation(pwd)\"",
+      "runtime_seconds": 27.2286188,
+      "exit_status": 0,
+      "solver": "intlinprog; linprog / HiGHS dual simplex"
+    }
+  },
+  "validation": {
+    "cross_language_passed": true,
+    "maximum_cross_language_error": 3.206077963113785e-07,
+    "continuous_tolerance": 1e-06,
+    "hard_violations_python": 0,
+    "hard_violations_matlab": 0,
+    "excel_recalculation_passed": true,
+    "formula_cache_cells_checked": 1852,
+    "formula_cache_blank_count": 0
+  },
+  "lock_audit": {
+    "paper_source_lock_sha256": "1f260a9e3ec0aadbedffc9e40c87d8a2ac273b75f8d3d067d99b557b419a7083",
+    "source_hashes_passed": "15/15",
+    "json_pointers_passed": "44/44",
+    "derived_claims": 15,
+    "figure_source_hashes_passed": "9/9"
+  },
+  "validation_artifacts": [
+    "results/cross_language_validation.json",
+    "results/excel_recalculation_validation.json",
+    "results/final_human_audit_evidence.json",
+    "paper_handoff/pdf_metadata_check.json",
+    "paper_handoff/visual_review.json",
+    "paper_score_typst.json",
+    "paper_completion_review.md"
+  ],
+  "git": {
+    "committed": false,
+    "pushed": false
+  }
+}

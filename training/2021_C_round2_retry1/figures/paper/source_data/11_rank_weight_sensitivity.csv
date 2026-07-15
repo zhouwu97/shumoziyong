@@ -1,0 +1,11 @@
+﻿case,case_label,top10_overlap_count,top10_overlap_rate,top50_overlap_rate,spearman_rank_correlation,S140_rank
+capacity_minus_10pct,产能 -10%,10,1.0,0.98,0.9999497571023739,3
+capacity_plus_10pct,产能 +10%,9,0.9,0.98,0.9999484640866262,4
+current,当前权重,10,1.0,1.0,1.0,3
+equal,等权,7,0.7,0.82,0.9758019491473531,53
+fulfilment_minus_10pct,兑现 -10%,10,1.0,1.0,0.9997569130394266,3
+fulfilment_plus_10pct,兑现 +10%,10,1.0,1.0,0.9997650405669837,3
+service_minus_10pct,服务 -10%,10,1.0,0.98,0.9997327151732904,4
+service_plus_10pct,服务 +10%,10,1.0,1.0,0.999764671133913,3
+stability_minus_10pct,稳定 -10%,10,1.0,0.98,0.9997570977559619,3
+stability_plus_10pct,稳定 +10%,10,1.0,0.98,0.9997968118110708,3
