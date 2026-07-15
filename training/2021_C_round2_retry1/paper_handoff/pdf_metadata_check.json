@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "passed": true,
+  "pdf": "paper/output/2021_C_paper_complete.pdf",
+  "sha256": "0ac8c6b2fb3f706a3bbb14b9c84e61978ed7d2374846a71516cd477aeefed638",
+  "size_bytes": 1062501,
+  "pages": {
+    "pypdf": 34,
+    "pdfplumber": 34,
+    "rendered": 34
+  },
+  "page_size": "A4",
+  "compiler": "Typst 0.15.0",
+  "generated_at": "2026-07-15T10:17:15+08:00"
+}

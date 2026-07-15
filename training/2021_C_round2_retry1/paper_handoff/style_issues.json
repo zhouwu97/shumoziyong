@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "severity_counts": {"p0": 0, "p1": 0, "p2": 3},
+  "resolved": [
+    {"issue": "绿色标题、彩色表头和完整网格表", "resolution": "统一为黑白标题与三线表"},
+    {"issue": "图 3 题注仍写颜色区分", "resolution": "改为灰度与填充纹理"},
+    {"issue": "参考文献显示双重括号", "resolution": "修正 reference-item 宏，PDF 显示 [1]-[11]"},
+    {"issue": "参考文献 3、4 缺少正文引用", "resolution": "在问题二模型中补入 LP/MILP 方法引用 [3-4]"}
+  ],
+  "remaining_minor": [
+    {"issue": "官方竞赛封面未纳入 Typst 正文", "action": "提交前按系统要求补充"},
+    {"issue": "附录源码页数较长", "action": "提交前核对页数规则"},
+    {"issue": "参考文献综述广度有限", "action": "不影响模型来源核验，但可由作者按篇幅扩展"}
+  ],
+  "black_white_policy_passed": true,
+  "three_line_table_policy_passed": true
+}

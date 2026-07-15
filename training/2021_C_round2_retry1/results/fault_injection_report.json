@@ -1,0 +1,152 @@
+{
+  "fault_injection_pass_rate": 1.0,
+  "fault_injection_passed": 14,
+  "fault_injection_total": 14,
+  "tests": [
+    {
+      "detected": true,
+      "detected_categories": [
+        "order_nonnegative",
+        "output_template_consistency"
+      ],
+      "expected_detector": "order_nonnegative",
+      "id": 1,
+      "name": "负订货量"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "supplier_capacity",
+        "order_transport_consistency"
+      ],
+      "expected_detector": "supplier_capacity",
+      "id": 2,
+      "name": "超过供应能力"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "production_requirement",
+        "inventory_balance"
+      ],
+      "expected_detector": "production_requirement",
+      "id": 3,
+      "name": "生产原料不足"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "production_requirement",
+        "inventory_balance"
+      ],
+      "expected_detector": "inventory_balance",
+      "id": 4,
+      "name": "库存守恒篡改"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "production_requirement",
+        "inventory_balance",
+        "initial_inventory"
+      ],
+      "expected_detector": "initial_inventory",
+      "id": 5,
+      "name": "初始库存错误"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "transporter_capacity",
+        "transport_loss",
+        "arrival_quantity",
+        "order_transport_consistency",
+        "output_template_consistency"
+      ],
+      "expected_detector": "transporter_capacity",
+      "id": 6,
+      "name": "转运商超载"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "transporter_capacity",
+        "transporter_assignment",
+        "transport_loss",
+        "arrival_quantity",
+        "order_transport_consistency",
+        "output_template_consistency"
+      ],
+      "expected_detector": "transporter_assignment",
+      "id": 7,
+      "name": "供应商多转运商分运"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "transport_loss"
+      ],
+      "expected_detector": "transport_loss",
+      "id": 8,
+      "name": "损耗计算错误"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "material_conversion",
+        "arrival_quantity"
+      ],
+      "expected_detector": "arrival_quantity",
+      "id": 9,
+      "name": "到货量不一致"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "supplier_capacity",
+        "order_transport_consistency"
+      ],
+      "expected_detector": "order_transport_consistency",
+      "id": 10,
+      "name": "订购转运不一致"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "objective_recompute"
+      ],
+      "expected_detector": "objective_recompute",
+      "id": 11,
+      "name": "人为篡改目标值"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "output_template_consistency"
+      ],
+      "expected_detector": "output_template_consistency",
+      "id": 12,
+      "name": "Excel与原始变量不一致"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "supplier_selection",
+        "output_template_consistency"
+      ],
+      "expected_detector": "supplier_selection",
+      "id": 13,
+      "name": "未选择供应商订货"
+    },
+    {
+      "detected": true,
+      "detected_categories": [
+        "material_conversion",
+        "inventory_balance"
+      ],
+      "expected_detector": "material_conversion",
+      "id": 14,
+      "name": "转换系数影响未同步"
+    }
+  ]
+}
