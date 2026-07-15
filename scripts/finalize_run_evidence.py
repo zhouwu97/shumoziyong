@@ -17,6 +17,7 @@ from formal_result.identity import FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_PO
 from formal_result.verifier import verify_formal_result_bundle
 from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
+    V21_EVIDENCE_ARTIFACT_SPECS,
     ROOT,
     build_run_evidence_manifest,
     evidence_artifact_specs_for_workflow,
@@ -44,6 +45,9 @@ for _workflow in ("full_replay", "new_problem"):
             for filename, role, _media_type in evidence_artifact_specs_for_workflow(_workflow)
         }
     )
+KNOWN_EVIDENCE_ARTIFACTS.update(
+    {role: filename for filename, role, _media_type in V21_EVIDENCE_ARTIFACT_SPECS}
+)
 
 
 def load_policy() -> dict[str, Any]:
@@ -141,14 +145,14 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
     run_id = run_manifest.get("run_id")
     if not isinstance(run_id, str) or not run_id:
         raise ValueError("run_manifest.run_id 不能为空")
-    formal_policy = run_manifest.get("formal_result_policy", FORMAL_RESULT_POLICY_LEGACY)
-    if formal_policy == FORMAL_RESULT_POLICY_LEGACY and run_manifest.get("manifest_version") == "2.0.0":
-        raise ValueError("legacy_read_only_v1 Run 禁止重新 complete 或 seal")
-    if formal_policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_LEGACY}:
-        raise ValueError(f"formal_result_policy 非法：{formal_policy!r}")
     runtime_manifest = json.loads(
         (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
     )
+    formal_policy = run_manifest.get("formal_result_policy", FORMAL_RESULT_POLICY_LEGACY)
+    if formal_policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_LEGACY}:
+        raise ValueError(f"formal_result_policy 非法：{formal_policy!r}")
+    if formal_policy == FORMAL_RESULT_POLICY_LEGACY and runtime_manifest.get("manifest_version") == "1.3.0":
+        raise ValueError("Runtime 1.3 legacy_read_only_v1 Run 禁止重新 complete 或 seal")
     purpose_error = validate_workflow_evidence_purpose(run_manifest, runtime_manifest)
     if purpose_error:
         raise ValueError(purpose_error)
@@ -203,6 +207,18 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         ).encode("utf-8")
         overrides = {"run_manifest.json": run_manifest_bytes}
     evidence_manifest = build_run_evidence_manifest(run_dir, run_id, overrides)
+    if formal_policy == FORMAL_RESULT_POLICY_LEGACY:
+        # 旧运行继续显式输出“不具备 Formal Result 资格”，保持历史报告字段稳定。
+        evidence_manifest.update(
+            {
+                "formal_result_activation_status": "code_complete_candidate",
+                "sandboxie_environment_observed": False,
+                "sandboxie_environment_verified": False,
+                "formal_result_executed_in_verified_environment": False,
+                "formal_result_eligible": False,
+                "formal_result_eligibility_scope": "trusted_local",
+            }
+        )
     errors = validate_evidence_manifest(run_dir, evidence_manifest, required_artifacts, overrides)
     if errors:
         raise ValueError("；".join(errors))
@@ -285,8 +301,19 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                                 "run_attestation_semantic_sha256"
                             ],
                             "sandboxie_execution_id": environment["execution_id"],
-                        }
-                    )
+                    }
+                )
+        elif formal_policy == FORMAL_RESULT_POLICY_LEGACY:
+            seal_record.update(
+                {
+                    "formal_result_activation_status": "code_complete_candidate",
+                    "sandboxie_environment_observed": False,
+                    "sandboxie_environment_verified": False,
+                    "formal_result_executed_in_verified_environment": False,
+                    "formal_result_eligible": False,
+                    "formal_result_eligibility_scope": "trusted_local",
+                }
+            )
         write_json(
             run_dir / "seal_record.json",
             seal_record,

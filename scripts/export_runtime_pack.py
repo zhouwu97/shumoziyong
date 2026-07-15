@@ -359,6 +359,9 @@ def build_manifest(
     candidate_patch_ids: list[str] | None = None,
     exclude_patch_ids: list[str] | None = None,
     validation_target_status: str | None = None,
+    manifest_version: str = "1.2.0",
+    gate_contract_version: str | None = None,
+    benchmark_classification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     candidate_patch_ids = list(candidate_patch_ids or [])
     exclude_patch_ids = list(exclude_patch_ids or [])
@@ -402,8 +405,12 @@ def build_manifest(
         return [file_record(path) for path in files if path.startswith(prefix)]
 
     base_records = records("prompt_base/")
+    if manifest_version not in {"1.2.0", "1.3.0"}:
+        raise ValueError(f"manifest_version 不支持：{manifest_version}")
+    if manifest_version == "1.3.0" and gate_contract_version != "2.1.0":
+        raise ValueError("Runtime 1.3.0 必须绑定 gate_contract_version=2.1.0")
     manifest = {
-        "manifest_version": "1.2.0",
+        "manifest_version": manifest_version,
         "runtime_version": profile_state["version"],
         "generated_at": build_timestamp(),
         "profile": profile,
@@ -456,6 +463,19 @@ def build_manifest(
         "validation_target_status": validation_target_status,
         "runtime_pack_sha256": sha256_bytes(pack_content.encode("utf-8")),
     }
+    if manifest_version == "1.3.0":
+        classification = dict(benchmark_classification or {})
+        manifest.update(
+            {
+                "gate_contract_version": gate_contract_version,
+                "model_route_schema_version": "2.1.0",
+                "classification": classification.get("classification", "unclassified"),
+                "blind_generalization": bool(classification.get("blind_generalization", False)),
+                "profile_promotion_eligible": bool(
+                    classification.get("profile_promotion_eligible", False)
+                ),
+            }
+        )
     identity_payload = {
         key: value for key, value in manifest.items() if key != "generated_at"
     }

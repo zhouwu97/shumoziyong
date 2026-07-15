@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_value_assessment.schema.json",
+  "title": "竞赛价值审查",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "reviewer_id", "score", "status", "baseline_improvement_supported", "operational_value_supported", "findings"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "competition_value_assessment"},
+    "run_id": {"type": "string", "minLength": 1},
+    "reviewer_id": {"type": "string", "minLength": 1},
+    "score": {"type": "number", "minimum": 0, "maximum": 100},
+    "status": {"enum": ["pass", "fail", "pending"]},
+    "baseline_improvement_supported": {"type": "boolean"},
+    "operational_value_supported": {"type": "boolean"},
+    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["code", "severity", "resolved"], "properties": {"code": {"type": "string", "minLength": 1}, "severity": {"enum": ["fatal", "major", "minor", "editorial"]}, "resolved": {"type": "boolean"}, "note": {"type": "string"}}}}
+  }
+}

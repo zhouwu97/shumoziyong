@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/review_outcome.schema.json",
+  "title": "Independent Reviewer Outcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "workspace_id", "package_manifest_sha256",
+    "reviewer_session_id", "reviewer", "reviewed_at", "decision", "findings",
+    "affected_gates", "required_actions", "gate_5_review_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "workspace_id": {"type": "string", "minLength": 1},
+    "package_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "reviewer_session_id": {"type": "string", "minLength": 8},
+    "reviewer": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "decision": {"type": "string", "enum": ["approved", "changes_required"]},
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/finding"}
+    },
+    "affected_gates": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 0, "maximum": 4},
+      "uniqueItems": true
+    },
+    "required_actions": {"type": "array", "items": {"type": "string", "minLength": 5}},
+    "gate_5_review_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"decision": {"const": "changes_required"}}},
+      "then": {
+        "properties": {
+          "findings": {"minItems": 1, "contains": {"properties": {"priority": {"enum": ["P0", "P1"]}}, "required": ["priority"]}},
+          "affected_gates": {"minItems": 1},
+          "required_actions": {"minItems": 1},
+          "gate_5_review_sha256": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "affected_gates": {"maxItems": 0},
+          "required_actions": {"maxItems": 0},
+          "gate_5_review_sha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finding_id", "priority", "gate", "summary", "evidence"],
+      "properties": {
+        "finding_id": {"type": "string", "pattern": "^F-[A-Za-z0-9_-]+$"},
+        "priority": {"type": "string", "enum": ["P0", "P1", "P2", "P3"]},
+        "gate": {"type": "integer", "minimum": 0, "maximum": 5},
+        "summary": {"type": "string", "minLength": 5},
+        "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1}
+      }
+    }
+  }
+}

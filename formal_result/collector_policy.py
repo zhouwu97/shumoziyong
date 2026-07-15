@@ -15,6 +15,7 @@ from .errors import FormalResultVerificationError
 COLLECTOR_ID = "m3a-json-pointer-collector-v1"
 COLLECTOR_SCRIPT_PATH = "scripts/run_in_verified_sandbox.py"
 DERIVATION_CONTRACT_ID = "m3a-engineering-objective-v1"
+RGV_2018B_DERIVATION_CONTRACT_ID = "m3a-2018b-rgv-heuristic-v1"
 
 TRUSTED_DERIVATION_CONTRACT: dict[str, Any] = {
     "contract_version": "1.0.0",
@@ -79,20 +80,104 @@ TRUSTED_DOMAIN_POLICY: dict[str, Any] = {
     "required_negative_test_status": "passed",
 }
 
+RGV_2018B_DERIVATION_CONTRACT: dict[str, Any] = {
+    "contract_version": "1.0.0",
+    "raw_output_path": "result.json",
+    "mappings": [
+        {
+            "source_pointer": "/scenario_decisions",
+            "target_artifact": "decision_variables.json",
+            "target_pointer": "/payload/scenario_decisions",
+        },
+        {
+            "source_pointer": "/policy_scope",
+            "target_artifact": "decision_variables.json",
+            "target_pointer": "/payload/policy_scope",
+        },
+        {
+            "source_pointer": "/validation_metrics",
+            "target_artifact": "optimization_validation.json",
+            "target_pointer": "/payload/metrics",
+        },
+        {
+            "source_pointer": "/invariant_checks",
+            "target_artifact": "optimization_validation.json",
+            "target_pointer": "/payload/invariant_checks",
+        },
+        {
+            "source_pointer": "/solver_status",
+            "target_artifact": "optimality_certificate.json",
+            "target_pointer": "/status",
+        },
+        {
+            "source_pointer": "/solver_status",
+            "target_artifact": "optimality_certificate.json",
+            "target_pointer": "/payload/solver_status",
+        },
+        {
+            "source_pointer": "/claim_scope",
+            "target_artifact": "optimality_certificate.json",
+            "target_pointer": "/payload/claim_scope",
+        },
+        {
+            "source_pointer": "/negative_tests_status",
+            "target_artifact": "negative_tests.json",
+            "target_pointer": "/status",
+        },
+        {
+            "source_pointer": "/negative_tests",
+            "target_artifact": "negative_tests.json",
+            "target_pointer": "/payload/results",
+        },
+    ],
+}
+
+RGV_2018B_DOMAIN_POLICY: dict[str, Any] = {
+    "policy_version": "1.0.0",
+    "profile": "engineering_optimization",
+    "solver_status_source_pointer": "/solver_status",
+    "allowed_solver_statuses": ["feasible"],
+    "negative_tests_status_source_pointer": "/negative_tests_status",
+    "required_negative_tests": [
+        "constraint-self-check",
+        "finite-policy-scope",
+        "random-atomic-evidence",
+    ],
+    "required_negative_test_status": "passed",
+}
+
+TRUSTED_DERIVATION_CONTRACTS = {
+    DERIVATION_CONTRACT_ID: TRUSTED_DERIVATION_CONTRACT,
+    RGV_2018B_DERIVATION_CONTRACT_ID: RGV_2018B_DERIVATION_CONTRACT,
+}
+
+TRUSTED_DOMAIN_POLICIES = {
+    DERIVATION_CONTRACT_ID: TRUSTED_DOMAIN_POLICY,
+    RGV_2018B_DERIVATION_CONTRACT_ID: RGV_2018B_DOMAIN_POLICY,
+}
+
 
 def trusted_derivation_contract(contract_id: str) -> dict[str, Any]:
     """按受信 ID 返回合同副本，未知 ID 必须失败关闭。"""
-    if contract_id != DERIVATION_CONTRACT_ID:
+    if contract_id not in TRUSTED_DERIVATION_CONTRACTS:
         raise FormalResultVerificationError(f"未批准的派生合同 ID：{contract_id}")
-    return deepcopy(TRUSTED_DERIVATION_CONTRACT)
+    return deepcopy(TRUSTED_DERIVATION_CONTRACTS[contract_id])
 
 
-def derivation_contract_sha256() -> str:
-    return hashlib.sha256(canonical_bytes(TRUSTED_DERIVATION_CONTRACT)).hexdigest()
+def trusted_domain_policy(contract_id: str) -> dict[str, Any]:
+    """返回与派生合同成对冻结的领域策略。"""
+
+    if contract_id not in TRUSTED_DOMAIN_POLICIES:
+        raise FormalResultVerificationError(f"未批准的领域策略合同 ID：{contract_id}")
+    return deepcopy(TRUSTED_DOMAIN_POLICIES[contract_id])
 
 
-def domain_policy_sha256() -> str:
-    return hashlib.sha256(canonical_bytes(TRUSTED_DOMAIN_POLICY)).hexdigest()
+def derivation_contract_sha256(contract_id: str = DERIVATION_CONTRACT_ID) -> str:
+    return hashlib.sha256(canonical_bytes(trusted_derivation_contract(contract_id))).hexdigest()
+
+
+def domain_policy_sha256(contract_id: str = DERIVATION_CONTRACT_ID) -> str:
+    return hashlib.sha256(canonical_bytes(trusted_domain_policy(contract_id))).hexdigest()
 
 
 def collector_script_at_commit(source_commit: str, script_path: str) -> bytes:

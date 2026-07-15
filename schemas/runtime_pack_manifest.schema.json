@@ -33,7 +33,18 @@
     "validation_target_status": {"type": ["string", "null"], "enum": [null, "competition_evidenced"]},
     "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
     "build_identity": {"$ref": "#/$defs/sha256"}
+    ,"gate_contract_version": {"type": "string", "enum": ["2.1.0"]}
+    ,"model_route_schema_version": {"type": "string", "enum": ["2.1.0"]}
+    ,"classification": {"type": "string", "minLength": 1}
+    ,"blind_generalization": {"type": "boolean"}
+    ,"profile_promotion_eligible": {"type": "boolean"}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"manifest_version": {"const": "1.3.0"}}, "required": ["manifest_version"]},
+      "then": {"required": ["gate_contract_version", "model_route_schema_version", "classification", "blind_generalization", "profile_promotion_eligible"]}
+    }
+  ],
   "$defs": {
     "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"},
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

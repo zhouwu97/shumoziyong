@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/model_validity_report.schema.json",
+  "title": "Gate 3 模型有效性报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "contract_ref", "execution_status", "small_examples", "limit_cases", "monotonicity", "falsification", "parameter_stability", "alternative_models", "failure_domain", "allowed_conclusion_scope", "fatal_codes"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "model_validity_report"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "contract_ref": {"$ref": "#/$defs/ref"},
+    "execution_status": {"enum": ["passed", "failed", "partial"]},
+    "small_examples": {"$ref": "#/$defs/testResults"},
+    "limit_cases": {"$ref": "#/$defs/testResults"},
+    "monotonicity": {"$ref": "#/$defs/testResults"},
+    "falsification": {"$ref": "#/$defs/testResults"},
+    "parameter_stability": {"$ref": "#/$defs/testResults"},
+    "alternative_models": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "status", "comparison"], "properties": {"name": {"type": "string", "minLength": 1}, "status": {"enum": ["accepted", "rejected", "inconclusive"]}, "comparison": {"type": "string", "minLength": 10}}}},
+    "failure_domain": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "allowed_conclusion_scope": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "fatal_codes": {"type": "array", "items": {"type": "string", "pattern": "^F[1-5]$"}},
+    "notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}}},
+    "testResults": {"type": "object", "additionalProperties": false, "required": ["status", "passed", "total", "results"], "properties": {"status": {"enum": ["passed", "failed", "partial", "not_run"]}, "passed": {"type": "boolean"}, "total": {"type": "integer", "minimum": 0}, "results": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["case_id", "passed", "observed", "expected"], "properties": {"case_id": {"type": "string", "minLength": 1}, "passed": {"type": "boolean"}, "observed": {}, "expected": {}}}}}}
+  }
+}

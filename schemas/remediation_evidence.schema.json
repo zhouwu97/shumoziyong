@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/remediation_evidence.schema.json",
+  "title": "Executor Remediation Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "revision_id", "run_id", "executor_session_id",
+    "completed_at", "affected_gates", "artifacts", "validators_rerun", "summary"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "revision_id": {"type": "string", "pattern": "^revision_[a-f0-9]{16}$"},
+    "run_id": {"type": "string", "minLength": 1},
+    "executor_session_id": {"type": "string", "minLength": 8},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "affected_gates": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 4}, "minItems": 1, "uniqueItems": true},
+    "artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}, "minItems": 1},
+    "validators_rerun": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "summary": {"type": "string", "minLength": 10}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "path", "before_sha256", "after_sha256", "reason"],
+      "properties": {
+        "root": {"type": "string", "enum": ["run", "project"]},
+        "path": {"$ref": "#/$defs/relativePath"},
+        "before_sha256": {"$ref": "#/$defs/sha256"},
+        "after_sha256": {"$ref": "#/$defs/sha256"},
+        "reason": {"type": "string", "minLength": 5}
+      }
+    }
+  }
+}

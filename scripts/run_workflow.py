@@ -25,6 +25,23 @@ from formal_result.verifier import verify_formal_result_bundle
 from formal_result.trusted_local import trusted_local_eligibility_scope
 from gate3_evidence import collect_gate_3_math_validation
 from model_validation import validate_model_and_execution
+from v21_contracts import (
+    V21_GATE_CONTRACT_VERSION,
+    V21_RUNTIME_MANIFEST_VERSION,
+    classify_benchmark,
+    compute_score_v2,
+    evaluate_paper_admission,
+    validate_matlab_recomputation,
+    validate_model_validity_contract,
+    validate_model_validity_report,
+    validate_reviewer_report,
+    validate_reviewer_pair,
+    validate_competition_value_assessment,
+    validate_formal_result_run_binding,
+    validate_paper_production_manifest,
+    validate_validator_independence,
+)
+from v21_assertions import validate_assertion_refs
 from verify_materials import MaterialVerificationResult, verify_materials
 
 try:
@@ -185,6 +202,27 @@ OPTIONAL_GATE_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
     ("paper_claim_map.json", "gate_4_paper_claim_map"),
 )
 
+V21_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
+    ("diagnosis.json", "gate_0_diagnosis", "application/json"),
+    ("model_route_v2_1.json", "model_route_v2_1", "application/json"),
+    ("model_validity_contract.json", "model_validity_contract", "application/json"),
+    ("execution_spec.json", "formal_execution_spec", "application/json"),
+    ("validator_independence_manifest.json", "validator_independence_manifest", "application/json"),
+    ("model_validity_report.json", "model_validity_report", "application/json"),
+    ("matlab_level_a_report.json", "matlab_level_a_report", "application/json"),
+    ("matlab_level_b_report.json", "matlab_level_b_report", "application/json"),
+    ("formal_result_run_binding.json", "formal_result_run_binding", "application/json"),
+    ("competition_value_assessment.json", "competition_value_assessment", "application/json"),
+    ("paper_admission_report.json", "paper_admission_report", "application/json"),
+    ("paper_claim_map.json", "paper_claim_map_v2", "application/json"),
+    ("paper_production_manifest.json", "paper_production_manifest", "application/json"),
+    ("reviewer_a_round1.json", "reviewer_a_round1", "application/json"),
+    ("reviewer_b_round1.json", "reviewer_b_round1", "application/json"),
+    ("reviewer_a_round2.json", "reviewer_a_round2", "application/json"),
+    ("reviewer_b_round2.json", "reviewer_b_round2", "application/json"),
+    ("score_v2.json", "score_v2", "application/json"),
+)
+
 
 def evidence_artifact_specs_for_workflow(workflow: str) -> tuple[tuple[str, str, str], ...]:
     """返回某个 Gate workflow 的固定基础证据集合。"""
@@ -206,13 +244,22 @@ def evidence_required_artifacts_for_workflow(
         if workflow != "full_replay":
             raise ValueError("runtime pack manifest 1.1.0 只支持历史 full_replay Evidence")
         specs = LEGACY_1_1_FULL_REPLAY_EVIDENCE_ARTIFACT_SPECS
-    elif runtime_manifest_version == "1.2.0":
+    elif runtime_manifest_version in {"1.2.0", "1.3.0"}:
         specs = evidence_artifact_specs_for_workflow(workflow)
     else:
         raise ValueError(f"runtime pack manifest_version 不支持：{runtime_manifest_version!r}")
     required = {role: filename for filename, role, _media_type in specs}
+    if runtime_manifest_version == V21_RUNTIME_MANIFEST_VERSION:
+        required.update({role: filename for filename, role, _media_type in V21_EVIDENCE_ARTIFACT_SPECS})
     if completed:
-        required.update({role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS})
+        if runtime_manifest_version == V21_RUNTIME_MANIFEST_VERSION:
+            required.update({
+                "gate_0_diagnosis": "diagnosis.json",
+                "gate_5_review": "gate_5_review.json",
+                "gate_0_artifact_manifest": "gate_artifacts/gate_0.manifest.json",
+            })
+        else:
+            required.update({role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS})
         required.update(
             {
                 f"gate_{gate}_artifact_manifest": f"gate_artifacts/gate_{gate}.manifest.json"
@@ -259,7 +306,11 @@ def build_run_evidence_manifest(
         workflow = json.loads(run_manifest_path.read_text(encoding="utf-8")).get("workflow")
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"无法确定运行工作流：{run_manifest_path}（{exc}）") from exc
+    run_manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
+    runtime_version = str(run_manifest.get("runtime_manifest_version", "1.2.0"))
     artifact_specs = evidence_artifact_specs_for_workflow(workflow)
+    if runtime_version == V21_RUNTIME_MANIFEST_VERSION:
+        artifact_specs = artifact_specs + V21_EVIDENCE_ARTIFACT_SPECS
 
     artifacts: list[dict[str, Any]] = []
     formal_summary: dict[str, Any] | None = None
@@ -279,20 +330,21 @@ def build_run_evidence_manifest(
             }
         )
     gate_artifacts_dir = run_dir / "gate_artifacts"
-    for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS:
-        path = run_dir / filename
-        if not path.is_file():
-            continue
-        content = path.read_bytes()
-        artifacts.append(
-            {
-                "path": filename,
-                "sha256": sha256_bytes(content),
-                "media_type": "application/json",
-                "size_bytes": len(content),
-                "role": role,
-            }
-        )
+    if runtime_version != V21_RUNTIME_MANIFEST_VERSION:
+        for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS:
+            path = run_dir / filename
+            if not path.is_file():
+                continue
+            content = path.read_bytes()
+            artifacts.append(
+                {
+                    "path": filename,
+                    "sha256": sha256_bytes(content),
+                    "media_type": "application/json",
+                    "size_bytes": len(content),
+                    "role": role,
+                }
+            )
     if gate_artifacts_dir.is_dir():
         for path in sorted(gate_artifacts_dir.glob("gate_*.manifest.json")):
             content = path.read_bytes()
@@ -307,7 +359,7 @@ def build_run_evidence_manifest(
                 }
             )
     if workflow in {"full_replay", "new_problem"}:
-        manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
+        manifest = run_manifest
         if (
             manifest.get("formal_result_policy") == FORMAL_RESULT_POLICY_REQUIRED
             and any(run_dir.glob("formal_results/*/formal_result_envelope.json"))
@@ -380,6 +432,19 @@ def build_run_evidence_manifest(
             for filename, role, media_type, semantic_hash in formal_specs:
                 path = run_dir / filename
                 content = path.read_bytes()
+                existing = next(
+                    (item for item in artifacts if item.get("path") == filename),
+                    None,
+                )
+                if existing is not None:
+                    if existing.get("role") != role:
+                        raise ValueError(
+                            f"Formal Result 证据路径角色冲突：{filename} / "
+                            f"{existing.get('role')} != {role}"
+                        )
+                    if semantic_hash is not None:
+                        existing["semantic_sha256"] = semantic_hash
+                    continue
                 reference = {
                     "path": filename,
                     "sha256": sha256_bytes(content),
@@ -568,7 +633,9 @@ def _load_profile_state(profile: str) -> dict[str, Any]:
     return profile_state
 
 
-def _initialize_common_gate_artifacts(run_dir: Path, profile_state: Mapping[str, Any]) -> None:
+def _initialize_common_gate_artifacts(
+    run_dir: Path, profile_state: Mapping[str, Any], *, v21_enabled: bool = False
+) -> None:
     """创建两个 Gate 工作流共享的业务产物和 AI 运行证据脚手架。"""
     atomic_write_text(run_dir / "diagnosis.md", "# Gate 0：题目与材料诊断\n\n待执行。\n")
     write_json(
@@ -587,6 +654,31 @@ def _initialize_common_gate_artifacts(run_dir: Path, profile_state: Mapping[str,
             {
                 "artifact_type": artifact_type,
                 "_note": "待执行；离开对应 Gate 前必须替换为符合业务 Schema 的真实产物。",
+            },
+        )
+    for filename, artifact_type in (
+        ("model_route_v2_1.json", "model_route_v2_1"),
+        ("model_validity_contract.json", "model_validity_contract"),
+        ("execution_spec.json", "execution_spec"),
+        ("validator_independence_manifest.json", "validator_independence_manifest"),
+        ("model_validity_report.json", "model_validity_report"),
+        ("paper_admission_report.json", "paper_admission_report"),
+        ("paper_production_manifest.json", "paper_production_manifest"),
+        ("reviewer_a_round1.json", "reviewer_report"),
+        ("reviewer_b_round1.json", "reviewer_report"),
+        ("reviewer_a_round2.json", "reviewer_report"),
+        ("reviewer_b_round2.json", "reviewer_report"),
+        ("score_v2.json", "score_v2"),
+        ("matlab_level_a_report.json", "matlab_recomputation"),
+        ("matlab_level_b_report.json", "matlab_recomputation"),
+        ("formal_result_run_binding.json", "formal_result_run_binding"),
+        ("competition_value_assessment.json", "competition_value_assessment"),
+    ) if v21_enabled else ():
+        write_json(
+            run_dir / filename,
+            {
+                "artifact_type": artifact_type,
+                "_note": "Runtime 1.3 / Gate Contract 2.1 工件；离开对应 Gate 前必须替换。",
             },
         )
     (run_dir / "gate_artifacts").mkdir()
@@ -667,14 +759,30 @@ def create_gate_run_core(
         expected_problem_id=args.problem,
     )
     profile_state = _load_profile_state(profile)
+    v21_enabled = bool(getattr(args, "v21", False))
     candidate_patches = list(getattr(args, "candidate_patch", []))
     excluded_patches = list(getattr(args, "exclude_patch", []))
     pack_content = build_pack(
         profile, workflow, candidate_patches, excluded_patches
     )
-    pack_manifest = build_manifest(
-        profile, workflow, pack_content, candidate_patches, excluded_patches
+    benchmark_classification = classify_benchmark(
+        str(args.problem), materials_previously_read=(workflow == "full_replay")
     )
+    if v21_enabled:
+        pack_manifest = build_manifest(
+            profile,
+            workflow,
+            pack_content,
+            candidate_patches,
+            excluded_patches,
+            manifest_version=V21_RUNTIME_MANIFEST_VERSION,
+            gate_contract_version=V21_GATE_CONTRACT_VERSION,
+            benchmark_classification=benchmark_classification,
+        )
+    else:
+        pack_manifest = build_manifest(
+            profile, workflow, pack_content, candidate_patches, excluded_patches
+        )
 
     run_dir.mkdir(parents=True)
     atomic_write_text(run_dir / "runtime_pack.md", pack_content)
@@ -709,6 +817,7 @@ def create_gate_run_core(
         "profile": profile,
         "runtime_version": profile_state["version"],
         "runtime_pack_sha256": pack_manifest["runtime_pack_sha256"],
+        "runtime_manifest_version": pack_manifest["manifest_version"],
         "gates": args.gates,
         "materials": repo_relative(material_path),
         "material_manifest": repo_relative(material_verification.manifest_path),
@@ -729,6 +838,10 @@ def create_gate_run_core(
             (run_dir / "patch_selection.snapshot.json").read_bytes()
         ),
     }
+    if v21_enabled:
+        manifest_data.update(
+            {"gate_contract_version": V21_GATE_CONTRACT_VERSION, **benchmark_classification}
+        )
 
     write_json(run_dir / "run_manifest.json", manifest_data)
     material_report = material_verification.to_dict()
@@ -736,7 +849,7 @@ def create_gate_run_core(
     material_report["manual_review_required"] = True
     write_json(run_dir / "material_review.json", material_report)
 
-    _initialize_common_gate_artifacts(run_dir, profile_state)
+    _initialize_common_gate_artifacts(run_dir, profile_state, v21_enabled=v21_enabled)
     _init_transitions(run_dir, args.gates, material_verification.ready)
     return run_dir, material_verification, profile_state, pack_manifest, material_path
 
@@ -912,6 +1025,62 @@ GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
     4: (("paper_claim_map.json", "paper_claim_map", "schemas/gate_business_artifact.schema.json", "1.0.0"),),
     5: (("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),),
 }
+
+V21_GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
+    0: GATE_ARTIFACT_SPECS[0],
+    1: (
+        ("model_route_v2_1.json", "model_route_v2_1", "schemas/model_route_v2_1.schema.json", "2.1.0"),
+        ("model_validity_contract.json", "model_validity_contract", "schemas/model_validity_contract.schema.json", "1.0.0"),
+    ),
+    2: (
+        ("code_plan.json", "code_plan", "schemas/gate_business_artifact.schema.json", "1.0.0"),
+        ("execution_spec.json", "execution_spec", "schemas/execution_spec.schema.json", "1.0.0"),
+        ("validator_independence_manifest.json", "validator_independence_manifest", "schemas/validator_independence_manifest.schema.json", "1.0.0"),
+    ),
+    3: (
+        ("result_report.json", "result_report", "schemas/gate_business_artifact.schema.json", "1.0.0"),
+        ("result_manifest.json", "result_manifest", "schemas/gate_business_artifact.schema.json", "1.0.0"),
+        ("model_validity_report.json", "model_validity_report", "schemas/model_validity_report.schema.json", "1.0.0"),
+        ("matlab_level_a_report.json", "matlab_recomputation", "schemas/matlab_recomputation_report.schema.json", "1.0.0"),
+        ("matlab_level_b_report.json", "matlab_recomputation", "schemas/matlab_recomputation_report.schema.json", "1.0.0"),
+        ("formal_result_run_binding.json", "formal_result_run_binding", "schemas/formal_result_run_binding.schema.json", "1.0.0"),
+        ("competition_value_assessment.json", "competition_value_assessment", "schemas/competition_value_assessment.schema.json", "1.0.0"),
+        ("paper_admission_report.json", "paper_admission_report", "schemas/paper_admission_report.schema.json", "1.0.0"),
+    ),
+    4: (
+        ("paper_claim_map.json", "paper_claim_map_v2", "schemas/paper_claim_map_v2.schema.json", "2.0.0"),
+        ("paper_production_manifest.json", "paper_production_manifest", "schemas/paper_production_manifest.schema.json", "1.0.0"),
+        ("reviewer_a_round1.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
+        ("reviewer_b_round1.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
+        ("reviewer_a_round2.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
+        ("reviewer_b_round2.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
+    ),
+    5: (
+        ("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),
+        ("score_v2.json", "score_v2", "schemas/score_v2.schema.json", "2.0.0"),
+    ),
+}
+
+V21_ARTIFACT_ROLES = {
+    "model_route_v2_1", "model_validity_contract", "validator_independence_manifest",
+    "execution_spec", "model_validity_report", "matlab_recomputation", "paper_admission_report",
+    "paper_production_manifest", "reviewer_report", "score_v2", "paper_claim_map_v2",
+    "formal_result_run_binding", "competition_value_assessment", "reviewer_a_round1",
+    "reviewer_b_round1", "reviewer_a_round2", "reviewer_b_round2",
+}
+
+
+def _is_v21_run(run_dir: Path) -> bool:
+    try:
+        manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+        runtime = json.loads((run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return manifest.get("runtime_manifest_version") == V21_RUNTIME_MANIFEST_VERSION or runtime.get("manifest_version") == V21_RUNTIME_MANIFEST_VERSION
+
+
+def _gate_artifact_specs_for_run(run_dir: Path, gate: int) -> tuple[tuple[str, str, str, str], ...]:
+    return (V21_GATE_ARTIFACT_SPECS if _is_v21_run(run_dir) else GATE_ARTIFACT_SPECS)[gate]
 
 
 def _formal_result_policy(run_manifest: Mapping[str, Any]) -> str:
@@ -1489,8 +1658,18 @@ def _validate_runtime_context_binding(
         if "workflow_context" in runtime_manifest or "runtime_contract" in runtime_manifest:
             raise ValueError("runtime pack manifest 1.1.0 不得携带 1.2.0 上下文字段")
         return
-    if manifest_version != "1.2.0":
+    if manifest_version not in {"1.2.0", "1.3.0"}:
         raise ValueError(f"runtime pack manifest_version 不支持：{manifest_version!r}")
+    if manifest_version == "1.3.0":
+        if runtime_manifest.get("gate_contract_version") != V21_GATE_CONTRACT_VERSION:
+            raise ValueError("Runtime 1.3.0 未绑定 Gate Contract 2.1.0")
+        if runtime_manifest.get("model_route_schema_version") != "2.1.0":
+            raise ValueError("Runtime 1.3.0 未绑定 model_route 2.1.0")
+        if run_manifest.get("runtime_manifest_version") != "1.3.0":
+            raise ValueError("run_manifest 未绑定 Runtime Manifest 1.3.0")
+        for field in ("classification", "blind_generalization", "profile_promotion_eligible"):
+            if run_manifest.get(field) != runtime_manifest.get(field):
+                raise ValueError(f"run_manifest.{field} 与 Runtime 1.3.0 不一致")
     if runtime_manifest.get("workflow_context") != workflow:
         raise ValueError(
             "runtime_pack.manifest.json.workflow_context 与 run_manifest.workflow 不一致"
@@ -1626,6 +1805,16 @@ def _validate_gate_business_artifact(
         raise ValueError(f"Gate 产物 {filename} 必须是 JSON 对象")
     _validate_json_schema(artifact, schema_relative, filename)
 
+    if role in V21_ARTIFACT_ROLES:
+        if role != "gate_5_review" and artifact.get("artifact_type") != role:
+            raise ValueError(f"{filename}.artifact_type 必须为 {role}")
+        if role != "gate_5_review" and artifact.get("schema_version") != schema_version:
+            raise ValueError(f"{filename}.schema_version 必须为 {schema_version}")
+        declared_run = artifact.get("run_id")
+        if declared_run is not None and declared_run != binding.get("run_id"):
+            raise ValueError(f"{filename}.run_id 与当前运行现场不一致")
+        return raw
+
     for field, expected in binding.items():
         if artifact.get(field) != expected:
             raise ValueError(f"{filename}.{field} 与当前运行现场不一致")
@@ -1648,7 +1837,7 @@ def build_gate_artifact_manifest(
         raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
     binding = _load_current_run_binding(run_dir)
     artifacts: list[dict[str, Any]] = []
-    for filename, role, schema_relative, schema_version in GATE_ARTIFACT_SPECS[gate]:
+    for filename, role, schema_relative, schema_version in _gate_artifact_specs_for_run(run_dir, gate):
         raw = _validate_gate_business_artifact(
             run_dir,
             filename,
@@ -1687,6 +1876,20 @@ def build_gate_artifact_manifest(
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
                 **formal_result_state_summary(summary),
             }
+    elif gate == 3:
+        # 历史 Runtime 1.1/1.2 的 Gate 3 清单保留旧字段，明确表示没有 Formal Result 资格。
+        manifest["formal_result"] = {
+            "formal_result_id": "legacy-unavailable",
+            "envelope_path": "formal_results/legacy/formal_result_envelope.json",
+            "envelope_file_sha256": "0" * 64,
+            "envelope_semantic_sha256": "0" * 64,
+            "formal_result_activation_status": "code_complete_candidate",
+            "sandboxie_environment_observed": False,
+            "sandboxie_environment_verified": False,
+            "formal_result_executed_in_verified_environment": False,
+            "formal_result_eligible": False,
+            "formal_result_eligibility_scope": "trusted_local",
+        }
     return manifest
 
 
@@ -1728,7 +1931,7 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             if manifest.get(field) != expected or run_manifest.get(field) != expected:
                 raise ValueError(f"gate_{gate}.manifest.json.{field} 未绑定 required_v1 不可变身份")
 
-    expected_specs = GATE_ARTIFACT_SPECS[gate]
+    expected_specs = _gate_artifact_specs_for_run(run_dir, gate)
     expected_paths = {spec[0] for spec in expected_specs}
     entries = manifest.get("artifacts", [])
     actual_paths = [entry.get("path") for entry in entries if isinstance(entry, dict)]
@@ -1762,6 +1965,11 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             raise ValueError(f"Gate {gate} 产物 {filename} SHA-256 不匹配")
         if entry.get("size_bytes") != len(raw):
             raise ValueError(f"Gate {gate} 产物 {filename} size_bytes 不匹配")
+    if gate == 1 and _is_v21_run(run_dir):
+        contract = _load_json_object(run_dir / "model_validity_contract.json", "model_validity_contract.json")
+        contract_errors = validate_model_validity_contract(contract)
+        if contract_errors:
+            raise ValueError("Gate 1 模型有效性合同失败：" + "；".join(contract_errors))
     if gate == 3:
         if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
             summary = _verify_required_formal_result(run_dir)
@@ -1797,6 +2005,85 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
                 "Gate 3 可执行数学检查证据失败："
                 + "；".join(str(item) for item in evidence_errors)
             )
+        if _is_v21_run(run_dir):
+            validity_contract = _load_json_object(run_dir / "model_validity_contract.json", "model_validity_contract.json")
+            validity_report = _load_json_object(run_dir / "model_validity_report.json", "model_validity_report.json")
+            validity_errors = validate_model_validity_contract(validity_contract)
+            validity_errors.extend(
+                validate_model_validity_report(
+                    validity_report,
+                    validity_contract,
+                    contract_path=run_dir / "model_validity_contract.json",
+                )
+            )
+            if validity_errors:
+                raise ValueError("v2.1 模型有效性检查失败：" + "；".join(validity_errors))
+            contract_refs = validity_contract.get("assertion_refs", [])
+            runtime_manifest = _load_json_object(run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json")
+            assertion_errors = validate_assertion_refs(
+                contract_refs,
+                runtime_pack_text=(run_dir / "runtime_pack.md").read_text(encoding="utf-8"),
+                runtime_manifest=runtime_manifest,
+            )
+            if assertion_errors:
+                raise ValueError("公开/封存断言隔离失败：" + "；".join(assertion_errors))
+            for matlab_name in ("matlab_level_a_report.json", "matlab_level_b_report.json"):
+                matlab_report = _load_json_object(run_dir / matlab_name, matlab_name)
+                _validate_json_schema(matlab_report, "schemas/matlab_recomputation_report.schema.json", matlab_name)
+                matlab_errors = validate_matlab_recomputation(matlab_report)
+                if matlab_errors:
+                    raise ValueError(f"{matlab_name} 复算合同失败：" + "；".join(matlab_errors))
+            binding = _load_json_object(run_dir / "formal_result_run_binding.json", "formal_result_run_binding.json")
+            if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+                formal_summary = _verify_required_formal_result(run_dir)
+                binding_errors = validate_formal_result_run_binding(
+                    binding,
+                    run_dir=run_dir,
+                    run_manifest=run_manifest,
+                    formal_result_summary=formal_summary,
+                )
+                if binding_errors:
+                    raise ValueError("Formal Result 当前运行绑定失败：" + "；".join(binding_errors))
+            assessment = _load_json_object(run_dir / "competition_value_assessment.json", "competition_value_assessment.json")
+            assessment_errors = validate_competition_value_assessment(assessment)
+            if assessment_errors:
+                raise ValueError("竞赛价值审查失败：" + "；".join(assessment_errors))
+            admission = _load_json_object(run_dir / "paper_admission_report.json", "paper_admission_report.json")
+            _validate_json_schema(admission, "schemas/paper_admission_report.schema.json", "paper_admission_report.json")
+            findings = list(admission.get("blocking_findings", []))
+            for code in validity_report.get("fatal_codes", []):
+                if not any(item.get("code") == code for item in findings):
+                    findings.append({"code": code, "severity": "fatal", "resolved": False, "note": "模型有效性报告中的致命代码"})
+            independence = _load_json_object(run_dir / "validator_independence_manifest.json", "validator_independence_manifest.json")
+            if independence.get("f5_status") == "fail" and not any(item.get("code") == "F5" for item in findings):
+                findings.append({"code": "F5", "severity": "fatal", "resolved": False, "note": "Validator 非独立"})
+            expected_admission = evaluate_paper_admission(
+                implementation_status="pass" if executable_evidence["mathematical_validation"] == "passed" else "fail",
+                model_validity_status="pass" if validity_report.get("execution_status") == "passed" and not validity_report.get("fatal_codes") else "fail",
+                competition_score=float(assessment["score"]),
+                competition_status=str(assessment["status"]),
+                findings=findings,
+                reviewer_ref={"path": "competition_value_assessment.json", "sha256": sha256_bytes((run_dir / "competition_value_assessment.json").read_bytes())},
+                baseline_improvement_supported=bool(assessment["baseline_improvement_supported"]),
+                operational_value_supported=bool(assessment["operational_value_supported"]),
+            )
+            for field in ("implementation_correctness", "model_validity", "competition_value", "blocking_findings", "admission_status", "technical_report_allowed", "submission_paper_allowed"):
+                if admission.get(field) != expected_admission.get(field):
+                    raise ValueError(f"paper_admission_report.{field} 不是由 Gate 3 工件重新计算的结果")
+    if gate == 2 and _is_v21_run(run_dir):
+        independence = _load_json_object(run_dir / "validator_independence_manifest.json", "validator_independence_manifest.json")
+        independence_errors = validate_validator_independence(independence)
+        if independence_errors:
+            raise ValueError("Validator 独立性检查失败：" + "；".join(independence_errors))
+        contract = _load_json_object(run_dir / "model_validity_contract.json", "model_validity_contract.json")
+        runtime_manifest = _load_json_object(run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json")
+        assertion_errors = validate_assertion_refs(
+            contract.get("assertion_refs", []),
+            runtime_pack_text=(run_dir / "runtime_pack.md").read_text(encoding="utf-8"),
+            runtime_manifest=runtime_manifest,
+        )
+        if assertion_errors:
+            raise ValueError("Executor 断言隔离失败：" + "；".join(assertion_errors))
     if gate == 4:
         result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
         result_manifest = _load_json_object(
@@ -1811,6 +2098,44 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         )
         if claim_errors:
             raise ValueError("Gate 4 Claim-Result 检查失败：" + "；".join(claim_errors))
+        if _is_v21_run(run_dir):
+            production = _load_json_object(run_dir / "paper_production_manifest.json", "paper_production_manifest.json")
+            _validate_json_schema(production, "schemas/paper_production_manifest.schema.json", "paper_production_manifest.json")
+            admission = _load_json_object(run_dir / "paper_admission_report.json", "paper_admission_report.json")
+            production_errors = validate_paper_production_manifest(production, run_dir=run_dir, admission=admission)
+            if production_errors:
+                raise ValueError("论文生产清单检查失败：" + "；".join(production_errors))
+            reviewers = [
+                _load_json_object(run_dir / name, name)
+                for name in ("reviewer_a_round1.json", "reviewer_b_round1.json", "reviewer_a_round2.json", "reviewer_b_round2.json")
+            ]
+            for reviewer in reviewers:
+                reviewer_errors = validate_reviewer_report(reviewer)
+                if reviewer_errors:
+                    raise ValueError("审稿报告合同失败：" + "；".join(reviewer_errors))
+            for left, right in ((reviewers[0], reviewers[1]), (reviewers[2], reviewers[3])):
+                pair_errors = validate_reviewer_pair(left, right, run_dir=run_dir)
+                if pair_errors:
+                    raise ValueError("Reviewer 隔离检查失败：" + "；".join(pair_errors))
+            if any(item.get("review_round") != 1 for item in reviewers[:2]) or any(item.get("review_round") != 2 for item in reviewers[2:]):
+                raise ValueError("Reviewer 报告轮次不符合两轮协议")
+    if gate == 5 and _is_v21_run(run_dir):
+        score = _load_json_object(run_dir / "score_v2.json", "score_v2.json")
+        _validate_json_schema(score, "schemas/score_v2.schema.json", "score_v2.json")
+        expected_score = compute_score_v2(
+            float(score["diagnosis_structure_score"]),
+            float(score["model_quality_score"]),
+            float(score["result_quality_score"]),
+            float(score["paper_presentation_score"]),
+            fatal_codes=list(score.get("fatal_codes", [])),
+            unresolved_major=bool(score.get("unresolved_major")),
+        )
+        if abs(float(score["technical_merit"]) - expected_score["technical_merit"]) > 1e-9:
+            raise ValueError("score_v2.technical_merit 与公式不一致")
+        if abs(float(score["competition_submission_score"]) - expected_score["competition_submission_score"]) > 1e-9:
+            raise ValueError("score_v2.competition_submission_score 与公式不一致")
+        if score["competition_submission_status"] != expected_score["competition_submission_status"]:
+            raise ValueError("score_v2.competition_submission_status 与阻断规则不一致")
     return manifest
 
 
@@ -1871,7 +2196,9 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
 
     review, review_sha = _load_and_validate_gate_5_review(run_dir, reviewer)
     if state.get("transition_version") == TRANSITION_VERSION:
-        verify_gate_artifacts(run_dir, 5)
+        # Gate 5 封存前重验全部 Gate，避免 Gate 4 论文/Reviewer 工件在推进后被篡改。
+        for gate in range(6):
+            verify_gate_artifacts(run_dir, gate)
         entry = {
             "transition_version": TRANSITION_VERSION,
             "completed_gate": 5,
@@ -2155,6 +2482,8 @@ def _prepare_fork_child(
         target_patch=None,
         workflow="new_problem",
         mode=parent_manifest.get("mode", "standard"),
+        # Fork 必须继承父 Run 的合同版本，避免 v2.1 父 Run 降级为历史合同。
+        v21=(parent_manifest.get("runtime_manifest_version") == V21_RUNTIME_MANIFEST_VERSION),
     )
     child_run, ready = create_new_problem_run(args)
     if not ready:
@@ -2729,7 +3058,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
             if evidence.get("run_id") != manifest.get("run_id"):
                 evidence_errors.append("run_evidence_manifest.run_id 与 run_manifest 不一致")
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
         evidence_errors.append(str(exc))
     verified_gates: list[int] = []
     for gate in state.get("completed_gates", []):
@@ -2833,6 +3162,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "default_deny_host_reads_verified": False,
         "privacy_mode_available": None,
     }
+    if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_LEGACY:
+        formal_result_activation_status = "code_complete_candidate"
+        formal_scope["formal_result_eligibility_scope"] = "trusted_local"
     if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         try:
             formal_summary = _verify_required_formal_result(run_dir)
@@ -2938,6 +3270,11 @@ def parse_args() -> argparse.Namespace:
     fork.add_argument("--reason", required=True)
     fork.add_argument("--transaction-id")
     fork.add_argument("--resume", action="store_true")
+    matlab = commands.add_parser("matlab-recompute", help="执行 MATLAB Level A/B 独立复算")
+    matlab.add_argument("--run-dir", required=True)
+    matlab.add_argument("--level", required=True, choices=["A", "B"])
+    matlab.add_argument("--input", required=True)
+    matlab.add_argument("--output")
     return parser.parse_args()
 
 
@@ -2952,6 +3289,8 @@ def main() -> None:
             if args.workflow == "new_problem" and not args.materials:
                 raise ValueError("new_problem 必须显式提供 --materials")
             args.gates = "0-5"
+            # CLI 新建运行固定采用 v2.1；直接调用 create_* API 仍保留历史兼容语义。
+            args.v21 = True
             if args.workflow == "new_problem":
                 run_dir, material_ready = create_new_problem_run(args)
             else:
@@ -2978,6 +3317,12 @@ def main() -> None:
                 transaction_id=args.transaction_id,
                 resume=args.resume,
             )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "matlab-recompute":
+            from run_matlab_recomputation import run_recomputation
+
+            output = Path(args.output) if args.output else Path(args.run_dir) / f"matlab_level_{args.level.lower()}_report.json"
+            result = run_recomputation(Path(args.run_dir), Path(args.input), output, args.level)
             print(json.dumps(result, ensure_ascii=False, indent=2))
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"[BLOCKED] {exc}", file=sys.stderr)

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/validator_independence_manifest.schema.json",
+  "title": "Validator 独立性清单",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "validator_id", "raw_input_origin", "reads_primary_intermediates", "reads_primary_metrics", "reads_primary_decision_vector", "reconstructs_coefficients_independently", "shared_source_modules", "independent_formula_implementation", "validation_scope", "f5_status"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "validator_independence_manifest"},
+    "run_id": {"type": "string", "minLength": 1},
+    "validator_id": {"type": "string", "minLength": 1},
+    "raw_input_origin": {"type": "string", "minLength": 1},
+    "reads_primary_intermediates": {"type": "boolean"},
+    "reads_primary_metrics": {"type": "boolean"},
+    "reads_primary_decision_vector": {"type": "boolean"},
+    "reconstructs_coefficients_independently": {"type": "boolean"},
+    "shared_source_modules": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "independent_formula_implementation": {"type": "boolean"},
+    "validation_scope": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "f5_status": {"enum": ["pass", "fail", "not_assessed"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  }
+}

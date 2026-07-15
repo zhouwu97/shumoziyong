@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_production_manifest.schema.json",
+  "title": "正式论文生产清单",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "paper_type", "paper_admission_ref", "one_sentence_argument", "terminology_ledger_ref", "claim_map_ref", "manuscript_ref", "pdf_ref", "figure_backend", "figures", "matlab_evidence_refs", "missing_evidence_placeholders", "status"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_production_manifest"},
+    "run_id": {"type": "string", "minLength": 1},
+    "paper_type": {"enum": ["technical_report", "submission_paper"]},
+    "paper_admission_ref": {"$ref": "#/$defs/ref"},
+    "one_sentence_argument": {"type": "string", "minLength": 20},
+    "terminology_ledger_ref": {"$ref": "#/$defs/ref"},
+    "claim_map_ref": {"$ref": "#/$defs/ref"},
+    "manuscript_ref": {"$ref": "#/$defs/ref"},
+    "pdf_ref": {"$ref": "#/$defs/ref"},
+    "figure_backend": {"const": "python"},
+    "figures": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["figure_id", "core_conclusion", "evidence_chain", "archetype", "source_data_ref", "script_ref", "exports", "qa_ref"], "properties": {"figure_id": {"type": "string", "minLength": 1}, "core_conclusion": {"type": "string", "minLength": 10}, "evidence_chain": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "archetype": {"enum": ["quantitative_grid", "schematic_led_composite", "image_plate_quant", "asymmetric_mixed_modality"]}, "source_data_ref": {"$ref": "#/$defs/ref"}, "source_data_attestation_ref": {"$ref": "#/$defs/ref"}, "script_ref": {"$ref": "#/$defs/ref"}, "qa_ref": {"$ref": "#/$defs/ref"}, "exports": {"type": "object", "additionalProperties": false, "required": ["svg", "pdf", "tiff"], "properties": {"svg": {"$ref": "#/$defs/ref"}, "pdf": {"$ref": "#/$defs/ref"}, "tiff": {"$ref": "#/$defs/ref"}}}}}},
+    "matlab_evidence_refs": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/ref"}},
+    "missing_evidence_placeholders": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "status": {"enum": ["candidate", "reviewed", "accepted"]}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}}}}
+}

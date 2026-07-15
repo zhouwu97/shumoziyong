@@ -11,10 +11,10 @@ from .collector_policy import (
     COLLECTOR_ID,
     COLLECTOR_SCRIPT_PATH,
     DERIVATION_CONTRACT_ID,
-    TRUSTED_DOMAIN_POLICY,
     collector_script_sha256_at_commit,
     derivation_contract_sha256,
     domain_policy_sha256,
+    trusted_domain_policy,
     trusted_derivation_contract,
 )
 from .errors import FormalResultVerificationError
@@ -144,9 +144,9 @@ def verify_formal_result_derivation(
         raise FormalResultVerificationError("Collector 脚本 SHA 与 source commit 不一致")
     contract_id = str(derivation["derivation_contract_id"])
     trusted_contract = trusted_derivation_contract(contract_id)
-    if derivation["derivation_contract_sha256"] != derivation_contract_sha256():
+    if derivation["derivation_contract_sha256"] != derivation_contract_sha256(contract_id):
         raise FormalResultVerificationError("派生合同 SHA 未绑定受信合同")
-    if derivation["domain_policy_sha256"] != domain_policy_sha256():
+    if derivation["domain_policy_sha256"] != domain_policy_sha256(contract_id):
         raise FormalResultVerificationError("Domain policy SHA 未绑定受信策略")
     contract = payload["result_derivation_contract"]
     if derivation["result_derivation_contract"] != contract:
@@ -154,18 +154,19 @@ def verify_formal_result_derivation(
     if contract != trusted_contract:
         raise FormalResultVerificationError("产物自带派生合同不等于受信工程合同")
     raw = _trusted_raw_output(run_root, contract, output_manifest)
-    if raw.get("solver_status") not in TRUSTED_DOMAIN_POLICY["allowed_solver_statuses"]:
+    domain_policy = trusted_domain_policy(contract_id)
+    if raw.get("solver_status") not in domain_policy["allowed_solver_statuses"]:
         raise FormalResultVerificationError("raw output solver_status 未被 Domain policy 批准")
-    if raw.get("negative_tests_status") != TRUSTED_DOMAIN_POLICY[
+    if raw.get("negative_tests_status") != domain_policy[
         "required_negative_test_status"
     ]:
         raise FormalResultVerificationError("raw output 未证明负控整体通过")
     negative_tests = raw.get("negative_tests")
     if not isinstance(negative_tests, list) or [
         item.get("test_id") for item in negative_tests if isinstance(item, Mapping)
-    ] != TRUSTED_DOMAIN_POLICY["required_negative_tests"] or any(
+    ] != domain_policy["required_negative_tests"] or any(
         not isinstance(item, Mapping)
-        or item.get("status") != TRUSTED_DOMAIN_POLICY["required_negative_test_status"]
+        or item.get("status") != domain_policy["required_negative_test_status"]
         for item in negative_tests
     ):
         raise FormalResultVerificationError("raw output 未按固定 Domain policy 提供负控证据")

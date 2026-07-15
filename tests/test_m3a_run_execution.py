@@ -18,6 +18,13 @@ from formal_result.errors import FormalResultVerificationError
 from formal_result.derivation import verify_formal_result_derivation
 from formal_result.execution_contract import compile_execution_command
 from formal_result.hashing import file_sha256
+from formal_result.collector_policy import (
+    RGV_2018B_DERIVATION_CONTRACT_ID,
+    derivation_contract_sha256,
+    domain_policy_sha256,
+    trusted_derivation_contract,
+    trusted_domain_policy,
+)
 from formal_result.run_execution_attestation import (
     validate_cleanup_record,
     validate_execution_time_window,
@@ -31,6 +38,20 @@ import run_in_verified_sandbox as sandbox_runner
 
 FIXTURE = ROOT / "tests" / "fixtures" / "m3a_verified_run"
 FORMAL_RESULT_ID = "formal-m3a-fixture-001"
+
+
+def test_2018b_derivation_contract_is_registered_without_replacing_default() -> None:
+    contract = trusted_derivation_contract(RGV_2018B_DERIVATION_CONTRACT_ID)
+    policy = trusted_domain_policy(RGV_2018B_DERIVATION_CONTRACT_ID)
+
+    assert contract["raw_output_path"] == "result.json"
+    assert any(
+        item["source_pointer"] == "/scenario_decisions"
+        for item in contract["mappings"]
+    )
+    assert policy["allowed_solver_statuses"] == ["feasible"]
+    assert len(derivation_contract_sha256(RGV_2018B_DERIVATION_CONTRACT_ID)) == 64
+    assert len(domain_policy_sha256(RGV_2018B_DERIVATION_CONTRACT_ID)) == 64
 
 
 def _copy(tmp_path: Path) -> Path:

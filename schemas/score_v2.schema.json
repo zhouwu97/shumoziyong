@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/score_v2.schema.json",
+  "title": "竞赛评分 v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "diagnosis_structure_score", "model_quality_score", "result_quality_score", "paper_presentation_score", "technical_merit", "competition_submission_score", "competition_submission_status", "fatal_codes", "unresolved_major"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "artifact_type": {"const": "score_v2"},
+    "run_id": {"type": "string", "minLength": 1},
+    "diagnosis_structure_score": {"$ref": "#/$defs/score"},
+    "model_quality_score": {"$ref": "#/$defs/score"},
+    "result_quality_score": {"$ref": "#/$defs/score"},
+    "paper_presentation_score": {"$ref": "#/$defs/score"},
+    "technical_merit": {"$ref": "#/$defs/score"},
+    "competition_submission_score": {"$ref": "#/$defs/score"},
+    "competition_submission_status": {"enum": ["eligible", "not_eligible"]},
+    "fatal_codes": {"type": "array", "items": {"type": "string", "pattern": "^F[1-5]$"}},
+    "unresolved_major": {"type": "boolean"}
+  },
+  "$defs": {"score": {"type": "number", "minimum": 0, "maximum": 100}}
+}

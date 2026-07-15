@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/model_validity_contract.schema.json",
+  "title": "Gate 1 模型有效性合同",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "contract_status", "data_generation", "variables", "parameters", "formulas", "parameter_estimation_plan", "small_examples", "limit_cases", "expected_monotonicity", "falsification_conditions", "alternative_models", "claim_scope", "assertion_refs"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "model_validity_contract"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "contract_status": {"const": "planned"},
+    "data_generation": {"type": "object", "additionalProperties": false, "required": ["mechanism", "sources", "scope"], "properties": {"mechanism": {"type": "string", "minLength": 10}, "sources": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "scope": {"type": "string", "minLength": 10}}},
+    "variables": {"$ref": "#/$defs/namedItems"},
+    "parameters": {"$ref": "#/$defs/namedItems"},
+    "formulas": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["formula_id", "expression", "symbols", "expected_units"], "properties": {"formula_id": {"type": "string", "minLength": 1}, "expression": {"type": "string", "minLength": 1}, "symbols": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "expected_units": {"type": "string", "minLength": 1}}}},
+    "parameter_estimation_plan": {"type": "object", "additionalProperties": false, "required": ["method", "identifiability", "stability_test"], "properties": {"method": {"type": "string", "minLength": 10}, "identifiability": {"type": "string", "minLength": 10}, "stability_test": {"type": "string", "minLength": 10}}},
+    "small_examples": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/testCase"}},
+    "limit_cases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/testCase"}},
+    "expected_monotonicity": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["quantity", "direction", "condition"], "properties": {"quantity": {"type": "string", "minLength": 1}, "direction": {"enum": ["increasing", "decreasing", "non_monotone"]}, "condition": {"type": "string", "minLength": 5}}}},
+    "falsification_conditions": {"$ref": "#/$defs/nonEmptyStrings"},
+    "alternative_models": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["name", "comparison_plan"], "properties": {"name": {"type": "string", "minLength": 1}, "comparison_plan": {"type": "string", "minLength": 10}}}},
+    "claim_scope": {"type": "object", "additionalProperties": false, "required": ["allowed", "forbidden"], "properties": {"allowed": {"$ref": "#/$defs/nonEmptyStrings"}, "forbidden": {"$ref": "#/$defs/nonEmptyStrings"}}},
+    "assertion_refs": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["assertion_set_id", "layer", "path", "sha256", "sealed", "blind_evidence"], "properties": {"assertion_set_id": {"type": "string", "minLength": 1}, "layer": {"enum": ["public", "sealed"]}, "path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}, "sealed": {"type": "boolean"}, "blind_evidence": {"type": "boolean"}}}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "nonEmptyStrings": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "namedItems": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["name", "definition", "unit", "source"], "properties": {"name": {"type": "string", "minLength": 1}, "definition": {"type": "string", "minLength": 1}, "unit": {"type": ["string", "null"]}, "source": {"type": ["string", "null"]}}}},
+    "testCase": {"type": "object", "additionalProperties": false, "required": ["case_id", "description", "expected_behavior", "execution_ref"], "properties": {"case_id": {"type": "string", "minLength": 1}, "description": {"type": "string", "minLength": 10}, "expected_behavior": {"type": "string", "minLength": 10}, "execution_ref": {"type": "string", "minLength": 1}}}
+  }
+}

@@ -26,10 +26,11 @@ from formal_result.collector_policy import (
     COLLECTOR_ID,
     COLLECTOR_SCRIPT_PATH,
     DERIVATION_CONTRACT_ID,
-    TRUSTED_DERIVATION_CONTRACT,
+    RGV_2018B_DERIVATION_CONTRACT_ID,
     bound_collector_source_commit,
     derivation_contract_sha256,
     domain_policy_sha256,
+    trusted_derivation_contract,
 )
 from formal_result.derivation import (
     DERIVATION_ATTESTATION_FILENAME,
@@ -362,36 +363,70 @@ def _derive_formal_result(
     collector_source_commit: str,
     collector_script_sha256: str,
 ) -> dict[str, Any]:
-    """按固定 JSON Pointer 合同从 raw result 生成最小工程优化 Formal core。"""
+    """按登记的 JSON Pointer 合同从 raw result 生成工程优化 Formal core。"""
     raw_path = run_dir / "workspace" / "output" / "result.json"
     raw = _load(raw_path)
-    objective = raw.get("objective")
-    if not isinstance(objective, (int, float)) or isinstance(objective, bool):
-        raise RuntimeError("Fixture raw result 缺少数值 objective，无法派生 Formal Result")
+    contract_id = str(raw.get("derivation_contract_id", DERIVATION_CONTRACT_ID))
+    contract = trusted_derivation_contract(contract_id)
     formal = run_dir / "formal_results" / formal_result_id
     decision_path = formal / "decision_variables.json"
     decision = _load(decision_path)
-    decision["payload"] = {"x": objective}
-    _write(decision_path, decision)
     validation_path = formal / "optimization_validation.json"
     validation = _load(validation_path)
-    validation["bindings"] = {"decision_variables.json": semantic_sha256(decision)}
-    validation["payload"]["metrics"]["objective"] = objective
-    _write(validation_path, validation)
     certificate_path = formal / "optimality_certificate.json"
     certificate = _load(certificate_path)
-    certificate["bindings"] = {"optimization_validation.json": semantic_sha256(validation)}
-    certificate["status"] = raw.get("solver_status")
-    certificate["payload"]["solver_status"] = raw.get("solver_status")
-    certificate["payload"]["raw_output_sha256"] = file_sha256(raw_path)
-    _write(certificate_path, certificate)
     negative_path = formal / "negative_tests.json"
     negative = _load(negative_path)
-    negative["status"] = raw.get("negative_tests_status")
-    negative["payload"]["results"] = raw.get("negative_tests")
+
+    if contract_id == RGV_2018B_DERIVATION_CONTRACT_ID:
+        scenario_decisions = raw.get("scenario_decisions")
+        policy_scope = raw.get("policy_scope")
+        metrics = raw.get("validation_metrics")
+        invariant_checks = raw.get("invariant_checks")
+        negative_tests = raw.get("negative_tests")
+        if not isinstance(scenario_decisions, list) or not scenario_decisions:
+            raise RuntimeError("2018-B raw result 缺少逐场景决策")
+        if not isinstance(policy_scope, dict) or not isinstance(metrics, dict):
+            raise RuntimeError("2018-B raw result 缺少策略范围或验证指标")
+        if not isinstance(invariant_checks, dict) or not invariant_checks:
+            raise RuntimeError("2018-B raw result 缺少领域不变量")
+        if not isinstance(negative_tests, list) or not negative_tests:
+            raise RuntimeError("2018-B raw result 缺少负控结果")
+        decision["payload"] = {
+            "scenario_decisions": scenario_decisions,
+            "policy_scope": policy_scope,
+        }
+        validation["payload"] = {
+            "metrics": metrics,
+            "invariant_checks": invariant_checks,
+        }
+        certificate["status"] = raw.get("solver_status")
+        certificate["payload"] = {
+            "solver_status": raw.get("solver_status"),
+            "claim_scope": raw.get("claim_scope"),
+            "raw_output_sha256": file_sha256(raw_path),
+        }
+        negative["status"] = raw.get("negative_tests_status")
+        negative["payload"] = {"results": negative_tests}
+    else:
+        objective = raw.get("objective")
+        if not isinstance(objective, (int, float)) or isinstance(objective, bool):
+            raise RuntimeError("Fixture raw result 缺少数值 objective，无法派生 Formal Result")
+        decision["payload"] = {"x": objective}
+        validation["payload"]["metrics"]["objective"] = objective
+        certificate["status"] = raw.get("solver_status")
+        certificate["payload"]["solver_status"] = raw.get("solver_status")
+        certificate["payload"]["raw_output_sha256"] = file_sha256(raw_path)
+        negative["status"] = raw.get("negative_tests_status")
+        negative["payload"]["results"] = raw.get("negative_tests")
+
+    _write(decision_path, decision)
+    validation["bindings"] = {"decision_variables.json": semantic_sha256(decision)}
+    _write(validation_path, validation)
+    certificate["bindings"] = {"optimization_validation.json": semantic_sha256(validation)}
+    _write(certificate_path, certificate)
     _write(negative_path, negative)
 
-    contract = TRUSTED_DERIVATION_CONTRACT
     hashes = core_semantic_hashes(formal)
     core_digest = semantic_sha256(hashes)
     output_sha = file_sha256(run_dir / OUTPUT_MANIFEST_FILENAME)
@@ -409,9 +444,9 @@ def _derive_formal_result(
         "collector_source_commit": collector_source_commit,
         "collector_script_path": COLLECTOR_SCRIPT_PATH,
         "collector_script_sha256": collector_script_sha256,
-        "derivation_contract_id": DERIVATION_CONTRACT_ID,
-        "derivation_contract_sha256": derivation_contract_sha256(),
-        "domain_policy_sha256": domain_policy_sha256(),
+        "derivation_contract_id": contract_id,
+        "derivation_contract_sha256": derivation_contract_sha256(contract_id),
+        "domain_policy_sha256": domain_policy_sha256(contract_id),
         "derived_at": derived_at,
     }
     _write(run_dir / DERIVATION_ATTESTATION_FILENAME, derivation)

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_run_binding.schema.json",
+  "title": "v2.1 Formal Result 当前运行绑定",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_manifest_sha256", "execution_spec_sha256", "source_manifest_sha256", "execution_started_at", "created_at", "activation_status", "formal_result_ref"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "formal_result_run_binding"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_manifest_sha256": {"$ref": "#/$defs/sha"},
+    "execution_spec_sha256": {"$ref": "#/$defs/sha"},
+    "source_manifest_sha256": {"$ref": "#/$defs/sha"},
+    "execution_started_at": {"type": "string", "format": "date-time"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "activation_status": {"const": "active"},
+    "formal_result_ref": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha"}}
+    },
+    "notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {"sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

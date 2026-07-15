@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/matlab_recomputation_report.schema.json",
+  "title": "MATLAB 独立复算报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "backend", "level", "independent_from_python", "official_input_refs", "python_result_ref", "checks", "tolerances", "status", "full_model_solved"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "matlab_recomputation"},
+    "run_id": {"type": "string", "minLength": 1},
+    "backend": {"const": "matlab"},
+    "level": {"enum": ["A", "B", "C"]},
+    "independent_from_python": {"const": true},
+    "official_input_refs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/ref"}},
+    "python_result_ref": {"$ref": "#/$defs/ref"},
+    "checks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["name", "python_value", "matlab_value", "absolute_difference", "tolerance", "passed"], "properties": {"name": {"type": "string", "minLength": 1}, "python_value": {"type": ["number", "string", "boolean"]}, "matlab_value": {"type": ["number", "string", "boolean"]}, "absolute_difference": {"type": "number", "minimum": 0}, "tolerance": {"type": "number", "minimum": 0}, "passed": {"type": "boolean"}}}},
+    "tolerances": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number", "minimum": 0}},
+    "small_example_ids": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "status": {"enum": ["passed", "failed", "partial"]},
+    "full_model_solved": {"type": "boolean"},
+    "matlab_version": {"type": "string", "minLength": 1},
+    "script_ref": {"$ref": "#/$defs/ref"}
+  },
+  "allOf": [
+    {"if": {"properties": {"level": {"const": "B"}}, "required": ["level"]}, "then": {"required": ["small_example_ids"], "properties": {"small_example_ids": {"minItems": 1}}}},
+    {"if": {"properties": {"level": {"const": "A"}}, "required": ["level"]}, "then": {"properties": {"full_model_solved": {"const": false}}}}
+  ],
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}}}}
+}

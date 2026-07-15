@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/model_route_v2_1.schema.json",
+  "title": "Gate 1 模型路线 v2.1",
+  "description": "不覆盖历史 v2 合同的模型路线合同；有效性计划与执行结果分离。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "subproblems", "human_decisions_required", "model_validity_contract_ref"],
+  "properties": {
+    "schema_version": {"const": "2.1.0"},
+    "artifact_type": {"const": "model_route_v2_1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "subproblems": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/subproblem"}},
+    "human_decisions_required": {"$ref": "#/$defs/nonEmptyStrings"},
+    "model_validity_contract_ref": {"$ref": "#/$defs/artifactRef"},
+    "validator_independence_manifest_ref": {"$ref": "#/$defs/artifactRef"},
+    "conclusion_scope": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "nonEmptyStrings": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "artifactRef": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}}},
+    "namedItem": {"type": "object", "additionalProperties": false, "required": ["name", "definition", "unit", "source"], "properties": {"name": {"type": "string", "minLength": 1}, "definition": {"type": "string", "minLength": 1}, "unit": {"type": ["string", "null"]}, "source": {"type": ["string", "null"]}}},
+    "model": {"type": "object", "additionalProperties": false, "required": ["name", "rationale"], "properties": {"name": {"type": "string", "minLength": 1}, "rationale": {"type": "string", "minLength": 10}, "implementation_notes": {"type": "array", "items": {"type": "string", "minLength": 1}}}},
+    "subproblem": {"type": "object", "additionalProperties": false, "required": ["subproblem_id", "task_type", "inputs", "outputs", "variables", "parameters", "objectives", "constraints", "assumptions", "baseline_model", "selected_model", "alternatives_rejected", "validation_requirements", "uncertainty_plan", "failure_conditions"], "properties": {"subproblem_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"}, "task_type": {"type": "string", "minLength": 1}, "inputs": {"type": "array", "items": {"$ref": "#/$defs/namedItem"}}, "outputs": {"type": "array", "items": {"$ref": "#/$defs/namedItem"}}, "variables": {"type": "array", "items": {"$ref": "#/$defs/namedItem"}}, "parameters": {"type": "array", "items": {"$ref": "#/$defs/namedItem"}}, "objectives": {"$ref": "#/$defs/nonEmptyStrings"}, "constraints": {"$ref": "#/$defs/nonEmptyStrings"}, "assumptions": {"$ref": "#/$defs/nonEmptyStrings"}, "baseline_model": {"$ref": "#/$defs/model"}, "selected_model": {"$ref": "#/$defs/model"}, "alternatives_rejected": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "rejection_reason"], "properties": {"name": {"type": "string", "minLength": 1}, "rejection_reason": {"type": "string", "minLength": 10}}}}, "validation_requirements": {"$ref": "#/$defs/nonEmptyStrings"}, "uncertainty_plan": {"$ref": "#/$defs/nonEmptyStrings"}, "failure_conditions": {"$ref": "#/$defs/nonEmptyStrings"}}}
+  }
+}

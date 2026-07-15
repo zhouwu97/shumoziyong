@@ -89,7 +89,20 @@
               "result_report",
               "result_manifest",
               "paper_claim_map",
-              "gate_5_review"
+              "gate_5_review",
+              "model_route_v2_1",
+              "model_validity_contract",
+              "validator_independence_manifest",
+              "execution_spec",
+              "model_validity_report",
+              "paper_admission_report",
+              "matlab_recomputation",
+              "paper_production_manifest",
+              "reviewer_report",
+              "score_v2"
+              ,"paper_claim_map_v2"
+              ,"formal_result_run_binding"
+              ,"competition_value_assessment"
             ]
           },
           "schema": {"type": "string", "pattern": "^schemas/[A-Za-z0-9_.-]+\\.json$"},

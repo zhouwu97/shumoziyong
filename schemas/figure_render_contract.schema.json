@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/figure_render_contract.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "figure_id", "core_conclusion", "evidence_chain", "archetype", "source_data_ref", "x", "y", "chart_type"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "figure_id": {"type": "string", "minLength": 1},
+    "core_conclusion": {"type": "string", "minLength": 10},
+    "evidence_chain": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "archetype": {"enum": ["quantitative_grid", "schematic_led_composite", "image_plate_quant", "asymmetric_mixed_modality"]},
+    "source_data_ref": {"$ref": "#/defs/ref"},
+    "source_data_attestation_ref": {"$ref": "#/defs/ref"},
+    "x": {"type": "string", "minLength": 1},
+    "y": {"type": "string", "minLength": 1},
+    "chart_type": {"enum": ["line", "bar", "scatter"]},
+    "title": {"type": "string"},
+    "xlabel": {"type": "string"},
+    "ylabel": {"type": "string"},
+    "output_dir": {"type": "string"}
+  },
+  "defs": {
+    "ref": {
+      "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+      "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+    }
+  }
+}

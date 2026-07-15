@@ -35,6 +35,15 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
 MATURITIES = {"draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"}
 PROFILE_IDS = {"general", "engineering_optimization", "prediction", "evaluation", "simulation"}
+REPOSITORY_SCAN_EXCLUDED_PARTS = {
+    ".git",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "node_modules",
+    "tmp",
+}
+REPOSITORY_SCAN_EXCLUDED_ROOTS = {"runs", "output", "logs"}
 
 
 class RepositoryValidator:
@@ -95,7 +104,11 @@ class RepositoryValidator:
     def validate_all_json_syntax(self) -> None:
         broken = 0
         for path in sorted(ROOT.rglob("*.json")):
-            if ".git" in path.parts:
+            relative = path.relative_to(ROOT)
+            if (
+                (relative.parts and relative.parts[0] in REPOSITORY_SCAN_EXCLUDED_ROOTS)
+                or any(part in REPOSITORY_SCAN_EXCLUDED_PARTS for part in relative.parts)
+            ):
                 continue
             try:
                 json.loads(path.read_text(encoding="utf-8"))
@@ -1361,7 +1374,14 @@ class RepositoryValidator:
         link_pattern = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
         missing: list[str] = []
         for path in sorted(ROOT.rglob("*.md")):
-            if any(part in {".git", "export"} for part in path.parts):
+            relative = path.relative_to(ROOT)
+            if (
+                (relative.parts and relative.parts[0] in REPOSITORY_SCAN_EXCLUDED_ROOTS)
+                or any(
+                    part in REPOSITORY_SCAN_EXCLUDED_PARTS | {"export"}
+                    for part in relative.parts
+                )
+            ):
                 continue
             text = path.read_text(encoding="utf-8")
             for target in link_pattern.findall(text):
@@ -1486,6 +1506,12 @@ class RepositoryValidator:
             "gate_3_execution_attestation.schema.json",
             "gate_3_input_manifest.schema.json",
             "gate_3_validator_contract.schema.json",
+            "engine_lock.schema.json",
+            "workspace.schema.json",
+            "next_task.schema.json",
+            "workflow_spec.schema.json",
+            "review_outcome.schema.json",
+            "remediation_evidence.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_admission_report.schema.json",
+  "title": "Gate 3 到 Gate 4 论文准入报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "implementation_correctness", "model_validity", "competition_value", "blocking_findings", "admission_status", "technical_report_allowed", "submission_paper_allowed"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_admission_report"},
+    "run_id": {"type": "string", "minLength": 1},
+    "implementation_correctness": {"$ref": "#/$defs/status"},
+    "model_validity": {"$ref": "#/$defs/status"},
+    "competition_value": {"type": "object", "additionalProperties": false, "required": ["score", "status", "reviewer_required", "reviewer_ref", "baseline_improvement_supported", "operational_value_supported"], "properties": {"score": {"type": "number", "minimum": 0, "maximum": 100}, "status": {"enum": ["pass", "fail", "pending"]}, "reviewer_required": {"const": true}, "reviewer_ref": {"$ref": "#/$defs/ref"}, "baseline_improvement_supported": {"type": "boolean"}, "operational_value_supported": {"type": "boolean"}}},
+    "blocking_findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["code", "severity", "resolved"], "properties": {"code": {"type": "string", "minLength": 1}, "severity": {"enum": ["fatal", "major", "minor", "editorial"]}, "resolved": {"type": "boolean"}, "note": {"type": "string"}}}},
+    "admission_status": {"enum": ["admitted", "blocked"]},
+    "technical_report_allowed": {"type": "boolean"},
+    "submission_paper_allowed": {"type": "boolean"},
+    "generated_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {"status": {"type": "object", "additionalProperties": false, "required": ["status"], "properties": {"status": {"enum": ["pass", "fail", "pending"]}, "fatal_codes": {"type": "array", "items": {"type": "string", "pattern": "^F[1-5]$"}}}}, "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}}
+}
