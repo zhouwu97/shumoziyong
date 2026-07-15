@@ -1,29 +1,37 @@
 # 数学建模 AI 协作、执行与验证系统
 
-这个仓库用于构建面向数学建模竞赛的 AI 协作、执行与验证系统。它不是提示词合集，也不让 AI 一步写完整论文；优秀论文学习、提示词分层、旧题闭环和失败复盘仍是底座，但系统目标已扩展为可执行合同、独立重跑、数值验证、证据驱动论文和盲测资格验证。
+本仓库构建面向数学建模竞赛的 AI 协作系统：由人工确认题意与建模路线，
+可替换执行器生成候选代码和结果，独立 Collector 重跑，Validator 复算，
+再以 Claim–Result Map 约束论文结论。
 
-总目标是：在未知赛题上，以人工关键决策为边界，完成题目诊断、模型设计、代码实验、结果验证、论文生成和独立评审，并以可复现的盲测证据评估其全国奖竞争力。未完成盲测与独立评审前，项目只宣称为“国奖级目标的基础设施”，不宣称已达到国奖水平。
+它不是提示词合集，也不主张让 AI 一步生成完整论文。在完成独立旧题、留出题和
+限时盲测前，项目只提供面向国奖目标的可信基础设施，不宣称已经达到国奖水平。
 
-系统愿景、分层架构、能力成熟度和分阶段实施计划分别见：
+## 项目定位
 
-- [国奖竞争力目标](docs/vision/NATIONAL_AWARD_AI_GOAL.md)
-- [系统架构](docs/architecture/SYSTEM_ARCHITECTURE.md)
-- [实施路线图](docs/roadmap/ROADMAP.md)
+- 用机器可读 Gate 合同约束诊断、执行、收集、验证和论文环节；
+- 将执行器产生的 Candidate Result 与独立验证后的 Formal Result 分离；
+- 将可复现证据、能力成熟度和论文主张绑定，而非由人工填写状态。
 
-核心目标：
+项目不替代人工的题意判断、路线选择和关键确认；也不把一次运行、一次求解器报告
+或模型内部自检当作独立的数学验证。
+
+## 核心流程
 
 ```text
-知识与规则
--> 机器可执行 Gate 合同
--> 可替换 Executor Adapter
--> 独立 Collector 与数值验证
--> 证据驱动论文与独立审稿
--> 盲测与资格评估
+题面与附件
+→ Gate 合同
+→ Executor Candidate
+→ Collector Clean Rerun
+→ Numeric / Mathematical Validator
+→ Formal Result
+→ Claim–Result Map
+→ Paper & Independent Review
 ```
 
 ## 5 分钟快速开始
 
-### 1. 安装与校验
+### 1. 安装并运行公开校验
 
 ```bash
 git clone <本仓库地址>
@@ -32,329 +40,133 @@ python -m pip install -r requirements.lock
 python scripts/validate_repository.py
 ```
 
-校验结果应以 `0 项失败` 结束。若失败，先按 `[FAIL]` 修复路径、状态或 Schema，不要继续导出比赛包。
+校验应以 `0 项失败` 结束。若失败，先按 `[FAIL]` 修复路径、状态或 Schema；不要继续
+导出运行包或把失败结果用作正式证据。
 
-### 2. 导出比赛运行包
+### 2. 导出一个新题 Runtime Pack
 
 ```bash
 python scripts/export_runtime_pack.py --context new_problem --profile general
-python scripts/check_runtime_manifest.py
 ```
 
-命令会生成：
+导出结果位于 `export/`：运行包提供给执行 AI，manifest 记录输入文件、Patch 选择和
+SHA-256。导出后可运行 `python scripts/check_runtime_manifest.py` 检查 manifest。
 
-- `export/cumcm_runtime_pack.md`：提供给执行 AI 的规则包；
-- `export/cumcm_runtime_pack.manifest.json`：记录版本、源文件、patch 选择和 SHA-256；
-- 默认包不会包含 `review_ready` patch；正式包只包含 `regression_verified` 或 `competition_evidenced` patch。
-
-### 3. 在 AI 中执行
-
-把新赛题 PDF 和附件放到比赛工作目录的 `problem/`，把运行包复制到 `rules/runtime_pack.md`。本项目不绑定具体 AI 客户端；只要该工具能读取本地文件、按阶段暂停并在确认后继续即可。
-
-第一轮发送：
-
-```text
-执行 docs/workflows/03_新题执行流.md，模式 standard。
-题面位于 problem/，规则位于 rules/runtime_pack.md。
-第一轮只输出总控诊断和人工确认项，不写代码、论文或最终答案。
-```
-
-成功标准：AI 输出题目理解、子问题拆解、数据需求、候选路线、图表计划和人工确认项，并停在 Gate 前。若 AI 越过 Gate，停止当前输出，重新附上禁止项；不要把越权生成的代码或结论计入正式结果。
-
-### 4. 初始化工作流
-
-比赛新题默认使用保守的 `general` Profile：
+### 3. 初始化一个 Run
 
 ```bash
 python scripts/run_workflow.py init --workflow new_problem --problem 2026-A --materials competition/problem
 ```
 
-正式比赛建议先准备并人工确认材料计划，再创建 Run：
-
-```bash
-python scripts/prepare_competition.py plan --problem 2026-A --materials competition/problem --output competition/material_plan.json
-# 人工逐项填写 material_plan.json 中的 confirmed_category 后执行：
-python scripts/prepare_competition.py apply --plan competition/material_plan.json --materials competition/problem --profile general --mode standard --confirm-no-solution --reviewer <审核人>
-```
-
-若 Gate 0 确认需要专项 Profile，可从尚未推进的 general Run 创建可恢复子 Run：
-
-```bash
-python scripts/run_workflow.py fork-profile --from-run runs/<GENERAL_RUN_ID> --profile engineering_optimization --reviewer <审核人> --reason "Gate 0 确认该题为工程优化题"
-```
-
-旧题回归必须显式选择专项 Profile：
-
-```bash
-python scripts/run_workflow.py init --workflow full_replay --problem 2024-C --profile engineering_optimization --materials official_materials/2024_C
-python scripts/run_workflow.py advance --run-dir runs/<run_id> --reviewer <审核人>
-python scripts/run_workflow.py complete --run-dir runs/<run_id> --reviewer <审核人>
-python scripts/run_workflow.py verify --run-dir runs/<run_id>
-```
-
-命令会在 `runs/` 下冻结材料、Profile、Patch 与 runtime pack，并按 Gate 0-5 校验业务产物。`complete` 同时封存证据，任何命令都不会自动修改 Patch 或 Profile 状态。
+这会冻结材料、Profile、Patch 与运行包。继续推进前必须由审核人按 Gate 要求确认；
+完整命令与材料计划见[比赛执行指南](docs/guides/COMPETITION_GUIDE.md)。
 
 ## 三个入口
 
-以后只从这三个入口中选一个：
-
 | 场景 | 入口 | 目标 |
 |---|---|---|
-| 学优秀论文 | `docs/workflows/01_论文学习流.md` | 生成学习卡片、知识卡片 JSON 和 patch 草案 |
-| 测旧题 | `docs/workflows/02_旧题闭环流.md` | 完成旧题总控诊断、评分、复盘和日志建议 |
-| 做新题 | `docs/workflows/03_新题执行流.md` | 比赛当天先总控诊断，再按人工确认推进 |
+| 学优秀论文 | [论文学习流](docs/workflows/01_论文学习流.md) | 生成学习卡片、知识卡片和 Patch 草案 |
+| 测旧题 | [旧题闭环流](docs/workflows/02_旧题闭环流.md) | 完成诊断、评分、复盘与验证记录 |
+| 做新题 | [新题执行流](docs/workflows/03_新题执行流.md) | 先完成总控诊断，再按人工确认推进 |
 
-总览见：`docs/workflows/00_工作流总览.md`。
+三个工作流的调度边界见[工作流总览](docs/workflows/00_工作流总览.md)。论文学习流不提升
+正式 Patch 状态；轻量提示词回归不产生 Gate 或晋级证据；`full_replay` 与 `new_problem`
+必须遵守完整 Gate 0—5 合同。
 
-三条流程不能混用：
+## 开始一次旧题训练
 
-- 论文学习流不跑旧题、不改正式 base/plugin、不标记 `competition_evidenced`。
-- `prompt_regression` 只测轻量提示词行为，不能生成 Gate 或晋级证据。
-- `full_replay` 与 `new_problem` 都执行完整 Gate 0-5 产物契约。
-
-## 目录结构
-
-```text
-docs/workflows/
-  00_工作流总览.md
-  01_论文学习流.md
-  02_旧题闭环流.md
-  03_新题执行流.md
-  rules/
-    材料等级_T0-T4.md
-    材料风险_M1-M5.md
-    失败标签_P1-P10.md
-    总控诊断评分表.md
-    stable判定规则.md  # 文件名为兼容保留，内容使用 competition_evidenced 口径
-  archive/
-    旧版长提示词和历史启动模板存档
-
-prompt_base/
-  通用总控诊断规则。
-
-prompt_plugins/
-  题型专项规则，例如工程优化、预测、评价、仿真。
-
-prompt_patches/
-  单篇优秀论文经验补丁。
-  patch_index.json 用于按题型、状态和 profile 自动筛选 patch。
-
-runtime_profiles/
-  Markdown 定义运行规则；同名 JSON 是状态唯一事实源。
-
-schemas/
-  patch、知识卡片、runtime、旧题测试和失败卡的 JSON Schema。
-
-papers/
-  优秀论文学习卡片和知识卡片 JSON。
-  templates/ 存放学习卡片和知识卡片模板。
-
-tests/old_problems/
-  旧题测试记录。
-
-tests/prompt_regression/
-  小粒度提示词语义回归用例和 patch 负控矩阵。
-
-runs/
-  由旧题 CLI 创建的逐次运行目录。
-
-reviews/failure_cards/
-  失败复盘卡。
-
-output/closed_loop/
-  候选题排序、闭环摘要、重测任务、修复草案。
-
-official_materials/
-  官方旧题材料 manifest；原始附件不提交。
-
-training_log.md
-  训练和测试事实记录。
-```
-
-## 提示词分层
-
-| 层级 | 位置 | 只负责 |
-|---|---|---|
-| base | `prompt_base/prompt_base_v1.0.md` | 通用读题、拆题、题型判断、输入输出链、数据需求、候选模型、人工确认 |
-| plugin | `prompt_plugins/` | 某类题的专项规则，例如优化题的目标、变量、约束、算法质疑、敏感性分析 |
-| patch | `prompt_patches/` | 某篇论文的可迁移经验、适用条件和误用风险 |
-| rules | `docs/workflows/rules/` | 旧题闭环的材料等级、风险标签、评分、晋级判定 |
-| workflow | `docs/workflows/` | 本次任务按什么步骤跑、读哪些文件、产出哪些文件 |
-
-## 常用执行方式
-
-### 学论文
+旧题训练使用 `full_replay`，必须先完成材料来源、历史陌生性和题解污染审计。已用于开发、
+修复或论文学习的题目只能作为回归题，不计入资格证据。
 
 ```text
-执行 docs/workflows/01_论文学习流.md
-
-材料：
-- papers/raw/xxx.pdf 或我上传的优秀论文
-
-目标：
-生成学习卡片、知识卡片 JSON、patch 草案。
-不要修改正式 base/plugin。
+私有候选池 → 人工确认未见 → 只复制最终选中的官方材料 → 从最新 main 创建干净 worktree
+→ 初始化 full_replay → Gate 0—2 人工确认 → 候选执行与独立重跑 → Gate 3—5
+→ Validator 与论文验收 → 记录训练边界
 ```
 
-### 测旧题
+```powershell
+python scripts/run_workflow.py init `
+  --workflow full_replay `
+  --problem 2018-B `
+  --profile engineering_optimization `
+  --materials E:\AI\shumo_training_private\2018_B\official_materials
+```
+
+初始化后每次只推进一个 Gate：
+
+```powershell
+python scripts/run_workflow.py advance `
+  --run-dir runs\<run_id> `
+  --reviewer <审核人>
+```
+
+完成 Gate 5 后再执行：
+
+```powershell
+python scripts/run_workflow.py complete --run-dir runs\<run_id> --reviewer <审核人>
+python scripts/run_workflow.py verify --run-dir runs\<run_id>
+```
+
+训练题默认标记为 `qualification_rehearsal`。除非满足正式留出、独立重跑、数学验证和独立
+评审要求，否则不得修改 Profile maturity 或声明 `profile_qualified`。
+
+## 当前稳定能力
+
+Runtime Pack、Gate 0—5、材料冻结、运行身份、Candidate Result 与 Formal Result 隔离等
+基础链路已具备相应合同。具体 Profile、Patch、资格和成熟度必须由状态派生脚本生成，
+不在 README 手工维护。
+
+机器生成的状态快照、来源与刷新规则见[当前状态](docs/status/CURRENT_STATUS.md)。
+该状态页由状态事实源流程生成；本分支依赖其先合并。
+
+## 仓库地图
 
 ```text
-执行 docs/workflows/02_旧题闭环流.md
-
-目标：
-自动完成一轮旧题总控诊断闭环测试。
-
-要求：
-第一步先生成本轮执行计划。
-如果我没有指定旧题，自动扫描候选题。
-优先使用 T3/T4 官方材料。
-本轮不写代码、不写论文。
+docs/                 架构、路线图、工作流、指南、状态和报告
+scripts/              CLI、校验、导出与维护脚本
+schemas/              机器可读合同 Schema
+policies/             成熟度、Claim 与晋级政策
+validators/           独立验证器
+formal_result/        正式结果与执行信任模型
+runtime_profiles/     Runtime 规则和机器状态
+runtime_contracts/    Gate 与运行合同
+prompt_base/          通用总控规则
+prompt_plugins/       题型专项规则
+prompt_patches/       经论文学习形成的候选补丁
+papers/               学习卡片、知识卡片和模板
+protocols/            冻结实验协议
+tests/                单元、回归、集成和夹具
+training/             已知旧题训练与资格预演资产
+official_materials/   受控材料 manifest；原始附件不提交
+runs/                 本地运行目录，不纳入版本控制
+output/               生成报告与闭环摘要
 ```
 
-### 做新题
+完整的现状、资产边界和分阶段目标见[仓库目录说明](docs/architecture/REPOSITORY_LAYOUT.md)。
 
-```text
-执行 docs/workflows/03_新题执行流.md
+## 文档索引
 
-材料：
-- 当前赛题
-- 附件数据
+- [系统架构](docs/architecture/SYSTEM_ARCHITECTURE.md)与[仓库目录说明](docs/architecture/REPOSITORY_LAYOUT.md)
+- [实施路线图](docs/roadmap/ROADMAP.md)与[工作流](docs/workflows/00_工作流总览.md)
+- [Runtime Pack 指南](docs/guides/RUNTIME_PACK_GUIDE.md)、[比赛执行指南](docs/guides/COMPETITION_GUIDE.md)和[Patch 实验指南](docs/guides/PATCH_EXPERIMENT_GUIDE.md)
+- [机器合同](schemas/)、[运行政策](policies/)与[A092 状态](docs/status/A092_STATUS.md)
+- [当前开发安排](docs/status/CURRENT_DEVELOPMENT.md)和[历史/实现报告](docs/reports/)
 
-本轮只做总控诊断。
-不写代码，不写论文，不给最终答案。
-```
+## 可信边界
 
-## 与 MathModelAgent 结合
+- Candidate Result 不等于 Formal Result；
+- 求解器报告不等于独立验证；
+- 模型内部检查不等于外部有效性；
+- Profile 成熟度与 Patch 晋级资格必须由政策和证据现场派生；
+- 缺少受控材料时，公开校验仍应检查合同、Schema 和可公开的夹具，而不能伪造结果。
 
-本仓库负责规则、经验、闸门、执行合同、证据、独立验证和复盘。MathModelAgent 仅是首个可替换的 Executor Adapter：它可以在受批准的合同内生成代码、图表和论文，但不拥有 Gate 状态、正式结果或 Patch 晋级权。正式结果必须由独立 Collector 在干净工作目录重跑并通过专项验证后生成。
+## 开发与测试
 
-如需读取 Excel 附件或运行基础数模代码，先安装依赖：
+所有 PR 应通过 Public CI、`git diff --check`、链接检查和与变更范围相称的回归测试。
+冻结协议、已封存运行和正式证据不能原地改写；新证据应以新运行、sidecar 或明确的
+失效记录表达。详细工作安排见[当前开发安排](docs/status/CURRENT_DEVELOPMENT.md)。
 
-```bash
-python -m pip install --require-hashes -r requirements.lock
-```
+## 许可与归属
 
-导出运行包：
-
-```bash
-python scripts/export_runtime_pack.py --context new_problem --profile general
-```
-
-默认导出：
-
-```text
-export/cumcm_runtime_pack.md
-export/cumcm_runtime_pack.manifest.json
-```
-
-导出器读取 `prompt_patches/patch_index.json` 与 `runtime_profiles/<profile>.json`。正式运行包只导入同时满足三条件的 patch：
-
-1. `patch_index` 中状态为 `regression_verified` 或 `competition_evidenced`；
-2. patch 的 `runtime_profiles` 包含当前 profile。
-
-`runtime_profiles/*.json` 只保存结构化证据引用；成熟度由验证器现场派生。
-
-显式加入待审 patch 做旧题实验（可重复传入，每个必须状态为 `review_ready` 且支持当前 profile）：
-
-```bash
-python scripts/export_runtime_pack.py --context full_replay --profile engineering_optimization --candidate-patch B311
-```
-
-隔离实验（Baseline / A092 Treatment）：
-
-```bash
-# Baseline
-python scripts/export_runtime_pack.py \
-  --context full_replay \
-  --profile engineering_optimization
-
-# A092 Treatment
-python scripts/export_runtime_pack.py \
-  --context full_replay \
-  --profile engineering_optimization \
-  --candidate-patch A092
-```
-
-仅使用 `--exclude-patch A127` 不会自动加载状态为 `review_ready` 的 A092，因此不能视为 A092-only Treatment。
-
-比赛目录建议：
-
-```text
-比赛工作目录/
-  problem/
-  rules/
-    runtime_pack.md
-  reports/
-  code/
-  results/
-  figures/
-  paper/
-```
-
-第一轮只让执行代理读取题面和 `rules/runtime_pack.md`，输出总控诊断和需要人工确认的路线。
-
-## 当前状态
-
-状态唯一事实源是 `runtime_profiles/*.json`，README 只做展示。
-
-- 已有工程优化 base/plugin/patch。
-- 已有 A092、A127、B311、B477 学习卡片和知识卡片。
-- 当前工程优化 runtime：版本 `0.2.0`，现场派生成熟度为 `assembled`。
-- A092、A127、B311、B477 当前均为 `review_ready`；旧证据不参与主动晋级。
-- A092 第一轮确认性实验已经完成，但没有形成满足 `regression_verified` 门槛的有效证据；A127、B311、B477 也未宣称 `regression_verified` 或 `competition_evidenced`。
-- trusted-local 实际执行、运行证明、Collector 固定派生与 Formal Result
-  验证链已经建立；满足完整范围要求的运行可以产生
-  `formal_result_eligible=true`。
-- 该资格必须同时绑定
-  `formal_result_eligibility_scope=trusted_local`、
-  `execution_trust_model=trusted_local`、干净 Git 状态和定向宿主读取控制结果。
-- trusted-local 资格只证明可信本地代码确实运行，以及 raw output 到
-  Formal Result 的派生关系一致；不自动证明数学模型正确、约束完整或结果全局最优。
-- 后续修改按阶段保持独立提交，完成测试后可通过 SSH 直接推送；
-  是否使用功能分支根据改动风险决定。
-
-## 当前建模质量验证状态
-
-A092 第一轮确认性实验已经完成。
-
-结论：
-
-- A092 保持 `review_ready`；
-- 当前没有获得满足 `regression_verified` 门槛的有效证据；
-- 正控和边界题均出现独立数学验证失败；
-- 负控实验因执行并发覆盖和外部用量限制未形成有效配对；
-- 本轮结果不证明 A092 无效，只说明当前证据不足以晋级。
-- 进程树清理、唯一 attempt 目录与原子结果提升已经实现并通过测试；
-- 2023-B v2 公式适配器与 2024-C v2 数据/目标合同已经复核并冻结；
-- A092 v2 Pilot 已通过七类门槛注入，`A092-CONFIRMATORY-V2` 已冻结但尚未执行。
-
-详细报告：
-
-- [数学建模质量计划阶段三最终报告](docs/reports/MODELING_QUALITY_PHASE3_FINAL_REPORT.md)
-- [2023-B Validator 公式 Pilot](docs/reports/2023B_VALIDATOR_FORMULA_PILOT.md)
-- [2024-C 目标复算错误诊断](docs/reports/2024C_OBJECTIVE_RECOMPUTATION_DIAGNOSIS.md)
-- [A092 v2 外部验证门槛 Pilot](docs/reports/A092_V2_PILOT_REPORT.md)
-
-### 正式比赛说明
-
-A092 当前仍为 `review_ready`，因此不会进入正式 `new_problem` Runtime Pack。正式包只自动加载状态为 `regression_verified` 或 `competition_evidenced` 且支持当前 Profile 的 Patch。
-
-目标值、改进率和最优性结论只有在外部 Validator 通过后才能用于论文强结论。这里的独立复算必须由候选解生成过程之外的固定适配器执行；AI 再次调用生成阶段使用的同一函数，不构成独立复算。
-
-## 当前开发重点
-
-1. 对 `A092-CONFIRMATORY-V2` 做执行前预检，确认冻结组件哈希、外部用量和唯一 active attempt 状态。
-2. 严格按冻结顺序执行新的 Baseline/Treatment 配对，任何无效 attempt 不计入配对数。
-3. 先由 v2 外部 Validator 判定数据契约、目标与硬约束，再进行盲评和配对比较。
-4. 只有正控、边界和负控均形成有效证据后，才重新评估 A092 是否满足 `regression_verified`。
-
-## 使用原则
-
-1. 先诊断，后建模。
-2. 先评价函数，后优化算法。
-3. 先简单方法，后高级模型。
-4. 先结果解释，后论文写作。
-5. 先失败复盘，后提示词修复。
-6. 没有人工确认，不进入下一阶段。
-7. 没有执行计划，不开始旧题闭环。
-8. 没有完整可复核证据和人工确认，不进入 `competition_evidenced`。
+仓库尚未提供 `LICENSE` 文件；在明确许可前，请勿假定可将仓库内容用于再分发或商业用途。
+外部材料、赛题和论文应保留其原有来源与使用限制；原始受控材料不应提交到本仓库。
