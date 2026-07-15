@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from evaluate_prompt_response import evaluate_case  # noqa: E402
+from gate3_executor import execute_gate_3_validator  # noqa: E402
 from export_runtime_pack import (  # noqa: E402
     RUNTIME_CONTRACTS,
     build_manifest,
@@ -332,7 +333,27 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
     }
     for filename, payload in payloads[gate]:
         (run_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+    if (
+        gate == 3
+        and run_manifest.get("gate_3_evidence_contract_version") == "1.0.0"
+        and run_manifest.get("profile") == "engineering_optimization"
+    ):
+        _write_gate_3_fixture_evidence(run_dir)
     write_gate_artifact_manifest(run_dir, gate, completed_at="2026-07-11T00:00:00Z")
+
+
+def _write_gate_3_fixture_evidence(run_dir: Path) -> None:
+    """由父进程从当前 Run 固定工件生成输入并真实执行测试 Validator。"""
+    execute_gate_3_validator(
+        run_dir,
+        "validators/gate3_evidence_fixture/gate_3_validator_contract.json",
+        {
+            "problem_data": ["problem_manifest.json"],
+            "candidate_solution": ["result_report.json"],
+            "model_parameters": ["runtime_profile.snapshot.json"],
+            "solver_log": ["result_manifest.json"],
+        },
+    )
 
 
 def _prepare_completed_gate_run(run_dir: Path, reviewer: str = "test_reviewer") -> None:

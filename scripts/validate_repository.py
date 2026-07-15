@@ -1482,6 +1482,10 @@ class RepositoryValidator:
             "formal_result_payload_manifest.schema.json",
             "collector_derivation_attestation.schema.json",
             "trusted_environment_registry.schema.json",
+            "gate_3_check_evidence.schema.json",
+            "gate_3_execution_attestation.schema.json",
+            "gate_3_input_manifest.schema.json",
+            "gate_3_validator_contract.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:

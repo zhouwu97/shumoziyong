@@ -3,7 +3,7 @@
   "protocol_id": "A092-CONFIRMATORY-CODEX-V1",
   "state": "frozen_pre_execution",
   "execution_started": false,
-  "component_manifest_sha256": "71cfdaa7192f7eefa8ef5fd49eb7f77ef20341f7255b9fd75059199d9b1d3441",
+  "component_manifest_sha256": "2ee2748926de02424ddf58d608e7d9a649cf843d8dcbd8b5f5af9fa2a9be916d",
   "components": {
     "protocols/a092_codex_v1/a092_confirmatory_codex_v1.json": "a136965577ef7e367a8e64bfc3c3c2a21cbb0cefa26491b031cdb9c0ea67f73c",
     "schemas/a092_confirmatory_codex_v1.schema.json": "23d311e7e6895d19bdaed967d79e0e692c150612cc61ad9f09d0ba3221ab097b",
@@ -12,7 +12,7 @@
     "protocols/a092_v2/2023b_validator_formula_freeze.json": "d39f521d2737d3d3a348c88bb3bf5a59e50add96ffeb4fe4d63ba2a53385acc9",
     "protocols/a092_v2/2024c_validator_contract_freeze.json": "5fd0598689fd8590f4ec2be6a5a3076631be20b3341aea9f74192503a58f03c4",
     "prompt_patches/patch_A092_engineering_optimization.md": "c4d5c586110fe81beefcc210d8e5c40ba878ef8bde4d7cbb6c0e675ff2dc7baa",
-    "prompt_base/prompt_base_v1.0.md": "ef3730ed56696f116d0bf55f4accf84fce8c766e5aabc21857f7e592f754a634",
+    "prompt_base/prompt_base_v1.0.md": "ba847b1675222ed2e63c3ad7c7669a78acf6546f26a9d11eba9947433933053c",
     "prompt_plugins/plugin_optimization_v1.md": "e9d9966dae398e6f84a885caa380a9d0ef11085fdb178ecd461ce41654175cb1",
     "schemas/a092_data_contract_audit.schema.json": "2f6a3763f01d9a64fc529ee56844e6380cd1bb0b5f9422924ce7ca8501ebc353",
     "schemas/a092_external_validator_attestation.schema.json": "5c9e707196c7b14ea2d8365cbcd41278bf144ab7a8d65b146bc3ca4947c0d00b",

@@ -1,0 +1,67 @@
+{
+  "schema_version": "1.0.0",
+  "validator_path": "validators/gate3_evidence_fixture/validate.py",
+  "validator_sha256": "e0a6a415f4c78726645fe6f3d9809f84f58f0fe7e3c7023a827ef4e08d087c99",
+  "supported_check_ids": [
+    "objective_recomputation",
+    "constraint_residual",
+    "decision_output_consistency",
+    "variable_domain",
+    "solver_status",
+    "random_seed_replay",
+    "sample_manifest_consistency"
+  ],
+  "report_schema_path": "validators/gate3_evidence_fixture/report.schema.json",
+  "report_schema_sha256": "ed82e354cff71e3132f242dacfb7f032fc8831587971ce6954809604232288f0",
+  "required_observations": {
+    "objective_recomputation": ["reported_objective", "recomputed_objective", "absolute_error"],
+    "constraint_residual": ["max_constraint_residual"],
+    "decision_output_consistency": ["decision_output_match"],
+    "variable_domain": ["max_domain_violation"],
+    "solver_status": ["solver_exit_code"],
+    "random_seed_replay": ["replay_max_abs_error"],
+    "sample_manifest_consistency": ["sample_manifest_match"]
+  },
+  "check_types": {
+    "objective_recomputation": "independent_recomputation",
+    "constraint_residual": "constraint_residual",
+    "decision_output_consistency": "decision_output_consistency",
+    "variable_domain": "variable_domain",
+    "solver_status": "solver_status",
+    "random_seed_replay": "random_seed_replay",
+    "sample_manifest_consistency": "sample_manifest_consistency"
+  },
+  "observation_rules": {
+    "objective_recomputation": {
+      "reported_objective": {"comparison": "ge", "threshold": 0.0},
+      "recomputed_objective": {"comparison": "ge", "threshold": 0.0},
+      "absolute_error": {"comparison": "le", "threshold": 1e-6}
+    },
+    "constraint_residual": {
+      "max_constraint_residual": {"comparison": "le", "threshold": 1e-6}
+    },
+    "decision_output_consistency": {
+      "decision_output_match": {"comparison": "eq", "threshold": 1.0}
+    },
+    "variable_domain": {
+      "max_domain_violation": {"comparison": "le", "threshold": 1e-6}
+    },
+    "solver_status": {
+      "solver_exit_code": {"comparison": "eq", "threshold": 0.0}
+    },
+    "random_seed_replay": {
+      "replay_max_abs_error": {"comparison": "le", "threshold": 1e-12}
+    },
+    "sample_manifest_consistency": {
+      "sample_manifest_match": {"comparison": "eq", "threshold": 1.0}
+    }
+  },
+  "required_input_roles": {
+    "problem_data": {"min_items": 1},
+    "candidate_solution": {"min_items": 1, "max_items": 1},
+    "model_parameters": {"min_items": 1},
+    "solver_log": {"min_items": 1}
+  },
+  "exact_input_set": true,
+  "timeout_seconds": 1.0
+}
