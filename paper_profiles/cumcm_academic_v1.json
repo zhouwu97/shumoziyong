@@ -1,0 +1,51 @@
+{
+  "profile_id": "cumcm_academic_v1",
+  "engine": "typst",
+  "paper": "a4",
+  "margins_cm": {
+    "top": 2.5,
+    "bottom": 2.5,
+    "left": 2.5,
+    "right": 2.5
+  },
+  "font_sizes_pt": {
+    "body": 12,
+    "heading_1": 17.3,
+    "heading_2": 14.45,
+    "heading_3": 12,
+    "caption": 10.5,
+    "table": 10.5
+  },
+  "font_candidates": {
+    "serif": [
+      "SimSun",
+      "Noto Serif SC",
+      "Source Han Serif SC",
+      "Microsoft YaHei"
+    ],
+    "sans": [
+      "SimHei",
+      "Microsoft YaHei",
+      "Noto Sans SC",
+      "Arial"
+    ],
+    "math": [
+      "New Computer Modern Math",
+      "Cambria Math"
+    ]
+  },
+  "colors": {
+    "body": "#000000",
+    "heading": "#000000",
+    "caption": "#000000",
+    "colored_heading_allowed": false,
+    "table_fill_allowed": false
+  },
+  "paragraph": {
+    "justify": true,
+    "first_line_indent_em": 2,
+    "line_leading_em": 0.75
+  },
+  "table_style": "three_line",
+  "page_number": "bottom_center"
+}

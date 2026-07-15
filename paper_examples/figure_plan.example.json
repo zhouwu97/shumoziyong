@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "paper_id": "2021_C",
+  "figures": [
+    {
+      "figure_id": "fig_q2_inventory",
+      "source_artifact": "results/q2_inventory_series.json",
+      "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target_section": "problem_2",
+      "purpose": "说明到货量、消耗量与产品等价库存下界之间的关系",
+      "claim_ids": [
+        "q2_inventory_balance"
+      ],
+      "caption": "问题二产品等价库存变化",
+      "figure_type": "data",
+      "conceptual": false,
+      "color_allowed": true,
+      "grayscale_distinguishable": true
+    },
+    {
+      "figure_id": "fig_method_roadmap",
+      "source_artifact": "figures/fig_method_roadmap.drawio",
+      "source_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target_section": "problem_analysis",
+      "purpose": "说明四个子问题之间的数据流和决策依赖",
+      "claim_ids": [],
+      "caption": "本文建模与求解路线",
+      "figure_type": "conceptual",
+      "conceptual": true,
+      "color_allowed": false,
+      "grayscale_distinguishable": true
+    }
+  ]
+}

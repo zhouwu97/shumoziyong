@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0.0",
+  "pdf": "paper_examples/cumcm_typst_sample.pdf",
+  "pdf_sha256": "f82741df1235e62ab6c30027172d8b5dd0764a5204e4eb67eb23f45f1018c567",
+  "reviewer": "visual_ai",
+  "reviewed_at": "2026-07-14",
+  "passed": true,
+  "pages": [
+    {
+      "page": 1,
+      "png_sha256": "aaeab4b52390b440722548597dd2c94ab2188cc89e8e30d5e1ca1034a28f733c",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "page": 2,
+      "png_sha256": "47b82cd5ebdddbd5cbbc5e1a1f77b95486d8bc758b8876db28c66f3e265c74fb",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "page": 3,
+      "png_sha256": "ef22c0ddcf33241ca16e8bd37410104f4e81ae0d80241f8df220cc5b37dca54a",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "page": 4,
+      "png_sha256": "bfc4ef3f284b3ac5ebbaf16c4af6e042229db73c305bc59461c8882cbf766485",
+      "status": "passed",
+      "issues": []
+    },
+    {
+      "page": 5,
+      "png_sha256": "6870379a085a324086faaf6fdd090b301ba9b61019718f8a017884366bb6bee0",
+      "status": "passed",
+      "issues": []
+    }
+  ],
+  "checks": {
+    "formula_visibility": "passed",
+    "math_glyphs": "passed",
+    "chinese_glyphs": "passed",
+    "table_bounds": "passed",
+    "three_line_table": "passed",
+    "figure_bounds": "passed",
+    "caption_overlap": "passed",
+    "page_numbers": "passed",
+    "unexpected_blank_pages": "passed",
+    "grayscale_readability": "passed"
+  }
+}

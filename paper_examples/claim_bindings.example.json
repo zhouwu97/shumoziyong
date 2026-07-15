@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "paper_id": "2021_C",
+  "claims": [
+    {
+      "claim_id": "q4_capacity",
+      "source_file": "results/formal_result.json",
+      "json_pointer": "/problems/4/weekly_product_arrival_m3",
+      "raw_value": 33335.925462,
+      "display_value": "33,335.925",
+      "unit": "m³/周",
+      "rounding_rule": "3_decimal",
+      "conclusion_tokens": [
+        "最大产能"
+      ]
+    }
+  ]
+}
