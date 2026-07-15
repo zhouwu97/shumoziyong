@@ -40,7 +40,10 @@ jobs:
       - run: python -m ruff check scripts tests formal_result
       - run: python -m pyright
       - run: python scripts/validate_repository.py
-      - run: python -m coverage run -m pytest -q
+      - name: Run unit-contract tests
+        run: python -m coverage run -m pytest -q -m "not integration_fixture and not official_integration"
+      - name: Run public fixture integration tests
+        run: python -m coverage run --append -m pytest -q -m integration_fixture
       - run: python -m coverage report --fail-under=75
       - name: Verify deterministic runtime build
         shell: bash

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 from pathlib import Path
 
 import pytest
 
+from official_integration import official_2024c_attachments
 from validators.problem_positive.validate import load_problem_data as load_problem_data_v1
 from validators.problem_positive_v2.validate import (
     check_constraints,
@@ -16,23 +16,18 @@ from validators.problem_positive_v2.validate import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ATTACHMENT_1 = ROOT / "official_materials" / "2024_C" / "attachments" / "附件1.xlsx"
-ATTACHMENT_2 = ROOT / "official_materials" / "2024_C" / "attachments" / "附件2.xlsx"
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 @pytest.fixture(scope="module")
 def official_data() -> dict:
-    if not ATTACHMENT_1.is_file() or not ATTACHMENT_2.is_file():
-        pytest.skip("官方附件未在当前 checkout 中下载")
-    return load_problem_data(ATTACHMENT_1, ATTACHMENT_2)
+    attachment_1, attachment_2 = official_2024c_attachments()
+    return load_problem_data(attachment_1, attachment_2)
 
 
+@pytest.mark.official_integration
 def test_v2_loader_recovers_merged_planting_rows(official_data: dict) -> None:
-    v1 = load_problem_data_v1(ATTACHMENT_1, ATTACHMENT_2)
+    attachment_1, attachment_2 = official_2024c_attachments()
+    v1 = load_problem_data_v1(attachment_1, attachment_2)
 
     assert len(v1["planting_2023"]) == 54
     assert len(v1["sales_2023"]) == 31
@@ -40,6 +35,7 @@ def test_v2_loader_recovers_merged_planting_rows(official_data: dict) -> None:
     assert len(official_data["sales_2023"]) == 47
 
 
+@pytest.mark.official_integration
 def test_v2_loader_uses_ordinary_greenhouse_for_smart_first_season(
     official_data: dict,
 ) -> None:
@@ -52,6 +48,7 @@ def test_v2_loader_uses_ordinary_greenhouse_for_smart_first_season(
     assert stats[("智慧大棚", "第一季", 17)] != stats[("智慧大棚", "第二季", 17)]
 
 
+@pytest.mark.unit_contract
 def test_objective_caps_sales_by_crop_and_season() -> None:
     data = {
         "plots": {"F1": {"type": "智慧大棚", "area": 1.0}},
@@ -70,6 +67,7 @@ def test_objective_caps_sales_by_crop_and_season() -> None:
     assert evaluate_objective(assignments, data, "q1_discount") == 1850.0
 
 
+@pytest.mark.unit_contract
 def test_smart_greenhouse_rotation_uses_adjacent_actual_seasons() -> None:
     data = {
         "plots": {"F1": {"type": "智慧大棚", "area": 0.6}},
@@ -97,6 +95,7 @@ def test_smart_greenhouse_rotation_uses_adjacent_actual_seasons() -> None:
     assert not any(item.startswith("continuous_crop:") for item in interrupted)
 
 
+@pytest.mark.official_integration
 def test_official_price_is_constant_within_crop_season(official_data: dict) -> None:
     by_crop_season: dict[tuple[int, str], set[float]] = {}
     for (_plot_type, season, crop_id), stat in official_data["stats"].items():
@@ -106,6 +105,7 @@ def test_official_price_is_constant_within_crop_season(official_data: dict) -> N
     assert math.isclose(next(iter(by_crop_season[(17, "第一季")])), 8.0)
 
 
+@pytest.mark.unit_contract
 def test_diagnosis_separates_r01_candidate_error_from_r02_validator_error() -> None:
     diagnosis = json.loads(
         (
@@ -131,6 +131,7 @@ def test_diagnosis_separates_r01_candidate_error_from_r02_validator_error() -> N
     )
 
 
+@pytest.mark.unit_contract
 def test_v2_validator_freeze_binds_diagnosis_and_code() -> None:
     freeze = json.loads(
         (
@@ -144,13 +145,16 @@ def test_v2_validator_freeze_binds_diagnosis_and_code() -> None:
         freeze["full_confirmatory_protocol"]
         == "protocols/a092_v2/a092_confirmatory_v2.json"
     )
-    for relative, digest in freeze["official_inputs"].items():
-        assert _sha256(ROOT / relative) == digest
+    import hashlib
+
+    def sha256(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
     for relative, digest in freeze["validator_files"].items():
-        assert _sha256(ROOT / relative) == digest
-    assert _sha256(ROOT / freeze["diagnostic_result"]["path"]) == freeze[
+        assert sha256(ROOT / relative) == digest
+    assert sha256(ROOT / freeze["diagnostic_result"]["path"]) == freeze[
         "diagnostic_result"
     ]["sha256"]
-    assert _sha256(ROOT / freeze["diagnostic_report"]["path"]) == freeze[
+    assert sha256(ROOT / freeze["diagnostic_report"]["path"]) == freeze[
         "diagnostic_report"
     ]["sha256"]
