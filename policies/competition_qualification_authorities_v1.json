@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "competition_qualification_authorities_v1",
+  "status": "unconfigured",
+  "identity_verification": "out_of_band_human_verification_required",
+  "keys": []
+}

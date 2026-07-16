@@ -7,10 +7,20 @@
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "capability_id": {"const": "competition_production_v1"},
-    "lifecycle": {"enum": ["review_ready", "full_replay_passed"]},
+    "lifecycle": {
+      "enum": [
+        "review_ready", "full_replay_passed", "qualification_candidate",
+        "blind_review_passed", "default_candidate"
+      ]
+    },
     "profiles": {"const": ["general", "engineering_optimization", "evaluation", "prediction"]},
-    "activation_contexts": {"const": ["full_replay"]},
-    "new_problem_default_enabled": {"const": false},
+    "activation_contexts": {
+      "oneOf": [
+        {"const": ["full_replay"]},
+        {"const": ["full_replay", "new_problem"]}
+      ]
+    },
+    "new_problem_default_enabled": {"type": "boolean"},
     "contract_version": {"const": "1.0.0"},
     "promotion_evidence": {
       "type": "object",
@@ -18,6 +28,17 @@
       "required": ["path", "sha256"],
       "properties": {
         "path": {"const": "capability_evidence/competition_production/full_replay/campaign_report_v1.json"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "qualification_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {
+          "const": "capability_evidence/competition_production/qualification/qualification_report_v1.json"
+        },
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
     },
@@ -34,9 +55,67 @@
   },
   "allOf": [
     {
-      "if": {"properties": {"lifecycle": {"const": "full_replay_passed"}}},
+      "if": {"properties": {"lifecycle": {"const": "review_ready"}}},
+      "then": {
+        "not": {
+          "anyOf": [
+            {"required": ["promotion_evidence"]},
+            {"required": ["qualification_evidence"]}
+          ]
+        }
+      },
+      "else": {"required": ["promotion_evidence"]}
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle": {
+            "enum": ["qualification_candidate", "blind_review_passed", "default_candidate"]
+          }
+        }
+      },
+      "then": {"required": ["qualification_evidence"]},
+      "else": {"not": {"required": ["qualification_evidence"]}}
+    },
+    {
+      "if": {"properties": {"new_problem_default_enabled": {"const": true}}},
       "then": {"required": ["promotion_evidence"]},
-      "else": {"not": {"required": ["promotion_evidence"]}}
+      "else": {}
+    },
+    {
+      "if": {"properties": {"new_problem_default_enabled": {"const": true}}},
+      "then": {
+        "properties": {
+          "lifecycle": {"const": "default_candidate"},
+          "activation_contexts": {"const": ["full_replay", "new_problem"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"new_problem_default_enabled": {"const": false}}},
+      "then": {
+        "properties": {
+          "activation_contexts": {"const": ["full_replay"]}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle": {
+            "enum": [
+              "review_ready", "full_replay_passed", "qualification_candidate",
+              "blind_review_passed"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "new_problem_default_enabled": {"const": false},
+          "activation_contexts": {"const": ["full_replay"]}
+        }
+      }
     }
   ]
 }
