@@ -8,7 +8,7 @@
   "contract_version": "1.0.0",
   "promotion_evidence": {
     "path": "capability_evidence/competition_production/full_replay/campaign_report_v1.json",
-    "sha256": "efa205db6b23b4fb8297807d19b20268231d6ccd263299e0641b679a0f2c7e5c"
+    "sha256": "c09552b6dd7c8ea358670eca5547f3c4d4256fc70bec9a3e9d6ce9e455c6ecf3"
   },
   "gate_route": [
     "gate_0",

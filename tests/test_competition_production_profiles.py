@@ -51,7 +51,8 @@ def test_capability_registry_is_full_replay_passed_but_not_default() -> None:
     assert capability["new_problem_default_enabled"] is False
     evidence = capability["promotion_evidence"]
     report_path = ROOT / evidence["path"]
-    assert hashlib.sha256(report_path.read_bytes()).hexdigest() == evidence["sha256"]
+    report_text = report_path.read_text(encoding="utf-8")
+    assert hashlib.sha256(report_text.encode("utf-8")).hexdigest() == evidence["sha256"]
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "passed"
     assert report["derived_lifecycle"] == "full_replay_passed"

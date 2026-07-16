@@ -67,6 +67,10 @@ class RepositoryValidator:
     def fail(self, message: str) -> None:
         self.failures.append(message)
 
+    def sha256_lf_text(self, path: Path) -> str:
+        text = path.read_text(encoding="utf-8")
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
     def load_json(self, relative_path: str) -> Any | None:
         path = ROOT / relative_path
         try:
@@ -1665,11 +1669,7 @@ class RepositoryValidator:
             evidence = capability.get("promotion_evidence", {})
             report_path = ROOT / str(evidence.get("path", ""))
             report = self.load_json(str(evidence.get("path", "")))
-            actual_sha = (
-                hashlib.sha256(report_path.read_bytes()).hexdigest()
-                if report_path.is_file()
-                else None
-            )
+            actual_sha = self.sha256_lf_text(report_path) if report_path.is_file() else None
             if report is None:
                 return
             report_valid = self.validate_schema(
