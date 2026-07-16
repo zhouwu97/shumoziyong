@@ -1516,6 +1516,8 @@ class RepositoryValidator:
             "operability_report.schema.json",
             "risk_decision_contract.schema.json",
             "risk_decision_report.schema.json",
+            "route_execution_report.schema.json",
+            "competition_gate3_decision.schema.json",
             "route_contract_dispatch.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")

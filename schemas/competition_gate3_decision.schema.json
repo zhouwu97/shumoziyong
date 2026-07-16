@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_gate3_decision.schema.json",
+  "title": "三路线竞争 Gate 3 决策",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "subproblem_id",
+    "model_route_v3_sha256",
+    "route_execution_report_sha256",
+    "route_comparison_result_sha256",
+    "operability_contract_sha256",
+    "operability_report_sha256",
+    "risk_decision_contract_sha256",
+    "risk_decision_report_sha256",
+    "formal_results",
+    "decision",
+    "paper_admission",
+    "technical_report_allowed",
+    "decision_codes",
+    "reasons",
+    "validator"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "competition_gate3_decision_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"},
+    "model_route_v3_sha256": {"$ref": "#/$defs/sha256"},
+    "route_execution_report_sha256": {"$ref": "#/$defs/sha256"},
+    "route_comparison_result_sha256": {"$ref": "#/$defs/sha256"},
+    "operability_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "operability_report_sha256": {"$ref": "#/$defs/sha256"},
+    "risk_decision_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "risk_decision_report_sha256": {"$ref": "#/$defs/sha256"},
+    "formal_results": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/formalResult"},
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "baseline"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "primary"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "structural_alternative"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}
+      ]
+    },
+    "decision": {"enum": ["allow_paper", "technical_report_only", "block"]},
+    "paper_admission": {"type": "boolean"},
+    "technical_report_allowed": {"const": true},
+    "decision_codes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^G3V3_[A-Z0-9_]+$"}
+    },
+    "reasons": {"type": "array", "items": {"type": "string", "minLength": 3}},
+    "validator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validator_id", "independent_from_executor", "formal_result_authority"],
+      "properties": {
+        "validator_id": {"type": "string", "minLength": 2},
+        "independent_from_executor": {"const": true},
+        "formal_result_authority": {"const": "collector_and_independent_validator"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"decision": {"const": "allow_paper"}}, "required": ["decision"]},
+      "then": {"properties": {"paper_admission": {"const": true}, "decision_codes": {"maxItems": 0}, "reasons": {"maxItems": 0}}},
+      "else": {"properties": {"paper_admission": {"const": false}, "decision_codes": {"minItems": 1}, "reasons": {"minItems": 1}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "formalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["route_id", "role", "child_run_id", "envelope_path", "envelope_sha256", "formal_result_id", "formal_result_eligible"],
+      "properties": {
+        "route_id": {"type": "string", "pattern": "^R-[A-Z0-9_-]+$"},
+        "role": {"enum": ["baseline", "primary", "structural_alternative"]},
+        "child_run_id": {"type": "string", "minLength": 1},
+        "envelope_path": {"type": "string", "minLength": 3},
+        "envelope_sha256": {"$ref": "#/$defs/sha256"},
+        "formal_result_id": {"type": "string", "minLength": 1},
+        "formal_result_eligible": {"type": "boolean"}
+      }
+    }
+  }
+}

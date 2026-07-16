@@ -298,6 +298,8 @@ def test_v3_contracts_are_not_prematurely_compiled_into_runtime_packs() -> None:
         "schemas/operability_report.schema.json",
         "schemas/risk_decision_contract.schema.json",
         "schemas/risk_decision_report.schema.json",
+        "schemas/route_execution_report.schema.json",
+        "schemas/competition_gate3_decision.schema.json",
         "schemas/route_contract_dispatch.schema.json",
     }
     for profile in PROFILE_FILES:

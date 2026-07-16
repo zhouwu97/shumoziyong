@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/route_execution_report.schema.json",
+  "title": "三路线独立执行报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "subproblem_id",
+    "model_route_v3_sha256",
+    "executor_id",
+    "all_routes_attempted",
+    "status",
+    "routes"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "route_execution_report_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"},
+    "model_route_v3_sha256": {"$ref": "#/$defs/sha256"},
+    "executor_id": {"type": "string", "minLength": 1},
+    "all_routes_attempted": {"const": true},
+    "status": {"enum": ["completed", "blocked"]},
+    "routes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/routeExecution"},
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "baseline"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "primary"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "structural_alternative"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 3},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "routeExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_id",
+        "role",
+        "child_run_id",
+        "child_root",
+        "execution_spec",
+        "candidate_execution_record",
+        "execution_status",
+        "blocker_ref"
+      ],
+      "properties": {
+        "route_id": {"type": "string", "pattern": "^R-[A-Z0-9_-]+$"},
+        "role": {"enum": ["baseline", "primary", "structural_alternative"]},
+        "child_run_id": {"type": "string", "minLength": 1},
+        "child_root": {"type": "string", "pattern": "^route_runs/[A-Za-z][A-Za-z0-9_-]*/R-[A-Z0-9_-]+$"},
+        "execution_spec": {"$ref": "#/$defs/fileRef"},
+        "candidate_execution_record": {"$ref": "#/$defs/fileRef"},
+        "execution_status": {"enum": ["completed", "blocked"]},
+        "blocker_ref": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

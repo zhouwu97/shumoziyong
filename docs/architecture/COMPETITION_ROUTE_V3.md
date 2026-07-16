@@ -25,4 +25,6 @@ model_route_v3
   `729a33a49d25e35ccc25df581695bc160cafa35799591384ff2c682c35df7f9c`，本升级不修改该文件。
 - 版本分派同时识别 v2 与 v3，不根据文件名猜测合同。
 - v3 生命周期为 `review_ready`，目前只允许显式 `full_replay`；`new_problem` 仍使用既有默认链路。
-- PR-2A 只建立合同和分派；三路线 Executor、Collector 与 Gate 3 接线在 PR-2B 完成。
+- PR-2A 建立合同和分派；PR-2B 已通过父竞争 Run + 三个隔离子 Run 接入 Executor、Collector Formal
+  Result 与独立 Gate 3 Validator，详见 `COMPETITION_ROUTE_V3_RUNTIME.md`。
+- 新 Runtime 仍未编译进默认 Profile；Profile 与 Gate 路由激活留给 PR-4。
