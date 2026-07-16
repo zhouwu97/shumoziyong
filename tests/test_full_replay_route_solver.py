@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -61,6 +62,30 @@ def test_all_route_families_produce_finite_distinct_results() -> None:
             objectives.append(round(objective, 10))
         assert len(methods) == 3
         assert len(set(objectives)) >= 2
+
+
+def test_solver_does_not_claim_optimality_without_certificate(tmp_path: Path) -> None:
+    input_path = tmp_path / "route_input.json"
+    config = _route_config("2024-B", "Q1", "sampling")
+    config.update({"route_id": "R-PRIMARY", "role": "primary"})
+    input_path.write_text(json.dumps(config, ensure_ascii=False), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "full_replay_route_solver.py"),
+            "--input",
+            str(input_path),
+        ],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads((tmp_path / "output" / "result.json").read_text(encoding="utf-8"))
+    assert payload["solver_status"] == "feasible"
 
 
 def test_compiled_model_route_covers_all_17_subproblems() -> None:

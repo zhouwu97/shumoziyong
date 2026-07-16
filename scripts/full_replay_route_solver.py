@@ -340,7 +340,7 @@ def main() -> int:
     objective, details = SOLVERS[str(config["category"])](config)
     output = {
         "objective": objective,
-        "solver_status": "optimal",
+        "solver_status": "feasible",
         "negative_tests_status": "passed",
         "negative_tests": [
             {"test_id": "missing-input", "status": "passed"},
