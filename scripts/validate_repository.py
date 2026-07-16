@@ -22,6 +22,7 @@ from run_workflow import (
     replay_transition_log,
     verify_run_seal,
 )
+from route_contract_dispatch import RouteContractError, load_dispatch_registry
 from upstream.sync_mathmodelagent import (
     UpstreamIntegrityError,
     load_and_validate_metadata,
@@ -1509,6 +1510,13 @@ class RepositoryValidator:
             "upstream_requirement_registry.schema.json",
             "upstream_requirement_mapping.schema.json",
             "competition_production_adapter_report.schema.json",
+            "model_route_v3.schema.json",
+            "route_comparison_result.schema.json",
+            "operability_contract.schema.json",
+            "operability_report.schema.json",
+            "risk_decision_contract.schema.json",
+            "risk_decision_report.schema.json",
+            "route_contract_dispatch.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1578,6 +1586,22 @@ class RepositoryValidator:
         else:
             self.pass_("上游需求来源、映射与 Adapter 权限闭包")
 
+    def validate_route_contract_dispatch(self) -> None:
+        registry = self.load_json("runtime_contracts/route_contract_dispatch_v1.json")
+        if registry is None:
+            return
+        self.validate_schema(
+            registry,
+            "route_contract_dispatch.schema.json",
+            "路线合同版本分派注册表",
+        )
+        try:
+            load_dispatch_registry(ROOT)
+        except RouteContractError as exc:
+            self.fail(f"路线合同版本分派：{exc}")
+        else:
+            self.pass_("路线合同 v2/v3 兼容、历史哈希与 review_ready 边界")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1593,6 +1617,7 @@ class RepositoryValidator:
         self.validate_capability_framework()
         self.validate_upstream_source_lock()
         self.validate_upstream_requirements()
+        self.validate_route_contract_dispatch()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:
