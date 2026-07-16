@@ -26,3 +26,8 @@ export/cumcm_runtime_pack.manifest.json
 # 工作流和比赛材料命令生成的 Run 目录不纳入版本控制。
 runs/
 
+# MathModelAgent 上游只读 Source Asset。仅由受控同步器在本地生成，禁止提交。
+.vendor/mathmodelagent/
+.vendor/.mathmodelagent-stage-*/
+.vendor/.mathmodelagent-backup/
+

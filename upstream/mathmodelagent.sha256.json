@@ -1,0 +1,1953 @@
+{
+  "schema_version": "mathmodelagent_file_manifest_v1",
+  "repository_url": "https://github.com/jihe520/MathModelAgent.git",
+  "commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+  "file_count": 389,
+  "files": [
+    {
+      "path": "docs/md/License.md",
+      "size": 134,
+      "sha256": "138ed0a8abfa574b8c8b19fd53b18bb3c2854015f54cc24ce8f1952b82eab39d"
+    },
+    {
+      "path": "skills/3coding-visual/SKILL.md",
+      "size": 3630,
+      "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212"
+    },
+    {
+      "path": "skills/4drawio/SKILL.md",
+      "size": 5907,
+      "sha256": "eb531bcac084d29ec6e7edf5c81eda2dea498106be2eec0400c84f34237268e7"
+    },
+    {
+      "path": "skills/5writing/SKILL.md",
+      "size": 12383,
+      "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/main.tex",
+      "size": 6718,
+      "sha256": "3b391126e996bcc11b67f1f95e3cae83e305b8b3880b7dee1d7ecad4c1ca6906"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/references.tex",
+      "size": 532,
+      "sha256": "502abaab082fbed31200a559bed50e439288caf474598fcd833c36a19a0a8e39"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/1_introduction.tex",
+      "size": 635,
+      "sha256": "89dbae1151e82980a880250fd52a2d79464333ac70c28371bf25b39f9ff66782"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/2_assumptions.tex",
+      "size": 524,
+      "sha256": "2c86373a1e27a97f5cb64ef8ddbdab01c9784733440d46ec753bb6c7f2a2569a"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/3_model_design.tex",
+      "size": 398,
+      "sha256": "46d9c4bd4e1072c187ebdd28d56faa1bf716ea61ce153e0984840e4d1a2aad7d"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/4_solution.tex",
+      "size": 826,
+      "sha256": "5001b8696ff79afb9a3d6fd3c7309cf5c0f921e5fbb510b969c0c64171f2523d"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/5_sensitivity.tex",
+      "size": 535,
+      "sha256": "626e29e6c578f8d8f8da88fbe23ef5a47a34b9d60d759c27798e10d2e4e28196"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/6_strengths_weaknesses.tex",
+      "size": 600,
+      "sha256": "ad2f920e2b12f8f1b7943c924b5d8e9cb3a5576a052727640dca585ed71d644a"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/7_conclusions.tex",
+      "size": 535,
+      "sha256": "923b240a67fd31a920134b07ec1d72a13c4ca32d39b8ca1785fdf320f77f9cf4"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm-latex/sections/A_code.tex",
+      "size": 774,
+      "sha256": "8fc81c7aa24ea2d24265772321b45b13e188cdc4ceae818901baffb97e96d94c"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/main.typ",
+      "size": 13632,
+      "sha256": "882606762eda659b67e7b5316a757dabc9e065f1d3f369a6dd2e4a9ef50001bb"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/references.typ",
+      "size": 522,
+      "sha256": "83224b5212ccb6c82df68d76b94fc6c89bafa146118607834b2896149f46f1ec"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/1_introduction.typ",
+      "size": 601,
+      "sha256": "170d7138c715734846395bbf63bc971b7fb27bfac3200d8f6461cd2bccf3e9bf"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/2_assumptions.typ",
+      "size": 427,
+      "sha256": "f939e6b41b30c418865cec0dd821cb4648380fea731b04fdc71fa928b747bbed"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/3_model_design.typ",
+      "size": 335,
+      "sha256": "b82ecd222f24e4788ca2207c053fb9afa1cf21128ee9d71256d46476ede5f5c4"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/4_solution.typ",
+      "size": 859,
+      "sha256": "d761fc220f1c4912b701203fc8ce5f7ff88beda211d70b1f81081c6221e5e3c0"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/5_sensitivity.typ",
+      "size": 608,
+      "sha256": "a188bc8125265bb008becc1138c60822bd09594f3eeaac5c36f7cd7b7e0924f1"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/6_strengths_weaknesses.typ",
+      "size": 415,
+      "sha256": "85c6ea1661ccdff75f334a7111cb30966584454dacad964b57d0eb0da4a8ecca"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/7_conclusions.typ",
+      "size": 443,
+      "sha256": "ee8269db5d24c74f947968f05b8709f156b4a2a6871cc931622af5a81d0af9f2"
+    },
+    {
+      "path": "skills/5writing/templates/en/apmcm/sections/A_code.typ",
+      "size": 528,
+      "sha256": "eef82c344c82b37cc90c7eac08ae4102df3a948bea38074ce93f70a874fdaa90"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/main.tex",
+      "size": 3673,
+      "sha256": "8aee29b9f40008908235e3296124b428327e0cf3b0ba34c8a103509703f8177a"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/references.tex",
+      "size": 532,
+      "sha256": "502abaab082fbed31200a559bed50e439288caf474598fcd833c36a19a0a8e39"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/1_introduction.tex",
+      "size": 635,
+      "sha256": "89dbae1151e82980a880250fd52a2d79464333ac70c28371bf25b39f9ff66782"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/2_assumptions.tex",
+      "size": 523,
+      "sha256": "63806e27ae94f113c860ab08122f39e0bba31f5c3c04baf7dde7297af8adbe8a"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/3_notations.tex",
+      "size": 560,
+      "sha256": "3faafd520f7ae9aa9d7accaec77980925353d5b02a39a52da378adb0861e5186"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/4_model.tex",
+      "size": 826,
+      "sha256": "5001b8696ff79afb9a3d6fd3c7309cf5c0f921e5fbb510b969c0c64171f2523d"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/5_results.tex",
+      "size": 813,
+      "sha256": "a64b254ae50fa194bb2984a5e627a80e559627e3cf36834847f29b6f6bcaac5f"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/6_sensitivity.tex",
+      "size": 535,
+      "sha256": "626e29e6c578f8d8f8da88fbe23ef5a47a34b9d60d759c27798e10d2e4e28196"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/7_evaluation.tex",
+      "size": 598,
+      "sha256": "244be5bdbaa8f1411cc545f8b41e2e6fb3815240610e291f88d2e1370c7370b0"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/8_conclusions.tex",
+      "size": 534,
+      "sha256": "bd50dc22e7df8c9e731d80d07401943a1bab14168680654d1da3016c19609bbb"
+    },
+    {
+      "path": "skills/5writing/templates/en/default-latex/sections/A_code.tex",
+      "size": 774,
+      "sha256": "8fc81c7aa24ea2d24265772321b45b13e188cdc4ceae818901baffb97e96d94c"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/main.typ",
+      "size": 5624,
+      "sha256": "0a452518f0cfe6c2cf23d41ab9d3bd3d625276d1149fe0fc748d252a2d751268"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/references.typ",
+      "size": 288,
+      "sha256": "574ded4142530d2ba34b1f75d20a5e7facfb77dc8427a3576c838d5dad11b1d3"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/1_introduction.typ",
+      "size": 600,
+      "sha256": "703a3d26ebadef326ee0a0aab880038aa3494324a807eb2759ced8c6be7d71d4"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/2_assumptions.typ",
+      "size": 421,
+      "sha256": "2273325585c8fe5cf3e2ff4fab2812df09e59b714c2d7c86f72ae598b1e7a86c"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/3_notations.typ",
+      "size": 738,
+      "sha256": "8c08f3e9a471bf28db513e8e69e78f7d18acb128d57369e9e60a1ad6584b9ac7"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/4_model.typ",
+      "size": 975,
+      "sha256": "95b836b463c6f00769c84f69dd01c542c407464cc6fa98c5c2513eef77dfa9f7"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/5_results.typ",
+      "size": 917,
+      "sha256": "6f09cfb2671c36ef692d3c096ee4f99dd6af3a7af3657210ee1fac30d24b6ea7"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/6_sensitivity.typ",
+      "size": 712,
+      "sha256": "dfd1dd9ecbccb9c9f3819b6835c833d434e806e8c47f3f2d463d1806c3b13509"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/7_evaluation.typ",
+      "size": 408,
+      "sha256": "918dbbf9c323db6bbf249c65e5c03b10dbf6583df78f72fc378068bb9cbc2d5c"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/8_conclusions.typ",
+      "size": 438,
+      "sha256": "36dc3330708e7c71d1307210402c0f79a1e6223a5c156bf178c975214fb028db"
+    },
+    {
+      "path": "skills/5writing/templates/en/default/sections/A_code.typ",
+      "size": 527,
+      "sha256": "825a9550e8bebb78f4df72732d3503a54e68d3362caa7ab1d6e1ef2136e75222"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/main.tex",
+      "size": 4538,
+      "sha256": "8861601bd5db8a058a622ca50f2f7487d72b1be5cfe33dc4bdf1c219d44ab75a"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/references.tex",
+      "size": 350,
+      "sha256": "1c35ba65488aabd6dfab2645e3cc5805dcd248720093b9a09025b95624f923b4"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/1_introduction.tex",
+      "size": 635,
+      "sha256": "89dbae1151e82980a880250fd52a2d79464333ac70c28371bf25b39f9ff66782"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/2_assumptions.tex",
+      "size": 523,
+      "sha256": "63806e27ae94f113c860ab08122f39e0bba31f5c3c04baf7dde7297af8adbe8a"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/3_model_design.tex",
+      "size": 398,
+      "sha256": "46d9c4bd4e1072c187ebdd28d56faa1bf716ea61ce153e0984840e4d1a2aad7d"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/4_solution.tex",
+      "size": 826,
+      "sha256": "5001b8696ff79afb9a3d6fd3c7309cf5c0f921e5fbb510b969c0c64171f2523d"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/5_sensitivity.tex",
+      "size": 441,
+      "sha256": "44e80ce11445357bf1fd9aa1cf75bf273d233d955bbc8d2910ff7228df6af43e"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/6_strengths_weaknesses.tex",
+      "size": 640,
+      "sha256": "cb66e8feba956f7fa507bada2c4979555b8a1389f21f7754f6492ddf55f8231d"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/7_conclusions.tex",
+      "size": 613,
+      "sha256": "3a25906e39f24ca1732eb04719e6efd0c1e8a2825923ce27d7c6fdb2cc7955f0"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm-latex/sections/A_code.tex",
+      "size": 774,
+      "sha256": "8fc81c7aa24ea2d24265772321b45b13e188cdc4ceae818901baffb97e96d94c"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/main.typ",
+      "size": 7377,
+      "sha256": "425691dcfc48cbe33562eb93795f79a5b0c8a42c7b5d1121314fe86e2c88748e"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/references.typ",
+      "size": 56,
+      "sha256": "e4c5c449bb976df3641dc16712b2279e3ce6054cc470d64ba3ee2b753b301146"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/1_introduction.typ",
+      "size": 600,
+      "sha256": "703a3d26ebadef326ee0a0aab880038aa3494324a807eb2759ced8c6be7d71d4"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/2_assumptions.typ",
+      "size": 421,
+      "sha256": "2273325585c8fe5cf3e2ff4fab2812df09e59b714c2d7c86f72ae598b1e7a86c"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/3_model_design.typ",
+      "size": 332,
+      "sha256": "6d977c816706c76a82da3c1793b158bd8ebd7aa040eadd0f10c3e408ec25adaf"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/4_solution.typ",
+      "size": 962,
+      "sha256": "900826ae41e9d87742d2e4858fd2692990279b26f929717ce5a8d4452f138e04"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/5_sensitivity.typ",
+      "size": 714,
+      "sha256": "8583888fd8aa8ec0f03dafeeef9d555f654121369ce3e02fa9340143073a3f33"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/6_strengths_weaknesses.typ",
+      "size": 408,
+      "sha256": "918dbbf9c323db6bbf249c65e5c03b10dbf6583df78f72fc378068bb9cbc2d5c"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/7_conclusions.typ",
+      "size": 438,
+      "sha256": "36dc3330708e7c71d1307210402c0f79a1e6223a5c156bf178c975214fb028db"
+    },
+    {
+      "path": "skills/5writing/templates/en/mcm/sections/A_code.typ",
+      "size": 527,
+      "sha256": "825a9550e8bebb78f4df72732d3503a54e68d3362caa7ab1d6e1ef2136e75222"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/main.tex",
+      "size": 6713,
+      "sha256": "ea6b6722024dfb35c15febd30932ed55d780abce0c4473f71916d7b8c93f50fc"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/references.tex",
+      "size": 474,
+      "sha256": "9f6654c51e7afd12041da0d69dd33ab37f55b0a3310f3fe6932dc3dd8028f40d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/1_introduction.tex",
+      "size": 517,
+      "sha256": "85d3f80adac8cf0f7389c6796f7786e39a7ae8962511e6abc52144adf8d1a8a5"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/2_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/3_model_design.tex",
+      "size": 426,
+      "sha256": "e677c2368eeebeb1d4133608742336a9175b5af24916f41bac2af1bb1d7d1e64"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/4_solution.tex",
+      "size": 1312,
+      "sha256": "6d0e1a93a8ba8e47c31a16c842097ea21e2ba9739c857af4f5b922b589d0c77f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/5_sensitivity.tex",
+      "size": 229,
+      "sha256": "8676d0e5a20b01d4e9c59b8174add491f5574ae398e86261dce0b6124bf8f96d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/6_strengths_weaknesses.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/7_conclusions.tex",
+      "size": 296,
+      "sha256": "36503ca3951b3e0c0eb4dd3fd83074a627b27ef901453a076c3b9bf2a2e69ee0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm-latex/sections/A_code.tex",
+      "size": 655,
+      "sha256": "b276cd8c20d7c1eefb5fcad32751d86a370190fd95297f369b7dac120a61d6c1"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/main.typ",
+      "size": 7947,
+      "sha256": "d80092672c6a260eaf5c5f6a378514cd11f5f7e759c7587b20de63f9a99a6b9e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/references.typ",
+      "size": 522,
+      "sha256": "83224b5212ccb6c82df68d76b94fc6c89bafa146118607834b2896149f46f1ec"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/1_introduction.typ",
+      "size": 513,
+      "sha256": "b72163b91a1dcd05a6558febb4d651aab9b33b97ef2685fba5f25efdb2c052cc"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/2_assumptions.typ",
+      "size": 376,
+      "sha256": "035a437648a8c403a9eb4aeadc6fb06d7fbe9229366c12a50d32b59b15685905"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/3_model_design.typ",
+      "size": 381,
+      "sha256": "23aabf1f05b88c48ec66a2654deff5690cdd3e797f0bc34485c3eeee8787c6ca"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/4_solution.typ",
+      "size": 1180,
+      "sha256": "70bbf920ba659562a24eb04687f927f90f46d06b9fc3382f076b5bc1e629cfe7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/5_sensitivity.typ",
+      "size": 230,
+      "sha256": "f1b96a8a64f25da89d78770d077f9c3d66bfaca88b11f5d949e7077ca6f98e98"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/6_strengths_weaknesses.typ",
+      "size": 353,
+      "sha256": "82b16aac703d7bc16421c0c614ac5d196e912b97fe4f2631fa451d5e5c759ee2"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/7_conclusions.typ",
+      "size": 302,
+      "sha256": "be2e63b5b715951153d20711487194a1becf698ddb3555066490adddfb0009bb"
+    },
+    {
+      "path": "skills/5writing/templates/zh/apmcm/sections/A_code.typ",
+      "size": 540,
+      "sha256": "7d88b5d1c25b302b415b9a021a3f17dbec571c84a150e4ac03ae0e1e271a9d2b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/main.tex",
+      "size": 6206,
+      "sha256": "ac8f0484511dc7cdb67a6dfa46a40e29879bb161155a3814c8b01ac04ae8887e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/references.tex",
+      "size": 529,
+      "sha256": "70a7627b0665a11e44a69fdfdf2e96a7514f3f1d5df5683aa835c2ed817eaf83"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/4_symbols.tex",
+      "size": 445,
+      "sha256": "a343e3a425570db22ef4ecf856db60ec26cdb0a57a2fa3859b82d1c6c8a04a99"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/5_problem1.tex",
+      "size": 508,
+      "sha256": "fa02583719dba7d2a4e4b53610eb8a1edb2a44b54bad53a6d857f1195e557ab7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/6_problem2.tex",
+      "size": 403,
+      "sha256": "a62c45001ef89cd6dd601efc79d361678d33d288997f99a3a0633ae97900d98a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/8_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/main.typ",
+      "size": 6432,
+      "sha256": "9681de7780453c3874dd2efdd4ab284a8337b660af8b56140f1c703e8e96770e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/references.typ",
+      "size": 456,
+      "sha256": "fa4637209ffaf318011f6a94f3addc6627db69df5a51e8945cf917b50b9d5819"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/3_assumptions.typ",
+      "size": 362,
+      "sha256": "337b57287e405e3616b38d3b8327b1aa71cf8979b9e70a8f54e1831625742983"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/4_symbols.typ",
+      "size": 467,
+      "sha256": "ebe03248123c1a7975793ead44b604e4381bc9eb1b75566de394ac524fe4f564"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/5_problem1.typ",
+      "size": 461,
+      "sha256": "eaeaba70a6b54a1f0bc344f7a59226786aeb4b9f99925da12626e84a2718b003"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/6_problem2.typ",
+      "size": 361,
+      "sha256": "2e2f94dc14be225268d2169a962d1c4531f6dabe462535ac6f542cbb947dc894"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/8_evaluation.typ",
+      "size": 339,
+      "sha256": "15192714ba93c1d7338fbb7b71d50cfe24c928a53fb57f9287e887d22914f1ca"
+    },
+    {
+      "path": "skills/5writing/templates/zh/changsanjiao/sections/A_code.typ",
+      "size": 527,
+      "sha256": "3c1b36a339db20732f10771018cd1cdaffbd26795d1a29199b146924f9610a93"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/main.tex",
+      "size": 5987,
+      "sha256": "414219303782b3a28fab291deff827336f4f7b2bfae6d927cb9ce536b631a6d0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/references.tex",
+      "size": 529,
+      "sha256": "70a7627b0665a11e44a69fdfdf2e96a7514f3f1d5df5683aa835c2ed817eaf83"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/4_symbols.tex",
+      "size": 444,
+      "sha256": "8e46f2ac2720836edd8a4b92a6d8ddfa1e2d18c320439373461442497440ffe0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/5_problem1.tex",
+      "size": 513,
+      "sha256": "df14b9fff7896b44bf51afe1e19b33e36e7680e7960536f6992c28513e05560a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/6_problem2.tex",
+      "size": 403,
+      "sha256": "a62c45001ef89cd6dd601efc79d361678d33d288997f99a3a0633ae97900d98a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/8_sensitivity.tex",
+      "size": 229,
+      "sha256": "8676d0e5a20b01d4e9c59b8174add491f5574ae398e86261dce0b6124bf8f96d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/9_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/main.typ",
+      "size": 4551,
+      "sha256": "b2b7bf10a90b770ef02b7bc21a94e4c9de355fad1a181820cf7ef8d54cae1eec"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/references.typ",
+      "size": 366,
+      "sha256": "14d1f0df1ee875c0dc3d07bd065cb53e7d4f8194b382e230ec7fc2b204f7cec5"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/3_assumptions.typ",
+      "size": 357,
+      "sha256": "a65e564b7c9368270067cfa31e134a729078048537dddffd27c2487a7337a7bd"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/4_symbols.typ",
+      "size": 624,
+      "sha256": "d3a22f2aa6e5c7ee9ed2feec22e676ecb6acf3333b60a97b65194bf281a8a288"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/5_problem1.typ",
+      "size": 464,
+      "sha256": "2ff63c8f5b9d7218932f18c15ad9db7fae3d8a338d3fbed8dc66106e71ab73b9"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/6_problem2.typ",
+      "size": 358,
+      "sha256": "73d64ba21b965d99bca99bb6e02f6e3f7988a8dc4163fbb418e2e183f8e3183d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/8_sensitivity.typ",
+      "size": 216,
+      "sha256": "ae4afbb6284b62f3998f187b88433f2cbafbdc529e298d8baf9c1ccbf0a34c63"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/9_evaluation.typ",
+      "size": 334,
+      "sha256": "7895cfaddc9a103cddf20c67383f00a9998e9b7fe3e7a5b4cf81fb377d347b76"
+    },
+    {
+      "path": "skills/5writing/templates/zh/cumcm/sections/A_code.typ",
+      "size": 538,
+      "sha256": "a4c367b1fb2fcdf33a1a35792da31391907c5a2d5340d95b49c837314ea46b16"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/main.tex",
+      "size": 6123,
+      "sha256": "8d108361caf010317210e5b8c2cc0600ae119ac33b98d3a3bec0d786020bbdc0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/references.tex",
+      "size": 529,
+      "sha256": "70a7627b0665a11e44a69fdfdf2e96a7514f3f1d5df5683aa835c2ed817eaf83"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/2_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/3_symbols.tex",
+      "size": 200,
+      "sha256": "d3616f9b0c1a13fde655949041f11ac0da605c5eca77703ea7c8430236282f6e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/4_problem1.tex",
+      "size": 508,
+      "sha256": "fa02583719dba7d2a4e4b53610eb8a1edb2a44b54bad53a6d857f1195e557ab7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/5_problem2.tex",
+      "size": 403,
+      "sha256": "a62c45001ef89cd6dd601efc79d361678d33d288997f99a3a0633ae97900d98a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/6_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/7_sensitivity.tex",
+      "size": 229,
+      "sha256": "8676d0e5a20b01d4e9c59b8174add491f5574ae398e86261dce0b6124bf8f96d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/8_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/main.typ",
+      "size": 3846,
+      "sha256": "480573613a6587ffd7382fee526a8e3d3fedfaada68cf02e87b2526492445364"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/references.typ",
+      "size": 366,
+      "sha256": "14d1f0df1ee875c0dc3d07bd065cb53e7d4f8194b382e230ec7fc2b204f7cec5"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/2_assumptions.typ",
+      "size": 362,
+      "sha256": "337b57287e405e3616b38d3b8327b1aa71cf8979b9e70a8f54e1831625742983"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/3_symbols.typ",
+      "size": 191,
+      "sha256": "cda6c759e81f132281396137657d41f9105390bda153cef54a41f99ec92e522f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/4_problem1.typ",
+      "size": 461,
+      "sha256": "eaeaba70a6b54a1f0bc344f7a59226786aeb4b9f99925da12626e84a2718b003"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/5_problem2.typ",
+      "size": 361,
+      "sha256": "2e2f94dc14be225268d2169a962d1c4531f6dabe462535ac6f542cbb947dc894"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/6_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/7_sensitivity.typ",
+      "size": 216,
+      "sha256": "ae4afbb6284b62f3998f187b88433f2cbafbdc529e298d8baf9c1ccbf0a34c63"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/8_evaluation.typ",
+      "size": 339,
+      "sha256": "15192714ba93c1d7338fbb7b71d50cfe24c928a53fb57f9287e887d22914f1ca"
+    },
+    {
+      "path": "skills/5writing/templates/zh/default/sections/A_code.typ",
+      "size": 527,
+      "sha256": "3c1b36a339db20732f10771018cd1cdaffbd26795d1a29199b146924f9610a93"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/main.tex",
+      "size": 5857,
+      "sha256": "551fa3b58da5918f4d2ffdbdea78b7a7411af1054bfea03247c1e6c5ad3e38ee"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/references.tex",
+      "size": 457,
+      "sha256": "d2988c2e4b99970cc661c544d13c6ab7bbd1e44229cce198b867c7b7ce2047f5"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/4_symbols.tex",
+      "size": 398,
+      "sha256": "176459a801dadfc13624c13ec398ddc94f1c12c620205f8971202f3681e198c7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/5_problem1.tex",
+      "size": 508,
+      "sha256": "fa02583719dba7d2a4e4b53610eb8a1edb2a44b54bad53a6d857f1195e557ab7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/6_problem2.tex",
+      "size": 404,
+      "sha256": "58a496ca34c5fd48c56de6f3d701e276c18f54032210a586a6612c028ff9e1ff"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/8_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei-latex/sections/A_code.tex",
+      "size": 566,
+      "sha256": "c007d44db0172edfe439a6ddf08917400e5a9e833e423fb2b20610d74c5fe6f4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/main.typ",
+      "size": 4356,
+      "sha256": "f9b211bf443848e3f88f9d7717ceb10300a0a20143eec4214e26e89bc3d9f2e1"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/3_assumptions.typ",
+      "size": 362,
+      "sha256": "337b57287e405e3616b38d3b8327b1aa71cf8979b9e70a8f54e1831625742983"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/4_symbols.typ",
+      "size": 467,
+      "sha256": "ebe03248123c1a7975793ead44b604e4381bc9eb1b75566de394ac524fe4f564"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/5_problem1.typ",
+      "size": 461,
+      "sha256": "eaeaba70a6b54a1f0bc344f7a59226786aeb4b9f99925da12626e84a2718b003"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/6_problem2.typ",
+      "size": 361,
+      "sha256": "2e2f94dc14be225268d2169a962d1c4531f6dabe462535ac6f542cbb947dc894"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/8_evaluation.typ",
+      "size": 339,
+      "sha256": "15192714ba93c1d7338fbb7b71d50cfe24c928a53fb57f9287e887d22914f1ca"
+    },
+    {
+      "path": "skills/5writing/templates/zh/diangongbei/sections/A_code.typ",
+      "size": 527,
+      "sha256": "3c1b36a339db20732f10771018cd1cdaffbd26795d1a29199b146924f9610a93"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/main.tex",
+      "size": 5380,
+      "sha256": "71c1e01ac9033ff65c04d53a53ffa9eb1648fb61bfd770a7b3cdcd23d8c180a2"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/references.tex",
+      "size": 495,
+      "sha256": "4fecca3ea11eee0a097c5446d1282db9da56d17c27f9654384811f29bbf7eb69"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/4_symbols.tex",
+      "size": 418,
+      "sha256": "6df0949f3ae02cb06541f7ba42e9d09bea54bfab963540151eba961d3c8d7ebf"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/5_problem1.tex",
+      "size": 508,
+      "sha256": "fa02583719dba7d2a4e4b53610eb8a1edb2a44b54bad53a6d857f1195e557ab7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/6_problem2.tex",
+      "size": 404,
+      "sha256": "58a496ca34c5fd48c56de6f3d701e276c18f54032210a586a6612c028ff9e1ff"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/8_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/A_code.tex",
+      "size": 590,
+      "sha256": "607049a39fa8478ed894718bdf0f8c9493b11733c05ac26c96c3e27195d16156"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng-latex/sections/abstract.tex",
+      "size": 702,
+      "sha256": "5acf8075dabd9fe41458b14770ace69c5ed8f65c27045a63fd8eeeffd38f5871"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/main.typ",
+      "size": 4436,
+      "sha256": "1d74d811f409f2d3b3f1c926eaa536492a0955b698b9191a64f71a8c7fe0ce35"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/3_assumptions.typ",
+      "size": 362,
+      "sha256": "337b57287e405e3616b38d3b8327b1aa71cf8979b9e70a8f54e1831625742983"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/4_symbols.typ",
+      "size": 449,
+      "sha256": "faf15783773ec8265814771ba07573824ddf785a6ec2c69877d129047b6a3512"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/5_problem1.typ",
+      "size": 461,
+      "sha256": "eaeaba70a6b54a1f0bc344f7a59226786aeb4b9f99925da12626e84a2718b003"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/6_problem2.typ",
+      "size": 361,
+      "sha256": "2e2f94dc14be225268d2169a962d1c4531f6dabe462535ac6f542cbb947dc894"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/8_evaluation.typ",
+      "size": 339,
+      "sha256": "15192714ba93c1d7338fbb7b71d50cfe24c928a53fb57f9287e887d22914f1ca"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/A_code.typ",
+      "size": 543,
+      "sha256": "4a47a086f000922a3b0f4f1454c95ea7afc30bdc0b18073f5f2145948dc41d7f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/dongsansheng/sections/abstract.typ",
+      "size": 778,
+      "sha256": "0fb91f3d3a3f4b28d1b9e5b9dd617d73b5963047c89f861222a9a3ab05668381"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/main.tex",
+      "size": 4861,
+      "sha256": "2a9c15091fa4a43cec92cbcdc8739122742d659f1b938fb09962d61732b3d88c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/references.tex",
+      "size": 457,
+      "sha256": "05c662dc7208c78ba8c37e2ff11abacfe714492af69c2d56c951eccb850c01d0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/4_symbols.tex",
+      "size": 446,
+      "sha256": "d44d60b4a708cb16e55a6b6a371f4df98ba0204c06835c95302ec29eaa6a66d3"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/5_problem1.tex",
+      "size": 512,
+      "sha256": "8e8f75508d2f14b3095309e2e0e920e5fb339434b4efd9900a249e026001814e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/6_problem2.tex",
+      "size": 401,
+      "sha256": "65ef786fd0fcf38cd9be2892ce2ef88b4b8cd59b5832d245a9c4a822126e8abb"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/8_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/main.typ",
+      "size": 4387,
+      "sha256": "f6280a0b145bdb190a59654cb291719ef16d21f0f526c32f714c87f369de0773"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/references.typ",
+      "size": 243,
+      "sha256": "e64defef4fb5be80d9db3a1f945a95437ef58e2b22911df09c9451f4dba5a351"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/3_assumptions.typ",
+      "size": 357,
+      "sha256": "a65e564b7c9368270067cfa31e134a729078048537dddffd27c2487a7337a7bd"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/4_symbols.typ",
+      "size": 278,
+      "sha256": "0b48bad5acf3a3980cf8b82f7b6b02d35ddc4663d929c2f8d59daa4255924608"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/5_problem1.typ",
+      "size": 480,
+      "sha256": "e30f75b7147b5c7fef801cd1e93487aab6aeb8c9958df8d669752e5473e02b26"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/6_problem2.typ",
+      "size": 369,
+      "sha256": "064ee97c4969a29f1e2abc440f542e1091a38931db51c4648c4d5f8d6d85387c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/7_problem3.typ",
+      "size": 456,
+      "sha256": "9f5d2e9d2b2c53bf31b0d2292a4386a0b890ca50c46ebf2ff4beaee0a06e8364"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/8_evaluation.typ",
+      "size": 334,
+      "sha256": "7895cfaddc9a103cddf20c67383f00a9998e9b7fe3e7a5b4cf81fb377d347b76"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huashubei/sections/A_code.typ",
+      "size": 527,
+      "sha256": "3c1b36a339db20732f10771018cd1cdaffbd26795d1a29199b146924f9610a93"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/logo.pdf",
+      "size": 407489,
+      "sha256": "f3bfff8559b5fa64d15bf9b760a8bad6b756ec4ac00ffae94fe87b61fc711b8f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/main.tex",
+      "size": 7034,
+      "sha256": "eae23ee7a2e6e248852217cf299b56611444409ae6160d85b4194da7d684c15c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/references.tex",
+      "size": 457,
+      "sha256": "d2988c2e4b99970cc661c544d13c6ab7bbd1e44229cce198b867c7b7ce2047f5"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/4_symbols.tex",
+      "size": 455,
+      "sha256": "986a14a1c093f4353ccda447794f182c1cc665b3c3bc298a02e1f34507a0fdd4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/5_problem1.tex",
+      "size": 513,
+      "sha256": "df14b9fff7896b44bf51afe1e19b33e36e7680e7960536f6992c28513e05560a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/6_problem2.tex",
+      "size": 403,
+      "sha256": "a62c45001ef89cd6dd601efc79d361678d33d288997f99a3a0633ae97900d98a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/8_sensitivity.tex",
+      "size": 229,
+      "sha256": "8676d0e5a20b01d4e9c59b8174add491f5574ae398e86261dce0b6124bf8f96d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/9_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/title-img-01.png",
+      "size": 17237,
+      "sha256": "0ad645f3b0acb46ff594b4c0b48f144fbf441ae608768fb4393c799378c59e89"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei-latex/title.pdf",
+      "size": 129983,
+      "sha256": "173f35540778a81499282e2baf3bb38571a2d0982ccf0799868f2e5439508988"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/logo.pdf",
+      "size": 407489,
+      "sha256": "f3bfff8559b5fa64d15bf9b760a8bad6b756ec4ac00ffae94fe87b61fc711b8f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/main.typ",
+      "size": 7744,
+      "sha256": "06c78f7d5fd44d0e5d1723d97bad45cfff48656caf52df519847d78b5876e623"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/3_assumptions.typ",
+      "size": 357,
+      "sha256": "a65e564b7c9368270067cfa31e134a729078048537dddffd27c2487a7337a7bd"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/4_symbols.typ",
+      "size": 632,
+      "sha256": "8565d5b70987d42874f11d840440422e2708b38aa97eb42dab0ae8e5d823eefc"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/5_problem1.typ",
+      "size": 464,
+      "sha256": "2ff63c8f5b9d7218932f18c15ad9db7fae3d8a338d3fbed8dc66106e71ab73b9"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/6_problem2.typ",
+      "size": 358,
+      "sha256": "73d64ba21b965d99bca99bb6e02f6e3f7988a8dc4163fbb418e2e183f8e3183d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/8_sensitivity.typ",
+      "size": 216,
+      "sha256": "ae4afbb6284b62f3998f187b88433f2cbafbdc529e298d8baf9c1ccbf0a34c63"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/9_evaluation.typ",
+      "size": 334,
+      "sha256": "7895cfaddc9a103cddf20c67383f00a9998e9b7fe3e7a5b4cf81fb377d347b76"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/sections/A_code.typ",
+      "size": 538,
+      "sha256": "a4c367b1fb2fcdf33a1a35792da31391907c5a2d5340d95b49c837314ea46b16"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/title-img-01.png",
+      "size": 17237,
+      "sha256": "0ad645f3b0acb46ff594b4c0b48f144fbf441ae608768fb4393c799378c59e89"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huaweibei/title.pdf",
+      "size": 129983,
+      "sha256": "173f35540778a81499282e2baf3bb38571a2d0982ccf0799868f2e5439508988"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/main.tex",
+      "size": 5621,
+      "sha256": "36c9470f44c8c9d504d80a590134e924cb68be6a16c90fc2fd0c59cfbe78b204"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/references.tex",
+      "size": 465,
+      "sha256": "c3a7a51a3e3d38ab54c39b2146dca0f207229e58e854cb51de875a765256a7ae"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/4_symbols.tex",
+      "size": 444,
+      "sha256": "8e46f2ac2720836edd8a4b92a6d8ddfa1e2d18c320439373461442497440ffe0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/5_problem1.tex",
+      "size": 513,
+      "sha256": "df14b9fff7896b44bf51afe1e19b33e36e7680e7960536f6992c28513e05560a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/6_problem2.tex",
+      "size": 403,
+      "sha256": "a62c45001ef89cd6dd601efc79d361678d33d288997f99a3a0633ae97900d98a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/8_sensitivity.tex",
+      "size": 229,
+      "sha256": "8676d0e5a20b01d4e9c59b8174add491f5574ae398e86261dce0b6124bf8f96d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/9_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/main.typ",
+      "size": 5364,
+      "sha256": "c4577c86d837d56152ecfa1d8c54f56de4074f5b38b05693778cfb81d5189e88"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/3_assumptions.typ",
+      "size": 357,
+      "sha256": "a65e564b7c9368270067cfa31e134a729078048537dddffd27c2487a7337a7bd"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/4_symbols.typ",
+      "size": 617,
+      "sha256": "6aa61c81bad198b62e06faaccc67b13c7933ca93b510ccbf865fab663c413370"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/5_problem1.typ",
+      "size": 464,
+      "sha256": "2ff63c8f5b9d7218932f18c15ad9db7fae3d8a338d3fbed8dc66106e71ab73b9"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/6_problem2.typ",
+      "size": 358,
+      "sha256": "73d64ba21b965d99bca99bb6e02f6e3f7988a8dc4163fbb418e2e183f8e3183d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/8_sensitivity.typ",
+      "size": 216,
+      "sha256": "ae4afbb6284b62f3998f187b88433f2cbafbdc529e298d8baf9c1ccbf0a34c63"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/9_evaluation.typ",
+      "size": 334,
+      "sha256": "7895cfaddc9a103cddf20c67383f00a9998e9b7fe3e7a5b4cf81fb377d347b76"
+    },
+    {
+      "path": "skills/5writing/templates/zh/huazhongbei/sections/A_code.typ",
+      "size": 538,
+      "sha256": "a4c367b1fb2fcdf33a1a35792da31391907c5a2d5340d95b49c837314ea46b16"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/main.tex",
+      "size": 6430,
+      "sha256": "2884f6abbe32201007e4e67e834a0c1565fd06f7358829bec5db116e4844c208"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/references.tex",
+      "size": 465,
+      "sha256": "c3a7a51a3e3d38ab54c39b2146dca0f207229e58e854cb51de875a765256a7ae"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/1_restatement.tex",
+      "size": 463,
+      "sha256": "394730381fe5e5fe6036d667cf9590501c4faf2e162e7b506469966c7e61cf1a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/2_analysis.tex",
+      "size": 392,
+      "sha256": "8721073966549163f85359c631b249375fa9e072762f0e0e76b9cc5573794008"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/3_assumptions.tex",
+      "size": 429,
+      "sha256": "1d984aece5b4bc2a4c1f8a457df0ff65dc8651dcc3aef1890d37c4324ff5f18a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/4_symbols.tex",
+      "size": 446,
+      "sha256": "903358f71bf1df7cdce566dd4572740c5b7ebb224c8d07aa51158f73b5ecfc0e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/5_problem1.tex",
+      "size": 513,
+      "sha256": "df14b9fff7896b44bf51afe1e19b33e36e7680e7960536f6992c28513e05560a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/6_problem2.tex",
+      "size": 403,
+      "sha256": "a62c45001ef89cd6dd601efc79d361678d33d288997f99a3a0633ae97900d98a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/7_problem3.tex",
+      "size": 490,
+      "sha256": "d8ca17d83b9920a605f42997978679836482dac2754031faf899d2ebd44b70ce"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/8_evaluation.tex",
+      "size": 470,
+      "sha256": "286ce84cb742761ccd62fed0144aab927e14bf224ae14baee0a4ac7a2c69f78b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup-latex/sections/A_code.tex",
+      "size": 582,
+      "sha256": "b3fa6f8af08adfe85f4f701c8a4180d9058ee9d96e1f3fd78e1ebe4d1c7da08c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/main.typ",
+      "size": 5552,
+      "sha256": "ddd93ee7fb012d8d76e1f961f0067aad93bb26678c0657b0c4757d7e7e11ac2d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/1_restatement.typ",
+      "size": 435,
+      "sha256": "f558bf3611376427b82d3625cdc8d58f6f43b4774403119adbbc5fc369bcd57d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/2_analysis.typ",
+      "size": 354,
+      "sha256": "509814bb04e3bbc7af679a3247638048de6954bdd7f0728f0aef028b6ddc28ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/3_assumptions.typ",
+      "size": 357,
+      "sha256": "a65e564b7c9368270067cfa31e134a729078048537dddffd27c2487a7337a7bd"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/4_symbols.typ",
+      "size": 630,
+      "sha256": "9521861935e7d4d42a5f1e965fad88a8d0b01b08336a81272e44807488ae7837"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/5_problem1.typ",
+      "size": 464,
+      "sha256": "2ff63c8f5b9d7218932f18c15ad9db7fae3d8a338d3fbed8dc66106e71ab73b9"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/6_problem2.typ",
+      "size": 362,
+      "sha256": "dfd149dba61def9c5893953dab2587eae31916894f5daeffbad756c438ebd258"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/7_problem3.typ",
+      "size": 424,
+      "sha256": "40f9a3a9eb05add9a39ce4f3d28e2bdd983df23753e7a87e72d684ec4f5630e0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/8_evaluation.typ",
+      "size": 334,
+      "sha256": "7895cfaddc9a103cddf20c67383f00a9998e9b7fe3e7a5b4cf81fb377d347b76"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mathorcup/sections/A_code.typ",
+      "size": 699,
+      "sha256": "07df60cc0947c97b76b784f5759f672a524f8bcb58c8966f04fd33999c0798e4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/main.tex",
+      "size": 5263,
+      "sha256": "55ecc69fe7eff64907706b7b9a4e2e140a966ba2b73c95a3fa5d6ba7a3453a40"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/references.tex",
+      "size": 474,
+      "sha256": "9f6654c51e7afd12041da0d69dd33ab37f55b0a3310f3fe6932dc3dd8028f40d"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/1_introduction.tex",
+      "size": 638,
+      "sha256": "3defd2cde00570f80e27fc3a85ddaadd9e486110b940e3f814eeb3e8e247bde7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/2_assumptions.tex",
+      "size": 493,
+      "sha256": "98f2fc5d89b074558c3657d7d8a66ed8f9981c38b6f48031d69a15cf94a65600"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/3_model_design.tex",
+      "size": 405,
+      "sha256": "3b5fa261f048759210587cd81dba89dcebcc7cb4c65a03688ad08f0451ab6850"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/4_solution.tex",
+      "size": 679,
+      "sha256": "f671581701a54172221db46d3261730b2a39219b51bc09a02e8fbbca7f7e3368"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/5_sensitivity.tex",
+      "size": 391,
+      "sha256": "3bb0a0cfcfe1115e848f43a216593645d8798ea552847f3af0f0d6ff1d5124be"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/6_strengths_weaknesses.tex",
+      "size": 540,
+      "sha256": "51868e7b8b68669df7c57103f1beafcae4bff23ed197764e776ed3f7a5235904"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/7_conclusions.tex",
+      "size": 504,
+      "sha256": "13c8d76c92971dc56d1450cb54832b60627575958ac93b1d49bb4a628070e1bc"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm-latex/sections/A_code.tex",
+      "size": 663,
+      "sha256": "716019fc26b2be1d2b50735606e6485d5cb6141fb0cd9440212e5acd118bc8e4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/main.typ",
+      "size": 5934,
+      "sha256": "4ff928c9668800a5da19cc7b6bcd6c0196249d9ed336020ed252d653c99bd78f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/references.typ",
+      "size": 443,
+      "sha256": "0761199b14813e39dc84b309476df50a32046f0d0cdd90ecbf5e7601c26d4c4b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/1_introduction.typ",
+      "size": 600,
+      "sha256": "703a3d26ebadef326ee0a0aab880038aa3494324a807eb2759ced8c6be7d71d4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/2_assumptions.typ",
+      "size": 421,
+      "sha256": "2273325585c8fe5cf3e2ff4fab2812df09e59b714c2d7c86f72ae598b1e7a86c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/3_model_design.typ",
+      "size": 332,
+      "sha256": "6d977c816706c76a82da3c1793b158bd8ebd7aa040eadd0f10c3e408ec25adaf"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/4_solution.typ",
+      "size": 930,
+      "sha256": "e987647f61946a305bbb41f813b75613e65a6d2a46e7ddbaaaaee9df71b2b514"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/5_sensitivity.typ",
+      "size": 679,
+      "sha256": "211e28ff9de562419e5c6b8ff70b0619cef6c93c53a0b0a38b46449d41ff8394"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/6_strengths_weaknesses.typ",
+      "size": 408,
+      "sha256": "918dbbf9c323db6bbf249c65e5c03b10dbf6583df78f72fc378068bb9cbc2d5c"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/7_conclusions.typ",
+      "size": 438,
+      "sha256": "36dc3330708e7c71d1307210402c0f79a1e6223a5c156bf178c975214fb028db"
+    },
+    {
+      "path": "skills/5writing/templates/zh/mcm/sections/A_code.typ",
+      "size": 527,
+      "sha256": "825a9550e8bebb78f4df72732d3503a54e68d3362caa7ab1d6e1ef2136e75222"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/main.tex",
+      "size": 5308,
+      "sha256": "61d41e3035afc852df1e0d533406eb7325d0cc5bf8d6e17bc488b26277ef3ee2"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/references.tex",
+      "size": 434,
+      "sha256": "7f1707503f2b5f62e46fa056c6c9272e3be200201d8e025759b793a49a699b73"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/2_analysis.tex",
+      "size": 182,
+      "sha256": "54be45e38fe67264688d63b06d664d1d97940614030a975461b82858ee1c5f4e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/3_assumptions.tex",
+      "size": 441,
+      "sha256": "7f9960ca6ebc92721cee884557bd74369808a8067853acb0c25c50d6c65c387e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/4_symbols.tex",
+      "size": 555,
+      "sha256": "33417d6108e23a1f5d67c536790da4f6abc6654dc04926175821a74726b18ce8"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/5_problem1.tex",
+      "size": 383,
+      "sha256": "136595d4c55cc9443e7ceb095afc8a079b2dae20547c73a973d9b1af24f30c90"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/6_problem2.tex",
+      "size": 340,
+      "sha256": "2e3601afb9294b2e8832838ef760182d3067faa31a98ed470e7eb7a0fbb47104"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/7_problem3.tex",
+      "size": 340,
+      "sha256": "259a0105002ec2fbbc3c291c05c4ec14e386402268ab68cf1f8f9ea0236d41ba"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/8_evaluation.tex",
+      "size": 175,
+      "sha256": "871f4b8d409e99fef472de988e377901cfbe40efc8573d95cd44277d2eb93b1e"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/A_code.tex",
+      "size": 654,
+      "sha256": "8803c6664da440ff08db200de96dafa500c383f1288cbafc8b6dbb35314bbee3"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/Abstract.tex",
+      "size": 387,
+      "sha256": "6659739d31199074be086ba956eeb7ee53084e5a7e6eb6e0534d35cb0a9f4a07"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/Appendices1.tex",
+      "size": 255,
+      "sha256": "9a234e28424290b8816fe56536450d4131dfda1213430c148b5a4e465e7811e2"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei-latex/sections/Introduction.tex",
+      "size": 399,
+      "sha256": "0800335320ba086a66df7f9af58b64769bdac131a664f047f6e5a973439c0dda"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/main.typ",
+      "size": 13442,
+      "sha256": "2c8441425f321b907263b7c3f2e20cf3a949a2a6870788898a393b324b710917"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/2_analysis.typ",
+      "size": 196,
+      "sha256": "bdb30f171bbfc4b7f686be1a25aa4d46e49b2e7a4941f414d4ec66cc9bf3d403"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/3_assumptions.typ",
+      "size": 183,
+      "sha256": "881823e182aaf62ff02ac04eda3f0cc7fcecbac604089fb7856a3b6b924c3801"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/4_symbols.typ",
+      "size": 168,
+      "sha256": "24fc7501eb92b434e8d65f6d8a35fe0acb57b01d224eb5eee09197cf31a4b4c6"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/5_problem1.typ",
+      "size": 394,
+      "sha256": "f75175e39b26e08478cb6e5036bd9ec4c5588468644c8d41269428e28fa44084"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/6_problem2.typ",
+      "size": 351,
+      "sha256": "db182176b4d8cdb829d74337cd8aead61df3b6e34f060a51f5b1dc81eb3b8806"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/7_problem3.typ",
+      "size": 351,
+      "sha256": "24db0e2623ffecd6e028f2596b860776f6619f437bb009b62f36db719df07fcf"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/8_evaluation.typ",
+      "size": 198,
+      "sha256": "af900306fff0480c72048c59fb86b2352afe38dc02a62c7d3adddd63417ba938"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/A_code.typ",
+      "size": 302,
+      "sha256": "b8e9cd17761e8ba0fbdc625f7cf0aafe7be86f6e4f40ae6d783dc8417f76ebdf"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/Abstract.typ",
+      "size": 317,
+      "sha256": "60c42977bb97516b765cf5c0a9fab10151675da469e72f79d89d52ab9151ad5a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/Appendices1.typ",
+      "size": 324,
+      "sha256": "45c68f7e382732f723a8beaea8621dc4db4444a8364dd01cd7ca2ad747619d95"
+    },
+    {
+      "path": "skills/5writing/templates/zh/shuweibei/sections/Introduction.typ",
+      "size": 420,
+      "sha256": "5cf8366cc549ccc78897a20c5215d890c861feca4c67a1be1d78dcdae7694adf"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/main.tex",
+      "size": 6285,
+      "sha256": "44d1f878b5b32bdbd8d42002e1cb7bffb0a1de4c4d3ce19788421051f179f58a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/references.tex",
+      "size": 434,
+      "sha256": "7f1707503f2b5f62e46fa056c6c9272e3be200201d8e025759b793a49a699b73"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/1_introduction.tex",
+      "size": 497,
+      "sha256": "21407df9183bb70b8c10b9974e7711c4a962128b906016f3ea79addd8d2557ff"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/2_method.tex",
+      "size": 423,
+      "sha256": "50717c1925b300cddfdb187dfd9efe9d6a67db7208f0d9e5e496de10d923caa9"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/3_data.tex",
+      "size": 365,
+      "sha256": "b668aea7d039aca25082c489974426899b9b8c51b63ca1c960362d9e71526510"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/4_analysis.tex",
+      "size": 339,
+      "sha256": "933c1ee51b2f02b707e08319479034f2833bfabf1e255edf3dbf4248830dcfea"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/5_results.tex",
+      "size": 267,
+      "sha256": "1aaab59b3bc901f0765a850e851075d9168566591241a535a31b22df433e3804"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/6_conclusion.tex",
+      "size": 404,
+      "sha256": "81a294db03572688094a92c99f8018d0a1fb218261f75e321ff7ceed05dc2d85"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats-latex/sections/A_code.tex",
+      "size": 692,
+      "sha256": "724d33e552458240eee16088896bc8c09728dc6d2c3c9c66297a56b7f1bf9b3f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/main.typ",
+      "size": 6829,
+      "sha256": "6a3872cf4b367fb4a5244d5d24ab7e70717b5023b0145144dba8bed2c53d9c2f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/1_introduction.typ",
+      "size": 469,
+      "sha256": "e6dc6672a18798000e8017f0eaf618af1d03b43ac29219ca0b74391a7f0555a4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/2_method.typ",
+      "size": 374,
+      "sha256": "90b4d262a9770279be14ca206da993669936af5be9cde0336de2b37ef264d695"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/3_data.typ",
+      "size": 288,
+      "sha256": "6b329b2028244d208dfed0b2097b0c11a4fa7cd3d9bf98752a28915d591e02a7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/4_analysis.typ",
+      "size": 301,
+      "sha256": "6d77058ba3d8f973627abf2b886441cc6ac14d5ebc7c537a9d2bcc01e5baaf50"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/5_results.typ",
+      "size": 486,
+      "sha256": "dd2d8fdd8d9afc736fe3f15c35173b74b57803cbe515707bd9721fad353b92d7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/6_conclusion.typ",
+      "size": 347,
+      "sha256": "b46a0efb6b4b8625be28a9e8a36fcdfd3d3ff765e3eb805d26f82e568629a736"
+    },
+    {
+      "path": "skills/5writing/templates/zh/stats/sections/A_code.typ",
+      "size": 289,
+      "sha256": "19242477802cbf827329ef55c61b880028ff8d94cab443a411849ac09cabadde"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/image2.png",
+      "size": 11121,
+      "sha256": "61e5a2e97dee9b6b93e125fbf9843dcce36a9b93a9bbbea152608975e58078b0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/main.tex",
+      "size": 8450,
+      "sha256": "415ea0c1bb1455486d6387acf96b4ac40c7749ddd97cce8097530bb38383bac7"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/references.tex",
+      "size": 465,
+      "sha256": "c3a7a51a3e3d38ab54c39b2146dca0f207229e58e854cb51de875a765256a7ae"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/1_restatement.tex",
+      "size": 195,
+      "sha256": "9064b20debd0acf40f5ab5d143ef973469bab1de9dfe8b4bb9789fdffa621078"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/2_analysis.tex",
+      "size": 184,
+      "sha256": "b4a9a292ad99cde29c3e1313e6651db7d53694bdc5e25df34d1625d7e6e78e1f"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/3_assumptions.tex",
+      "size": 171,
+      "sha256": "51cb65b36d6786643db1d3f1b6f305cee8189cb78a2304b1cb9a4ffd81c7c22b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/4_symbols.tex",
+      "size": 156,
+      "sha256": "919fc1832ea6f3b9935087e5ccfc40c94edb6f4f69f62696ca6f7e8db4e17e7b"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/5_problem1.tex",
+      "size": 391,
+      "sha256": "2482d913b834f6513abdc239e9b5de64d57b2c852c0a734eca95970a0778eee9"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/6_problem2.tex",
+      "size": 348,
+      "sha256": "c2d38f3b818ac7a31f2b1830302654545641767325b1b7bea7c0ea9192c3ae25"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/7_problem3.tex",
+      "size": 348,
+      "sha256": "636116997d95a33dca95008491aa83aa72a854fda37d9d0412f6c22ed863dcf4"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/8_evaluation.tex",
+      "size": 177,
+      "sha256": "7caaa292bbf67aa74704ec1c23a64a9bce0b9c0a7ba4351cbfa7afef6c14671a"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei-latex/sections/A_code.tex",
+      "size": 157,
+      "sha256": "8c5e46e53bdfd9e6f2c4bbfd0727b278388a6bc1135764ea90c46fb0f78bfdcb"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/image2.png",
+      "size": 11121,
+      "sha256": "61e5a2e97dee9b6b93e125fbf9843dcce36a9b93a9bbbea152608975e58078b0"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/main.typ",
+      "size": 12659,
+      "sha256": "26a16b0e2de9aa6a6f618d7d67540f43756c9f9aa3db2a2e3becb87fce3816b3"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/references.typ",
+      "size": 268,
+      "sha256": "bb85a53c0b4c05a0c702a85b7e31b441a14eff69c1913701a6941234d4faaa55"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/1_restatement.typ",
+      "size": 207,
+      "sha256": "11d072f55131d634c556e7b69c932c27318674671f0d62372c77b296ee8c80ac"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/2_analysis.typ",
+      "size": 196,
+      "sha256": "bdb30f171bbfc4b7f686be1a25aa4d46e49b2e7a4941f414d4ec66cc9bf3d403"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/3_assumptions.typ",
+      "size": 183,
+      "sha256": "881823e182aaf62ff02ac04eda3f0cc7fcecbac604089fb7856a3b6b924c3801"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/4_symbols.typ",
+      "size": 168,
+      "sha256": "24fc7501eb92b434e8d65f6d8a35fe0acb57b01d224eb5eee09197cf31a4b4c6"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/5_problem1.typ",
+      "size": 394,
+      "sha256": "f75175e39b26e08478cb6e5036bd9ec4c5588468644c8d41269428e28fa44084"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/6_problem2.typ",
+      "size": 351,
+      "sha256": "db182176b4d8cdb829d74337cd8aead61df3b6e34f060a51f5b1dc81eb3b8806"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/7_problem3.typ",
+      "size": 351,
+      "sha256": "24db0e2623ffecd6e028f2596b860776f6619f437bb009b62f36db719df07fcf"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/8_evaluation.typ",
+      "size": 198,
+      "sha256": "af900306fff0480c72048c59fb86b2352afe38dc02a62c7d3adddd63417ba938"
+    },
+    {
+      "path": "skills/5writing/templates/zh/wuyibei/sections/A_code.typ",
+      "size": 485,
+      "sha256": "0d1e0cffbce465ca734237bea29095d88f455527af3db8f96b0fef3db95298a1"
+    },
+    {
+      "path": "skills/6verity/SKILL.md",
+      "size": 10396,
+      "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e"
+    },
+    {
+      "path": "skills/6verity/scripts/writing_check.sh",
+      "size": 21231,
+      "sha256": "a7230a987680720d4b5637f3787442c8b5c4f8090e7cf95ea836a5b82596d481"
+    },
+    {
+      "path": "skills/_references/math_modeling_norms.md",
+      "size": 30415,
+      "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64"
+    }
+  ]
+}
