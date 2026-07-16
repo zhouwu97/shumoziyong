@@ -1507,6 +1507,8 @@ class RepositoryValidator:
             "paper_template_manifest.schema.json",
             "paper_visual_review.schema.json",
             "paper_verify_report.schema.json",
+            "template_source_manifest.schema.json",
+            "template_overlay.schema.json",
             "upstream_requirement_registry.schema.json",
             "upstream_requirement_mapping.schema.json",
             "competition_production_adapter_report.schema.json",
@@ -1649,6 +1651,36 @@ class RepositoryValidator:
         else:
             self.pass_("Competition Production review_ready/full_replay 生命周期边界")
 
+    def validate_template_registry(self) -> None:
+        registry = self.load_json("runtime_contracts/template_source_manifest_v1.json")
+        overlay = self.load_json("runtime_contracts/template_overlay_v1.json")
+        if registry is None or overlay is None:
+            return
+        registry_valid = self.validate_schema(
+            registry,
+            "template_source_manifest.schema.json",
+            "模板来源注册表",
+        )
+        overlay_valid = self.validate_schema(
+            overlay,
+            "template_overlay.schema.json",
+            "Windows 模板覆盖层",
+        )
+        keys = registry.get("logical_keys", [])
+        templates = registry.get("templates", [])
+        if not registry_valid or not overlay_valid:
+            return
+        if len(keys) != 17 or len(templates) != 34:
+            self.fail("模板注册表必须包含 17 个逻辑键和 34 套引擎模板")
+        elif any(item.get("default_engine") != "typst" for item in keys):
+            self.fail("模板注册表默认引擎必须是 Typst")
+        elif any(item.get("fallback_engine") != "xelatex" for item in keys):
+            self.fail("模板注册表回退引擎必须是 XeLaTeX")
+        elif any(item.get("upstream_default_overridden") is not True for item in keys):
+            self.fail("模板注册表未记录 upstream_default_overridden=true")
+        else:
+            self.pass_("模板注册表数量、引擎与上游默认覆盖边界")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1667,6 +1699,7 @@ class RepositoryValidator:
         self.validate_route_contract_dispatch()
         self.validate_score_v3_policy()
         self.validate_competition_production_capability()
+        self.validate_template_registry()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:
