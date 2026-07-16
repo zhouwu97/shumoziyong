@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "policy_id": "score_v3_policy_v1",
+  "lifecycle": "review_ready",
+  "activation_contexts": ["full_replay"],
+  "new_problem_default_enabled": false,
+  "weights": {
+    "mechanism_hypothesis": 0.10,
+    "business_constraints": 0.10,
+    "route_competition": 0.12,
+    "execution_completeness": 0.10,
+    "comparison_quality": 0.12,
+    "formal_evidence": 0.16,
+    "operability": 0.12,
+    "risk_robustness": 0.10,
+    "submission_readiness": 0.08
+  },
+  "fatal_cap": 70,
+  "submission_threshold": 70,
+  "fatal_mapping": {
+    "G3V3_ROUTE_EXECUTION_INCOMPLETE": "V3F_ROUTE_EXECUTION_INCOMPLETE",
+    "G3V3_SELECTED_ROUTE_INADMISSIBLE": "V3F_SELECTED_ROUTE_INADMISSIBLE",
+    "G3V3_DATA_LEAKAGE": "V3F_DATA_LEAKAGE",
+    "G3V3_OPERABILITY_FAILED": "V3F_OPERABILITY_HARD_FAILURE",
+    "G3V3_RISK_BLOCK": "V3F_RISK_BLOCK",
+    "G3V3_FORMAL_RESULT_INELIGIBLE": "V3F_FORMAL_RESULT_INELIGIBLE"
+  },
+  "legacy_namespace": {
+    "artifact_type": "score_v2",
+    "fatal_codes": ["F1", "F2", "F3", "F4", "F5"],
+    "reinterpretation_forbidden": true
+  }
+}

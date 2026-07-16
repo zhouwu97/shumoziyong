@@ -322,6 +322,8 @@ def evaluate_competition_gate3(
     parent_run_dir: Path,
     subproblem_id: str,
     validator_id: str,
+    *,
+    write_report: bool = True,
 ) -> dict[str, Any]:
     """绑定三条 Formal Result、比较、可执行性与风险证据并生成 Gate 3 决策。"""
     parent_root = parent_run_dir.resolve()
@@ -501,10 +503,11 @@ def evaluate_competition_gate3(
         },
     }
     validate_artifact(report, context="full_replay")
-    output_path = parent_root / EVIDENCE_FILENAMES["decision"].format(
-        subproblem_id=subproblem_id
-    )
-    _write_json_atomic(output_path, report)
+    if write_report:
+        output_path = parent_root / EVIDENCE_FILENAMES["decision"].format(
+            subproblem_id=subproblem_id
+        )
+        _write_json_atomic(output_path, report)
     return report
 
 

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/score_v3_ratings.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "subproblem_id", "scorer_id", "gate3_decision_sha256", "dimensions"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "score_v3_ratings_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "minLength": 1},
+    "scorer_id": {"type": "string", "minLength": 1},
+    "gate3_decision_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "dimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mechanism_hypothesis", "business_constraints", "route_competition", "execution_completeness", "comparison_quality", "formal_evidence", "operability", "risk_robustness", "submission_readiness"],
+      "properties": {
+        "mechanism_hypothesis": {"$ref": "#/$defs/rating"},
+        "business_constraints": {"$ref": "#/$defs/rating"},
+        "route_competition": {"$ref": "#/$defs/rating"},
+        "execution_completeness": {"$ref": "#/$defs/rating"},
+        "comparison_quality": {"$ref": "#/$defs/rating"},
+        "formal_evidence": {"$ref": "#/$defs/rating"},
+        "operability": {"$ref": "#/$defs/rating"},
+        "risk_robustness": {"$ref": "#/$defs/rating"},
+        "submission_readiness": {"$ref": "#/$defs/rating"}
+      }
+    }
+  },
+  "$defs": {
+    "rating": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "rationale", "evidence_paths"],
+      "properties": {
+        "score": {"type": "number", "minimum": 0, "maximum": 100},
+        "rationale": {"type": "string", "minLength": 10},
+        "evidence_paths": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 3}}
+      }
+    }
+  }
+}

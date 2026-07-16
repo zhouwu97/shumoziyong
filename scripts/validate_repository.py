@@ -1518,6 +1518,9 @@ class RepositoryValidator:
             "risk_decision_report.schema.json",
             "route_execution_report.schema.json",
             "competition_gate3_decision.schema.json",
+            "score_v3_policy.schema.json",
+            "score_v3_ratings.schema.json",
+            "score_v3.schema.json",
             "route_contract_dispatch.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
@@ -1604,6 +1607,27 @@ class RepositoryValidator:
         else:
             self.pass_("路线合同 v2/v3 兼容、历史哈希与 review_ready 边界")
 
+    def validate_score_v3_policy(self) -> None:
+        policy = self.load_json("runtime_contracts/score_v3_policy_v1.json")
+        if policy is None:
+            return
+        self.validate_schema(policy, "score_v3_policy.schema.json", "score_v3 固定政策")
+        weights = policy.get("weights", {})
+        if not isinstance(weights, dict) or abs(
+            sum(float(value) for value in weights.values()) - 1.0
+        ) > 1e-12:
+            self.fail("score_v3 九维权重和不为 1")
+            return
+        legacy = policy.get("legacy_namespace", {})
+        if legacy != {
+            "artifact_type": "score_v2",
+            "fatal_codes": ["F1", "F2", "F3", "F4", "F5"],
+            "reinterpretation_forbidden": True,
+        }:
+            self.fail("score_v3 改写了 score_v2/F1-F5 历史命名空间")
+            return
+        self.pass_("score_v3 九维权重、70 分封顶与历史命名空间隔离")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1620,6 +1644,7 @@ class RepositoryValidator:
         self.validate_upstream_source_lock()
         self.validate_upstream_requirements()
         self.validate_route_contract_dispatch()
+        self.validate_score_v3_policy()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:
