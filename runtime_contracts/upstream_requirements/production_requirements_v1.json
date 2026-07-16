@@ -1,0 +1,87 @@
+{
+  "schema_version": "upstream_requirement_registry_v1",
+  "registry_id": "production_requirements_v1",
+  "domain": "production",
+  "source_repository": "https://github.com/jihe520/MathModelAgent.git",
+  "source_commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+  "requirements": [
+    {
+      "requirement_id": "PROD-001",
+      "title": "逐子问题兑现路线",
+      "statement": "实现必须按子问题把数据、模型、约束、核心结果和校验对应到已批准路线，不得一次性生成未验证的整套答案。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "Step 2: 逐子问题实现"}],
+      "mapping_id": "MAP-PROD-ROUTE"
+    },
+    {
+      "requirement_id": "PROD-002",
+      "title": "先有可行解再优化",
+      "statement": "优化任务必须先证明方案满足全部硬约束，再比较目标值和改进幅度。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "Step 2: 逐子问题实现"},
+        {"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "代码实现与结果"}
+      ],
+      "mapping_id": "MAP-PROD-ROUTE"
+    },
+    {
+      "requirement_id": "PROD-003",
+      "title": "算法替代可追溯",
+      "statement": "代码若偏离批准的模型、约束或参数，必须记录替代原因、替代方案及其对结论的影响。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "代码实现与结果"}],
+      "mapping_id": "MAP-PROD-ROUTE"
+    },
+    {
+      "requirement_id": "PROD-004",
+      "title": "关键过程留证",
+      "statement": "清洗摘要、模型参数、迭代历史、约束检查、灵敏度过程、作图数据和运行日志必须形成可追溯证据。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "Step 3: 结果文件格式"}],
+      "mapping_id": "MAP-PROD-EVIDENCE"
+    },
+    {
+      "requirement_id": "PROD-005",
+      "title": "论文数值绑定正式结果",
+      "statement": "所有可能进入论文的数值、舍入口径和图表数据必须追溯到当前 Run 的结果记录或代码输出。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "Step 3: 结果文件格式"},
+        {"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "代码实现与结果"}
+      ],
+      "mapping_id": "MAP-PROD-EVIDENCE"
+    },
+    {
+      "requirement_id": "PROD-006",
+      "title": "随机与数值稳定性",
+      "statement": "随机算法必须固定种子并提供重复运行或稳定性证据；数值方法应报告收敛、边界和必要的步长检查。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "代码实现与结果；编码阶段常见错误"}],
+      "mapping_id": "MAP-PROD-EVIDENCE"
+    },
+    {
+      "requirement_id": "PROD-007",
+      "title": "预测防止时间泄漏",
+      "statement": "预测任务必须使用与任务一致的训练验证划分，预处理仅在训练数据拟合，时序任务不得使用未来信息。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "假设与模型建立；编码阶段常见错误"}],
+      "mapping_id": "MAP-PROD-DOMAIN"
+    },
+    {
+      "requirement_id": "PROD-008",
+      "title": "评价方向权重可解释",
+      "statement": "评价任务必须说明指标正负向、标准化方式、权重来源及排名敏感性。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "假设与模型建立；题型防错速查"}],
+      "mapping_id": "MAP-PROD-DOMAIN"
+    },
+    {
+      "requirement_id": "PROD-009",
+      "title": "求解器成功不等于可行",
+      "statement": "正式方案必须逐条回代决策变量类型、边界、容量、预算、时间窗和业务约束，不能只引用求解器成功标志。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "编码阶段常见错误"}],
+      "mapping_id": "MAP-PROD-DOMAIN"
+    }
+  ]
+}

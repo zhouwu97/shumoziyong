@@ -1,0 +1,79 @@
+{
+  "schema_version": "upstream_requirement_registry_v1",
+  "registry_id": "figure_requirements_v1",
+  "domain": "figure",
+  "source_repository": "https://github.com/jihe520/MathModelAgent.git",
+  "source_commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+  "requirements": [
+    {
+      "requirement_id": "FIG-001",
+      "title": "数据图与概念图分流",
+      "statement": "数据驱动图与流程、结构、路线等非数据图必须按来源和用途分开规划，不得互相冒充。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "阶段边界；Step 4: 生成数据驱动图表"},
+        {"path": "skills/4drawio/SKILL.md", "sha256": "eb531bcac084d29ec6e7edf5c81eda2dea498106be2eec0400c84f34237268e7", "locator": "阶段边界；Step 2: 判定图类型"}
+      ],
+      "mapping_id": "MAP-FIG-DATA"
+    },
+    {
+      "requirement_id": "FIG-002",
+      "title": "数据图绑定正式数据",
+      "statement": "每张数据图必须绑定当前正式结果的数据来源、生成记录和拟回答的论证问题。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "Step 3: 结果文件格式；Step 4: 生成数据驱动图表"}],
+      "mapping_id": "MAP-FIG-DATA"
+    },
+    {
+      "requirement_id": "FIG-003",
+      "title": "论文图优先矢量输出",
+      "statement": "论文图应使用可验证的矢量输出；图内不放大标题，坐标、图例和语言与论文一致。",
+      "strength": "advisory",
+      "source_refs": [{"path": "skills/3coding-visual/SKILL.md", "sha256": "0181dae2bf11dc9b0f2040973fd782ad18bff68ae678cefbb8a31ee948073212", "locator": "Step 4: 图表要求"}],
+      "mapping_id": "MAP-FIG-DATA"
+    },
+    {
+      "requirement_id": "FIG-004",
+      "title": "非数据图保留可编辑源",
+      "statement": "进入论文的非数据图应保留可编辑源文件、导出文件及生成和自检记录。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/4drawio/SKILL.md", "sha256": "eb531bcac084d29ec6e7edf5c81eda2dea498106be2eec0400c84f34237268e7", "locator": "必须产出；Step 5: 自检和修复；Step 6: 写生成记录"}],
+      "mapping_id": "MAP-FIG-NONDATA"
+    },
+    {
+      "requirement_id": "FIG-005",
+      "title": "图示绑定真实方法",
+      "statement": "每张流程图、结构图或路线图必须对应当前已批准模型和真实章节用途，不得为凑数量生成。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/4drawio/SKILL.md", "sha256": "eb531bcac084d29ec6e7edf5c81eda2dea498106be2eec0400c84f34237268e7", "locator": "Step 1: 盘点已有图表和需求；质量要求"}],
+      "mapping_id": "MAP-FIG-NONDATA"
+    },
+    {
+      "requirement_id": "FIG-006",
+      "title": "非数据图不得改结果",
+      "statement": "非数据图生产不得重跑模型、修改代码或改变正式结果中的数值和方向性结论。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/4drawio/SKILL.md", "sha256": "eb531bcac084d29ec6e7edf5c81eda2dea498106be2eec0400c84f34237268e7", "locator": "阶段边界"}],
+      "mapping_id": "MAP-FIG-NONDATA"
+    },
+    {
+      "requirement_id": "FIG-007",
+      "title": "图表章节语义匹配",
+      "statement": "数据图应放在相应结果或分析章节，非数据图应放在方法或总体思路章节，并由正文解释。",
+      "strength": "advisory",
+      "source_refs": [
+        {"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 3：构建图表规划"},
+        {"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 3: 图表和章节匹配"}
+      ],
+      "mapping_id": "MAP-FIG-PLACEMENT"
+    },
+    {
+      "requirement_id": "FIG-008",
+      "title": "风格统一且可灰度辨识",
+      "statement": "同类图表应统一字体、颜色和边框，颜色在灰度打印下仍应可区分，并避免无意义装饰。",
+      "strength": "advisory",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "图表与可视化"}],
+      "mapping_id": "MAP-FIG-PLACEMENT"
+    }
+  ]
+}

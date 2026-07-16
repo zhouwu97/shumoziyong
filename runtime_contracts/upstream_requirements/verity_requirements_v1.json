@@ -1,0 +1,111 @@
+{
+  "schema_version": "upstream_requirement_registry_v1",
+  "registry_id": "verity_requirements_v1",
+  "domain": "verity",
+  "source_repository": "https://github.com/jihe520/MathModelAgent.git",
+  "source_commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+  "requirements": [
+    {
+      "requirement_id": "VER-001",
+      "title": "先识别实际论文布局",
+      "statement": "预检必须由当前 Run 显式提供论文入口、章节、引用、图表、结果和代码路径，不能依赖固定目录猜测。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "输入；Step 1: 运行文本质量门禁"}],
+      "mapping_id": "MAP-VER-TEXT"
+    },
+    {
+      "requirement_id": "VER-002",
+      "title": "入口章节闭包完整",
+      "statement": "入口引用的章节必须存在、唯一且顺序正确，正文文件不得缺失或被重复引用。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 2: 章节数量和标题顺序"}],
+      "mapping_id": "MAP-VER-TEXT"
+    },
+    {
+      "requirement_id": "VER-003",
+      "title": "占位符和内部泄露为硬错误",
+      "statement": "正文残留占位符或内部工作流名称、临时路径和结果文件名时不得进入提交稿。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 4: 写作质量和泄露检查；硬错误标准"},
+        {"path": "skills/6verity/scripts/writing_check.sh", "sha256": "a7230a987680720d4b5637f3787442c8b5c4f8090e7cf95ea836a5b82596d481", "locator": "placeholder_re；internal_terms"}
+      ],
+      "mapping_id": "MAP-VER-TEXT"
+    },
+    {
+      "requirement_id": "VER-004",
+      "title": "预检只读输出建议",
+      "statement": "外部兼容预检只能报告问题和建议修复，不得修改正文、结果或 Gate 状态。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "阶段边界"}],
+      "mapping_id": "MAP-VER-TEXT"
+    },
+    {
+      "requirement_id": "VER-005",
+      "title": "图表引用闭包",
+      "statement": "正文引用的图片必须存在且有 caption，核心图表应在正确章节被引用和解释。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 3: 图表和章节匹配"},
+        {"path": "skills/6verity/scripts/writing_check.sh", "sha256": "a7230a987680720d4b5637f3787442c8b5c4f8090e7cf95ea836a5b82596d481", "locator": "Image reference check；Figure caption check"}
+      ],
+      "mapping_id": "MAP-VER-EVIDENCE"
+    },
+    {
+      "requirement_id": "VER-006",
+      "title": "关键数值一致性",
+      "statement": "目标值、误差、排名、权重、阈值和灵敏度结论必须与当前正式结果一致，缺证据时不得自行补算。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 5: 数值和结果一致性"}],
+      "mapping_id": "MAP-VER-EVIDENCE"
+    },
+    {
+      "requirement_id": "VER-007",
+      "title": "模型代码正文一致",
+      "statement": "模型假设、符号、算法、结果方向和正文主张必须与当前 Run 的路线、代码证据和 Formal Result 一致。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "论文验收与一致性"}],
+      "mapping_id": "MAP-VER-EVIDENCE"
+    },
+    {
+      "requirement_id": "VER-008",
+      "title": "所选引擎必须可编译",
+      "statement": "编译器可用时必须按选定引擎完成编译并验证 PDF 非空；编译失败不得进入提交稿。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 7: 编译；硬错误标准"}],
+      "mapping_id": "MAP-VER-BUILD"
+    },
+    {
+      "requirement_id": "VER-009",
+      "title": "PDF 逐页视觉验收",
+      "statement": "提交候选 PDF 应逐页检查空白、缺页、裁切、越界、重叠、乱码及模板关键页面；无法执行时必须明确记录。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 8: PDF 视觉检查"}],
+      "mapping_id": "MAP-VER-BUILD"
+    },
+    {
+      "requirement_id": "VER-010",
+      "title": "硬错误与警告分级",
+      "statement": "预检必须区分阻断性硬错误和可修复警告，并保留每项证据与原因。",
+      "strength": "advisory",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "硬错误标准；警告标准"}],
+      "mapping_id": "MAP-VER-BUILD"
+    },
+    {
+      "requirement_id": "VER-011",
+      "title": "验收不得重做模型",
+      "statement": "发现模型或结果错误时应返回前序阶段，由对应所有者修复；验收层不得重跑实验或发明替代结果。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "阶段边界；Step 5: 数值和结果一致性"}],
+      "mapping_id": "MAP-VER-BOUNDARY"
+    },
+    {
+      "requirement_id": "VER-012",
+      "title": "Adapter 不拥有最终结论",
+      "statement": "外部兼容检查的结论只能成为 Gate 4 证据之一，最终准入必须由本仓 Claim Map、数值绑定、视觉报告和独立 Validator 决定。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 9: 写验收报告；阶段边界"}],
+      "mapping_id": "MAP-VER-BOUNDARY"
+    }
+  ]
+}

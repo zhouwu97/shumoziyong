@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_production_adapter_report.schema.json",
+  "title": "Competition Production Adapter 只读报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "adapter_id",
+    "run_id",
+    "source_commit",
+    "status",
+    "authority",
+    "applications"
+  ],
+  "properties": {
+    "schema_version": {"const": "competition_production_adapter_report_v1"},
+    "adapter_id": {"const": "plugin_competition_production_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "source_commit": {"const": "be9c59c1aaa13c3dcb74452ea5cae11dada27589"},
+    "status": {"const": "advisory_only"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generate_results",
+        "modify_paper",
+        "decide_gate_pass",
+        "advance_stage"
+      ],
+      "properties": {
+        "generate_results": {"const": false},
+        "modify_paper": {"const": false},
+        "decide_gate_pass": {"const": false},
+        "advance_stage": {"const": false}
+      }
+    },
+    "applications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement_id",
+          "mapping_id",
+          "strength",
+          "applicability",
+          "target_contracts",
+          "evidence_requests",
+          "diagnostics",
+          "rationale"
+        ],
+        "properties": {
+          "requirement_id": {"type": "string", "pattern": "^(PROD|PAPER|FIG|VER)-[0-9]{3}$"},
+          "mapping_id": {"type": "string", "pattern": "^MAP-[A-Z0-9-]+$"},
+          "strength": {"enum": ["blocking", "advisory"]},
+          "applicability": {"enum": ["applicable", "not_applicable", "unknown"]},
+          "target_contracts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^(schemas|checklists|runtime_contracts)/"}
+          },
+          "evidence_requests": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 3}
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 3}
+          },
+          "rationale": {"type": "string", "minLength": 3}
+        }
+      }
+    }
+  }
+}

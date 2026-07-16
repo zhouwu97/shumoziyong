@@ -1,0 +1,131 @@
+{
+  "schema_version": "upstream_requirement_mapping_v1",
+  "mapping_registry_id": "upstream_requirement_mapping_v1",
+  "source_commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+  "adapter_authority": {
+    "generate_results": false,
+    "modify_paper": false,
+    "decide_gate_pass": false,
+    "advance_stage": false,
+    "execute_upstream_content": false
+  },
+  "mappings": [
+    {
+      "mapping_id": "MAP-PROD-ROUTE",
+      "requirement_ids": ["PROD-001", "PROD-002", "PROD-003"],
+      "target_stage": "route",
+      "target_contracts": ["schemas/diagnosis_output.schema.json", "schemas/model_route_v2.schema.json", "schemas/execution_spec.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["子问题到路线和实现的对应关系", "全部硬约束与可行解证明", "路线偏离及影响说明"],
+      "enforcement_owner": "gate_2"
+    },
+    {
+      "mapping_id": "MAP-PROD-EVIDENCE",
+      "requirement_ids": ["PROD-004", "PROD-005", "PROD-006"],
+      "target_stage": "formal_result",
+      "target_contracts": ["schemas/execution_record.schema.json", "schemas/formal_result_envelope.schema.json", "schemas/formal_result_provenance_manifest.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["关键参数与中间过程记录", "论文数值和作图数据来源", "随机种子与稳定性记录"],
+      "enforcement_owner": "gate_3"
+    },
+    {
+      "mapping_id": "MAP-PROD-DOMAIN",
+      "requirement_ids": ["PROD-007", "PROD-008", "PROD-009"],
+      "target_stage": "formal_result",
+      "target_contracts": ["schemas/model_route_v2.schema.json", "schemas/execution_record.schema.json", "schemas/formal_result_envelope.schema.json"],
+      "adapter_directive": "emit_diagnostic",
+      "evidence_requests": ["训练验证与预处理时间边界", "指标方向归一化和权重来源", "逐约束回代报告"],
+      "enforcement_owner": "gate_3"
+    },
+    {
+      "mapping_id": "MAP-PAPER-PRODUCTION",
+      "requirement_ids": ["PAPER-001", "PAPER-002", "PAPER-003"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_profile.schema.json", "schemas/paper_template_manifest.schema.json", "schemas/paper_render_attestation.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["比赛语言引擎与模板选择", "模板关键结构保留证明", "入口章节闭包"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-PAPER-TRACE",
+      "requirement_ids": ["PAPER-004", "PAPER-005", "PAPER-006"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/model_text_consistency_report.schema.json", "schemas/paper_source_manifest.schema.json", "schemas/paper_verify_report.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["主张与正式结果数值绑定", "内部术语扫描", "参考文献与正文引用核验"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-PAPER-NARRATIVE",
+      "requirement_ids": ["PAPER-007", "PAPER-008", "PAPER-009"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_candidate_manifest.schema.json", "schemas/paper_verify_report.schema.json"],
+      "adapter_directive": "emit_advisory",
+      "evidence_requests": ["摘要对子问题方法与结果的覆盖", "公式和图表的正文解释", "灵敏度局限与推广说明"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-FIG-DATA",
+      "requirement_ids": ["FIG-001", "FIG-002", "FIG-003"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_figure_spec.schema.json", "schemas/paper_figure_build_report.schema.json", "schemas/formal_result_provenance_manifest.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["数据图与非数据图分类", "数据图的正式结果来源", "矢量输出与语言风格记录"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-FIG-NONDATA",
+      "requirement_ids": ["FIG-004", "FIG-005", "FIG-006"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_figure_spec.schema.json", "schemas/paper_figure_build_report.schema.json", "schemas/model_text_consistency_report.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["非数据图可编辑源和导出记录", "图示到模型与章节的绑定", "图示生产前后正式结果哈希"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-FIG-PLACEMENT",
+      "requirement_ids": ["FIG-007", "FIG-008"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_figure_spec.schema.json", "schemas/paper_visual_review.schema.json", "schemas/paper_verify_report.schema.json"],
+      "adapter_directive": "emit_advisory",
+      "evidence_requests": ["图表目标章节和 caption", "正文解释位置", "统一和灰度可辨识的视觉记录"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-VER-TEXT",
+      "requirement_ids": ["VER-001", "VER-002", "VER-003", "VER-004"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_source_manifest.schema.json", "schemas/paper_verify_report.schema.json", "schemas/paper_candidate_manifest.schema.json"],
+      "adapter_directive": "emit_diagnostic",
+      "evidence_requests": ["显式论文布局输入", "入口与章节引用闭包", "占位符和内部术语扫描", "预检前后正文哈希"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-VER-EVIDENCE",
+      "requirement_ids": ["VER-005", "VER-006", "VER-007"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/model_text_consistency_report.schema.json", "schemas/paper_figure_build_report.schema.json", "schemas/paper_verify_report.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["图片引用和 caption 闭包", "关键数值与 Formal Result 对照", "模型代码正文一致性报告"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-VER-BUILD",
+      "requirement_ids": ["VER-008", "VER-009", "VER-010"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/paper_render_attestation.schema.json", "schemas/paper_visual_review.schema.json", "schemas/paper_verify_report.schema.json"],
+      "adapter_directive": "request_evidence",
+      "evidence_requests": ["编译命令与 PDF 哈希", "逐页视觉报告", "硬错误与警告分级"],
+      "enforcement_owner": "gate_4"
+    },
+    {
+      "mapping_id": "MAP-VER-BOUNDARY",
+      "requirement_ids": ["VER-011", "VER-012"],
+      "target_stage": "paper",
+      "target_contracts": ["schemas/gate_artifact_manifest.schema.json", "schemas/paper_candidate_manifest.schema.json", "schemas/paper_verify_report.schema.json"],
+      "adapter_directive": "emit_diagnostic",
+      "evidence_requests": ["需要返回前序阶段的问题清单", "本仓独立 Validator 的最终裁决"],
+      "enforcement_owner": "gate_4"
+    }
+  ]
+}
