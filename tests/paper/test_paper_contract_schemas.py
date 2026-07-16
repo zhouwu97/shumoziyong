@@ -21,6 +21,9 @@ def test_paper_contract_schemas_are_valid_draft_2020_12() -> None:
         "schemas/suggested_repairs.schema.json",
         "schemas/template_selection.schema.json",
         "schemas/paper_production_manifest_v2.schema.json",
+        "schemas/paper_narrative_contract.schema.json",
+        "schemas/paper_narrative_input.schema.json",
+        "schemas/paper_narrative_report.schema.json",
     ):
         Draft202012Validator.check_schema(load_json(relative))
 
@@ -33,6 +36,13 @@ def test_cumcm_profile_satisfies_profile_schema() -> None:
     assert profile["approved_renderers"] == [
         {"id": "typst", "template_id": "cumcm_typst_academic_v1"}
     ]
+
+
+def test_narrative_contract_satisfies_contract_schema() -> None:
+    schema = load_json("schemas/paper_narrative_contract.schema.json")
+    contract = load_json("runtime_contracts/paper_narrative_contract_v1.json")
+
+    Draft202012Validator(schema).validate(contract)
 
 
 def test_contract_keeps_submission_and_technical_report_separate() -> None:

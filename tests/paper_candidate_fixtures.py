@@ -4,7 +4,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from paper.check_narrative import build_narrative_report
+from paper.external_precheck import run_external_precheck
 from paper.gate4_candidate import build_candidate_manifest
+from paper.paper_production_manifest import build_paper_production_manifest
+from paper.template_registry import DEFAULT_MANIFEST_PATH, select_template
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,17 +41,32 @@ def write_valid_paper_candidate(run_dir: Path) -> None:
     )
     _write(run_dir / "paper_profile.snapshot.json", profile)
 
+    registry = json.loads(DEFAULT_MANIFEST_PATH.read_text(encoding="utf-8"))
+    selection = select_template(registry, language="zh", competition_family="cumcm")
+    _write(run_dir / "template_selection.json", selection)
+
     template_bytes = b"template"
     template_sha = hashlib.sha256(template_bytes).hexdigest()
     template_manifest = {
         "manifest_version": "1.0.0",
-        "template_id": "cumcm_typst_academic_v1",
+        "template_id": selection["template_id"],
         "renderer_id": "typst",
         "files": [{"path": "main.typ", "sha256": template_sha, "size_bytes": len(template_bytes)}],
     }
     _write(run_dir / "paper_template_manifest.json", template_manifest)
 
-    source_bytes = b"= Test\n$ x = 1 $\n"
+    narrative_texts = {
+        "thesis": "本文建立受约束优化模型，并获得稳定且可执行的决策方案。",
+        "core_contributions": "核心贡献是把业务规则统一转化为可验证的数学约束。",
+        "model_choice_reason": "选择混合整数规划是因为离散决策与容量约束都可精确表达。",
+        "result_insights": "结果表明主要资源瓶颈集中在高负荷生产环节。",
+        "action_recommendations": "建议优先调整瓶颈环节配置并保留需求扰动余量。",
+        "limitations": "模型局限在于需求依据历史样本，极端冲击仍需重新计算。",
+    }
+    source_bytes = ("= Test\n\n" + "\n\n".join(narrative_texts.values()) + "\n").encode(
+        "utf-8"
+    )
+    (run_dir / "main.typ").write_bytes(source_bytes)
     source_sha = hashlib.sha256(source_bytes).hexdigest()
     source_manifest = {
         "manifest_version": "1.0.0",
@@ -120,6 +139,29 @@ def write_valid_paper_candidate(run_dir: Path) -> None:
     }
     _write(run_dir / "model_text_consistency_report.json", consistency)
 
+    run_external_precheck(
+        paper_root=run_dir,
+        report_path=run_dir / "paper_external_precheck_report.json",
+        suggestions_path=run_dir / "suggested_repairs.json",
+    )
+    claim_map_path = run_dir / "paper_claim_map.json"
+    claim_map = json.loads(claim_map_path.read_text(encoding="utf-8"))
+    narrative_input = {
+        "schema_version": "paper_narrative_input_v1",
+        **{
+            name: [{"text": text, "evidence_refs": ["C001"]}]
+            for name, text in narrative_texts.items()
+        },
+    }
+    narrative_report = build_narrative_report(
+        paper_root=run_dir,
+        narrative_input=narrative_input,
+        claim_map=claim_map,
+        claim_map_path=claim_map_path,
+        binding=binding,
+    )
+    _write(run_dir / "paper_narrative_report.json", narrative_report)
+
     visual = {
         "schema_version": "1.0.0",
         "pdf_sha256": pdf_sha,
@@ -173,6 +215,9 @@ def write_valid_paper_candidate(run_dir: Path) -> None:
         "summary": {"passed": len(verify_checks), "failed": 0, "warnings": 0},
     }
     _write(run_dir / "paper_verify_report.json", verify_report)
+
+    production_manifest = build_paper_production_manifest(run_dir, binding)
+    _write(run_dir / "paper_production_manifest_v2.json", production_manifest)
 
     candidate = build_candidate_manifest(run_dir, binding)
     _write(run_dir / "paper_candidate_manifest.json", candidate)

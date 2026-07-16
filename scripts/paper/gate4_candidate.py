@@ -16,6 +16,11 @@ except ImportError:  # pragma: no cover - 允许从仓库根目录直接执行�
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from atomic_io import atomic_write_bytes
 
+try:
+    from .paper_production_manifest import build_paper_production_manifest
+except ImportError:  # pragma: no cover - 允许直接执行脚本。
+    from paper_production_manifest import build_paper_production_manifest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PAPER_PIPELINE_CONTRACT_VERSION = "1.0.0"
@@ -23,10 +28,46 @@ PAPER_CANDIDATE_STATUS = "paper_candidate_ready_for_independent_review"
 
 PAPER_CANDIDATE_ARTIFACTS: tuple[tuple[str, str, str, str], ...] = (
     (
+        "paper_external_precheck_report.json",
+        "paper_external_precheck_report",
+        "application/json",
+        "paper_external_precheck_report.schema.json",
+    ),
+    (
+        "suggested_repairs.json",
+        "suggested_repairs",
+        "application/json",
+        "suggested_repairs.schema.json",
+    ),
+    (
+        "paper_claim_map.json",
+        "paper_claim_map",
+        "application/json",
+        "gate_business_artifact.schema.json",
+    ),
+    (
+        "model_text_consistency_report.json",
+        "model_text_consistency_report",
+        "application/json",
+        "model_text_consistency_report.schema.json",
+    ),
+    (
+        "paper_narrative_report.json",
+        "paper_narrative_report",
+        "application/json",
+        "paper_narrative_report.schema.json",
+    ),
+    (
         "paper_profile.snapshot.json",
         "paper_profile_snapshot",
         "application/json",
         "paper_profile.schema.json",
+    ),
+    (
+        "template_selection.json",
+        "template_selection",
+        "application/json",
+        "template_selection.schema.json",
     ),
     (
         "paper_template_manifest.json",
@@ -53,18 +94,6 @@ PAPER_CANDIDATE_ARTIFACTS: tuple[tuple[str, str, str, str], ...] = (
         "paper_verify_report.schema.json",
     ),
     (
-        "paper_claim_map.json",
-        "paper_claim_map",
-        "application/json",
-        "gate_business_artifact.schema.json",
-    ),
-    (
-        "model_text_consistency_report.json",
-        "model_text_consistency_report",
-        "application/json",
-        "model_text_consistency_report.schema.json",
-    ),
-    (
         "paper_source_manifest.json",
         "paper_source_manifest",
         "application/json",
@@ -77,6 +106,12 @@ PAPER_CANDIDATE_ARTIFACTS: tuple[tuple[str, str, str, str], ...] = (
         "paper_visual_review.schema.json",
     ),
     ("submission.pdf", "submission_pdf", "application/pdf", ""),
+    (
+        "paper_production_manifest_v2.json",
+        "paper_production_manifest_v2",
+        "application/json",
+        "paper_production_manifest_v2.schema.json",
+    ),
 )
 
 
@@ -139,8 +174,10 @@ def _require_passed_reports(
     humanization: Mapping[str, Any],
     verify_report: Mapping[str, Any],
     model_consistency: Mapping[str, Any],
+    narrative_report: Mapping[str, Any],
     source_manifest: Mapping[str, Any],
     visual_review: Mapping[str, Any],
+    production_manifest: Mapping[str, Any],
     run_dir: Path,
 ) -> None:
     if not attestation.get("compiled"):
@@ -149,10 +186,18 @@ def _require_passed_reports(
         raise ValueError("paper_humanization_report.status 必须为 passed")
     if model_consistency.get("status") != "passed":
         raise ValueError("model_text_consistency_report.status 必须为 passed")
+    if narrative_report.get("status") != "passed":
+        raise ValueError("paper_narrative_report.status 必须为 passed")
+    if narrative_report.get("submission_allowed") is not True:
+        raise ValueError("paper_narrative_report.submission_allowed 必须为 true")
     if visual_review.get("status") != "passed":
         raise ValueError("paper_visual_review.status 必须为 passed")
     if verify_report.get("status") != "passed":
         raise ValueError("paper_verify_report.status 必须为 passed")
+    if production_manifest.get("status") != "submission_candidate":
+        raise ValueError("paper_production_manifest_v2.status 必须为 submission_candidate")
+    if production_manifest.get("submission_eligible") is not True:
+        raise ValueError("paper_production_manifest_v2.submission_eligible 必须为 true")
     failed_checks = [
         name
         for name, result in verify_report.get("checks", {}).items()
@@ -263,10 +308,16 @@ def validate_candidate_evidence(
         payloads["paper_humanization_report"],
         payloads["paper_verify_report"],
         payloads["model_text_consistency_report"],
+        payloads["paper_narrative_report"],
         payloads["paper_source_manifest"],
         payloads["paper_visual_review"],
+        payloads["paper_production_manifest_v2"],
         run_dir,
     )
+    if binding is not None:
+        expected_production_manifest = build_paper_production_manifest(run_dir, binding)
+        if payloads["paper_production_manifest_v2"] != expected_production_manifest:
+            raise ValueError("paper_production_manifest_v2 与当前论文证据重建结果不一致")
 
 
 def build_candidate_manifest(run_dir: Path, binding: Mapping[str, str]) -> dict[str, Any]:
@@ -326,7 +377,11 @@ def _copy_input(source: Path, target: Path) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="暂存并绑定 Gate 4 论文候选证据")
     parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--external-precheck", type=Path, required=True)
+    parser.add_argument("--suggested-repairs", type=Path, required=True)
+    parser.add_argument("--narrative-report", type=Path, required=True)
     parser.add_argument("--profile-snapshot", type=Path, required=True)
+    parser.add_argument("--template-selection", type=Path, required=True)
     parser.add_argument("--template-manifest", type=Path, required=True)
     parser.add_argument("--render-attestation", type=Path, required=True)
     parser.add_argument("--humanization-report", type=Path, required=True)
@@ -349,7 +404,11 @@ def main() -> int:
     if run_manifest.get("paper_pipeline_contract_version") != PAPER_PIPELINE_CONTRACT_VERSION:
         raise ValueError("当前 Run 未启用 paper pipeline contract 1.0.0")
     sources = {
+        "paper_external_precheck_report.json": args.external_precheck,
+        "suggested_repairs.json": args.suggested_repairs,
+        "paper_narrative_report.json": args.narrative_report,
         "paper_profile.snapshot.json": args.profile_snapshot,
+        "template_selection.json": args.template_selection,
         "paper_template_manifest.json": args.template_manifest,
         "paper_render_attestation.json": args.render_attestation,
         "paper_humanization_report.json": args.humanization_report,
@@ -369,6 +428,11 @@ def main() -> int:
         "runtime_version": str(run_manifest["runtime_version"]),
         "runtime_pack_sha256": str(runtime_manifest["runtime_pack_sha256"]),
     }
+    production_manifest = build_paper_production_manifest(run_dir, binding)
+    atomic_write_bytes(
+        run_dir / "paper_production_manifest_v2.json",
+        (json.dumps(production_manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+    )
     manifest = build_candidate_manifest(run_dir, binding)
     atomic_write_bytes(
         run_dir / "paper_candidate_manifest.json",

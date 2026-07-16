@@ -59,7 +59,11 @@ def test_gate4_candidate_cli_stages_existing_project_evidence(tmp_path: Path) ->
     run_dir = make_strict_gate4_run(tmp_path)
     (run_dir / "paper_candidate_manifest.json").unlink()
     arguments = [
+        ("--external-precheck", "paper_external_precheck_report.json"),
+        ("--suggested-repairs", "suggested_repairs.json"),
+        ("--narrative-report", "paper_narrative_report.json"),
         ("--profile-snapshot", "paper_profile.snapshot.json"),
+        ("--template-selection", "template_selection.json"),
         ("--template-manifest", "paper_template_manifest.json"),
         ("--render-attestation", "paper_render_attestation.json"),
         ("--humanization-report", "paper_humanization_report.json"),
@@ -103,6 +107,13 @@ def test_gate4_candidate_cli_stages_existing_project_evidence(tmp_path: Path) ->
             "paper_visual_review.json",
             lambda payload: payload.update({"status": "failed"}),
             "paper_visual_review",
+        ),
+        (
+            "paper_narrative_report.json",
+            lambda payload: payload.update(
+                {"status": "failed", "submission_allowed": False}
+            ),
+            "paper_narrative_report",
         ),
     ],
 )

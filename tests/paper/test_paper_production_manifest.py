@@ -50,6 +50,10 @@ def _prepare_artifacts(tmp_path: Path, *, dirty_precheck: bool = False) -> Path:
     registry = json.loads(DEFAULT_MANIFEST_PATH.read_text(encoding="utf-8"))
     selection = select_template(registry, language="zh", competition_family="cumcm")
     _write(artifacts / "template_selection.json", selection)
+    profile = json.loads(
+        (ROOT / "paper_profiles" / "cumcm_academic_v1.json").read_text(encoding="utf-8")
+    )
+    _write(artifacts / "paper_profile.snapshot.json", profile)
     _write(
         artifacts / "paper_claim_map.json",
         {
@@ -89,6 +93,46 @@ def _prepare_artifacts(tmp_path: Path, *, dirty_precheck: bool = False) -> Path:
         "status": "passed",
     }
     _write(artifacts / "model_text_consistency_report.json", consistency)
+    precheck = json.loads(
+        (artifacts / "paper_external_precheck_report.json").read_text(encoding="utf-8")
+    )
+    narrative_check = {"status": "passed", "issues": []}
+    narrative_item = {
+        "text": "当前运行的论文叙事已绑定正式结果证据。",
+        "evidence_refs": ["C001"],
+        "locations": [{"path": "main.typ", "line": 2}],
+        "present": True,
+        "evidence_bound": True,
+    }
+    narrative = {
+        "schema_version": "paper_narrative_report_v1",
+        **BINDING,
+        "contract_sha256": SHA,
+        "paper_body_sha256": precheck["body_before"]["sha256"],
+        "claim_map_sha256": _sha(artifacts / "paper_claim_map.json"),
+        "elements": {
+            "thesis": [dict(narrative_item)],
+            "core_contributions": [dict(narrative_item)],
+            "model_choice_reason": [dict(narrative_item)],
+            "result_insights": [dict(narrative_item)],
+            "action_recommendations": [dict(narrative_item)],
+            "limitations": [dict(narrative_item)],
+        },
+        "forbidden_scan": {"status": "passed", "hits": []},
+        "checks": {
+            name: dict(narrative_check)
+            for name in (
+                "contract_complete",
+                "text_presence",
+                "claim_binding",
+                "forbidden_terms",
+            )
+        },
+        "status": "passed",
+        "submission_allowed": True,
+        "technical_report_allowed": True,
+    }
+    _write(artifacts / "paper_narrative_report.json", narrative)
 
     template = {
         "manifest_version": "1.0.0",
@@ -208,3 +252,22 @@ def test_render_hash_mismatch_downgrades_without_rewriting_evidence(tmp_path: Pa
     assert manifest["stages"][2]["status"] == "failed"
     assert manifest["submission_eligible"] is False
     assert render_path.read_bytes() == before
+
+
+def test_failed_narrative_downgrades_to_technical_report(tmp_path: Path) -> None:
+    artifacts = _prepare_artifacts(tmp_path)
+    narrative_path = artifacts / "paper_narrative_report.json"
+    narrative = json.loads(narrative_path.read_text(encoding="utf-8"))
+    narrative["status"] = "failed"
+    narrative["submission_allowed"] = False
+    narrative["checks"]["contract_complete"] = {
+        "status": "failed",
+        "issues": ["缺少局限性"],
+    }
+    _write(narrative_path, narrative)
+
+    manifest = build_paper_production_manifest(artifacts, BINDING)
+
+    assert manifest["stages"][1]["status"] == "failed"
+    assert manifest["submission_eligible"] is False
+    assert manifest["paper_kind"] == "technical_report"

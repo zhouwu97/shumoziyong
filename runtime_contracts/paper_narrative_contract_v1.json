@@ -1,0 +1,34 @@
+{
+  "schema_version": "paper_narrative_contract_v1",
+  "contract_id": "competition_paper_narrative_v1",
+  "requirements": {
+    "thesis": {"min_items": 1, "max_items": 1, "evidence_required": true},
+    "core_contributions": {"min_items": 1, "max_items": 2, "evidence_required": true},
+    "model_choice_reason": {"min_items": 1, "max_items": 1, "evidence_required": true},
+    "result_insights": {"min_items": 1, "max_items": 8, "evidence_required": true},
+    "action_recommendations": {"min_items": 1, "max_items": 8, "evidence_required": true},
+    "limitations": {"min_items": 1, "max_items": 8, "evidence_required": true}
+  },
+  "forbidden_main_paper_terms": [
+    ".vendor/",
+    "runtime_contracts/",
+    "UPSTREAM.lock.json",
+    "paper_production_manifest",
+    "runtime_pack_sha256",
+    "Formal Result",
+    "Source Asset",
+    "suggested_repairs.json",
+    "Gate 0",
+    "Gate 1",
+    "Gate 2",
+    "Gate 3",
+    "Gate 4",
+    "Gate 5"
+  ],
+  "hash_pattern": "(?i)(?<![a-f0-9])[a-f0-9]{64}(?![a-f0-9])",
+  "failure_policy": {
+    "submission_allowed": false,
+    "technical_report_allowed": true,
+    "gate4_pass_decided": false
+  }
+}

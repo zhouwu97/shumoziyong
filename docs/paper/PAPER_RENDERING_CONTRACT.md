@@ -34,5 +34,6 @@
 
 成功渲染必须生成 `paper_render_attestation.json`，至少记录文档类型、Profile、模板、renderer 及版本、源文件清单哈希、Profile 快照哈希、模板清单哈希、输出 PDF 哈希和 `compiled=true`。Attestation 证明渲染来源绑定，不证明论文内容正确，也不替代 Gate 5 独立 Reviewer。
 
-最终论文生产证据使用 `paper_production_manifest_v2` 按固定阶段顺序聚合。Manifest 的
+最终论文生产证据使用 `paper_production_manifest_v2` 按固定阶段顺序聚合。第二阶段同时
+要求 Claim Map、模型—代码—正文一致性和 `paper_narrative_report_v1` 通过。Manifest 的
 `submission_candidate` 仅表示材料可交给 Gate 4 独立 Validator，不等于 Gate 4 已通过。
