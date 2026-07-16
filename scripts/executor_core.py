@@ -15,7 +15,7 @@ from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from process_tree import ProcessTreeTimeoutExpired, run_process_tree
+from process_tree_v2 import ProcessTreeTimeoutExpired, run_process_tree
 
 from formal_result.path_safety import (
     validate_execution_command_bindings,
