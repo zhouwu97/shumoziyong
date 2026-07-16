@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_render_attestation.schema.json",
+  "title": "提交论文渲染证明",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "paper_kind",
+    "profile_id",
+    "template_id",
+    "renderer_id",
+    "renderer_version",
+    "source_manifest",
+    "source_manifest_sha256",
+    "profile_snapshot",
+    "profile_snapshot_sha256",
+    "template_manifest",
+    "template_manifest_sha256",
+    "output_pdf",
+    "output_pdf_sha256",
+    "compiled"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "paper_kind": {"const": "submission_paper"},
+    "profile_id": {"type": "string", "minLength": 1},
+    "template_id": {"type": "string", "minLength": 1},
+    "renderer_id": {"type": "string", "minLength": 1},
+    "renderer_version": {"type": "string", "minLength": 1},
+    "source_manifest": {"type": "string", "minLength": 1},
+    "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "profile_snapshot": {"type": "string", "minLength": 1},
+    "profile_snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "template_manifest": {"type": "string", "minLength": 1},
+    "template_manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "output_pdf": {"type": "string", "minLength": 1},
+    "output_pdf_sha256": {"$ref": "#/$defs/sha256"},
+    "compiled": {"const": true}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

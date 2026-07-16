@@ -32,3 +32,15 @@ def test_template_contains_required_components_without_decorative_styles() -> No
     assert "supplement: [表]" in combined
     assert "gradient" not in combined
     assert "shadow" not in combined
+
+
+def test_template_declares_renderer_binding_and_protected_assets() -> None:
+    template = json.loads(
+        (ROOT / "paper_templates" / "cumcm_typst" / "template.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert template["template_id"] == "cumcm_typst_academic_v1"
+    assert template["renderer_id"] == "typst"
+    assert set(template["protected_files"]) == {"components.typ", "style.typ"}
