@@ -206,8 +206,11 @@ def test_linux_english_xelatex_overlay_replaces_platform_fonts(tmp_path: Path) -
         "latin_serif_portability",
         "latin_sans_portability",
         "latin_mono_portability",
+        "toc_entry_parameter_fix",
     }.issubset(applied)
     assert "\\setmainfont{Latin Modern Roman}" in staged
     assert "\\setsansfont{Latin Modern Sans}" in staged
     assert "\\setmonofont{Latin Modern Mono}" in staged
+    assert "\\hfill\\ #3\\par%" in staged
+    assert "\\hfill\\ #\n  #3\\par%" not in staged
     assert source_main.read_bytes() == before

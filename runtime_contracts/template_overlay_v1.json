@@ -71,6 +71,17 @@
         "linux": "\\setmonofont{Latin Modern Mono}"
       },
       "source_asset_mutated": false
+    },
+    {
+      "rewrite_id": "toc_entry_parameter_fix",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "\\leaders\\hbox{$\\cdot$}\\hfill\\ #\n  #3\\par%",
+      "replacements": {
+        "windows": "\\leaders\\hbox{$\\cdot$}\\hfill\\ #3\\par%",
+        "linux": "\\leaders\\hbox{$\\cdot$}\\hfill\\ #3\\par%"
+      },
+      "source_asset_mutated": false
     }
   ]
 }
