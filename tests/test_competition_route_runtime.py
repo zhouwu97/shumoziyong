@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,18 @@ from test_route_contract_dispatch import (  # noqa: E402
     _risk_contract,
     _risk_report,
 )
+
+
+def test_competition_route_runtime_cli_can_start_from_repository_root() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/competition_route_runtime.py", "execute", "--help"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:
