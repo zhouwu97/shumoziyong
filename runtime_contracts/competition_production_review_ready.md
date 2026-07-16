@@ -4,7 +4,8 @@
 或 `prediction` 时编译。它不是 `new_problem` 默认能力，也不授予比赛提交资格。
 
 文件名保留 `review_ready` 是为了维持既有 Runtime Pack 路径兼容；能力登记已由五题 Campaign 报告推进至
-`full_replay_passed`，下一阶段仍须经过隐藏盲测与双盲人工评审。
+`full_replay_passed`。下一阶段使用已预注册的六题隐藏盲测与双盲人工评审合同；当前人工评审公钥注册表
+仍为 `unconfigured`，因此不得登记为 `qualification_candidate` 或更高状态。
 
 固定链路不得跳步或倒置：
 

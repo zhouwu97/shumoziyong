@@ -1541,6 +1541,10 @@ class RepositoryValidator:
             "competition_full_replay_manifest.schema.json",
             "competition_full_replay_run_record.schema.json",
             "competition_full_replay_report.schema.json",
+            "competition_qualification_protocol.schema.json",
+            "competition_qualification_authority_registry.schema.json",
+            "competition_qualification_evidence.schema.json",
+            "competition_qualification_report.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1659,12 +1663,21 @@ class RepositoryValidator:
             "Competition Production 能力生命周期",
         )
         lifecycle = capability.get("lifecycle")
-        if lifecycle not in {"review_ready", "full_replay_passed"}:
+        allowed_lifecycles = {
+            "review_ready",
+            "full_replay_passed",
+            "qualification_candidate",
+            "blind_review_passed",
+            "default_candidate",
+        }
+        if lifecycle not in allowed_lifecycles:
             self.fail("Competition Production 生命周期非法")
-        elif capability.get("activation_contexts") != ["full_replay"]:
-            self.fail("Competition Production 只允许显式 full_replay")
-        elif capability.get("new_problem_default_enabled") is not False:
-            self.fail("Competition Production 不得进入 new_problem 默认包")
+        elif lifecycle != "default_candidate" and capability.get("activation_contexts") != [
+            "full_replay"
+        ]:
+            self.fail("Competition Production 晋级前只允许显式 full_replay")
+        elif capability.get("new_problem_default_enabled") is True and lifecycle != "default_candidate":
+            self.fail("只有 default_candidate 才可能启用 new_problem 默认能力")
         elif lifecycle == "full_replay_passed":
             evidence = capability.get("promotion_evidence", {})
             report_path = ROOT / str(evidence.get("path", ""))
@@ -1690,7 +1703,28 @@ class RepositoryValidator:
             else:
                 self.pass_("Competition Production full_replay_passed 证据闭包")
         else:
-            self.pass_("Competition Production review_ready/full_replay 生命周期边界")
+            qualification_ref = capability.get("qualification_evidence", {})
+            report_path = ROOT / str(qualification_ref.get("path", ""))
+            report = self.load_json(str(qualification_ref.get("path", "")))
+            actual_sha = self.sha256_lf_text(report_path) if report_path.is_file() else None
+            if lifecycle == "review_ready":
+                self.pass_("Competition Production review_ready 生命周期边界")
+            elif report is None:
+                self.fail("Competition Production 高阶生命周期缺少资格报告")
+            elif not self.validate_schema(
+                report,
+                "competition_qualification_report.schema.json",
+                "Competition Production 资格晋级报告",
+            ):
+                return
+            elif actual_sha != qualification_ref.get("sha256"):
+                self.fail("Competition Production 资格报告哈希漂移")
+            elif report.get("derived_lifecycle") != lifecycle or report.get("status") != lifecycle:
+                self.fail("Competition Production 资格报告与登记生命周期不一致")
+            elif report.get("new_problem_default_enabled") is not False:
+                self.fail("资格报告不得自行启用 new_problem 默认能力")
+            else:
+                self.pass_(f"Competition Production {lifecycle} 资格证据闭包")
 
     def validate_full_replay_campaign_contract(self) -> None:
         contract = self.load_json(
@@ -1745,6 +1779,53 @@ class RepositoryValidator:
         else:
             self.pass_("full_replay Campaign 固定题集、唯一 Run 与 Adapter 哈希闭包")
 
+    def validate_competition_qualification_contract(self) -> None:
+        """验证 PR-8 预注册协议和真实人工评审信任边界。"""
+        protocol = self.load_json(
+            "runtime_contracts/competition_qualification_protocol_v1.json"
+        )
+        registry = self.load_json(
+            "policies/competition_qualification_authorities_v1.json"
+        )
+        if protocol is None or registry is None:
+            return
+        protocol_valid = self.validate_schema(
+            protocol,
+            "competition_qualification_protocol.schema.json",
+            "Competition Production 六题隐藏盲测协议",
+        )
+        registry_valid = self.validate_schema(
+            registry,
+            "competition_qualification_authority_registry.schema.json",
+            "Competition Production 资格评审公钥注册表",
+        )
+        if not protocol_valid or not registry_valid:
+            return
+        expected_slots = ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06"]
+        expected_metrics = {
+            "model_quality",
+            "executable_solution_rate",
+            "paper_quality",
+            "manual_revision_minutes",
+            "conclusion_overclaim_rate",
+        }
+        if protocol.get("case_slots") != expected_slots:
+            self.fail("资格协议未冻结六个唯一隐藏题槽位")
+        elif set(protocol.get("metrics", [])) != expected_metrics:
+            self.fail("资格协议未覆盖固定五项基线对比指标")
+        elif protocol.get("blinding", {}).get("reviewers_per_package") != 2:
+            self.fail("资格协议未要求每个匿名包由两名独立人工评审")
+        elif registry.get("status") == "unconfigured" and registry.get("keys") == []:
+            self.pass_("资格协议已预注册；真实人工评审公钥尚未配置，生命周期保持不晋级")
+        elif registry.get("status") == "active":
+            roles = [item.get("role") for item in registry.get("keys", [])]
+            if roles.count("human_reviewer") < 2 or roles.count("qualification_coordinator") < 1:
+                self.fail("active 资格公钥注册表缺少两名人工评审或资格协调员")
+            else:
+                self.pass_("资格协议与真实人工评审公钥信任边界")
+        else:
+            self.fail("资格评审公钥注册表状态非法")
+
     def validate_template_registry(self) -> None:
         registry = self.load_json("runtime_contracts/template_source_manifest_v1.json")
         overlay = self.load_json("runtime_contracts/template_overlay_v1.json")
@@ -1794,6 +1875,7 @@ class RepositoryValidator:
         self.validate_score_v3_policy()
         self.validate_competition_production_capability()
         self.validate_full_replay_campaign_contract()
+        self.validate_competition_qualification_contract()
         self.validate_template_registry()
         for message in self.passes:
             print(f"[PASS] {message}")
