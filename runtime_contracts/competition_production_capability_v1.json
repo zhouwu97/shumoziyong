@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "capability_id": "competition_production_v1",
+  "lifecycle": "review_ready",
+  "profiles": ["general", "engineering_optimization", "evaluation", "prediction"],
+  "activation_contexts": ["full_replay"],
+  "new_problem_default_enabled": false,
+  "contract_version": "1.0.0",
+  "gate_route": [
+    "gate_0",
+    "production_adapter",
+    "gate_1_model_route_v3",
+    "gate_2_three_route_execution",
+    "gate_3_formal_evidence",
+    "score_v3"
+  ]
+}

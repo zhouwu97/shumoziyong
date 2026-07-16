@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_production_capability.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "capability_id", "lifecycle", "profiles", "activation_contexts", "new_problem_default_enabled", "contract_version", "gate_route"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "capability_id": {"const": "competition_production_v1"},
+    "lifecycle": {"const": "review_ready"},
+    "profiles": {"const": ["general", "engineering_optimization", "evaluation", "prediction"]},
+    "activation_contexts": {"const": ["full_replay"]},
+    "new_problem_default_enabled": {"const": false},
+    "contract_version": {"const": "1.0.0"},
+    "gate_route": {
+      "const": [
+        "gate_0",
+        "production_adapter",
+        "gate_1_model_route_v3",
+        "gate_2_three_route_execution",
+        "gate_3_formal_evidence",
+        "score_v3"
+      ]
+    }
+  }
+}

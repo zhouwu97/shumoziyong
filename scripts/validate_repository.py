@@ -1510,6 +1510,7 @@ class RepositoryValidator:
             "upstream_requirement_registry.schema.json",
             "upstream_requirement_mapping.schema.json",
             "competition_production_adapter_report.schema.json",
+            "competition_production_capability.schema.json",
             "model_route_v3.schema.json",
             "route_comparison_result.schema.json",
             "operability_contract.schema.json",
@@ -1628,6 +1629,26 @@ class RepositoryValidator:
             return
         self.pass_("score_v3 九维权重、70 分封顶与历史命名空间隔离")
 
+    def validate_competition_production_capability(self) -> None:
+        capability = self.load_json(
+            "runtime_contracts/competition_production_capability_v1.json"
+        )
+        if capability is None:
+            return
+        self.validate_schema(
+            capability,
+            "competition_production_capability.schema.json",
+            "Competition Production 能力生命周期",
+        )
+        if capability.get("lifecycle") != "review_ready":
+            self.fail("Competition Production 生命周期越过 review_ready")
+        elif capability.get("activation_contexts") != ["full_replay"]:
+            self.fail("Competition Production 只允许显式 full_replay")
+        elif capability.get("new_problem_default_enabled") is not False:
+            self.fail("Competition Production 不得进入 new_problem 默认包")
+        else:
+            self.pass_("Competition Production review_ready/full_replay 生命周期边界")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1645,6 +1666,7 @@ class RepositoryValidator:
         self.validate_upstream_requirements()
         self.validate_route_contract_dispatch()
         self.validate_score_v3_policy()
+        self.validate_competition_production_capability()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:

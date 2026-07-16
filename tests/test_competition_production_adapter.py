@@ -11,7 +11,12 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from export_runtime_pack import PROFILE_FILES, RUNTIME_CONTRACTS, resolve_pack_files  # noqa: E402
+from export_runtime_pack import (  # noqa: E402
+    COMPETITION_PRODUCTION_PROFILES,
+    PROFILE_FILES,
+    RUNTIME_CONTRACTS,
+    resolve_pack_files,
+)
 from upstream.validate_requirements import (  # noqa: E402
     MAPPING_FILE,
     REGISTRY_FILES,
@@ -51,13 +56,20 @@ def test_requirement_source_and_mapping_closure() -> None:
     assert len(mappings) == 13
 
 
-def test_adapter_is_not_active_in_any_runtime_profile_yet() -> None:
+def test_adapter_is_active_only_in_review_ready_full_replay_profiles() -> None:
     adapter_path = "prompt_plugins/plugin_competition_production_v1.md"
     for profile in PROFILE_FILES:
         for workflow_context in RUNTIME_CONTRACTS:
             files = resolve_pack_files(profile, workflow_context)
-            assert adapter_path not in files
-            assert not any(path.startswith("runtime_contracts/upstream_requirements/") for path in files)
+            should_activate = (
+                workflow_context == "full_replay"
+                and profile in COMPETITION_PRODUCTION_PROFILES
+            )
+            assert (adapter_path in files) is should_activate
+            assert any(
+                path.startswith("runtime_contracts/upstream_requirements/")
+                for path in files
+            ) is should_activate
 
 
 def test_adapter_report_contract_is_advisory_only() -> None:

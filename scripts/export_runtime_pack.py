@@ -72,6 +72,55 @@ PROFILE_FILES = {
     ],
 }
 
+COMPETITION_PRODUCTION_PROFILES = {
+    "general",
+    "engineering_optimization",
+    "evaluation",
+    "prediction",
+}
+COMPETITION_PRODUCTION_FILES_AFTER_GATE = {
+    0: [
+        "prompt_plugins/plugin_competition_production_v1.md",
+        "runtime_contracts/competition_production_review_ready.md",
+        "runtime_contracts/competition_production_capability_v1.json",
+        "runtime_contracts/upstream_requirements/production_requirements_v1.json",
+        "runtime_contracts/upstream_requirements/paper_requirements_v1.json",
+        "runtime_contracts/upstream_requirements/figure_requirements_v1.json",
+        "runtime_contracts/upstream_requirements/verity_requirements_v1.json",
+        "runtime_contracts/upstream_requirements/upstream_requirement_mapping_v1.json",
+        "schemas/competition_production_adapter_report.schema.json",
+        "schemas/model_route_v3.schema.json",
+        "runtime_contracts/route_contract_dispatch_v1.json",
+    ],
+    1: [
+        "docs/architecture/COMPETITION_ROUTE_V3_RUNTIME.md",
+        "schemas/route_execution_report.schema.json",
+    ],
+    2: [
+        "schemas/route_comparison_result.schema.json",
+        "schemas/operability_contract.schema.json",
+        "schemas/operability_report.schema.json",
+        "schemas/risk_decision_contract.schema.json",
+        "schemas/risk_decision_report.schema.json",
+        "schemas/competition_gate3_decision.schema.json",
+    ],
+    3: [
+        "docs/architecture/SCORE_V3.md",
+        "runtime_contracts/score_v3_policy_v1.json",
+        "schemas/score_v3_ratings.schema.json",
+        "schemas/score_v3.schema.json",
+    ],
+}
+GATE_CHECKLIST_PATHS = {
+    gate: f"checklists/gate_{gate}_{suffix}.md"
+    for gate, suffix in {
+        0: "material_diagnosis",
+        1: "model_route",
+        2: "code_plan",
+        3: "results_confirmation",
+    }.items()
+}
+
 SECTION_LABELS = {
     **{path: "编译版运行契约" for path in RUNTIME_CONTRACTS.values()},
     "prompt_base/prompt_base_v1.0.md": "Base",
@@ -269,6 +318,13 @@ def resolve_pack_files(
             files.extend(select_patch_files(profile, candidate_patch_ids, exclude_patch_ids))
         else:
             files.append(relative_path)
+        if (
+            workflow_context == "full_replay"
+            and profile in COMPETITION_PRODUCTION_PROFILES
+        ):
+            for gate, checklist_path in GATE_CHECKLIST_PATHS.items():
+                if relative_path == checklist_path:
+                    files.extend(COMPETITION_PRODUCTION_FILES_AFTER_GATE[gate])
     return files
 
 
