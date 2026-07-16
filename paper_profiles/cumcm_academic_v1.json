@@ -1,5 +1,29 @@
 {
   "profile_id": "cumcm_academic_v1",
+  "competition_family": "cumcm",
+  "language": "zh",
+  "approved_renderers": [
+    {
+      "id": "typst",
+      "template_id": "cumcm_typst_academic_v1"
+    }
+  ],
+  "heading": {
+    "color": "#000000",
+    "colored_allowed": false,
+    "font_role": "sans_bold"
+  },
+  "body": {
+    "font_role": "serif",
+    "justify": true
+  },
+  "table": {
+    "style": "three_line",
+    "fill_allowed": false
+  },
+  "formula": {
+    "block_requires_math_environment": true
+  },
   "engine": "typst",
   "paper": "a4",
   "margins_cm": {

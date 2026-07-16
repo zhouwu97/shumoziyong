@@ -1486,6 +1486,8 @@ class RepositoryValidator:
             "gate_3_execution_attestation.schema.json",
             "gate_3_input_manifest.schema.json",
             "gate_3_validator_contract.schema.json",
+            "paper_profile.schema.json",
+            "paper_verify_report.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1496,6 +1498,14 @@ class RepositoryValidator:
                 self.fail(f"能力合同 Schema 无效：{schema_name}（{exc}）")
             else:
                 self.pass_(f"能力合同 Schema：{schema_name}")
+
+        paper_profile = self.load_json("paper_profiles/cumcm_academic_v1.json")
+        if paper_profile is not None:
+            self.validate_schema(
+                paper_profile,
+                "paper_profile.schema.json",
+                "CUMCM 提交论文 Profile",
+            )
 
         trusted_registry = self.load_json("policies/trusted_environment_registry.json")
         if trusted_registry is not None:
