@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/risk_decision_report.schema.json",
+  "title": "风险独立决策报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "risk_decision_contract_sha256",
+    "formal_result_sha256",
+    "decisions",
+    "overall_action",
+    "validator"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "risk_decision_report_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "risk_decision_contract_sha256": {"$ref": "#/$defs/sha256"},
+    "formal_result_sha256": {"$ref": "#/$defs/sha256"},
+    "decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["risk_id", "triggered", "action", "rationale", "evidence_refs", "downgraded_from_default"],
+        "properties": {
+          "risk_id": {"type": "string", "pattern": "^RISK-[A-Z0-9_-]+$"},
+          "triggered": {"type": "boolean"},
+          "action": {"enum": ["advisory", "technical_report_only", "block"]},
+          "rationale": {"type": "string", "minLength": 10},
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"$ref": "#/$defs/evidenceRef"}
+          },
+          "downgraded_from_default": {"type": "boolean"},
+          "downgrade_reason": {"type": "string", "minLength": 10}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"downgraded_from_default": {"const": true}}, "required": ["downgraded_from_default"]},
+            "then": {"required": ["downgrade_reason"]},
+            "else": {"not": {"required": ["downgrade_reason"]}}
+          }
+        ]
+      }
+    },
+    "overall_action": {"enum": ["allow_paper", "technical_report_only", "block"]},
+    "validator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["validator_id", "independent_from_executor"],
+      "properties": {
+        "validator_id": {"type": "string", "minLength": 2},
+        "independent_from_executor": {"const": true}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 3},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/route_contract_dispatch.schema.json",
+  "title": "路线合同版本分派注册表",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "lifecycle",
+    "new_problem_default_enabled",
+    "historical_contracts",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "registry_id": {"const": "route_contract_dispatch_v1"},
+    "lifecycle": {"const": "review_ready"},
+    "new_problem_default_enabled": {"const": false},
+    "historical_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_path", "sha256", "immutable"],
+        "properties": {
+          "schema_path": {"const": "schemas/model_route_v2.schema.json"},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "immutable": {"const": true}
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact_type", "schema_version", "schema_path", "activation_contexts"],
+        "properties": {
+          "artifact_type": {"type": "string", "minLength": 3},
+          "schema_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+          "schema_path": {"type": "string", "pattern": "^schemas/[a-z0-9_]+\\.schema\\.json$"},
+          "activation_contexts": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"enum": ["new_problem", "full_replay"]}
+          }
+        }
+      }
+    }
+  }
+}

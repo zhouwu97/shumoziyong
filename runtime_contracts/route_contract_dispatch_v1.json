@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "route_contract_dispatch_v1",
+  "lifecycle": "review_ready",
+  "new_problem_default_enabled": false,
+  "historical_contracts": [
+    {
+      "schema_path": "schemas/model_route_v2.schema.json",
+      "sha256": "729a33a49d25e35ccc25df581695bc160cafa35799591384ff2c682c35df7f9c",
+      "immutable": true
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_type": "model_route_v2",
+      "schema_version": "2.0.0",
+      "schema_path": "schemas/model_route_v2.schema.json",
+      "activation_contexts": ["new_problem", "full_replay"]
+    },
+    {
+      "artifact_type": "model_route_v3",
+      "schema_version": "3.0.0",
+      "schema_path": "schemas/model_route_v3.schema.json",
+      "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "route_comparison_result_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/route_comparison_result.schema.json",
+      "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "operability_contract_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/operability_contract.schema.json",
+      "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "operability_report_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/operability_report.schema.json",
+      "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "risk_decision_contract_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/risk_decision_contract.schema.json",
+      "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "risk_decision_report_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/risk_decision_report.schema.json",
+      "activation_contexts": ["full_replay"]
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/route_comparison_result.schema.json",
+  "title": "三路线比较结果",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "subproblem_id",
+    "model_route_v3_sha256",
+    "route_results",
+    "pairwise_comparisons",
+    "selection_status",
+    "selected_route_id",
+    "selection_basis",
+    "formal_result_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "route_comparison_result_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "minLength": 1},
+    "model_route_v3_sha256": {"$ref": "#/$defs/sha256"},
+    "route_results": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/routeResult"},
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "baseline"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "primary"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "structural_alternative"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}
+      ]
+    },
+    "pairwise_comparisons": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/pairwise"}
+    },
+    "selection_status": {"enum": ["selected", "degraded", "no_route_admissible"]},
+    "selected_route_id": {"type": ["string", "null"], "pattern": "^R-[A-Z0-9_-]+$"},
+    "selection_basis": {"type": "string", "minLength": 15},
+    "formal_result_authority": {"const": "collector_and_independent_validator_required"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"selection_status": {"const": "no_route_admissible"}}, "required": ["selection_status"]},
+      "then": {"properties": {"selected_route_id": {"const": null}}},
+      "else": {"properties": {"selected_route_id": {"type": "string"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 3},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value", "unit", "direction", "evidence"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "value": {"type": "number"},
+        "unit": {"type": ["string", "null"]},
+        "direction": {"enum": ["minimize", "maximize", "target", "descriptive"]},
+        "evidence": {"$ref": "#/$defs/evidenceRef"}
+      }
+    },
+    "routeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_id",
+        "role",
+        "formal_result",
+        "execution_status",
+        "feasible",
+        "data_leakage_detected",
+        "metrics",
+        "constraint_violations",
+        "runtime_seconds",
+        "stability_status"
+      ],
+      "properties": {
+        "route_id": {"type": "string", "pattern": "^R-[A-Z0-9_-]+$"},
+        "role": {"enum": ["baseline", "primary", "structural_alternative"]},
+        "formal_result": {"$ref": "#/$defs/evidenceRef"},
+        "execution_status": {"enum": ["completed", "blocked", "failed"]},
+        "feasible": {"type": "boolean"},
+        "data_leakage_detected": {"type": "boolean"},
+        "metrics": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/metric"}},
+        "constraint_violations": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "runtime_seconds": {"type": "number", "minimum": 0},
+        "stability_status": {"enum": ["passed", "failed", "not_applicable", "not_evaluated"]}
+      }
+    },
+    "metricDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "left_value", "right_value", "delta"],
+      "properties": {
+        "metric": {"type": "string", "minLength": 1},
+        "left_value": {"type": "number"},
+        "right_value": {"type": "number"},
+        "delta": {"type": "number"}
+      }
+    },
+    "pairwise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left_route_id", "right_route_id", "metric_deltas", "conclusion", "evidence_refs"],
+      "properties": {
+        "left_route_id": {"type": "string", "pattern": "^R-[A-Z0-9_-]+$"},
+        "right_route_id": {"type": "string", "pattern": "^R-[A-Z0-9_-]+$"},
+        "metric_deltas": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/metricDelta"}},
+        "conclusion": {"type": "string", "minLength": 10},
+        "evidence_refs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidenceRef"}}
+      }
+    }
+  }
+}
