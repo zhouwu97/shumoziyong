@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/score_v3_policy.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "policy_id", "lifecycle", "activation_contexts", "new_problem_default_enabled", "weights", "fatal_cap", "submission_threshold", "fatal_mapping", "legacy_namespace"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "policy_id": {"const": "score_v3_policy_v1"},
+    "lifecycle": {"const": "review_ready"},
+    "activation_contexts": {"const": ["full_replay"]},
+    "new_problem_default_enabled": {"const": false},
+    "weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mechanism_hypothesis", "business_constraints", "route_competition", "execution_completeness", "comparison_quality", "formal_evidence", "operability", "risk_robustness", "submission_readiness"],
+      "properties": {
+        "mechanism_hypothesis": {"const": 0.10},
+        "business_constraints": {"const": 0.10},
+        "route_competition": {"const": 0.12},
+        "execution_completeness": {"const": 0.10},
+        "comparison_quality": {"const": 0.12},
+        "formal_evidence": {"const": 0.16},
+        "operability": {"const": 0.12},
+        "risk_robustness": {"const": 0.10},
+        "submission_readiness": {"const": 0.08}
+      }
+    },
+    "fatal_cap": {"const": 70},
+    "submission_threshold": {"const": 70},
+    "fatal_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["G3V3_ROUTE_EXECUTION_INCOMPLETE", "G3V3_SELECTED_ROUTE_INADMISSIBLE", "G3V3_DATA_LEAKAGE", "G3V3_OPERABILITY_FAILED", "G3V3_RISK_BLOCK", "G3V3_FORMAL_RESULT_INELIGIBLE"],
+      "properties": {
+        "G3V3_ROUTE_EXECUTION_INCOMPLETE": {"const": "V3F_ROUTE_EXECUTION_INCOMPLETE"},
+        "G3V3_SELECTED_ROUTE_INADMISSIBLE": {"const": "V3F_SELECTED_ROUTE_INADMISSIBLE"},
+        "G3V3_DATA_LEAKAGE": {"const": "V3F_DATA_LEAKAGE"},
+        "G3V3_OPERABILITY_FAILED": {"const": "V3F_OPERABILITY_HARD_FAILURE"},
+        "G3V3_RISK_BLOCK": {"const": "V3F_RISK_BLOCK"},
+        "G3V3_FORMAL_RESULT_INELIGIBLE": {"const": "V3F_FORMAL_RESULT_INELIGIBLE"}
+      }
+    },
+    "legacy_namespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_type", "fatal_codes", "reinterpretation_forbidden"],
+      "properties": {
+        "artifact_type": {"const": "score_v2"},
+        "fatal_codes": {"const": ["F1", "F2", "F3", "F4", "F5"]},
+        "reinterpretation_forbidden": {"const": true}
+      }
+    }
+  }
+}
