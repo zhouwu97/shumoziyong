@@ -61,7 +61,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            fonts-noto-cjk texlive-xetex texlive-lang-chinese texlive-latex-extra
+            fonts-noto-cjk texlive-xetex texlive-lang-chinese texlive-latex-extra \
+            texlive-fonts-recommended
       - name: Sync verified read-only Source Asset
         run: python scripts/upstream/sync_mathmodelagent.py
       - name: Select matrix mode
