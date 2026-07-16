@@ -31,11 +31,21 @@ STAGE_FILES: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
                 "model_text_consistency_report",
                 "model_text_consistency_report.schema.json",
             ),
+            (
+                "paper_narrative_report.json",
+                "paper_narrative_report",
+                "paper_narrative_report.schema.json",
+            ),
         ),
     ),
     (
         "template_render_visual",
         (
+            (
+                "paper_profile.snapshot.json",
+                "paper_profile_snapshot",
+                "paper_profile.schema.json",
+            ),
             ("template_selection.json", "template_selection", "template_selection.schema.json"),
             (
                 "paper_template_manifest.json",
@@ -122,7 +132,9 @@ def _load_stage_payloads(artifact_root: Path) -> dict[str, dict[str, Any]]:
     return payloads
 
 
-def _stage_statuses(payloads: Mapping[str, dict[str, Any]], artifact_root: Path) -> tuple[bool, bool, bool]:
+def _stage_statuses(
+    payloads: Mapping[str, dict[str, Any]], artifact_root: Path
+) -> tuple[bool, bool, bool]:
     precheck = payloads["paper_external_precheck_report"]
     repairs = payloads["suggested_repairs"]
     precheck_passed = (
@@ -134,14 +146,32 @@ def _stage_statuses(payloads: Mapping[str, dict[str, Any]], artifact_root: Path)
     )
 
     consistency = payloads["model_text_consistency_report"]
-    local_passed = consistency.get("status") == "passed"
+    narrative = payloads["paper_narrative_report"]
+    claim_map_sha = sha256_file(artifact_root / "paper_claim_map.json")
+    local_passed = (
+        consistency.get("status") == "passed"
+        and narrative.get("status") == "passed"
+        and narrative.get("submission_allowed") is True
+        and narrative.get("claim_map_sha256") == claim_map_sha
+        and narrative.get("paper_body_sha256")
+        == precheck.get("body_before", {}).get("sha256")
+    )
 
     render = payloads["paper_render_attestation"]
     verify = payloads["paper_verify_report"]
     visual = payloads["paper_visual_review"]
+    profile = payloads["paper_profile_snapshot"]
+    selection = payloads["template_selection"]
+    template = payloads["paper_template_manifest"]
     pdf_sha = sha256_file(artifact_root / "submission.pdf")
     production_passed = (
-        render.get("compiled") is True
+        selection.get("template_id") == template.get("template_id")
+        and selection.get("renderer_id") == template.get("renderer_id")
+        and render.get("template_id") == selection.get("template_id")
+        and render.get("renderer_id") == selection.get("renderer_id")
+        and render.get("profile_id") == profile.get("profile_id")
+        and verify.get("profile_id") == profile.get("profile_id")
+        and render.get("compiled") is True
         and render.get("output_pdf_sha256") == pdf_sha
         and verify.get("status") == "passed"
         and visual.get("status") == "passed"
@@ -161,6 +191,10 @@ def build_paper_production_manifest(
     for field, expected in binding.items():
         if claim_map.get(field) != expected:
             raise PaperProductionManifestError(f"paper_claim_map.{field} 与当前 Run 绑定不一致")
+        if payloads["paper_narrative_report"].get(field) != expected:
+            raise PaperProductionManifestError(
+                f"paper_narrative_report.{field} 与当前 Run 绑定不一致"
+            )
     stage_passed = _stage_statuses(payloads, artifact_root)
     stages: list[dict[str, Any]] = []
     for sequence, ((stage_name, files), passed) in enumerate(

@@ -26,8 +26,8 @@
     "candidate_status": {"const": "paper_candidate_ready_for_independent_review"},
     "artifacts": {
       "type": "array",
-      "minItems": 10,
-      "maxItems": 10,
+      "minItems": 15,
+      "maxItems": 15,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -39,7 +39,11 @@
           },
           "role": {
             "enum": [
+              "paper_external_precheck_report",
+              "suggested_repairs",
+              "paper_narrative_report",
               "paper_profile_snapshot",
+              "template_selection",
               "paper_template_manifest",
               "paper_render_attestation",
               "paper_humanization_report",
@@ -48,7 +52,8 @@
               "model_text_consistency_report",
               "paper_source_manifest",
               "paper_visual_review",
-              "submission_pdf"
+              "submission_pdf",
+              "paper_production_manifest_v2"
             ]
           },
           "media_type": {"enum": ["application/json", "application/pdf"]},
