@@ -17,6 +17,10 @@ def test_paper_contract_schemas_are_valid_draft_2020_12() -> None:
     for relative in (
         "schemas/paper_profile.schema.json",
         "schemas/paper_verify_report.schema.json",
+        "schemas/paper_external_precheck_report.schema.json",
+        "schemas/suggested_repairs.schema.json",
+        "schemas/template_selection.schema.json",
+        "schemas/paper_production_manifest_v2.schema.json",
     ):
         Draft202012Validator.check_schema(load_json(relative))
 

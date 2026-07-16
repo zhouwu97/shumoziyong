@@ -3,7 +3,7 @@
   "$id": "https://shumo.local/schemas/template_overlay.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "overlay_id", "platform", "path_policy", "materialization", "engines"],
+  "required": ["schema_version", "overlay_id", "platform", "path_policy", "materialization", "engines", "staged_rewrites"],
   "properties": {
     "schema_version": {"const": "template_overlay_v1"},
     "overlay_id": {"const": "windows_template_overlay_v1"},
@@ -36,6 +36,31 @@
       "properties": {
         "typst": {"$ref": "#/$defs/engine"},
         "xelatex": {"$ref": "#/$defs/engine"}
+      }
+    },
+    "staged_rewrites": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rewrite_id", "engine", "path", "match", "replacements", "source_asset_mutated"],
+        "properties": {
+          "rewrite_id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "engine": {"const": "xelatex"},
+          "path": {"const": "main.tex"},
+          "match": {"type": "string", "minLength": 1},
+          "replacements": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["windows", "linux"],
+            "properties": {
+              "windows": {"type": "string", "minLength": 1},
+              "linux": {"type": "string", "minLength": 1}
+            }
+          },
+          "source_asset_mutated": {"const": false}
+        }
       }
     }
   },

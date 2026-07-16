@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/suggested_repairs.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "paper_body_sha256", "automatic_apply", "repairs"],
+  "properties": {
+    "schema_version": {"const": "suggested_repairs_v1"},
+    "paper_body_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "automatic_apply": {"const": false},
+    "repairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repair_id", "finding_code", "path", "line", "suggestion"],
+        "properties": {
+          "repair_id": {"type": "string", "pattern": "^repair_[0-9]{4}$"},
+          "finding_code": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "path": {"type": "string", "minLength": 1},
+          "line": {"type": "integer", "minimum": 1},
+          "suggestion": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

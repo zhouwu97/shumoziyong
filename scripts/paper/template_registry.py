@@ -4,6 +4,8 @@ import argparse
 import hashlib
 import json
 import shutil
+import stat
+import sys
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -362,7 +364,8 @@ def materialize_template(
     *,
     target_dir: Path,
     vendor_root: Path = DEFAULT_VENDOR_ROOT,
-) -> None:
+    platform_name: str | None = None,
+) -> list[str]:
     """校验来源后复制所选模板；不修改只读 Source Asset。"""
     validate_registry(manifest, verify_source=True, vendor_root=vendor_root)
     if target_dir.exists() and any(target_dir.iterdir()):
@@ -379,6 +382,23 @@ def materialize_template(
         target = target_dir / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
+        target.chmod(target.stat().st_mode | stat.S_IWRITE)
+    overlay = load_json_object(DEFAULT_OVERLAY_PATH, "模板覆盖层")
+    platform_key = platform_name or ("windows" if sys.platform == "win32" else "linux")
+    applied: list[str] = []
+    for rewrite in overlay["staged_rewrites"]:
+        if rewrite["engine"] != template["engine"]:
+            continue
+        replacement = rewrite["replacements"].get(platform_key)
+        if replacement is None:
+            continue
+        path = target_dir / Path(str(rewrite["path"]))
+        text = path.read_text(encoding="utf-8")
+        match = str(rewrite["match"])
+        if match in text and replacement != match:
+            path.write_text(text.replace(match, str(replacement)), encoding="utf-8")
+            applied.append(str(rewrite["rewrite_id"]))
+    return applied
 
 
 def build_parser() -> argparse.ArgumentParser:

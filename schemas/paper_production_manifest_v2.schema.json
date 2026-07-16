@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_production_manifest_v2.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "paper_kind", "template_selection", "stages", "authority", "status", "submission_eligible"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "artifact_type": {"const": "paper_production_manifest_v2"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "paper_kind": {"enum": ["submission_paper", "technical_report"]},
+    "template_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["logical_key", "template_id", "engine", "selection_source", "source_tree_sha256", "overlay_id", "upstream_default_overridden"],
+      "properties": {
+        "logical_key": {"type": "string", "minLength": 1},
+        "template_id": {"type": "string", "minLength": 1},
+        "engine": {"enum": ["typst", "xelatex"]},
+        "selection_source": {"enum": ["runtime_profile", "current_run", "competition_default", "upstream_default"]},
+        "source_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "overlay_id": {"const": "windows_template_overlay_v1"},
+        "upstream_default_overridden": {"type": "boolean"}
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/stage"}, {"properties": {"sequence": {"const": 1}, "stage": {"const": "upstream_compatible_precheck"}}}]},
+        {"allOf": [{"$ref": "#/$defs/stage"}, {"properties": {"sequence": {"const": 2}, "stage": {"const": "local_evidence_validation"}}}]},
+        {"allOf": [{"$ref": "#/$defs/stage"}, {"properties": {"sequence": {"const": 3}, "stage": {"const": "template_render_visual"}}}]}
+      ],
+      "items": false
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["external_precheck_can_decide_gate4_pass", "manifest_grants_gate4_pass"],
+      "properties": {
+        "external_precheck_can_decide_gate4_pass": {"const": false},
+        "manifest_grants_gate4_pass": {"const": false}
+      }
+    },
+    "status": {"enum": ["submission_candidate", "technical_report_only"]},
+    "submission_eligible": {"type": "boolean"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "submission_candidate"}}, "required": ["status"]},
+      "then": {"properties": {"paper_kind": {"const": "submission_paper"}, "submission_eligible": {"const": true}}}
+    },
+    {
+      "if": {"properties": {"submission_eligible": {"const": false}}, "required": ["submission_eligible"]},
+      "then": {"properties": {"status": {"const": "technical_report_only"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256", "size_bytes"],
+      "properties": {
+        "role": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "stage", "status", "artifacts"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 3},
+        "stage": {"type": "string", "minLength": 1},
+        "status": {"enum": ["passed", "failed"]},
+        "artifacts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/artifact"}}
+      }
+    }
+  }
+}
