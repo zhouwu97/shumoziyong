@@ -25,6 +25,18 @@ from formal_result.verifier import verify_formal_result_bundle
 from formal_result.trusted_local import trusted_local_eligibility_scope
 from gate3_evidence import collect_gate_3_math_validation
 from model_validation import validate_model_and_execution
+try:
+    from paper.gate4_candidate import (
+        PAPER_CANDIDATE_STATUS,
+        PAPER_PIPELINE_CONTRACT_VERSION,
+        verify_candidate_manifest,
+    )
+except ModuleNotFoundError:  # 允许 pytest 以 scripts.run_workflow 导入。
+    from scripts.paper.gate4_candidate import (
+        PAPER_CANDIDATE_STATUS,
+        PAPER_PIPELINE_CONTRACT_VERSION,
+        verify_candidate_manifest,
+    )
 from verify_materials import MaterialVerificationResult, verify_materials
 
 try:
@@ -581,6 +593,7 @@ def _initialize_common_gate_artifacts(run_dir: Path, profile_state: Mapping[str,
         ("result_report.json", "result_report"),
         ("result_manifest.json", "result_manifest"),
         ("paper_claim_map.json", "paper_claim_map"),
+        ("paper_candidate_manifest.json", "paper_candidate_manifest"),
     ):
         write_json(
             run_dir / filename,
@@ -721,6 +734,7 @@ def create_gate_run_core(
         "evidence_purpose": evidence_purpose,
         "initial_state": initial_state,
         "gate_3_evidence_contract_version": GATE_3_EVIDENCE_CONTRACT_VERSION,
+        "paper_pipeline_contract_version": PAPER_PIPELINE_CONTRACT_VERSION,
         **FORMAL_IDENTITY_DEFAULTS,
         "runtime_profile_snapshot_sha256": sha256_bytes(
             (run_dir / "runtime_profile.snapshot.json").read_bytes()
@@ -801,7 +815,7 @@ def create_full_replay_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "- Gate 1：模型路线\n"
         "- Gate 2：代码计划\n"
         "- Gate 3：结果确认\n"
-        "- Gate 4：论文确认\n"
+        "- Gate 4：论文候选\n"
         "- Gate 5：最终验收\n\n"
         "## 执行顺序\n\n"
         "1. 先检查 `material_review.json`：只有 `status=ready` 才能进入 Gate 0。\n"
@@ -853,7 +867,7 @@ def create_new_problem_run(args: argparse.Namespace) -> tuple[Path, bool]:
         "- Gate 1：模型路线；经人工确认后明确变量、约束、基线和验证方式。\n"
         "- Gate 2：实现计划；确认模块、输入输出、验证和降级策略。\n"
         "- Gate 3：结果确认；验证结果、约束、基线比较和稳健性。\n"
-        "- Gate 4：论文确认；仅映射已有证据，不把候选内容写成结论。\n"
+        "- Gate 4：论文候选；严格绑定论文生产证据，通过后仅表示可交独立 Reviewer。\n"
         "- Gate 5：最终验收；复核可复现性、风险闭环和交付完整性。\n\n"
         "## 执行约束\n\n"
         "1. 仅在材料状态为 ready 时进入 Gate 0。\n"
@@ -886,7 +900,7 @@ GATE_NAMES: dict[int, str] = {
     1: "模型路线",
     2: "代码计划",
     3: "结果确认",
-    4: "论文确认",
+    4: "论文候选",
     5: "最终验收",
 }
 
@@ -912,6 +926,44 @@ GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
     4: (("paper_claim_map.json", "paper_claim_map", "schemas/gate_business_artifact.schema.json", "1.0.0"),),
     5: (("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),),
 }
+
+PAPER_GATE_4_ARTIFACT_SPECS: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "paper_candidate_manifest.json",
+        "paper_candidate_manifest",
+        "schemas/paper_candidate_manifest.schema.json",
+        "1.0.0",
+    ),
+)
+
+
+def _paper_pipeline_is_required(run_manifest: Mapping[str, Any]) -> bool:
+    """仅对显式绑定当前论文闭环合同的新 Run 强制执行严格 Gate 4。"""
+    version = run_manifest.get("paper_pipeline_contract_version")
+    if version is None:
+        return False
+    if version != PAPER_PIPELINE_CONTRACT_VERSION:
+        raise ValueError(f"paper_pipeline_contract_version 非法：{version!r}")
+    return True
+
+
+def _gate_artifact_specs(
+    run_dir: Path, gate: int
+) -> tuple[tuple[str, str, str, str], ...]:
+    if gate not in GATE_ARTIFACT_SPECS:
+        raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
+    if gate != 4:
+        return GATE_ARTIFACT_SPECS[gate]
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if _paper_pipeline_is_required(run_manifest):
+        return PAPER_GATE_4_ARTIFACT_SPECS
+    return GATE_ARTIFACT_SPECS[4]
+
+
+def _completed_gate_state(run_manifest: Mapping[str, Any], gate: int) -> str:
+    if gate == 4 and _paper_pipeline_is_required(run_manifest):
+        return PAPER_CANDIDATE_STATUS
+    return f"completed_gate_{gate}"
 
 
 def _formal_result_policy(run_manifest: Mapping[str, Any]) -> str:
@@ -1164,7 +1216,7 @@ def _replay_v2_transition_log(
             if state != f"rejected_gate_{current}":
                 raise ValueError(f"第 {idx} 条拒绝记录 state 非法")
             continue
-        if state != f"completed_gate_{current}":
+        if state != _completed_gate_state(run_manifest, current):
             raise ValueError(f"第 {idx} 条完成记录 state 非法")
         verify_gate_artifacts(run_dir, current)
         completed_gates.append(current)
@@ -1347,12 +1399,15 @@ def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, review
         else:
             if decision == "approved":
                 verify_gate_artifacts(run_dir, real_current)
+            run_manifest = _load_json_object(
+                run_dir / "run_manifest.json", "run_manifest.json"
+            )
             entry = {
                 "transition_version": TRANSITION_VERSION,
                 "completed_gate": real_current,
                 "next_gate": to_gate,
                 "state": (
-                    f"completed_gate_{real_current}"
+                    _completed_gate_state(run_manifest, real_current)
                     if decision == "approved"
                     else f"rejected_gate_{real_current}"
                 ),
@@ -1644,11 +1699,10 @@ def build_gate_artifact_manifest(
     completed_at: str | None = None,
 ) -> dict[str, Any]:
     """从已完成业务产物构建单 Gate 身份与哈希清单。"""
-    if gate not in GATE_ARTIFACT_SPECS:
-        raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
+    expected_specs = _gate_artifact_specs(run_dir, gate)
     binding = _load_current_run_binding(run_dir)
     artifacts: list[dict[str, Any]] = []
-    for filename, role, schema_relative, schema_version in GATE_ARTIFACT_SPECS[gate]:
+    for filename, role, schema_relative, schema_version in expected_specs:
         raw = _validate_gate_business_artifact(
             run_dir,
             filename,
@@ -1667,6 +1721,9 @@ def build_gate_artifact_manifest(
                 "size_bytes": len(raw),
             }
         )
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if gate == 4 and _paper_pipeline_is_required(run_manifest):
+        verify_candidate_manifest(run_dir, binding)
     manifest: dict[str, Any] = {
         "manifest_version": "1.0.0",
         "gate": gate,
@@ -1675,7 +1732,6 @@ def build_gate_artifact_manifest(
         **binding,
         "artifacts": artifacts,
     }
-    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
     if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         manifest.update(FORMAL_IDENTITY_DEFAULTS)
         if gate == 3:
@@ -1706,8 +1762,7 @@ def write_gate_artifact_manifest(
 
 def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
     """验证 Gate 清单、精确文件集合、业务 Schema、运行身份及内容哈希。"""
-    if gate not in GATE_ARTIFACT_SPECS:
-        raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
+    expected_specs = _gate_artifact_specs(run_dir, gate)
     manifest_path = run_dir / "gate_artifacts" / f"gate_{gate}.manifest.json"
     manifest = _load_json_object(manifest_path, f"gate_{gate}.manifest.json")
     _validate_json_schema(
@@ -1728,7 +1783,6 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             if manifest.get(field) != expected or run_manifest.get(field) != expected:
                 raise ValueError(f"gate_{gate}.manifest.json.{field} 未绑定 required_v1 不可变身份")
 
-    expected_specs = GATE_ARTIFACT_SPECS[gate]
     expected_paths = {spec[0] for spec in expected_specs}
     entries = manifest.get("artifacts", [])
     actual_paths = [entry.get("path") for entry in entries if isinstance(entry, dict)]
@@ -1798,6 +1852,8 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
                 + "；".join(str(item) for item in evidence_errors)
             )
     if gate == 4:
+        if _paper_pipeline_is_required(run_manifest):
+            verify_candidate_manifest(run_dir, binding)
         result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
         result_manifest = _load_json_object(
             run_dir / "result_manifest.json", "result_manifest.json"

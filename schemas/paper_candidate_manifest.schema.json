@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_candidate_manifest.schema.json",
+  "title": "Gate 4 论文候选证据清单",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "run_id",
+    "problem_id",
+    "profile",
+    "runtime_version",
+    "runtime_pack_sha256",
+    "candidate_status",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_candidate_manifest"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_status": {"const": "paper_candidate_ready_for_independent_review"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "media_type", "sha256", "size_bytes"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "role": {
+            "enum": [
+              "paper_profile_snapshot",
+              "paper_template_manifest",
+              "paper_render_attestation",
+              "paper_humanization_report",
+              "paper_verify_report",
+              "paper_claim_map",
+              "model_text_consistency_report",
+              "paper_source_manifest",
+              "paper_visual_review",
+              "submission_pdf"
+            ]
+          },
+          "media_type": {"enum": ["application/json", "application/pdf"]},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "size_bytes": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

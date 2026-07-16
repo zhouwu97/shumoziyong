@@ -54,6 +54,7 @@ from check_promotion_eligibility import PromotionGap, check_promotion_eligibilit
 from export_runtime_pack import parse_args as parse_export_runtime_pack_args  # noqa: E402
 import run_workflow as run_workflow_module  # noqa: E402
 from formal_result_fixtures import write_formal_result_bundle  # noqa: E402
+from paper_candidate_fixtures import write_valid_paper_candidate  # noqa: E402
 
 
 def _write_material_manifest(materials: Path, problem_id: str, files: dict[str, list[tuple[str, bytes]]]) -> None:
@@ -333,6 +334,8 @@ def _write_valid_gate_artifact(run_dir: Path, gate: int) -> None:
     }
     for filename, payload in payloads[gate]:
         (run_dir / filename).write_text(json.dumps(payload), encoding="utf-8")
+    if gate == 4 and run_manifest.get("paper_pipeline_contract_version") == "1.0.0":
+        write_valid_paper_candidate(run_dir)
     if (
         gate == 3
         and run_manifest.get("gate_3_evidence_contract_version") == "1.0.0"
@@ -2428,7 +2431,7 @@ def test_gate_names_complete() -> None:
         1: "模型路线",
         2: "代码计划",
         3: "结果确认",
-        4: "论文确认",
+        4: "论文候选",
         5: "最终验收",
     }
 

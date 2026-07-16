@@ -89,6 +89,7 @@
               "result_report",
               "result_manifest",
               "paper_claim_map",
+              "paper_candidate_manifest",
               "gate_5_review"
             ]
           },
