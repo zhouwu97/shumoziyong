@@ -289,8 +289,8 @@ def test_dispatch_keeps_v2_immutable_and_v3_full_replay_only() -> None:
         validate_artifact(_model_route_v3(), context="new_problem")
 
 
-def test_v3_contracts_are_not_prematurely_compiled_into_runtime_packs() -> None:
-    inactive_paths = {
+def test_v3_contracts_compile_only_into_review_ready_full_replay_packs() -> None:
+    compiled_paths = {
         "runtime_contracts/route_contract_dispatch_v1.json",
         "schemas/model_route_v3.schema.json",
         "schemas/route_comparison_result.schema.json",
@@ -301,15 +301,22 @@ def test_v3_contracts_are_not_prematurely_compiled_into_runtime_packs() -> None:
         "schemas/route_execution_report.schema.json",
         "schemas/competition_gate3_decision.schema.json",
         "runtime_contracts/score_v3_policy_v1.json",
-        "schemas/score_v3_policy.schema.json",
         "schemas/score_v3_ratings.schema.json",
         "schemas/score_v3.schema.json",
-        "schemas/route_contract_dispatch.schema.json",
     }
     for profile in PROFILE_FILES:
         for workflow_context in RUNTIME_CONTRACTS:
             files = set(resolve_pack_files(profile, workflow_context))
-            assert files.isdisjoint(inactive_paths)
+            should_activate = workflow_context == "full_replay" and profile in {
+                "general",
+                "engineering_optimization",
+                "evaluation",
+                "prediction",
+            }
+            if should_activate:
+                assert compiled_paths.issubset(files)
+            else:
+                assert files.isdisjoint(compiled_paths)
 
 
 def test_v3_requires_three_roles_and_structurally_different_alternative() -> None:

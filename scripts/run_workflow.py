@@ -14,7 +14,12 @@ from typing import Any, Mapping
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from atomic_io import atomic_write_bytes, atomic_write_text
-from export_runtime_pack import RUNTIME_CONTRACTS, build_manifest, build_pack
+from export_runtime_pack import (
+    COMPETITION_PRODUCTION_PROFILES,
+    RUNTIME_CONTRACTS,
+    build_manifest,
+    build_pack,
+)
 from formal_result.identity import (
     CONTRACT_VERSION as FORMAL_CONTRACT_VERSION,
     FORMAL_RESULT_POLICY_LEGACY,
@@ -55,6 +60,7 @@ FORMAL_IDENTITY_DEFAULTS = {
     "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
 }
 GATE_3_EVIDENCE_CONTRACT_VERSION = "1.0.0"
+COMPETITION_PRODUCTION_CONTRACT_VERSION = "1.0.0"
 PROFILE_EXECUTABLE_EVIDENCE_CONTRACTS = {
     "engineering_optimization": GATE_3_EVIDENCE_CONTRACT_VERSION,
 }
@@ -69,6 +75,20 @@ def _profile_requires_executable_evidence(run_manifest: Mapping[str, Any]) -> bo
         required_version is not None
         and run_manifest.get("gate_3_evidence_contract_version") == required_version
     )
+
+
+def competition_production_enabled(run_manifest: Mapping[str, Any]) -> bool:
+    """验证并派生当前 Run 是否显式启用 review_ready 生产链。"""
+    version = run_manifest.get("competition_production_contract_version")
+    if version is None:
+        return False
+    if version != COMPETITION_PRODUCTION_CONTRACT_VERSION:
+        raise ValueError(f"competition_production_contract_version 非法：{version!r}")
+    if run_manifest.get("workflow") != "full_replay":
+        raise ValueError("Competition Production 只允许用于 full_replay")
+    if run_manifest.get("profile") not in COMPETITION_PRODUCTION_PROFILES:
+        raise ValueError("当前 Profile 不支持 Competition Production")
+    return True
 
 
 def formal_result_state_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
@@ -743,6 +763,10 @@ def create_gate_run_core(
             (run_dir / "patch_selection.snapshot.json").read_bytes()
         ),
     }
+    if workflow == "full_replay" and profile in COMPETITION_PRODUCTION_PROFILES:
+        manifest_data[
+            "competition_production_contract_version"
+        ] = COMPETITION_PRODUCTION_CONTRACT_VERSION
 
     write_json(run_dir / "run_manifest.json", manifest_data)
     material_report = material_verification.to_dict()
@@ -2730,6 +2754,7 @@ def advance_run(run_dir: Path, reviewer: str, decision: str = "approved") -> dic
 def verify_run(run_dir: Path) -> dict[str, Any]:
     """复核运行现场；部分 Gate 运行可返回状态，但不会被标记为晋级证据。"""
     manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    competition_production_enabled(manifest)
     if manifest.get("workflow") == "prompt_regression":
         runtime_manifest = _load_json_object(
             run_dir / "runtime_pack.manifest.json", "runtime_pack.manifest.json"
