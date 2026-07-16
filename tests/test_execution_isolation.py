@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from attempt_workspace import ActiveAttemptError, attempt_workspace  # noqa: E402
-from process_tree import ProcessTreeTimeoutExpired, run_process_tree  # noqa: E402
+from process_tree_v2 import ProcessTreeTimeoutExpired, run_process_tree  # noqa: E402
+import process_tree_v2  # noqa: E402
 import run_a092_stage3  # noqa: E402
 import run_a092_claude_v3  # noqa: E402
 
@@ -35,6 +36,27 @@ def test_timeout_terminates_descendant_process_before_it_can_write(tmp_path: Pat
     time.sleep(1.0)
     assert caught.value.process_tree_terminated is True
     assert not marker.exists()
+
+
+def test_posix_process_group_confirmation_waits_for_delayed_reaping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """进程组短暂残留时应等待系统完成回收，而不是立即报告清理失败。"""
+    probes = iter((None, None, ProcessLookupError()))
+
+    def fake_killpg(_process_group: int, signal_number: int) -> None:
+        assert signal_number == 0
+        outcome = next(probes)
+        if isinstance(outcome, BaseException):
+            raise outcome
+
+    monkeypatch.setattr(process_tree_v2.os, "killpg", fake_killpg, raising=False)
+
+    assert process_tree_v2._wait_for_posix_process_group_exit(
+        1234,
+        timeout=0.1,
+        poll_interval=0,
+    )
 
 
 def test_only_one_active_attempt_is_allowed_per_run(tmp_path: Path) -> None:
