@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -12,6 +13,18 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from full_replay_route_solver import SOLVERS
 from prepare_full_replay_runs import PROBLEMS, _model_route, _route_config
 from route_contract_dispatch import validate_artifact
+
+
+def test_prepare_full_replay_cli_can_start_from_repository_root() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/prepare_full_replay_runs.py", "--help"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_all_route_families_produce_finite_distinct_results() -> None:

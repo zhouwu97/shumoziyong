@@ -6,10 +6,13 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from formal_result.hashing import file_sha256
 from initialize_formal_result import initialize_formal_result
