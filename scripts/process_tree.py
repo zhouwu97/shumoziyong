@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import signal
 import subprocess
+import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import IO, Any, cast
@@ -26,6 +27,27 @@ class ProcessTreeTimeoutExpired(subprocess.TimeoutExpired):
         super().__init__(cmd, timeout, output=output, stderr=stderr)
         self.process_tree_terminated = process_tree_terminated
         self.termination_details = dict(termination_details)
+
+
+def _wait_for_posix_process_group_exit(
+    process_group: int,
+    *,
+    timeout: float,
+    poll_interval: float = 0.05,
+) -> bool:
+    """在有界时间内确认 POSIX 进程组已经从系统进程表消失。"""
+    kill_process_group = getattr(os, "killpg")
+    deadline = time.monotonic() + max(timeout, 0)
+    while True:
+        try:
+            kill_process_group(process_group, 0)
+        except ProcessLookupError:
+            return True
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        time.sleep(min(max(poll_interval, 0), remaining))
 
 
 def _terminate_windows_tree(process: subprocess.Popen[Any]) -> tuple[bool, dict[str, Any]]:
@@ -80,23 +102,28 @@ def _terminate_posix_tree(process: subprocess.Popen[Any]) -> tuple[bool, dict[st
 
     try:
         kill_process_group(process_group, signal.SIGTERM)
-        process.wait(timeout=2)
     except ProcessLookupError:
         pass
+
+    try:
+        process.wait(timeout=2)
     except subprocess.TimeoutExpired:
+        pass
+
+    terminated = _wait_for_posix_process_group_exit(process_group, timeout=0.5)
+    if not terminated:
         details["escalated_to_sigkill"] = True
         try:
             kill_process_group(process_group, getattr(signal, "SIGKILL", 9))
         except ProcessLookupError:
             pass
-        process.wait(timeout=5)
+        if process.poll() is None:
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                details["direct_process_wait_timed_out"] = True
+        terminated = _wait_for_posix_process_group_exit(process_group, timeout=5)
 
-    try:
-        kill_process_group(process_group, 0)
-    except ProcessLookupError:
-        terminated = True
-    else:
-        terminated = False
     details["direct_process_return_code"] = process.returncode
     details["process_tree_terminated"] = terminated
     return terminated, details
