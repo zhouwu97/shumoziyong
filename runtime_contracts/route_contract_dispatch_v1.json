@@ -52,6 +52,18 @@
       "schema_version": "1.0.0",
       "schema_path": "schemas/risk_decision_report.schema.json",
       "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "route_execution_report_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/route_execution_report.schema.json",
+      "activation_contexts": ["full_replay"]
+    },
+    {
+      "artifact_type": "competition_gate3_decision_v1",
+      "schema_version": "1.0.0",
+      "schema_path": "schemas/competition_gate3_decision.schema.json",
+      "activation_contexts": ["full_replay"]
     }
   ]
 }
