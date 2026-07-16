@@ -93,7 +93,12 @@ def check_references(text: str) -> list[str]:
     issues: list[str] = []
     if "参考文献" not in text:
         issues.append("缺少参考文献章节")
-    has_citation = bool(re.search(r"\[\d+(?:\s*[-,，]\s*\d+)*\]|@ref[-_:][A-Za-z0-9_.:-]+", text))
+    has_citation = bool(
+        re.search(
+            r"(?:\\?\[)\d+(?:\s*[-,，]\s*\d+)*(?:\\?\])|@ref[-_:][A-Za-z0-9_.:-]+",
+            text,
+        )
+    )
     if not has_citation:
         issues.append("正文未发现可追踪文献引用")
     has_entry = "#reference-entry" in text or bool(

@@ -80,6 +80,18 @@ def test_score_v3_fixed_nine_dimension_weights_and_submission(
     assert score["submission_allowed"] is True
 
 
+def test_score_v3_can_recompute_without_writing_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    parent = _eligible_parent(tmp_path, monkeypatch)
+    ratings = _ratings(parent)
+    output = parent / "score_v3_Q1.json"
+    assert not output.exists()
+    score = build_score_v3(parent, "Q1", ratings, write_report=False)
+    assert score["submission_allowed"] is True
+    assert not output.exists()
+
+
 def test_score_v3_low_nonfatal_score_is_technical_report_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

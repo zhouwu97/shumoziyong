@@ -45,6 +45,36 @@ def test_narrative_contract_satisfies_contract_schema() -> None:
     Draft202012Validator(schema).validate(contract)
 
 
+def test_claim_map_schema_accepts_numeric_binding_fields() -> None:
+    schema = load_json("schemas/gate_business_artifact.schema.json")
+    payload = {
+        "schema_version": "1.0.0",
+        "artifact_type": "paper_claim_map",
+        "run_id": "run-1",
+        "problem_id": "2024-D",
+        "profile": "evaluation",
+        "runtime_version": "0.1.0",
+        "runtime_pack_sha256": "a" * 64,
+        "claims": [
+            {
+                "claim_id": "C001",
+                "claim": "第二问所选可行路线的目标值为 0.085841。",
+                "result_refs": ["route_comparison_result_Q2.json#/selected_route_id"],
+                "evidence_refs": ["operability_report_Q2.json#/overall_status"],
+                "source_file": "route_comparison_result_Q2.json",
+                "json_pointer": "/route_results/2/metrics/0/value",
+                "raw_value": 0.08584078662173278,
+                "display_value": "0.085841",
+                "unit": "",
+                "rounding_rule": "6_decimal",
+                "conclusion_tokens": ["可行路线"],
+            }
+        ],
+    }
+
+    Draft202012Validator(schema).validate(payload)
+
+
 def test_contract_keeps_submission_and_technical_report_separate() -> None:
     contract = (ROOT / "docs/paper/PAPER_RENDERING_CONTRACT.md").read_text(encoding="utf-8")
 

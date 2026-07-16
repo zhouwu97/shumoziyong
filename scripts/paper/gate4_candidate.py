@@ -239,13 +239,20 @@ def _require_passed_reports(
         raise ValueError("Humanizer 输出哈希与源码清单入口不一致")
     if model_consistency.get("paper_source_sha256") != paper_source_sha:
         raise ValueError("模型—正文一致性报告与源码清单入口不一致")
+    allowed_bound_files = {
+        "model_route": {"model_route.json", "model_route_v3.json"},
+        "result_report": {"result_report.json"},
+    }
     for path_field, hash_field in (
         ("model_route", "model_route_sha256"),
         ("result_report", "result_report_sha256"),
     ):
-        if model_consistency.get(path_field) != f"{path_field}.json":
-            raise ValueError(f"model_text_consistency_report.{path_field} 必须绑定当前 Run 根目录文件")
-        if model_consistency.get(hash_field) != sha256_file(run_dir / f"{path_field}.json"):
+        filename = str(model_consistency.get(path_field, ""))
+        if filename not in allowed_bound_files[path_field]:
+            raise ValueError(
+                f"model_text_consistency_report.{path_field} 必须绑定当前 Run 根目录的受支持文件"
+            )
+        if model_consistency.get(hash_field) != sha256_file(run_dir / filename):
             raise ValueError(f"model_text_consistency_report.{hash_field} 与当前 Run 文件不一致")
 
     pdf_sha = sha256_file(run_dir / "submission.pdf")

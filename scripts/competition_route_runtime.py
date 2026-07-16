@@ -5,10 +5,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator, FormatChecker
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from executor_core import execute_spec
 from formal_result.identity import IMMUTABLE_IDENTITY_FIELDS

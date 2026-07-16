@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
 MATURITIES = {"draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"}
 PROFILE_IDS = {"general", "engineering_optimization", "prediction", "evaluation", "simulation"}
+REPOSITORY_SCAN_EXCLUDED_DIRS = {".git", ".vendor", "export", "tmp"}
 
 
 class RepositoryValidator:
@@ -65,6 +66,10 @@ class RepositoryValidator:
 
     def fail(self, message: str) -> None:
         self.failures.append(message)
+
+    def sha256_lf_text(self, path: Path) -> str:
+        text = path.read_text(encoding="utf-8")
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def load_json(self, relative_path: str) -> Any | None:
         path = ROOT / relative_path
@@ -105,7 +110,7 @@ class RepositoryValidator:
     def validate_all_json_syntax(self) -> None:
         broken = 0
         for path in sorted(ROOT.rglob("*.json")):
-            if any(part in {".git", ".vendor"} for part in path.parts):
+            if any(part in REPOSITORY_SCAN_EXCLUDED_DIRS for part in path.parts):
                 continue
             try:
                 json.loads(path.read_text(encoding="utf-8"))
@@ -1371,7 +1376,7 @@ class RepositoryValidator:
         link_pattern = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
         missing: list[str] = []
         for path in sorted(ROOT.rglob("*.md")):
-            if any(part in {".git", ".vendor", "export"} for part in path.parts):
+            if any(part in REPOSITORY_SCAN_EXCLUDED_DIRS for part in path.parts):
                 continue
             text = path.read_text(encoding="utf-8")
             for target in link_pattern.findall(text):
@@ -1532,6 +1537,10 @@ class RepositoryValidator:
             "score_v3_ratings.schema.json",
             "score_v3.schema.json",
             "route_contract_dispatch.schema.json",
+            "competition_full_replay_campaign.schema.json",
+            "competition_full_replay_manifest.schema.json",
+            "competition_full_replay_run_record.schema.json",
+            "competition_full_replay_report.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1649,14 +1658,92 @@ class RepositoryValidator:
             "competition_production_capability.schema.json",
             "Competition Production 能力生命周期",
         )
-        if capability.get("lifecycle") != "review_ready":
-            self.fail("Competition Production 生命周期越过 review_ready")
+        lifecycle = capability.get("lifecycle")
+        if lifecycle not in {"review_ready", "full_replay_passed"}:
+            self.fail("Competition Production 生命周期非法")
         elif capability.get("activation_contexts") != ["full_replay"]:
             self.fail("Competition Production 只允许显式 full_replay")
         elif capability.get("new_problem_default_enabled") is not False:
             self.fail("Competition Production 不得进入 new_problem 默认包")
+        elif lifecycle == "full_replay_passed":
+            evidence = capability.get("promotion_evidence", {})
+            report_path = ROOT / str(evidence.get("path", ""))
+            report = self.load_json(str(evidence.get("path", "")))
+            actual_sha = self.sha256_lf_text(report_path) if report_path.is_file() else None
+            if report is None:
+                return
+            report_valid = self.validate_schema(
+                report,
+                "competition_full_replay_report.schema.json",
+                "Competition Production full_replay 晋级报告",
+            )
+            if not report_valid:
+                return
+            if actual_sha != evidence.get("sha256"):
+                self.fail("Competition Production 晋级报告哈希漂移")
+            elif report.get("status") != "passed" or report.get(
+                "derived_lifecycle"
+            ) != "full_replay_passed":
+                self.fail("Competition Production 晋级报告未证明 full_replay_passed")
+            elif report.get("new_problem_default_enabled") is not False:
+                self.fail("Competition Production 晋级报告错误启用 new_problem")
+            else:
+                self.pass_("Competition Production full_replay_passed 证据闭包")
         else:
             self.pass_("Competition Production review_ready/full_replay 生命周期边界")
+
+    def validate_full_replay_campaign_contract(self) -> None:
+        contract = self.load_json(
+            "runtime_contracts/competition_full_replay_campaign_v1.json"
+        )
+        manifest = self.load_json(
+            "capability_evidence/competition_production/full_replay/campaign_manifest_v1.json"
+        )
+        if contract is None or manifest is None:
+            return
+        contract_valid = self.validate_schema(
+            contract,
+            "competition_full_replay_campaign.schema.json",
+            "Competition Production full_replay Campaign 合同",
+        )
+        manifest_valid = self.validate_schema(
+            manifest,
+            "competition_full_replay_manifest.schema.json",
+            "Competition Production full_replay Campaign 索引",
+        )
+        if not contract_valid or not manifest_valid:
+            return
+        expected_problems = {"2016-C", "2023-B", "2024-B", "2024-C", "2024-D"}
+        contract_problems = {
+            item.get("problem_id") for item in contract.get("required_problems", [])
+        }
+        manifest_problems = {item.get("problem_id") for item in manifest.get("runs", [])}
+        run_ids = [item.get("run_id") for item in manifest.get("runs", [])]
+        plugin = contract.get("required_runtime_plugin", {})
+        plugin_path = ROOT / str(plugin.get("path", ""))
+        actual_plugin_sha = (
+            hashlib.sha256(plugin_path.read_bytes()).hexdigest()
+            if plugin_path.is_file()
+            else None
+        )
+        expected_contract_ref = {
+            "path": "runtime_contracts/competition_full_replay_campaign_v1.json",
+            "sha256": hashlib.sha256(
+                (ROOT / "runtime_contracts/competition_full_replay_campaign_v1.json").read_bytes()
+            ).hexdigest(),
+        }
+        if contract_problems != expected_problems or manifest_problems != expected_problems:
+            self.fail("full_replay Campaign 未恰好覆盖固定五题")
+        elif len(run_ids) != len(set(run_ids)):
+            self.fail("full_replay Campaign 的五个 Run ID 不唯一")
+        elif manifest.get("contract") != expected_contract_ref:
+            self.fail("full_replay Campaign 索引未绑定当前合同哈希")
+        elif actual_plugin_sha != plugin.get("sha256"):
+            self.fail("full_replay Campaign 合同中的 Adapter 哈希漂移")
+        elif contract.get("new_problem_default_enabled") is not False:
+            self.fail("full_replay Campaign 不得启用 new_problem 默认能力")
+        else:
+            self.pass_("full_replay Campaign 固定题集、唯一 Run 与 Adapter 哈希闭包")
 
     def validate_template_registry(self) -> None:
         registry = self.load_json("runtime_contracts/template_source_manifest_v1.json")
@@ -1706,6 +1793,7 @@ class RepositoryValidator:
         self.validate_route_contract_dispatch()
         self.validate_score_v3_policy()
         self.validate_competition_production_capability()
+        self.validate_full_replay_campaign_contract()
         self.validate_template_registry()
         for message in self.passes:
             print(f"[PASS] {message}")

@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "campaign_id": "competition-production-pr7-20260717",
+  "contract": {
+    "path": "runtime_contracts/competition_full_replay_campaign_v1.json",
+    "sha256": "be7fca065c4e3c5d25a4b4f1f5efdf03f7a85d551f7790472d10cf3323de9da9"
+  },
+  "runs": [
+    {
+      "problem_id": "2016-C",
+      "run_id": "pr7-2016c-full-replay-20260717",
+      "run_path": "runs/pr7-2016c-full-replay-20260717",
+      "material_root": "official_materials/2016_C"
+    },
+    {
+      "problem_id": "2023-B",
+      "run_id": "pr7-2023b-full-replay-20260717",
+      "run_path": "runs/pr7-2023b-full-replay-20260717",
+      "material_root": "official_materials/2023_B"
+    },
+    {
+      "problem_id": "2024-B",
+      "run_id": "pr7-2024b-full-replay-20260717",
+      "run_path": "runs/pr7-2024b-full-replay-20260717",
+      "material_root": "official_materials/2024_B"
+    },
+    {
+      "problem_id": "2024-C",
+      "run_id": "pr7-2024c-full-replay-20260717",
+      "run_path": "runs/pr7-2024c-full-replay-20260717",
+      "material_root": "official_materials/2024_C"
+    },
+    {
+      "problem_id": "2024-D",
+      "run_id": "pr7-2024d-full-replay-20260717",
+      "run_path": "runs/pr7-2024d-full-replay-20260717",
+      "material_root": "official_materials/2024_D"
+    }
+  ]
+}

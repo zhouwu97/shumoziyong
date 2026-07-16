@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_full_replay_manifest.schema.json",
+  "title": "多题 full_replay Campaign 本地运行索引",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "campaign_id", "contract", "runs"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "campaign_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{7,79}$"},
+    "contract": {"$ref": "#/$defs/fileRef"},
+    "runs": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["problem_id", "run_id", "run_path", "material_root"],
+        "properties": {
+          "problem_id": {"enum": ["2016-C", "2023-B", "2024-B", "2024-C", "2024-D"]},
+          "run_id": {"type": "string", "minLength": 8},
+          "run_path": {"$ref": "#/$defs/relativePath"},
+          "material_root": {"$ref": "#/$defs/relativePath"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$))(?!.*\\\\).+$"
+    },
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

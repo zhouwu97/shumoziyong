@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_full_replay_run_record.schema.json",
+  "title": "单题 full_replay 运行记录",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "run_id", "problem_id", "operator_id",
+    "source_control_commit", "started_at", "completed_at", "runtime_seconds",
+    "manual_interventions", "answer_leakage_detected", "historical_assets_modified",
+    "declared_complete"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "competition_full_replay_run_record_v1"},
+    "run_id": {"type": "string", "minLength": 8},
+    "problem_id": {"enum": ["2016-C", "2023-B", "2024-B", "2024-C", "2024-D"]},
+    "operator_id": {"type": "string", "minLength": 2},
+    "source_control_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "runtime_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "manual_interventions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["intervention_id", "occurred_at", "category", "description", "affected_artifacts"],
+        "properties": {
+          "intervention_id": {"type": "string", "pattern": "^HI-[A-Z0-9_-]+$"},
+          "occurred_at": {"type": "string", "format": "date-time"},
+          "category": {"enum": ["material_review", "route_approval", "execution_recovery", "paper_review", "other"]},
+          "description": {"type": "string", "minLength": 10},
+          "affected_artifacts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "answer_leakage_detected": {"const": false},
+    "historical_assets_modified": {"const": false},
+    "declared_complete": {"const": true}
+  }
+}

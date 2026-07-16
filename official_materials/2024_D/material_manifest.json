@@ -1,0 +1,30 @@
+{
+  "manifest_version": "1.0.0",
+  "problem_id": "2024-D",
+  "material_root": ".",
+  "source": {
+    "kind": "official",
+    "reference": "官方来源和历史说明见 manifest.md"
+  },
+  "contains_answer_or_solution": false,
+  "categories": {
+    "problem": {
+      "required": true,
+      "files": [
+        {
+          "path": "problem/D题.pdf",
+          "sha256": "8f30bdb312715167cd4ceaf87604dfd12e688d802e32e310322057aeb9d66cb0",
+          "description": "官方题面"
+        }
+      ]
+    },
+    "attachments": {
+      "required": false,
+      "files": []
+    },
+    "templates": {
+      "required": false,
+      "files": []
+    }
+  }
+}

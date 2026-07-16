@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "paper"))
 import render_submission as renderer  # noqa: E402
 from check_humanization_diff import check_humanization_diff  # noqa: E402
 from check_paper_source import sha256_file  # noqa: E402
-from verify_submission import verify_submission  # noqa: E402
+from verify_submission import check_references, verify_submission  # noqa: E402
 
 
 PROFILE = ROOT / "paper_profiles" / "cumcm_academic_v1.json"
@@ -59,6 +59,15 @@ C001：正式结果完成 120 件产品。
 离散事件定义见文献 [1]。
 #reference-entry(1, [测试参考文献条目。])
 """
+
+
+def test_reference_check_accepts_typst_escaped_citation() -> None:
+    text = """= 参考文献
+正文引用写作 \\[1\\]。
+#reference-entry(1, [测试参考文献条目。])
+"""
+
+    assert check_references(text) == []
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
