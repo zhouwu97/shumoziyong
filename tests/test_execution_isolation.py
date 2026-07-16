@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from attempt_workspace import ActiveAttemptError, attempt_workspace  # noqa: E402
-from process_tree import ProcessTreeTimeoutExpired, run_process_tree  # noqa: E402
-import process_tree  # noqa: E402
+from process_tree_v2 import ProcessTreeTimeoutExpired, run_process_tree  # noqa: E402
+import process_tree_v2  # noqa: E402
 import run_a092_stage3  # noqa: E402
 import run_a092_claude_v3  # noqa: E402
 
@@ -50,9 +50,9 @@ def test_posix_process_group_confirmation_waits_for_delayed_reaping(
         if isinstance(outcome, BaseException):
             raise outcome
 
-    monkeypatch.setattr(process_tree.os, "killpg", fake_killpg, raising=False)
+    monkeypatch.setattr(process_tree_v2.os, "killpg", fake_killpg, raising=False)
 
-    assert process_tree._wait_for_posix_process_group_exit(  # type: ignore[attr-defined]
+    assert process_tree_v2._wait_for_posix_process_group_exit(
         1234,
         timeout=0.1,
         poll_interval=0,

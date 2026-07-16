@@ -1,31 +1,41 @@
-"""带完整进程树清理证明的子进程执行工具。"""
+"""通用运行时使用的进程树执行工具。
+
+冻结的 A092 协议继续引用 ``process_tree.py``；本模块承载后续运行时修复，
+避免改变历史协议绑定的源码哈希。
+"""
 
 from __future__ import annotations
 
 import os
 import signal
 import subprocess
+import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import IO, Any, cast
 
+from process_tree import ProcessTreeTimeoutExpired
 
-class ProcessTreeTimeoutExpired(subprocess.TimeoutExpired):
-    """命令超时，并携带进程树清理结果。"""
 
-    def __init__(
-        self,
-        cmd: Sequence[str],
-        timeout: float,
-        *,
-        output: str | bytes | None,
-        stderr: str | bytes | None,
-        process_tree_terminated: bool,
-        termination_details: Mapping[str, Any],
-    ) -> None:
-        super().__init__(cmd, timeout, output=output, stderr=stderr)
-        self.process_tree_terminated = process_tree_terminated
-        self.termination_details = dict(termination_details)
+def _wait_for_posix_process_group_exit(
+    process_group: int,
+    *,
+    timeout: float,
+    poll_interval: float = 0.05,
+) -> bool:
+    """在有界时间内确认 POSIX 进程组已经从系统进程表消失。"""
+    kill_process_group = getattr(os, "killpg")
+    deadline = time.monotonic() + max(timeout, 0)
+    while True:
+        try:
+            kill_process_group(process_group, 0)
+        except ProcessLookupError:
+            return True
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        time.sleep(min(max(poll_interval, 0), remaining))
 
 
 def _terminate_windows_tree(process: subprocess.Popen[Any]) -> tuple[bool, dict[str, Any]]:
@@ -80,23 +90,28 @@ def _terminate_posix_tree(process: subprocess.Popen[Any]) -> tuple[bool, dict[st
 
     try:
         kill_process_group(process_group, signal.SIGTERM)
-        process.wait(timeout=2)
     except ProcessLookupError:
         pass
+
+    try:
+        process.wait(timeout=2)
     except subprocess.TimeoutExpired:
+        pass
+
+    terminated = _wait_for_posix_process_group_exit(process_group, timeout=0.5)
+    if not terminated:
         details["escalated_to_sigkill"] = True
         try:
             kill_process_group(process_group, getattr(signal, "SIGKILL", 9))
         except ProcessLookupError:
             pass
-        process.wait(timeout=5)
+        if process.poll() is None:
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                details["direct_process_wait_timed_out"] = True
+        terminated = _wait_for_posix_process_group_exit(process_group, timeout=5)
 
-    try:
-        kill_process_group(process_group, 0)
-    except ProcessLookupError:
-        terminated = True
-    else:
-        terminated = False
     details["direct_process_return_code"] = process.returncode
     details["process_tree_terminated"] = terminated
     return terminated, details
@@ -127,10 +142,7 @@ def run_process_tree(
     errors: str | None = None,
 ) -> subprocess.CompletedProcess[Any]:
     """在独立进程组中运行命令；超时时先清理完整进程树。"""
-    if input is not None:
-        stdin = subprocess.PIPE
-    else:
-        stdin = None
+    stdin = subprocess.PIPE if input is not None else None
     if capture_output:
         if stdout is not None or stderr is not None:
             raise ValueError("capture_output 不能与 stdout/stderr 同时使用")
