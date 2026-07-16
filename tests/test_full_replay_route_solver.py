@@ -27,6 +27,19 @@ def test_prepare_full_replay_cli_can_start_from_repository_root() -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_prepare_full_replay_cli_requires_explicit_environment_report() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/prepare_full_replay_runs.py"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "--environment-report" in result.stderr
+
+
 def test_all_route_families_produce_finite_distinct_results() -> None:
     samples = [
         ("2016-C", "Q1", "prediction"),

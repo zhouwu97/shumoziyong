@@ -1,0 +1,17 @@
+{
+  "attestation_version": "1.0.0",
+  "report_kind": "live_attestation",
+  "report_id": "sandboxie-env-20260717T013942p0800-80184d5566fa",
+  "public_report_sha256": "57e09ee2f46a8326ec06d93600d8a21a7f6606f83267081b400fd30eea493a23",
+  "public_report_semantic_sha256": "5ebb6b945934f968c2a1308c07fef8c75006976d8f89890820e4a047572d8f81",
+  "original_report_sha256": "ad383ce9f975a986b55951ae0d5354389d67bb1dbd0753e200befb7aa9b82c43",
+  "configuration_backup_sha256": "e81fc7a5fee661cd1c5d61c313e28160591e6e8e26df4c28939613e88e9d8b6d",
+  "probe_script_sha256": "c9cb8194b3b98d7bf4cbcc3f9b0f59ebd1800725ded8ece4684fee0a36381da1",
+  "collector_source_commit": "9def18608324ceccbaebe6016079e6526e37beeb",
+  "machine_key_id": "sandboxie-host-d08131d0397a11c0",
+  "environment_fingerprint": "abb0a6ff15d9348cbdf781aa8fbbfff86888233049e586211928b6837e0c1a71",
+  "generated_at": "2026-07-17T01:39:42+08:00",
+  "valid_until": "2026-07-24T01:39:42+08:00",
+  "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+  "signature": "tvNPJ/MwTfbzulGiXwT47+4zuVEQ/v5lnJx55OdC5fhnSqp/eWg8uk0CbHQTf3gIq7jtuKWwrqJwYHsvpklW3VCGTXT+q0cylBt16S+AyZz/RP/eYCXOtmus8NTlUFZhKdwkvBgbh86tHckxlAGLzfUz/nKvNDBRDNbiRvcjbX36ea4eqBCy3pFqX3GB0U3guilqBJjrnqCgPpJ4CpTF4VmDyHe9XpMYFEwWpqJo2tB8KuSOmT8QMgLWMJLN4XlB7tJa/EMXBhzYYICMSXBKjK81ukVkR2+lCqp4ZK9TmrFzdYOPlg5haEDkV9R6YzBWVf8+9oBklPDo3XMHcUV6ce82CxjD/QVeBf48bekqIKgFefwOkGUDU7VcgA1Xqhl9MYtp1ntUlOHeoCmOJcNfOgwz7MGjHlbYJsUZpQnAgZrMsiZ81mKs8Uc/494meqk45/QRcCKzxxmA0xv162YRk8kGfyjncJJbxdINHic6Kl2O1a4FPcVXqdjHcrCE4B1g"
+}

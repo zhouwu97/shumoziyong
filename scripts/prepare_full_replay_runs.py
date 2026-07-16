@@ -20,14 +20,6 @@ from route_contract_dispatch import validate_artifact
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ENVIRONMENT_REPORT = (
-    ROOT
-    / "output"
-    / "environment"
-    / "sandboxie-m2"
-    / "2026-07-12"
-    / "sandboxie_environment_report.json"
-)
 ROUTES = (
     ("R-BASE", "baseline"),
     ("R-PRIMARY", "primary"),
@@ -373,7 +365,7 @@ def prepare_problem(problem_id: str, problem: Mapping[str, Any], environment_rep
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--environment-report", type=Path, default=DEFAULT_ENVIRONMENT_REPORT)
+    parser.add_argument("--environment-report", type=Path, required=True)
     parser.add_argument("--problem", choices=tuple(PROBLEMS), action="append")
     args = parser.parse_args()
     selected = args.problem or list(PROBLEMS)
