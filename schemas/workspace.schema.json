@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/workspace.schema.json",
+  "title": "Shumo Problem Workspace",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "workspace_id", "attempt_id", "workspace_root",
+    "orchestration_mode", "workflow", "execution_mode", "role", "run_id",
+    "run_dir", "engine_home", "engine_commit", "current_stage",
+    "qualification_eligible", "promotion_evidence", "original_run_unchanged",
+    "environment", "created_at", "updated_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "workspace_id": {"type": "string", "pattern": "^ws_[a-f0-9]{16}$"},
+    "attempt_id": {"type": "string", "pattern": "^attempt_[0-9]{8}T[0-9]{6}_[a-f0-9]{8}$"},
+    "workspace_root": {"type": "string", "minLength": 1},
+    "orchestration_mode": {"type": "string", "enum": ["native", "compatibility_sidecar"]},
+    "workflow": {"type": "string", "enum": ["full_replay", "new_problem", "paper_learning"]},
+    "execution_mode": {"type": "string", "enum": ["strict", "standard", "emergency", "autonomous_rehearsal", "competition_rehearsal"]},
+    "role": {"type": "string", "enum": ["executor", "collector", "validator", "reviewer"]},
+    "run_id": {"type": "string", "minLength": 1},
+    "run_dir": {"type": "string", "minLength": 1},
+    "engine_home": {"type": "string", "minLength": 1},
+    "engine_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "current_stage": {"type": "string", "minLength": 1},
+    "problem_digest": {"$ref": "#/$defs/sha256"},
+    "material_snapshot_digest": {"$ref": "#/$defs/sha256"},
+    "qualification_eligible": {"type": "boolean"},
+    "promotion_evidence": {"type": "boolean"},
+    "original_run_unchanged": {"type": "boolean"},
+    "environment": {"$ref": "#/$defs/environment"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python_version", "platform", "requirements_lock_sha256", "environment_mode", "network_used", "offline_ready"],
+      "properties": {
+        "python_version": {"type": "string", "minLength": 1},
+        "platform": {"type": "string", "minLength": 1},
+        "requirements_lock_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "environment_mode": {"type": "string", "enum": ["existing_verified", "workspace_venv"]},
+        "network_used": {"const": false},
+        "offline_ready": {"type": "boolean"}
+      }
+    }
+  }
+}

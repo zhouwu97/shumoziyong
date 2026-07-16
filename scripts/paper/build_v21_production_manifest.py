@@ -37,6 +37,7 @@ def build_manifest(
     figure_fragments: list[str],
     missing_evidence_placeholders: list[str],
     status: str,
+    semantic_checks: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     run_dir = run_dir.resolve()
     run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
@@ -76,6 +77,8 @@ def build_manifest(
         "missing_evidence_placeholders": missing_evidence_placeholders,
         "status": status,
     }
+    if semantic_checks is not None:
+        value["semantic_checks"] = dict(semantic_checks)
     errors = validate_paper_production_manifest(value, run_dir=run_dir, admission=admission)
     if errors:
         raise ValueError("；".join(errors))
@@ -93,10 +96,16 @@ def main() -> None:
     parser.add_argument("--figure-fragment", action="append", required=True)
     parser.add_argument("--missing-evidence", action="append", default=[])
     parser.add_argument("--status", choices=("candidate", "reviewed", "accepted"), default="candidate")
+    parser.add_argument("--semantic-checks", help="包含 Gate 4 语义检查结果的 JSON 文件")
     parser.add_argument("--output", default="paper_production_manifest.json")
     args = parser.parse_args()
     run_dir = Path(args.run_dir)
     try:
+        semantic_checks = None
+        if args.semantic_checks:
+            semantic_checks = json.loads(Path(args.semantic_checks).read_text(encoding="utf-8"))
+            if not isinstance(semantic_checks, dict):
+                raise ValueError("--semantic-checks 必须为 JSON 对象")
         value = build_manifest(
             run_dir,
             one_sentence_argument=args.one_sentence_argument,
@@ -107,6 +116,7 @@ def main() -> None:
             figure_fragments=args.figure_fragment,
             missing_evidence_placeholders=args.missing_evidence,
             status=args.status,
+            semantic_checks=semantic_checks,
         )
         output = run_dir / args.output
         output.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

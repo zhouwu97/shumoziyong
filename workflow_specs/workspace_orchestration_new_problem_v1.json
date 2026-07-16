@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "workflow": "new_problem",
+  "execution_modes": {
+    "strict": {"human_confirmation_gates": [0, 1, 2, 3, 4, 5], "qualification_candidate": false},
+    "standard": {"human_confirmation_gates": [0, 2, 5], "qualification_candidate": false},
+    "emergency": {"human_confirmation_gates": [0, 5], "qualification_candidate": false}
+  },
+  "gate_contracts": {
+    "0": {
+      "required_modeling_fields": ["real_process", "core_entities", "events_and_state_changes", "core_conflict", "data_and_units", "uncertainty", "question_progression", "mechanism_candidates"],
+      "required_validation_dimensions": []
+    },
+    "1": {
+      "required_modeling_fields": ["mechanism_chain", "problem_specific_insight", "core_conflict", "relationship_to_previous_question", "relationship_to_next_question", "structure_hypotheses", "decision_space_audit", "dimension_reduction_basis", "simplification_validation", "model_validity_tests", "figure_arguments", "theoretical_model", "computational_model", "recommended_solution"],
+      "required_validation_dimensions": []
+    },
+    "2": {
+      "required_modeling_fields": ["model_code_variable_map", "objective_recomputation", "independent_constraint_validator", "randomness_protocol", "figure_data_arguments"],
+      "required_validation_dimensions": []
+    },
+    "3": {
+      "required_modeling_fields": [],
+      "required_validation_dimensions": ["implementation_correctness", "model_validity", "competition_value"]
+    },
+    "4": {
+      "required_modeling_fields": ["mechanism", "model", "result", "shape_explanation", "decision_recommendation", "applicability_boundary", "claim_scope", "optimality_level", "model_validity_evidence", "execution_conditions"],
+      "required_validation_dimensions": []
+    },
+    "5": {"required_modeling_fields": [], "required_validation_dimensions": ["independent_review", "reproducibility", "claim_boundary"]}
+  },
+  "qualification_policy": {"automatic_maturity_upgrade": false, "compatibility_sidecar_eligible": false}
+}

@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from atomic_io import atomic_write_bytes
 from formal_result.identity import FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_POLICY_REQUIRED
 from formal_result.verifier import verify_formal_result_bundle
+from review_ledger import verify_history as verify_review_history
 from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
     V21_EVIDENCE_ARTIFACT_SPECS,
@@ -22,6 +23,7 @@ from run_workflow import (
     build_run_evidence_manifest,
     evidence_artifact_specs_for_workflow,
     evidence_required_artifacts_for_workflow,
+    extend_review_pipeline_evidence_requirements,
     extend_formal_result_evidence_requirements,
     formal_result_state_summary,
     replay_transition_log,
@@ -48,6 +50,7 @@ for _workflow in ("full_replay", "new_problem"):
 KNOWN_EVIDENCE_ARTIFACTS.update(
     {role: filename for filename, role, _media_type in V21_EVIDENCE_ARTIFACT_SPECS}
 )
+KNOWN_EVIDENCE_ARTIFACTS["gate_5_review_history"] = "gate_5_review_history.jsonl"
 
 
 def load_policy() -> dict[str, Any]:
@@ -105,7 +108,39 @@ def validate_evidence_manifest(
         if path_text in seen_paths:
             errors.append(f"run_evidence_manifest.path 重复：{path_text}")
         seen_paths.add(path_text)
-        expected_path = required_artifacts.get(role, KNOWN_EVIDENCE_ARTIFACTS.get(role))
+        if isinstance(role, str) and role.startswith("gate_5_review_record:"):
+            review_id = role.removeprefix("gate_5_review_record:")
+            expected_path = f"reviews/gate5/{review_id}.json"
+        elif isinstance(role, str) and role in {
+            "reasonableness_review_history",
+            "technical_review_history",
+            "paper_reader_review_history",
+            "paper_candidate_history",
+            "current_paper_candidate",
+        }:
+            expected_path = {
+                "reasonableness_review_history": "reasonableness_review_history.jsonl",
+                "technical_review_history": "technical_review_history.jsonl",
+                "paper_reader_review_history": "paper_reader_review_history.jsonl",
+                "paper_candidate_history": "paper_candidate_history.jsonl",
+                "current_paper_candidate": "current_paper_candidate.json",
+            }[role]
+        elif isinstance(role, str) and role.startswith(("reasonableness_review_record:", "technical_review_record:", "paper_reader_review_record:")):
+            prefix, review_id = role.split(":", 1)
+            directory = {
+                "reasonableness_review_record": "reviews/reasonableness",
+                "technical_review_record": "reviews/technical",
+                "paper_reader_review_record": "reviews/paper_reader",
+            }[prefix]
+            expected_path = f"{directory}/{review_id}.json"
+        elif isinstance(role, str) and role.startswith("paper_candidate_manifest:"):
+            candidate_id = role.removeprefix("paper_candidate_manifest:")
+            expected_path = f"paper_candidates/{candidate_id}/paper_candidate_manifest.json"
+        elif isinstance(role, str) and role.startswith("paper_candidate_file:"):
+            _prefix, candidate_id, filename = role.split(":", 2)
+            expected_path = f"paper_candidates/{candidate_id}/{filename}"
+        else:
+            expected_path = required_artifacts.get(role, KNOWN_EVIDENCE_ARTIFACTS.get(role))
         if expected_path is None:
             errors.append(f"run_evidence_manifest 包含未知证据角色：{role}")
         elif path_text != expected_path:
@@ -132,6 +167,21 @@ def validate_evidence_manifest(
     missing_paths = set(required_artifacts.values()) - seen_paths
     if missing_paths:
         errors.append(f"run_evidence_manifest 缺少固定证据文件：{', '.join(sorted(missing_paths))}")
+    if "gate_5_review_history" in required_artifacts:
+        try:
+            entries, _head = verify_review_history(run_dir, "gate_5_review_history.jsonl")
+            for entry in entries:
+                role = f"gate_5_review_record:{entry['review_id']}"
+                artifact = next(
+                    (item for item in artifacts if isinstance(item, dict) and item.get("role") == role),
+                    None,
+                )
+                if not isinstance(artifact, dict):
+                    errors.append(f"run_evidence_manifest 缺少 Gate 5 Review：{entry['review_id']}")
+                elif artifact.get("path") != entry["path"] or artifact.get("sha256") != entry["sha256"]:
+                    errors.append(f"run_evidence_manifest Gate 5 Review 绑定不一致：{entry['review_id']}")
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"Gate 5 Review history 无效：{exc}")
     return errors
 
 
@@ -162,7 +212,9 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         workflow,
         completed=True,
         runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
+        gate_5_review_contract_version=run_manifest.get("gate_5_review_contract_version"),
     )
+    extend_review_pipeline_evidence_requirements(run_dir, required_artifacts)
     formal_summary: dict[str, Any] | None = None
     immutable_manifest = run_manifest.get("manifest_version") == "2.0.0"
     if immutable_manifest:
@@ -240,6 +292,18 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
             ).hexdigest(),
             "evidence_manifest_sha256": hashlib.sha256(evidence_bytes).hexdigest(),
         }
+        if run_manifest.get("gate_5_review_contract_version") == "2.0.0":
+            completed_entry = state.get("completed_entry") or {}
+            seal_record.update(
+                {
+                    "gate_5_review_contract_version": "2.0.0",
+                    "gate_5_policy_version": run_manifest.get("gate_5_policy_version"),
+                    "approved_review_id": completed_entry.get("approved_review_id"),
+                    "approved_review_sha256": completed_entry.get("review_record_sha256"),
+                    "gate_5_review_history_sha256": completed_entry.get("review_history_sha256"),
+                    "gate_5_review_history_head_sha256": completed_entry.get("review_history_head_sha256"),
+                }
+            )
         if formal_summary is not None:
             seal_record.update(
                 {

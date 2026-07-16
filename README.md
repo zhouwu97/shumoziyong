@@ -63,6 +63,11 @@ python scripts/run_workflow.py init --workflow new_problem --problem 2026-A --ma
 
 ## 三个入口
 
+普通用户推荐从[AI 工作目录固定入口](docs/entrypoints/AI_WORKSPACE_BOOTSTRAP.md)开始：在单题
+目录的 `problem/` 放入官方材料，然后只需说“开始执行当前目录的数模工作流”。AI 负责发现、
+预检、锁定引擎、Run 和 NEXT_TASK；用户不需要手工输入 CLI 或 Run ID。详细目录边界与恢复规则
+见[工作目录自动执行指南](docs/guides/WORKSPACE_AUTORUN_GUIDE.md)。
+
 | 场景 | 入口 | 目标 |
 |---|---|---|
 | 学优秀论文 | [论文学习流](docs/workflows/01_论文学习流.md) | 生成学习卡片、知识卡片和 Patch 草案 |
@@ -72,6 +77,9 @@ python scripts/run_workflow.py init --workflow new_problem --problem 2026-A --ma
 三个工作流的调度边界见[工作流总览](docs/workflows/00_工作流总览.md)。论文学习流不提升
 正式 Patch 状态；轻量提示词回归不产生 Gate 或晋级证据；`full_replay` 与 `new_problem`
 必须遵守完整 Gate 0—5 合同。
+
+工作目录编排不是第四工作流。`NEXT_TASK.json` 是编排事实源，Markdown 只是确定性镜像；
+`autonomous_rehearsal` 和 compatibility sidecar 永远不自动成为资格证据。
 
 ## 当前稳定能力
 

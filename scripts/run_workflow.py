@@ -25,6 +25,24 @@ from formal_result.verifier import verify_formal_result_bundle
 from formal_result.trusted_local import trusted_local_eligibility_scope
 from gate3_evidence import collect_gate_3_math_validation
 from model_validation import validate_model_and_execution
+from communication_contracts import validate_gate_communication
+from review_pipeline import (
+    approved_supporting_review,
+    create_paper_reader_workspace,
+    current_candidate,
+    record_paper_reader_review,
+    record_reasonableness_review,
+    record_technical_review,
+    register_paper_candidate,
+    review_pipeline_evidence_artifacts,
+    require_approved_reasonableness_review,
+)
+from review_ledger import (
+    acquire_run_write_lock,
+    append_immutable_review,
+    reconcile_orphan_reviews,
+    verify_history as verify_review_history,
+)
 from v21_contracts import (
     V21_GATE_CONTRACT_VERSION,
     V21_RUNTIME_MANIFEST_VERSION,
@@ -60,6 +78,18 @@ FORMAL_IDENTITY_DEFAULTS = {
     "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
 }
 GATE_3_EVIDENCE_CONTRACT_VERSION = "1.0.0"
+GATE_5_REVIEW_V2_CONTRACT_VERSION = "2.0.0"
+GATE_5_RECORDING_POLICY = "recording_only_v1"
+GATE_5_DEFAULT_POLICY = "human_final_technical_required_v1"
+GATE_5_HUMAN_FINAL_TECHNICAL_POLICY = "human_final_technical_required_v1"
+GATE_5_REVIEW_HISTORY_FILENAME = "gate_5_review_history.jsonl"
+GATE_5_REVIEW_DIRECTORY = "reviews/gate5"
+HUMAN_FINAL_REVIEW_HANDOFF_VERSION = "1.0.0"
+HUMAN_FINAL_REVIEW_HANDOFF_DIRECTORY = "human_final_review_handoffs"
+GATE_EXECUTION_POLICY_AI_HUMAN_FINAL = "ai_gates_human_final_v1"
+COMMUNICATION_CONTRACT_VERSION = "1.0.0"
+REASONABLENESS_CONTRACT_VERSION = "1.0.0"
+GATE_4_SEMANTIC_CONTRACT_VERSION = "1.0.0"
 PROFILE_EXECUTABLE_EVIDENCE_CONTRACTS = {
     "engineering_optimization": GATE_3_EVIDENCE_CONTRACT_VERSION,
 }
@@ -216,10 +246,6 @@ V21_EVIDENCE_ARTIFACT_SPECS: tuple[tuple[str, str, str], ...] = (
     ("paper_admission_report.json", "paper_admission_report", "application/json"),
     ("paper_claim_map.json", "paper_claim_map_v2", "application/json"),
     ("paper_production_manifest.json", "paper_production_manifest", "application/json"),
-    ("reviewer_a_round1.json", "reviewer_a_round1", "application/json"),
-    ("reviewer_b_round1.json", "reviewer_b_round1", "application/json"),
-    ("reviewer_a_round2.json", "reviewer_a_round2", "application/json"),
-    ("reviewer_b_round2.json", "reviewer_b_round2", "application/json"),
     ("score_v2.json", "score_v2", "application/json"),
 )
 
@@ -238,6 +264,7 @@ def evidence_required_artifacts_for_workflow(
     *,
     completed: bool,
     runtime_manifest_version: str = "1.2.0",
+    gate_5_review_contract_version: str | None = None,
 ) -> dict[str, str]:
     """从 workflow 派生不可手填的证据角色合同；完成态额外要求 Gate 0-5。"""
     if runtime_manifest_version == "1.1.0":
@@ -249,15 +276,23 @@ def evidence_required_artifacts_for_workflow(
     else:
         raise ValueError(f"runtime pack manifest_version 不支持：{runtime_manifest_version!r}")
     required = {role: filename for filename, role, _media_type in specs}
+    gate_5_v2 = gate_5_review_contract_version == GATE_5_REVIEW_V2_CONTRACT_VERSION
+    if gate_5_v2:
+        # 完成事件会引用最终 Evidence；Evidence 不能再哈希包含该事件的 transitions.jsonl，避免循环依赖。
+        required.pop("gate_5_review", None)
+        required.pop("transitions", None)
     if runtime_manifest_version == V21_RUNTIME_MANIFEST_VERSION:
         required.update({role: filename for filename, role, _media_type in V21_EVIDENCE_ARTIFACT_SPECS})
     if completed:
         if runtime_manifest_version == V21_RUNTIME_MANIFEST_VERSION:
             required.update({
                 "gate_0_diagnosis": "diagnosis.json",
-                "gate_5_review": "gate_5_review.json",
                 "gate_0_artifact_manifest": "gate_artifacts/gate_0.manifest.json",
             })
+            if gate_5_v2:
+                required["gate_5_review_history"] = GATE_5_REVIEW_HISTORY_FILENAME
+            else:
+                required["gate_5_review"] = "gate_5_review.json"
         else:
             required.update({role: filename for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS})
         required.update(
@@ -311,6 +346,11 @@ def build_run_evidence_manifest(
     artifact_specs = evidence_artifact_specs_for_workflow(workflow)
     if runtime_version == V21_RUNTIME_MANIFEST_VERSION:
         artifact_specs = artifact_specs + V21_EVIDENCE_ARTIFACT_SPECS
+    gate_5_v2 = run_manifest.get("gate_5_review_contract_version") == GATE_5_REVIEW_V2_CONTRACT_VERSION
+    if gate_5_v2:
+        artifact_specs = tuple(
+            spec for spec in artifact_specs if spec[0] not in {"gate_5_review.json", "transitions.jsonl"}
+        )
 
     artifacts: list[dict[str, Any]] = []
     formal_summary: dict[str, Any] | None = None
@@ -319,6 +359,9 @@ def build_run_evidence_manifest(
         if content_overrides and filename in content_overrides:
             content = content_overrides[filename]
         else:
+            if gate_5_v2 and not path.is_file():
+                # 未封存 Run 的可变 Evidence 允许不完整；最终封存仍由 required_artifacts 严格拒绝。
+                continue
             content = path.read_bytes()
         artifacts.append(
             {
@@ -358,6 +401,42 @@ def build_run_evidence_manifest(
                     "role": f"gate_{gate_name}_artifact_manifest",
                 }
             )
+    if gate_5_v2:
+        history_path = run_dir / GATE_5_REVIEW_HISTORY_FILENAME
+        if history_path.is_file():
+            history_content = history_path.read_bytes()
+            artifacts.append(
+                {
+                    "path": GATE_5_REVIEW_HISTORY_FILENAME,
+                    "sha256": sha256_bytes(history_content),
+                    "media_type": "application/jsonlines",
+                    "size_bytes": len(history_content),
+                    "role": "gate_5_review_history",
+                }
+            )
+        for review_path in sorted((run_dir / GATE_5_REVIEW_DIRECTORY).glob("*.json")):
+            content = review_path.read_bytes()
+            review_id = review_path.stem
+            artifacts.append(
+                {
+                    "path": review_path.relative_to(run_dir).as_posix(),
+                    "sha256": sha256_bytes(content),
+                    "media_type": "application/json",
+                    "size_bytes": len(content),
+                    "role": f"gate_5_review_record:{review_id}",
+                }
+            )
+    for filename, role, media_type in review_pipeline_evidence_artifacts(run_dir):
+        content = (run_dir / filename).read_bytes()
+        artifacts.append(
+            {
+                "path": filename,
+                "sha256": sha256_bytes(content),
+                "media_type": media_type,
+                "size_bytes": len(content),
+                "role": role,
+            }
+        )
     if workflow in {"full_replay", "new_problem"}:
         manifest = run_manifest
         if (
@@ -463,6 +542,15 @@ def build_run_evidence_manifest(
     if formal_summary is not None:
         evidence_manifest.update(formal_result_state_summary(formal_summary))
     return evidence_manifest
+
+
+def extend_review_pipeline_evidence_requirements(
+    run_dir: Path,
+    required_artifacts: dict[str, str],
+) -> None:
+    """将已写入的 Candidate 与 Reviewer 账本提升为封存时的必需证据。"""
+    for filename, role, _media_type in review_pipeline_evidence_artifacts(run_dir):
+        required_artifacts[role] = filename
 
 
 def repo_relative(path: Path) -> str:
@@ -664,10 +752,6 @@ def _initialize_common_gate_artifacts(
         ("model_validity_report.json", "model_validity_report"),
         ("paper_admission_report.json", "paper_admission_report"),
         ("paper_production_manifest.json", "paper_production_manifest"),
-        ("reviewer_a_round1.json", "reviewer_report"),
-        ("reviewer_b_round1.json", "reviewer_report"),
-        ("reviewer_a_round2.json", "reviewer_report"),
-        ("reviewer_b_round2.json", "reviewer_report"),
         ("score_v2.json", "score_v2"),
         ("matlab_level_a_report.json", "matlab_recomputation"),
         ("matlab_level_b_report.json", "matlab_recomputation"),
@@ -682,10 +766,22 @@ def _initialize_common_gate_artifacts(
             },
         )
     (run_dir / "gate_artifacts").mkdir()
-    write_json(
-        run_dir / "gate_5_review.json",
-        {"_note": "待 Gate 5 通过后填写；完成记录必须符合 schemas/gate_5_review.schema.json。"},
-    )
+    if v21_enabled:
+        (run_dir / GATE_5_REVIEW_DIRECTORY).mkdir(parents=True, exist_ok=True)
+        atomic_write_text(run_dir / GATE_5_REVIEW_HISTORY_FILENAME, "")
+        (run_dir / "reviews" / "reasonableness").mkdir(parents=True, exist_ok=True)
+        atomic_write_text(run_dir / "reasonableness_review_history.jsonl", "")
+        (run_dir / "reviews" / "technical").mkdir(parents=True, exist_ok=True)
+        atomic_write_text(run_dir / "technical_review_history.jsonl", "")
+        (run_dir / "reviews" / "paper_reader").mkdir(parents=True, exist_ok=True)
+        atomic_write_text(run_dir / "paper_reader_review_history.jsonl", "")
+        (run_dir / "paper_candidates").mkdir(parents=True, exist_ok=True)
+        atomic_write_text(run_dir / "paper_candidate_history.jsonl", "")
+    else:
+        write_json(
+            run_dir / "gate_5_review.json",
+            {"_note": "待 Gate 5 通过后填写；完成记录必须符合 schemas/gate_5_review.schema.json。"},
+        )
     write_json(
         run_dir / "request.json",
         {
@@ -801,17 +897,15 @@ def create_gate_run_core(
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
     initial_state = "initialized" if material_verification.ready else "blocked"
     mode = getattr(args, "mode", "standard")
-    confirmation_gates = {
-        "strict": [0, 1, 2, 3, 4, 5],
-        "standard": [0, 2, 5],
-        "emergency": [0, 5],
-    }[mode]
+    # 模型、代码和论文修订均由 AI/Agent 留下可审计证据；只有 Gate 5 是人工最终决策。
+    confirmation_gates = {"strict": [5], "standard": [5], "emergency": [5]}[mode]
     manifest_data: dict[str, Any] = {
         "manifest_version": "2.0.0",
         "run_id": run_id,
         "workflow": workflow,
         "mode": mode,
         "human_confirmation_gates": confirmation_gates,
+        "gate_execution_policy": GATE_EXECUTION_POLICY_AI_HUMAN_FINAL,
         "created_at": created_at,
         "problem_id": args.problem,
         "profile": profile,
@@ -840,7 +934,15 @@ def create_gate_run_core(
     }
     if v21_enabled:
         manifest_data.update(
-            {"gate_contract_version": V21_GATE_CONTRACT_VERSION, **benchmark_classification}
+            {
+                "gate_contract_version": V21_GATE_CONTRACT_VERSION,
+                "communication_contract_version": COMMUNICATION_CONTRACT_VERSION,
+                "reasonableness_contract_version": REASONABLENESS_CONTRACT_VERSION,
+                "gate_4_semantic_contract_version": GATE_4_SEMANTIC_CONTRACT_VERSION,
+                "gate_5_review_contract_version": GATE_5_REVIEW_V2_CONTRACT_VERSION,
+                "gate_5_policy_version": GATE_5_DEFAULT_POLICY,
+                **benchmark_classification,
+            }
         )
 
     write_json(run_dir / "run_manifest.json", manifest_data)
@@ -1050,10 +1152,6 @@ V21_GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
     4: (
         ("paper_claim_map.json", "paper_claim_map_v2", "schemas/paper_claim_map_v2.schema.json", "2.0.0"),
         ("paper_production_manifest.json", "paper_production_manifest", "schemas/paper_production_manifest.schema.json", "1.0.0"),
-        ("reviewer_a_round1.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
-        ("reviewer_b_round1.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
-        ("reviewer_a_round2.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
-        ("reviewer_b_round2.json", "reviewer_report", "schemas/reviewer_report.schema.json", "1.0.0"),
     ),
     5: (
         ("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),
@@ -1221,6 +1319,7 @@ def _replay_v2_transition_log(
     lifecycle_status = "active"
     superseded_by_run_id: str | None = None
     fork_transaction_id: str | None = None
+    revision_transaction_id: str | None = None
     for idx, entry in enumerate(entries[1:], start=2):
         if entry.get("transition_version") != TRANSITION_VERSION:
             raise ValueError(f"第 {idx} 条 Gate 记录 transition_version 不一致")
@@ -1251,6 +1350,20 @@ def _replay_v2_transition_log(
             continue
         if completed or lifecycle_status != "active":
             raise ValueError("completed 终态之后不得再追加转换记录")
+        if entry.get("state") == "revision_forked":
+            if entry.get("event_type") != "revision_forked" or current is None:
+                raise ValueError("revision_forked 事件非法")
+            scope = entry.get("revision_scope")
+            if scope not in {"diagnosis", "model_route", "formal_result"}:
+                raise ValueError("revision_forked 的 revision_scope 非法")
+            if not all(isinstance(entry.get(field), str) and str(entry[field]).strip() for field in ("child_run_id", "reviewer", "reason", "revision_transaction_id")):
+                raise ValueError("revision_forked 缺少子 Run、审核人或原因")
+            if entry.get("lifecycle_status") != "superseded":
+                raise ValueError("revision_forked 必须将父 Run 标为 superseded")
+            lifecycle_status = "superseded"
+            superseded_by_run_id = str(entry["child_run_id"])
+            revision_transaction_id = str(entry["revision_transaction_id"])
+            continue
         if entry.get("state") == "profile_forked":
             if entry.get("event_type") != "profile_forked":
                 raise ValueError("profile_forked 事件类型非法")
@@ -1302,6 +1415,13 @@ def _replay_v2_transition_log(
                 raise ValueError("completed 记录必须表达 completed_gate=5、next_gate=null")
             if decision != "approved":
                 raise ValueError("completed 记录必须为 approved")
+            if _is_gate_5_v2_run(run_dir):
+                _validate_v2_completed_entry(run_dir, entry)
+                completed_gates.append(5)
+                completed = True
+                completed_entry = entry
+                current = None
+                continue
             review_record = entry.get("review_record")
             review_sha = entry.get("review_record_sha256")
             if review_record != "gate_5_review.json":
@@ -1352,6 +1472,7 @@ def _replay_v2_transition_log(
         "lifecycle_status": lifecycle_status,
         "superseded_by_run_id": superseded_by_run_id,
         "fork_transaction_id": fork_transaction_id,
+        "revision_transaction_id": revision_transaction_id,
     }
 
 
@@ -1644,6 +1765,480 @@ def _load_current_run_binding(run_dir: Path) -> dict[str, str]:
     return {field: str(value) for field, value in binding.items()}
 
 
+def _is_gate_5_v2_run(run_dir: Path) -> bool:
+    """仅由 Run 初始化时冻结的版本字段启用 Gate 5 v2。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    return manifest.get("gate_5_review_contract_version") == GATE_5_REVIEW_V2_CONTRACT_VERSION
+
+
+def _gate_5_policy_for_run(run_dir: Path) -> str:
+    """读取冻结的 Gate 5 策略，拒绝运行中临时改变审核要求。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if manifest.get("gate_5_review_contract_version") != GATE_5_REVIEW_V2_CONTRACT_VERSION:
+        raise ValueError("当前 Run 未启用 Gate 5 Review v2")
+    policy = manifest.get("gate_5_policy_version")
+    if policy not in {
+        GATE_5_RECORDING_POLICY,
+        "technical_required_v1",
+        GATE_5_HUMAN_FINAL_TECHNICAL_POLICY,
+        "technical_and_reader_required_v1",
+    }:
+        raise ValueError(f"gate_5_policy_version 非法：{policy!r}")
+    return str(policy)
+
+
+def _validate_sha256_reference(run_dir: Path, reference: Mapping[str, Any], label: str) -> None:
+    """验证审核引用位于当前 Run 内且与声明哈希精确一致。"""
+    path_text = reference.get("path")
+    digest = reference.get("sha256")
+    if not isinstance(path_text, str) or not path_text or not isinstance(digest, str):
+        raise ValueError(f"{label} 必须包含 path 和 sha256")
+    if not re.fullmatch(r"[a-f0-9]{64}", digest):
+        raise ValueError(f"{label}.sha256 非法")
+    path = (run_dir / path_text).resolve()
+    if not path.is_relative_to(run_dir.resolve()) or not path.is_file():
+        raise ValueError(f"{label}.path 不存在或越出当前 Run")
+    if sha256_bytes(path.read_bytes()) != digest:
+        raise ValueError(f"{label}.sha256 与现场文件不一致")
+
+
+def _expected_fixed_gate4_candidate(run_dir: Path) -> tuple[str, str]:
+    """以现有 Gate 4 manifest 的完整文件哈希生成确定性过渡候选身份。"""
+    manifest_path = run_dir / "gate_artifacts" / "gate_4.manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError("fixed_gate4_v1 需要已存在的 gate_artifacts/gate_4.manifest.json")
+    digest = sha256_bytes(manifest_path.read_bytes())
+    return f"LEGACY-PC-{digest}", digest
+
+
+def _validate_gate_5_v2_review(run_dir: Path, review: dict[str, Any]) -> None:
+    """验证 v2 最终决策、候选绑定和 recording-only 策略语义。"""
+    _validate_json_schema(review, "schemas/gate_5_review_v2.schema.json", "gate_5_review_v2")
+    binding = _load_current_run_binding(run_dir)
+    for field, expected in binding.items():
+        if review.get(field) != expected:
+            raise ValueError(f"gate_5_review_v2.{field} 与当前运行现场不一致")
+    policy = _gate_5_policy_for_run(run_dir)
+    if review.get("policy_version") != policy:
+        raise ValueError("gate_5_review_v2.policy_version 与 Run 冻结策略不一致")
+    _parse_datetime(review.get("reviewed_at"), "gate_5_review_v2.reviewed_at")
+
+    binding_version = review.get("candidate_binding_version")
+    if binding_version == "fixed_gate4_v1":
+        expected_id, expected_sha = _expected_fixed_gate4_candidate(run_dir)
+        if review.get("candidate_id") != expected_id or review.get("candidate_manifest_sha256") != expected_sha:
+            raise ValueError("fixed_gate4_v1 的 candidate_id 或 candidate_manifest_sha256 与 Gate 4 manifest 不一致")
+    elif binding_version == "versioned_candidate_v2":
+        candidate = current_candidate(run_dir)
+        if review.get("candidate_id") != candidate["candidate_id"] or review.get("candidate_manifest_sha256") != candidate["candidate_manifest_sha256"]:
+            raise ValueError("versioned_candidate_v2 必须绑定当前 Candidate")
+    else:  # Schema 已限制，这里保留防御性错误文本。
+        raise ValueError("candidate_binding_version 非法")
+
+    checklist = review["checklist"]
+    failed_keys = [key for key in GATE_5_CHECKLIST_KEYS if checklist[key]["status"] == "failed"]
+    not_applicable = [key for key in GATE_5_CHECKLIST_KEYS if checklist[key]["status"] == "not_applicable"]
+    if policy == GATE_5_RECORDING_POLICY and not_applicable:
+        raise ValueError("recording_only_v1 的必填 checklist 不得使用 not_applicable")
+    blocking = [issue for issue in review["issues"] if issue["severity"] == "blocking"]
+    decision = review["decision"]
+    requested_scope = review["requested_revision_scope"]
+    if decision == "approved":
+        if failed_keys or not_applicable:
+            raise ValueError("approved 的全部 checklist 必须为 passed")
+        if blocking:
+            raise ValueError("approved 不得包含 blocking issue")
+        if review["required_actions"]:
+            raise ValueError("approved.required_actions 必须为空")
+        if requested_scope is not None:
+            raise ValueError("approved.requested_revision_scope 必须为 null")
+        restrictions = review["claim_restrictions"] + review["required_limitations"]
+        if restrictions:
+            # PR 2 只有 fixed_gate4_v1 过渡绑定，尚无可验证的候选版本与 Claim Map 闭合协议。
+            # 在 PR 5 交付该协议前，禁止以“带限制通过”绕过最终证据闭合。
+            raise ValueError("recording_only_v1 暂不允许 approved 携带未验证的限制")
+    elif decision == "needs_revision":
+        if not failed_keys and not blocking:
+            raise ValueError("needs_revision 至少需要 failed checklist 或 blocking issue")
+        if not review["required_actions"]:
+            raise ValueError("needs_revision 必须提供 required_actions")
+        if requested_scope not in {"paper_candidate", "model_route", "formal_result", "diagnosis"}:
+            raise ValueError("needs_revision.requested_revision_scope 非法")
+    elif decision == "rejected":
+        if not blocking:
+            raise ValueError("rejected 必须包含 blocking issue")
+        if requested_scope != "terminal_rejection":
+            raise ValueError("rejected.requested_revision_scope 必须为 terminal_rejection")
+    else:  # Schema 已限制，这里保留防御性错误文本。
+        raise ValueError("gate_5_review_v2.decision 非法")
+
+    for index, reference in enumerate(review["restriction_closure_refs"], start=1):
+        _validate_sha256_reference(run_dir, reference, f"restriction_closure_refs[{index}]")
+    for item in checklist.values():
+        for index, reference in enumerate(item["evidence_refs"], start=1):
+            _validate_sha256_reference(run_dir, reference, f"checklist.evidence_refs[{index}]")
+    supporting = review["supporting_reviews"]
+    for index, reference in enumerate(supporting, start=1):
+        _validate_sha256_reference(run_dir, reference, f"supporting_reviews[{index}]")
+    candidate = {"candidate_id": str(review["candidate_id"]), "candidate_manifest_sha256": str(review["candidate_manifest_sha256"])}
+    if decision == "approved" and policy in {"technical_required_v1", GATE_5_HUMAN_FINAL_TECHNICAL_POLICY}:
+        if len(supporting) != 1:
+            raise ValueError("技术审核策略必须且只能引用一个 Technical Review")
+        approved_supporting_review(run_dir, supporting[0], kind="technical", candidate=candidate)
+        if policy == GATE_5_HUMAN_FINAL_TECHNICAL_POLICY and review["reviewer"].get("type") != "human":
+            raise ValueError("human_final_technical_required_v1 的 approved Gate 5 必须由人工决策")
+    if decision == "approved" and policy == "technical_and_reader_required_v1":
+        if len(supporting) != 2:
+            raise ValueError("technical_and_reader_required_v1 必须引用 Technical Review 与 Paper Reader Review")
+        technical = [item for item in supporting if str(item.get("path", "")).startswith("reviews/technical/")]
+        reader = [item for item in supporting if str(item.get("path", "")).startswith("reviews/paper_reader/")]
+        if len(technical) != 1 or len(reader) != 1:
+            raise ValueError("Gate 5 supporting_reviews 角色不完整或重复")
+        approved_supporting_review(run_dir, technical[0], kind="technical", candidate=candidate)
+        approved_supporting_review(run_dir, reader[0], kind="paper_reader", candidate=candidate, require_enforced=True)
+
+
+def _reconcile_gate_5_review_history(run_dir: Path) -> tuple[list[dict[str, Any]], str | None]:
+    """恢复崩溃后已发布但尚未写入 history 的 Gate 5 审核文件。"""
+    return reconcile_orphan_reviews(
+        run_dir,
+        review_directory=GATE_5_REVIEW_DIRECTORY,
+        history_filename=GATE_5_REVIEW_HISTORY_FILENAME,
+        validate_review=lambda review: _validate_gate_5_v2_review(run_dir, review),
+    )
+
+
+def _load_gate_5_v2_review(run_dir: Path, review_id: str) -> tuple[dict[str, Any], str, str]:
+    """读取指定不可变 Gate 5 审核，返回内容、相对路径和文件哈希。"""
+    if not re.fullmatch(r"G5R-[A-Za-z0-9_-]{8,120}", review_id):
+        raise ValueError("approved_review_id 非法")
+    path = run_dir / GATE_5_REVIEW_DIRECTORY / f"{review_id}.json"
+    review = _load_json_object(path, f"Gate 5 Review {review_id}")
+    _validate_gate_5_v2_review(run_dir, review)
+    if review.get("review_id") != review_id:
+        raise ValueError("Gate 5 Review 文件名与 review_id 不一致")
+    raw = path.read_bytes()
+    return review, path.relative_to(run_dir).as_posix(), sha256_bytes(raw)
+
+
+def _rebuild_v2_gate_5_evidence(run_dir: Path) -> dict[str, Any]:
+    """重建未封存阶段的 v2 Evidence，确保失败审核也被保留。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    evidence = build_run_evidence_manifest(run_dir, str(manifest["run_id"]))
+    write_json(run_dir / "run_evidence_manifest.json", evidence)
+    return evidence
+
+
+def _current_approved_technical_review(
+    run_dir: Path, candidate: Mapping[str, str]
+) -> tuple[dict[str, Any], dict[str, str], str | None]:
+    """读取当前 Candidate 的最新 Technical Review，并拒绝旧候选或失败结论。"""
+    entries, history_head = verify_review_history(run_dir, "technical_review_history.jsonl")
+    if not entries:
+        raise ValueError("缺少 Technical Review，不能生成人工终审交接包")
+    entry = entries[-1]
+    if (
+        entry.get("candidate_id") != candidate["candidate_id"]
+        or entry.get("candidate_manifest_sha256")
+        != candidate["candidate_manifest_sha256"]
+    ):
+        raise ValueError("最新 Technical Review 未绑定当前 Candidate，不能交接人工终审")
+    path_text = str(entry["path"])
+    review_path = run_dir / path_text
+    review = _load_json_object(review_path, "最新 Technical Review")
+    _validate_json_schema(review, "schemas/technical_review.schema.json", "最新 Technical Review")
+    if review.get("review_id") != entry.get("review_id"):
+        raise ValueError("最新 Technical Review 的 review_id 与不可变 history 不一致")
+    if review.get("decision") != entry.get("decision"):
+        raise ValueError("最新 Technical Review 的 decision 与不可变 history 不一致")
+    if review.get("decision") != "approved":
+        raise ValueError("最新 Technical Review 未通过，不能交接人工终审")
+    reference = {
+        "review_id": str(entry["review_id"]),
+        "path": path_text,
+        "sha256": str(entry["sha256"]),
+        "decision": "approved",
+        "candidate_id": candidate["candidate_id"],
+        "candidate_manifest_sha256": candidate["candidate_manifest_sha256"],
+    }
+    approved_supporting_review(run_dir, reference, kind="technical", candidate=candidate)
+    return review, reference, history_head
+
+
+def _render_human_final_review_dossier(
+    run_binding: Mapping[str, str],
+    candidate_manifest: Mapping[str, Any],
+    candidate_manifest_ref: Mapping[str, str],
+    technical_review: Mapping[str, Any],
+    technical_reference: Mapping[str, str],
+    technical_history_head: str | None,
+) -> str:
+    """生成只读交接摘要；它明确不代表任何人工最终结论。"""
+    source_files = candidate_manifest.get("source_files", [])
+    source_lines = "\n".join(
+        f"- `{item['path']}`：`{item['sha256']}`"
+        for item in source_files
+    ) or "- 当前 Candidate 未登记源文件。"
+    return (
+        "# 人工 Gate 5 终审交接包\n\n"
+        "本文件仅用于人工读取和核验，不是 Gate 5 决策，也不表示任何人已经批准。\n\n"
+        "## 当前运行\n\n"
+        f"- Run：`{run_binding['run_id']}`\n"
+        f"- 题目：`{run_binding['problem_id']}`\n"
+        f"- Profile：`{run_binding['profile']}`\n"
+        f"- Runtime：`{run_binding['runtime_version']}`\n"
+        f"- Runtime Pack SHA-256：`{run_binding['runtime_pack_sha256']}`\n\n"
+        "## 不可变 Candidate\n\n"
+        f"- Candidate：`{candidate_manifest_ref['candidate_id']}`\n"
+        f"- Manifest：`{candidate_manifest_ref['path']}`\n"
+        f"- Manifest SHA-256：`{candidate_manifest_ref['sha256']}`\n"
+        f"- 产生原因：{candidate_manifest.get('reason', '未记录')}\n"
+        f"- 父 Candidate：`{candidate_manifest.get('parent_candidate_id') or '无'}`\n\n"
+        "Candidate 源文件：\n\n"
+        f"{source_lines}\n\n"
+        "## 已通过的 Technical Review\n\n"
+        f"- Review：`{technical_reference['review_id']}`\n"
+        f"- 文件：`{technical_reference['path']}`\n"
+        f"- 文件 SHA-256：`{technical_reference['sha256']}`\n"
+        f"- 审核者类型：`{technical_review['reviewer']['type']}`\n"
+        f"- 审核者标识：`{technical_review['reviewer']['identity']}`\n"
+        f"- 审核时间：`{technical_review['reviewed_at']}`\n"
+        f"- Technical Review history 链头：`{technical_history_head or '空'}`\n\n"
+        "## 人工操作\n\n"
+        "人工应独立核对上述 Candidate、技术审核及其证据后，再填写同目录的 "
+        "`gate_5_review.human-input.template.json`。模板刻意不符合 Gate 5 Schema，"
+        "不能直接提交；删除模板提示并填写真实身份、时间、结论、检查项和证据后，"
+        "再使用 `record-gate5-review` 保存最终决策。\n\n"
+        "若结论为 `needs_revision`，Agent 必须产生新 Candidate，并重新进行 AI/Technical Review，"
+        "不得继续使用本交接包批准旧 Candidate。\n"
+    )
+
+
+def _human_final_review_template(
+    run_binding: Mapping[str, str], candidate: Mapping[str, str], technical_reference: Mapping[str, str]
+) -> dict[str, Any]:
+    """生成不可直接提交的人工输入模板，固定不可变 Candidate 与 Technical Review 引用。"""
+    checklist = {
+        key: {
+            "status": "__REQUIRED_passed_or_failed__",
+            "reason": "__REQUIRED_human_rationale__",
+            "evidence_refs": [],
+        }
+        for key in GATE_5_CHECKLIST_KEYS
+    }
+    return {
+        "_template_notice": (
+            "此文件不是 Gate 5 审核记录，不能直接提交。删除本字段并填写所有 __REQUIRED__ "
+            "占位符后，方可交给 record-gate5-review。"
+        ),
+        "schema_version": GATE_5_REVIEW_V2_CONTRACT_VERSION,
+        "artifact_type": "gate_5_review",
+        "review_id": "__REQUIRED_HUMAN_REVIEW_ID__",
+        "review_type": "final_decision",
+        "policy_version": GATE_5_HUMAN_FINAL_TECHNICAL_POLICY,
+        "attempt": 0,
+        **dict(run_binding),
+        **dict(candidate),
+        "candidate_binding_version": "versioned_candidate_v2",
+        "reviewer": {
+            "type": "human",
+            "identity": "__REQUIRED_HUMAN_IDENTITY__",
+            "session_id": "__OPTIONAL_HUMAN_SESSION_ID_OR_NULL__",
+        },
+        "reviewed_at": "__REQUIRED_RFC3339_TIMESTAMP__",
+        "decision": "__REQUIRED_approved_needs_revision_or_rejected__",
+        "reason": "__REQUIRED_HUMAN_FINAL_RATIONALE__",
+        "checklist": checklist,
+        "issues": [],
+        "required_actions": [],
+        "claim_restrictions": [],
+        "required_limitations": [],
+        "restriction_closure_refs": [],
+        "requested_revision_scope": "__REQUIRED_NULL_OR_REVISION_SCOPE__",
+        "supporting_reviews": [dict(technical_reference)],
+    }
+
+
+def prepare_human_final_review_handoff(run_dir: Path) -> dict[str, Any]:
+    """生成绑定当前 Candidate 的人工 Gate 5 交接包，不写入审批或状态转换。"""
+    with acquire_run_write_lock(run_dir):
+        policy = _gate_5_policy_for_run(run_dir)
+        if policy != GATE_5_HUMAN_FINAL_TECHNICAL_POLICY:
+            raise ValueError(
+                "prepare-human-final-review-handoff 仅支持 human_final_technical_required_v1"
+            )
+        run_binding = _load_current_run_binding(run_dir)
+        candidate = current_candidate(run_dir)
+        candidate_manifest_path = (
+            run_dir / "paper_candidates" / candidate["candidate_id"] / "paper_candidate_manifest.json"
+        )
+        candidate_manifest = _load_json_object(candidate_manifest_path, "当前 Candidate Manifest")
+        _validate_json_schema(
+            candidate_manifest, "schemas/paper_candidate_manifest.schema.json", "当前 Candidate Manifest"
+        )
+        candidate_manifest_ref = {
+            "candidate_id": candidate["candidate_id"],
+            "path": candidate_manifest_path.relative_to(run_dir).as_posix(),
+            "sha256": candidate["candidate_manifest_sha256"],
+        }
+        if sha256_bytes(candidate_manifest_path.read_bytes()) != candidate_manifest_ref["sha256"]:
+            raise ValueError("当前 Candidate Manifest 的哈希与 current_paper_candidate 不一致")
+        technical_review, technical_reference, technical_history_head = _current_approved_technical_review(
+            run_dir, candidate
+        )
+        handoff_digest = sha256_bytes(
+            (
+                f"{candidate['candidate_id']}:{candidate['candidate_manifest_sha256']}:"
+                f"{technical_reference['review_id']}:{technical_reference['sha256']}"
+            ).encode("utf-8")
+        )
+        handoff_dir = run_dir / HUMAN_FINAL_REVIEW_HANDOFF_DIRECTORY / f"HFR-{handoff_digest[:16]}"
+        relative_handoff_dir = handoff_dir.relative_to(run_dir).as_posix()
+        template_name = "gate_5_review.human-input.template.json"
+        dossier_name = "human_final_review_dossier.md"
+        manifest_name = "handoff_manifest.json"
+
+        expected_binding = {
+            "handoff_contract_version": HUMAN_FINAL_REVIEW_HANDOFF_VERSION,
+            "run_id": run_binding["run_id"],
+            "candidate": candidate_manifest_ref,
+            "technical_review": technical_reference,
+            "technical_review_history_head_sha256": technical_history_head,
+            "status": "pending_human_final_decision",
+        }
+        if handoff_dir.exists():
+            manifest = _load_json_object(handoff_dir / manifest_name, "既有人工终审交接包")
+            for field, expected in expected_binding.items():
+                if manifest.get(field) != expected:
+                    raise ValueError("既有人工终审交接包与当前 Candidate 或 Technical Review 绑定不一致")
+            outputs = manifest.get("outputs")
+            if not isinstance(outputs, Mapping):
+                raise ValueError("既有人工终审交接包缺少 outputs")
+            for filename in (dossier_name, template_name):
+                path = handoff_dir / filename
+                if not path.is_file() or outputs.get(filename) != sha256_bytes(path.read_bytes()):
+                    raise ValueError("既有人工终审交接包文件缺失或哈希不一致")
+            return {
+                "handoff_dir": relative_handoff_dir,
+                "dossier": f"{relative_handoff_dir}/{dossier_name}",
+                "template": f"{relative_handoff_dir}/{template_name}",
+                "manifest": f"{relative_handoff_dir}/{manifest_name}",
+                "reused": True,
+            }
+
+        template = _human_final_review_template(run_binding, candidate, technical_reference)
+        dossier = _render_human_final_review_dossier(
+            run_binding,
+            candidate_manifest,
+            candidate_manifest_ref,
+            technical_review,
+            technical_reference,
+            technical_history_head,
+        )
+        staging_dir = handoff_dir.parent / f".{handoff_dir.name}.{secrets.token_hex(8)}.staging"
+        try:
+            staging_dir.mkdir(parents=True, exist_ok=False)
+            dossier_path = staging_dir / dossier_name
+            template_path = staging_dir / template_name
+            atomic_write_text(dossier_path, dossier)
+            write_json(template_path, template)
+            manifest = {
+                **expected_binding,
+                "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "outputs": {
+                    dossier_name: sha256_bytes(dossier_path.read_bytes()),
+                    template_name: sha256_bytes(template_path.read_bytes()),
+                },
+            }
+            write_json(staging_dir / manifest_name, manifest)
+            staging_dir.replace(handoff_dir)
+        except Exception:
+            if staging_dir.exists():
+                shutil.rmtree(staging_dir)
+            raise
+        return {
+            "handoff_dir": relative_handoff_dir,
+            "dossier": f"{relative_handoff_dir}/{dossier_name}",
+            "template": f"{relative_handoff_dir}/{template_name}",
+            "manifest": f"{relative_handoff_dir}/{manifest_name}",
+            "reused": False,
+        }
+
+
+def record_gate_5_review(run_dir: Path, review: Mapping[str, Any]) -> dict[str, Any]:
+    """保存 Gate 5 最终决策；失败审核只入账，不推进 Gate 或完成 Run。"""
+    if not _is_gate_5_v2_run(run_dir):
+        raise ValueError("历史 v1 Run 不支持 record_gate_5_review；请继续使用 gate_5_review.json")
+    with acquire_run_write_lock(run_dir):
+        state = replay_transition_log(run_dir)
+        _assert_run_can_progress(run_dir, state)
+        if state["completed"] or state["current_gate"] != 5:
+            raise ValueError("只有处于 Gate 5 的未完成 Run 可以记录最终审核")
+        if (run_dir / "gate_5_completion_journal.json").is_file():
+            raise ValueError("Gate 5 完成事务进行中，禁止新增审核记录")
+        result = append_immutable_review(
+            run_dir,
+            review,
+            review_directory=GATE_5_REVIEW_DIRECTORY,
+            history_filename=GATE_5_REVIEW_HISTORY_FILENAME,
+            validate_review=lambda value: _validate_gate_5_v2_review(run_dir, value),
+        )
+        _rebuild_v2_gate_5_evidence(run_dir)
+        return result
+
+
+def _validate_v2_gate_5_evidence(run_dir: Path, evidence: Mapping[str, Any]) -> None:
+    """确认 Evidence 完整保留 history 及每一份不可变 Gate 5 审核。"""
+    entries, history_head = verify_review_history(run_dir, GATE_5_REVIEW_HISTORY_FILENAME)
+    artifacts = evidence.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("run_evidence_manifest.artifacts 必须是数组")
+    by_role = {item.get("role"): item for item in artifacts if isinstance(item, dict)}
+    history_artifact = by_role.get("gate_5_review_history")
+    history_path = run_dir / GATE_5_REVIEW_HISTORY_FILENAME
+    if not isinstance(history_artifact, dict) or history_artifact.get("sha256") != sha256_bytes(history_path.read_bytes()):
+        raise ValueError("Evidence 未精确绑定 gate_5_review_history.jsonl")
+    for entry in entries:
+        review_id = str(entry["review_id"])
+        role = f"gate_5_review_record:{review_id}"
+        artifact = by_role.get(role)
+        if not isinstance(artifact, dict):
+            raise ValueError(f"Evidence 缺少 Gate 5 Review：{review_id}")
+        if artifact.get("path") != entry["path"] or artifact.get("sha256") != entry["sha256"]:
+            raise ValueError(f"Evidence 对 Gate 5 Review {review_id} 的绑定不一致")
+    if history_head is None and entries:
+        raise ValueError("Gate 5 history 链头缺失")
+
+
+def _validate_v2_completed_entry(run_dir: Path, entry: Mapping[str, Any]) -> None:
+    """重放 completed 事件时重验最终 Review、history、Evidence 和 Gate 5 清单。"""
+    review_id = entry.get("approved_review_id")
+    if not isinstance(review_id, str):
+        raise ValueError("completed 记录缺少 approved_review_id")
+    review, relative, review_sha = _load_gate_5_v2_review(run_dir, review_id)
+    if review["decision"] != "approved":
+        raise ValueError("completed 记录绑定的 Gate 5 Review 必须为 approved")
+    if entry.get("review_record") != relative or entry.get("review_record_sha256") != review_sha:
+        raise ValueError("completed 记录绑定的 Gate 5 Review 路径或 SHA-256 不匹配")
+    if entry.get("reviewer") != review["reviewer"]["identity"]:
+        raise ValueError("completed 记录 reviewer 与 Gate 5 Review 不一致")
+    history_entries, history_head = verify_review_history(run_dir, GATE_5_REVIEW_HISTORY_FILENAME)
+    history_path = run_dir / GATE_5_REVIEW_HISTORY_FILENAME
+    if entry.get("review_history_sha256") != sha256_bytes(history_path.read_bytes()):
+        raise ValueError("completed 记录绑定的 Gate 5 history SHA-256 不匹配")
+    if entry.get("review_history_head_sha256") != history_head:
+        raise ValueError("completed 记录绑定的 Gate 5 history 链头不匹配")
+    if not any(item.get("review_id") == review_id and item.get("sha256") == review_sha for item in history_entries):
+        raise ValueError("completed 记录绑定的 Gate 5 Review 未进入 history")
+    evidence_path = run_dir / "run_evidence_manifest.json"
+    evidence_sha = sha256_bytes(evidence_path.read_bytes())
+    if entry.get("evidence_manifest_sha256") != evidence_sha:
+        raise ValueError("completed 记录绑定的 Evidence Manifest SHA-256 不匹配")
+    evidence = _load_json_object(evidence_path, "run_evidence_manifest.json")
+    _validate_v2_gate_5_evidence(run_dir, evidence)
+    verify_gate_artifacts(run_dir, 5)
+
+
 def _validate_runtime_context_binding(
     run_manifest: Mapping[str, Any], runtime_manifest: Mapping[str, Any]
 ) -> None:
@@ -1754,6 +2349,21 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
             if seal.get(field) != expected:
                 raise ValueError(f"seal_record.{field} 与当前 Formal Result 不一致")
 
+    if _is_gate_5_v2_run(run_dir):
+        state = replay_transition_log(run_dir)
+        completed_entry = state.get("completed_entry") or {}
+        expected_gate_5 = {
+            "gate_5_review_contract_version": GATE_5_REVIEW_V2_CONTRACT_VERSION,
+            "gate_5_policy_version": run_manifest.get("gate_5_policy_version"),
+            "approved_review_id": completed_entry.get("approved_review_id"),
+            "approved_review_sha256": completed_entry.get("review_record_sha256"),
+            "gate_5_review_history_sha256": completed_entry.get("review_history_sha256"),
+            "gate_5_review_history_head_sha256": completed_entry.get("review_history_head_sha256"),
+        }
+        for field, expected in expected_gate_5.items():
+            if seal.get(field) != expected:
+                raise ValueError(f"seal_record.{field} 与 Gate 5 v2 完成记录不一致")
+
     sealed_files = {
         "run_manifest_sha256": run_dir / "run_manifest.json",
         "transitions_sha256": run_dir / "transitions.jsonl",
@@ -1831,31 +2441,49 @@ def build_gate_artifact_manifest(
     gate: int,
     *,
     completed_at: str | None = None,
+    approved_review_id: str | None = None,
 ) -> dict[str, Any]:
     """从已完成业务产物构建单 Gate 身份与哈希清单。"""
     if gate not in GATE_ARTIFACT_SPECS:
         raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
     binding = _load_current_run_binding(run_dir)
     artifacts: list[dict[str, Any]] = []
-    for filename, role, schema_relative, schema_version in _gate_artifact_specs_for_run(run_dir, gate):
-        raw = _validate_gate_business_artifact(
-            run_dir,
-            filename,
-            role,
-            schema_relative,
-            schema_version,
-            binding,
-        )
+    if gate == 5 and _is_gate_5_v2_run(run_dir):
+        if approved_review_id is None:
+            raise ValueError("Gate 5 Review v2 清单必须显式指定 approved_review_id")
+        review, relative, review_sha = _load_gate_5_v2_review(run_dir, approved_review_id)
+        if review["decision"] != "approved":
+            raise ValueError("Gate 5 Artifact Manifest 只能绑定 approved Review")
         artifacts.append(
             {
-                "path": filename,
-                "role": role,
-                "schema": schema_relative,
-                "schema_version": schema_version,
-                "sha256": sha256_bytes(raw),
-                "size_bytes": len(raw),
+                "path": relative,
+                "role": "gate_5_review",
+                "schema": "schemas/gate_5_review_v2.schema.json",
+                "schema_version": GATE_5_REVIEW_V2_CONTRACT_VERSION,
+                "sha256": review_sha,
+                "size_bytes": len((run_dir / relative).read_bytes()),
             }
         )
+    else:
+        for filename, role, schema_relative, schema_version in _gate_artifact_specs_for_run(run_dir, gate):
+            raw = _validate_gate_business_artifact(
+                run_dir,
+                filename,
+                role,
+                schema_relative,
+                schema_version,
+                binding,
+            )
+            artifacts.append(
+                {
+                    "path": filename,
+                    "role": role,
+                    "schema": schema_relative,
+                    "schema_version": schema_version,
+                    "sha256": sha256_bytes(raw),
+                    "size_bytes": len(raw),
+                }
+            )
     manifest: dict[str, Any] = {
         "manifest_version": "1.0.0",
         "gate": gate,
@@ -1876,7 +2504,9 @@ def build_gate_artifact_manifest(
                 "envelope_semantic_sha256": summary["envelope_semantic_sha256"],
                 **formal_result_state_summary(summary),
             }
-    elif gate == 3:
+    if gate == 3 and run_manifest.get("reasonableness_contract_version") == REASONABLENESS_CONTRACT_VERSION:
+        manifest["reasonableness_review"] = require_approved_reasonableness_review(run_dir)
+    if gate == 3 and _formal_result_policy(run_manifest) != FORMAL_RESULT_POLICY_REQUIRED:
         # 历史 Runtime 1.1/1.2 的 Gate 3 清单保留旧字段，明确表示没有 Formal Result 资格。
         manifest["formal_result"] = {
             "formal_result_id": "legacy-unavailable",
@@ -1898,9 +2528,15 @@ def write_gate_artifact_manifest(
     gate: int,
     *,
     completed_at: str | None = None,
+    approved_review_id: str | None = None,
 ) -> Path:
     """校验业务内容后写入 gate_artifacts/gate_N.manifest.json。"""
-    manifest = build_gate_artifact_manifest(run_dir, gate, completed_at=completed_at)
+    manifest = build_gate_artifact_manifest(
+        run_dir,
+        gate,
+        completed_at=completed_at,
+        approved_review_id=approved_review_id,
+    )
     manifest_path = run_dir / "gate_artifacts" / f"gate_{gate}.manifest.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     write_json(manifest_path, manifest)
@@ -1930,6 +2566,34 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
             if manifest.get(field) != expected or run_manifest.get(field) != expected:
                 raise ValueError(f"gate_{gate}.manifest.json.{field} 未绑定 required_v1 不可变身份")
+
+    if gate == 5 and _is_gate_5_v2_run(run_dir):
+        entries = manifest.get("artifacts", [])
+        if not isinstance(entries, list) or len(entries) != 1 or not isinstance(entries[0], dict):
+            raise ValueError("Gate 5 Review v2 Manifest 必须且只能包含一个最终审核记录")
+        entry = entries[0]
+        path_text = entry.get("path")
+        if not isinstance(path_text, str) or not path_text.startswith(f"{GATE_5_REVIEW_DIRECTORY}/"):
+            raise ValueError("Gate 5 Review v2 Manifest 必须绑定 reviews/gate5 下的不可变记录")
+        review_id = Path(path_text).stem
+        review, relative, review_sha = _load_gate_5_v2_review(run_dir, review_id)
+        if review["decision"] != "approved":
+            raise ValueError("Gate 5 Review v2 Manifest 不得绑定非 approved 审核")
+        expected_metadata = {
+            "path": relative,
+            "role": "gate_5_review",
+            "schema": "schemas/gate_5_review_v2.schema.json",
+            "schema_version": GATE_5_REVIEW_V2_CONTRACT_VERSION,
+            "sha256": review_sha,
+            "size_bytes": len((run_dir / relative).read_bytes()),
+        }
+        for field, expected in expected_metadata.items():
+            if entry.get(field) != expected:
+                raise ValueError(f"Gate 5 Review v2 Manifest 的 {field} 不匹配")
+        history_entries, _history_head = verify_review_history(run_dir, GATE_5_REVIEW_HISTORY_FILENAME)
+        if not any(item.get("review_id") == review_id and item.get("sha256") == review_sha for item in history_entries):
+            raise ValueError("Gate 5 Review v2 Manifest 引用的审核未进入 history")
+        return manifest
 
     expected_specs = _gate_artifact_specs_for_run(run_dir, gate)
     expected_paths = {spec[0] for spec in expected_specs}
@@ -1970,6 +2634,25 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         contract_errors = validate_model_validity_contract(contract)
         if contract_errors:
             raise ValueError("Gate 1 模型有效性合同失败：" + "；".join(contract_errors))
+    if run_manifest.get("communication_contract_version") == COMMUNICATION_CONTRACT_VERSION and gate in {0, 1, 2}:
+        communication_path = {
+            0: "diagnosis.json",
+            1: "model_route_v2_1.json" if _is_v21_run(run_dir) else "model_route.json",
+            2: "code_plan.json",
+        }[gate]
+        communication_artifact = _load_json_object(run_dir / communication_path, communication_path)
+        diagnosis_path = run_dir / "diagnosis.json"
+        diagnosis = _load_json_object(diagnosis_path, "diagnosis.json")
+        communication_errors = validate_gate_communication(
+            gate,
+            communication_artifact,
+            diagnosis_sha256=sha256_bytes(diagnosis_path.read_bytes()),
+            proposed_result_role=diagnosis.get("proposed_result_role"),
+        )
+        if communication_errors:
+            raise ValueError("Gate 沟通合同失败：" + "；".join(communication_errors))
+        if gate == 1 and communication_artifact["result_role_binding"]["confirmation"] == "revision_required":
+            raise ValueError("Gate 1 要求修订结果角色；必须 fork-revision，不能以 approved 推进当前 Run")
     if gate == 3:
         if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
             summary = _verify_required_formal_result(run_dir)
@@ -2070,6 +2753,10 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             for field in ("implementation_correctness", "model_validity", "competition_value", "blocking_findings", "admission_status", "technical_report_allowed", "submission_paper_allowed"):
                 if admission.get(field) != expected_admission.get(field):
                     raise ValueError(f"paper_admission_report.{field} 不是由 Gate 3 工件重新计算的结果")
+        if run_manifest.get("reasonableness_contract_version") == REASONABLENESS_CONTRACT_VERSION:
+            expected_reasonableness = require_approved_reasonableness_review(run_dir)
+            if manifest.get("reasonableness_review") != expected_reasonableness:
+                raise ValueError("Gate 3 Manifest 未精确绑定当前 approved Reasonableness Review")
     if gate == 2 and _is_v21_run(run_dir):
         independence = _load_json_object(run_dir / "validator_independence_manifest.json", "validator_independence_manifest.json")
         independence_errors = validate_validator_independence(independence)
@@ -2105,20 +2792,8 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             production_errors = validate_paper_production_manifest(production, run_dir=run_dir, admission=admission)
             if production_errors:
                 raise ValueError("论文生产清单检查失败：" + "；".join(production_errors))
-            reviewers = [
-                _load_json_object(run_dir / name, name)
-                for name in ("reviewer_a_round1.json", "reviewer_b_round1.json", "reviewer_a_round2.json", "reviewer_b_round2.json")
-            ]
-            for reviewer in reviewers:
-                reviewer_errors = validate_reviewer_report(reviewer)
-                if reviewer_errors:
-                    raise ValueError("审稿报告合同失败：" + "；".join(reviewer_errors))
-            for left, right in ((reviewers[0], reviewers[1]), (reviewers[2], reviewers[3])):
-                pair_errors = validate_reviewer_pair(left, right, run_dir=run_dir)
-                if pair_errors:
-                    raise ValueError("Reviewer 隔离检查失败：" + "；".join(pair_errors))
-            if any(item.get("review_round") != 1 for item in reviewers[:2]) or any(item.get("review_round") != 2 for item in reviewers[2:]):
-                raise ValueError("Reviewer 报告轮次不符合两轮协议")
+            # Gate 4 只要求当前 Candidate 已通过 AI Technical Review；最终决定由 Gate 5 人工完成。
+            _current_approved_technical_review(run_dir, current_candidate(run_dir))
     if gate == 5 and _is_v21_run(run_dir):
         score = _load_json_object(run_dir / "score_v2.json", "score_v2.json")
         _validate_json_schema(score, "schemas/score_v2.schema.json", "score_v2.json")
@@ -2182,8 +2857,8 @@ def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict
     return review, sha256_bytes(raw)
 
 
-def mark_run_completed(run_dir: Path, reviewer: str) -> None:
-    """将运行标记为 completed 终态（必须已严格到达 Gate 5 且审核记录获批）。"""
+def _mark_run_completed_v1(run_dir: Path, reviewer: str) -> None:
+    """保留历史 Gate 5 v1 的完成逻辑，确保已封存 Run 可继续重放。"""
     _assert_formal_result_mutable(run_dir)
     state = replay_transition_log(run_dir)
     _assert_run_can_progress(run_dir, state)
@@ -2241,6 +2916,121 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
             run_manifest["run_status"] = "completed"
             run_manifest.setdefault("integrity_status", "unsealed")
             write_json(manifest_path, run_manifest)
+
+
+def _write_gate_5_completion_journal(run_dir: Path, payload: Mapping[str, Any]) -> None:
+    """持久化 v2 完成事务进度，使中断后的同一 review_id 可幂等恢复。"""
+    journal = dict(payload)
+    journal["journal_version"] = "1.0.0"
+    journal["updated_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    write_json(run_dir / "gate_5_completion_journal.json", journal)
+
+
+def _mark_run_completed_v2(
+    run_dir: Path,
+    *,
+    approved_review_id: str,
+    reviewer: str | None,
+) -> None:
+    """以不可变 approved Review 完成并封存 v2 Run，支持事务边界中断恢复。"""
+    _assert_formal_result_mutable(run_dir)
+    with acquire_run_write_lock(run_dir):
+        state = replay_transition_log(run_dir)
+        if state["completed"]:
+            completed_entry = state.get("completed_entry") or {}
+            if completed_entry.get("approved_review_id") != approved_review_id:
+                raise ValueError("Run 已由不同的 approved_review_id 完成")
+        else:
+            _assert_run_can_progress(run_dir, state)
+            if state["max_gate"] < 5 or state["current_gate"] != 5:
+                raise ValueError("只有位于 Gate 5 的完整 Run 可以完成")
+            self_review, review_path, review_sha = _load_gate_5_v2_review(run_dir, approved_review_id)
+            if self_review["decision"] != "approved":
+                raise ValueError("mark_run_completed 只接受 approved_review_id")
+            reviewer_identity = str(self_review["reviewer"]["identity"])
+            if reviewer is not None and str(reviewer).strip() != reviewer_identity:
+                raise ValueError("传入 reviewer 必须与 approved Gate 5 Review 的 reviewer.identity 一致")
+            _reconcile_gate_5_review_history(run_dir)
+            history_entries, history_head = verify_review_history(run_dir, GATE_5_REVIEW_HISTORY_FILENAME)
+            if not any(item.get("review_id") == approved_review_id and item.get("sha256") == review_sha for item in history_entries):
+                raise ValueError("approved Gate 5 Review 未进入 history")
+            journal_path = run_dir / "gate_5_completion_journal.json"
+            if journal_path.is_file():
+                journal = _load_json_object(journal_path, "gate_5_completion_journal.json")
+                if journal.get("approved_review_id") != approved_review_id:
+                    raise ValueError("已有 Gate 5 完成事务绑定了不同的 approved_review_id")
+            else:
+                journal = {"approved_review_id": approved_review_id, "status": "prepared"}
+                _write_gate_5_completion_journal(run_dir, journal)
+
+            # 先重验 Gate 0-4；Gate 5 清单在此处才绑定最终不可变审核。
+            for gate in range(5):
+                verify_gate_artifacts(run_dir, gate)
+            write_gate_artifact_manifest(run_dir, 5, approved_review_id=approved_review_id)
+            journal["status"] = "gate_5_manifest_written"
+            _write_gate_5_completion_journal(run_dir, journal)
+
+            evidence = _rebuild_v2_gate_5_evidence(run_dir)
+            _validate_v2_gate_5_evidence(run_dir, evidence)
+            evidence_sha = sha256_bytes((run_dir / "run_evidence_manifest.json").read_bytes())
+            history_sha = sha256_bytes((run_dir / GATE_5_REVIEW_HISTORY_FILENAME).read_bytes())
+            journal.update({"status": "evidence_written", "evidence_manifest_sha256": evidence_sha})
+            _write_gate_5_completion_journal(run_dir, journal)
+
+            entry = {
+                "transition_version": TRANSITION_VERSION,
+                "completed_gate": 5,
+                "next_gate": None,
+                "state": "completed",
+                "reviewer": reviewer_identity,
+                "decision": "approved",
+                "approved_review_id": approved_review_id,
+                "review_record": review_path,
+                "review_record_sha256": review_sha,
+                "review_history_sha256": history_sha,
+                "review_history_head_sha256": history_head,
+                "evidence_manifest_sha256": evidence_sha,
+                "reviewed_at": self_review["reviewed_at"],
+                "note": "Gate 5 v2 最终审核、Evidence 与不可变 history 均已通过。",
+            }
+            _append_transition_event(run_dir / "transitions.jsonl", entry)
+            journal["status"] = "completed_transition_written"
+            _write_gate_5_completion_journal(run_dir, journal)
+
+    # Evidence 在 v2 中不再哈希 completed event，避免 Evidence SHA 与 event SHA 的循环依赖；
+    # Seal 仍绑定最终 transitions 文件，从而封存完整状态机。
+    seal_path = run_dir / "seal_record.json"
+    if not seal_path.is_file():
+        from finalize_run_evidence import finalize_run_evidence
+
+        finalize_run_evidence(run_dir)
+    with acquire_run_write_lock(run_dir):
+        journal = _load_json_object(run_dir / "gate_5_completion_journal.json", "gate_5_completion_journal.json")
+        journal["status"] = "sealed"
+        _write_gate_5_completion_journal(run_dir, journal)
+
+
+def mark_run_completed(
+    run_dir: Path,
+    reviewer: str | None = None,
+    *,
+    approved_review_id: str | None = None,
+) -> None:
+    """完成 Run；v2 必须显式指定 approved_review_id，v1 保持原调用兼容。"""
+    if _is_gate_5_v2_run(run_dir):
+        if approved_review_id is None:
+            raise ValueError("Gate 5 Review v2 必须显式提供 approved_review_id")
+        _mark_run_completed_v2(
+            run_dir,
+            approved_review_id=approved_review_id,
+            reviewer=reviewer,
+        )
+        return
+    if approved_review_id is not None:
+        raise ValueError("历史 Gate 5 v1 不接受 approved_review_id")
+    if reviewer is None:
+        raise ValueError("历史 Gate 5 v1 必须提供 reviewer")
+    _mark_run_completed_v1(run_dir, reviewer)
 
 
 def create_prompt_regression_run(args: argparse.Namespace) -> Path:
@@ -2620,6 +3410,35 @@ def _fork_lineage_errors(run_dir: Path, state: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     run_root = run_dir.parent
     if state.get("lifecycle_status") == "superseded":
+        entries = _read_transition_entries(run_dir / "transitions.jsonl")
+        latest = entries[-1] if entries else {}
+        if latest.get("event_type") == "revision_forked":
+            child_id = latest.get("child_run_id")
+            transaction_id = latest.get("revision_transaction_id")
+            if not isinstance(child_id, str) or not isinstance(transaction_id, str):
+                return ["修订 fork 事件缺少子 Run 或事务身份"]
+            try:
+                transaction = _read_revision_transaction(_revision_transaction_path(run_root, transaction_id))
+            except (OSError, ValueError) as exc:
+                return [f"修订 fork transaction 无法验证：{exc}"]
+            if transaction.get("status") != "committed":
+                return ["修订 fork transaction 尚未 committed"]
+            if transaction.get("parent_run_id") != run_dir.name or transaction.get("child_run_id") != child_id:
+                return ["修订 fork transaction 父子身份不一致"]
+            child_path = run_dir.parent / str(child_id)
+            if not child_path.is_dir():
+                return ["修订子 Run 不存在"]
+            try:
+                child_manifest = _load_json_object(child_path / "run_manifest.json", "revision child run_manifest.json")
+                child_record = _load_json_object(_revision_record_path(child_path), "revision_fork_record.json")
+            except (OSError, ValueError):
+                return ["修订子 Run manifest 无法验证"]
+            if child_manifest.get("revision_parent_run_id") != run_dir.name or child_record.get("status") != "committed":
+                return ["修订子 Run 未绑定父 Run"]
+            for field in ("revision_transaction_id", "revision_scope", "parent_material_digest"):
+                if child_record.get(field) != transaction.get(field):
+                    return [f"修订子 Run {field} 与事务不一致"]
+            return errors
         transaction_id = state.get("fork_transaction_id")
         child_id = state.get("superseded_by_run_id")
         if not isinstance(transaction_id, str) or not isinstance(child_id, str):
@@ -2649,6 +3468,23 @@ def _fork_lineage_errors(run_dir: Path, state: Mapping[str, Any]) -> list[str]:
                 errors.append(f"父子 fork 记录 {field} 不一致")
         if record.get("status") != "committed":
             errors.append("子 Run fork_record 尚未 committed")
+    elif _revision_record_path(run_dir).is_file():
+        try:
+            record = _load_json_object(_revision_record_path(run_dir), "revision_fork_record.json")
+            transaction_id = record.get("revision_transaction_id")
+            parent_id = record.get("parent_run_id")
+            if not isinstance(transaction_id, str) or not isinstance(parent_id, str):
+                return ["修订子 Run 缺少父子事务身份"]
+            transaction = _read_revision_transaction(_revision_transaction_path(run_root, transaction_id))
+            parent_state = replay_transition_log(run_root / parent_id)
+            if transaction.get("status") != "committed" or record.get("status") != "committed":
+                errors.append("修订子 Run 事务尚未 committed")
+            if parent_state.get("superseded_by_run_id") != run_dir.name:
+                errors.append("修订子 Run 未被父 Run 的 revision_forked 事件引用")
+            if parent_state.get("revision_transaction_id") != transaction_id:
+                errors.append("修订子 Run 与父 Run revision_transaction_id 不一致")
+        except (OSError, ValueError) as exc:
+            errors.append(f"修订 Run 谱系无效：{exc}")
     elif _fork_record_path(run_dir).is_file():
         try:
             record = _load_json_object(_fork_record_path(run_dir), "fork_record.json")
@@ -2676,7 +3512,7 @@ def _assert_run_can_progress(run_dir: Path, state: Mapping[str, Any]) -> None:
     errors = _fork_lineage_errors(run_dir, state)
     if errors:
         raise ValueError("fork-profile 谱系未提交或不一致：" + "；".join(errors))
-    if not _fork_record_path(run_dir).is_file():
+    if not _fork_record_path(run_dir).is_file() and not _revision_record_path(run_dir).is_file():
         pending = [
             item
             for item in _find_parent_transactions(run_dir.parent, run_dir.name)
@@ -2684,6 +3520,13 @@ def _assert_run_can_progress(run_dir: Path, state: Mapping[str, Any]) -> None:
         ]
         if pending:
             raise ValueError("父 Run 存在进行中的 fork-profile 事务，禁止推进")
+        pending_revisions = [
+            item
+            for item in _find_revision_transactions(run_dir.parent, run_dir.name)
+            if item.get("status") not in {"committed", "aborted"}
+        ]
+        if pending_revisions:
+            raise ValueError("父 Run 存在进行中的 revision fork 事务，禁止推进")
 
 
 def _staged_child_path(run_root: Path, transaction: Mapping[str, Any]) -> Path:
@@ -2751,7 +3594,11 @@ def _verify_fork_child_for_resume(
         raise ValueError(f"{label}的 run_evidence_manifest.run_id 与事务不一致")
     from finalize_run_evidence import validate_evidence_manifest
 
-    required = evidence_required_artifacts_for_workflow("new_problem", completed=False)
+    required = evidence_required_artifacts_for_workflow(
+        "new_problem",
+        completed=False,
+        gate_5_review_contract_version=run_manifest.get("gate_5_review_contract_version"),
+    )
     evidence_errors = validate_evidence_manifest(child_run, evidence, required)
     if evidence_errors:
         raise ValueError(f"{label}证据清单无效：" + "；".join(evidence_errors))
@@ -2921,6 +3768,304 @@ def _resume_fork_transaction(parent_run: Path, transaction_path: Path) -> dict[s
     }
 
 
+REVISION_FORK_TRANSACTION_VERSION = "1.0.0"
+REVISION_FORK_STATUSES = {"prepared", "child_published", "parent_linked", "committed", "aborted"}
+
+
+def _revision_transaction_directory(run_root: Path) -> Path:
+    """返回受控修订 Run 的独立事务目录。"""
+    return run_root / ".transactions" / "fork-revision"
+
+
+def _revision_transaction_path(run_root: Path, transaction_id: str) -> Path:
+    """按安全 ID 定位修订事务，禁止路径穿越。"""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", transaction_id):
+        raise ValueError("revision transaction ID 必须为 8-80 位安全字符")
+    return _revision_transaction_directory(run_root) / f"{transaction_id}.json"
+
+
+def _revision_record_path(run_dir: Path) -> Path:
+    """集中定义修订子 Run 的谱系记录位置。"""
+    return run_dir / "revision_fork_record.json"
+
+
+def _read_revision_transaction(path: Path) -> dict[str, Any]:
+    """读取并校验修订事务的不可变身份字段。"""
+    transaction = _load_json_object(path, "revision fork transaction")
+    if transaction.get("transaction_version") != REVISION_FORK_TRANSACTION_VERSION:
+        raise ValueError("revision fork transaction_version 不支持")
+    if transaction.get("status") not in REVISION_FORK_STATUSES:
+        raise ValueError("revision fork transaction.status 非法")
+    for field in (
+        "revision_transaction_id", "parent_run_id", "child_run_id", "parent_transition_head_sha256",
+        "parent_material_digest", "revision_scope", "reviewer", "reason",
+    ):
+        if not isinstance(transaction.get(field), str) or not str(transaction[field]).strip():
+            raise ValueError(f"revision fork transaction 缺少 {field}")
+    if transaction["revision_scope"] not in {"diagnosis", "model_route", "formal_result"}:
+        raise ValueError("revision fork transaction.revision_scope 非法")
+    return transaction
+
+
+def _write_revision_transaction(path: Path, transaction: Mapping[str, Any]) -> None:
+    """原子写入修订事务进度，使中断后可精确恢复。"""
+    payload = dict(transaction)
+    payload["updated_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    write_json(path, payload)
+
+
+def _find_revision_transactions(run_root: Path, parent_run_id: str) -> list[dict[str, Any]]:
+    """列出同一父 Run 的修订事务，阻止活动 Run 与半提交事务并行推进。"""
+    directory = _revision_transaction_directory(run_root)
+    if not directory.is_dir():
+        return []
+    records: list[dict[str, Any]] = []
+    for path in sorted(directory.glob("*.json")):
+        transaction = _read_revision_transaction(path)
+        if transaction["parent_run_id"] == parent_run_id:
+            records.append(transaction)
+    return records
+
+
+def _revision_staged_child_path(run_root: Path, transaction: Mapping[str, Any]) -> Path:
+    """为修订子 Run 分配不可与正式 Run 混淆的临时路径。"""
+    return run_root / ".tmp" / f"revision-{transaction['revision_transaction_id']}-{transaction['child_run_id']}" / str(transaction["child_run_id"])
+
+
+def _prepare_revision_child(parent_run: Path, transaction: Mapping[str, Any]) -> Path:
+    """在临时目录创建全新 Run，绝不回写父 Run 的结果或 Gate 产物。"""
+    parent = _load_json_object(parent_run / "run_manifest.json", "parent run_manifest.json")
+    staged_child = _revision_staged_child_path(parent_run.parent, transaction)
+    if staged_child.exists():
+        return staged_child
+    args = argparse.Namespace(
+        workflow=parent["workflow"],
+        problem=parent["problem_id"],
+        profile=parent["profile"],
+        mode=parent.get("mode", "standard"),
+        materials=parent["materials"],
+        output_root=str(staged_child.parent),
+        run_id=transaction["child_run_id"],
+        candidate_patch=list(parent.get("candidate_patches", [])),
+        exclude_patch=list(parent.get("excluded_patches", [])),
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        material_file=[],
+        gates=parent.get("gates", "0-5"),
+        v21=parent.get("runtime_manifest_version") == V21_RUNTIME_MANIFEST_VERSION,
+    )
+    if parent["workflow"] == "full_replay":
+        child_run, ready = create_full_replay_run(args)
+    elif parent["workflow"] == "new_problem":
+        child_run, ready = create_new_problem_run(args)
+    else:
+        raise ValueError("仅 Gate workflow 支持修订 Run")
+    if not ready:
+        raise ValueError("修订子 Run 材料未就绪")
+    manifest = _load_json_object(child_run / "run_manifest.json", "revision child run_manifest.json")
+    manifest.update(
+        {
+            "revision_parent_run_id": transaction["parent_run_id"],
+            "revision_scope": transaction["revision_scope"],
+            "revision_reason": transaction["reason"],
+            "revision_reviewer": transaction["reviewer"],
+            "supersedes_reason": transaction["reason"],
+            "inherited_material_sha256": transaction["parent_material_digest"],
+        }
+    )
+    write_json(child_run / "run_manifest.json", manifest)
+    write_json(
+        _revision_record_path(child_run),
+        {
+            "transaction_version": REVISION_FORK_TRANSACTION_VERSION,
+            "revision_transaction_id": transaction["revision_transaction_id"],
+            "parent_run_id": transaction["parent_run_id"],
+            "child_run_id": transaction["child_run_id"],
+            "parent_transition_head_sha256": transaction["parent_transition_head_sha256"],
+            "parent_material_digest": transaction["parent_material_digest"],
+            "revision_scope": transaction["revision_scope"],
+            "reviewer": transaction["reviewer"],
+            "reason": transaction["reason"],
+            "status": "prepared",
+        },
+    )
+    write_json(child_run / "run_evidence_manifest.json", build_run_evidence_manifest(child_run, str(manifest["run_id"])))
+    return child_run
+
+
+def _verify_revision_child(parent_run: Path, child_run: Path, transaction: Mapping[str, Any]) -> None:
+    """发布与恢复前校验子 Run 的身份、材料和预提交状态。"""
+    if child_run.is_symlink() or not child_run.is_dir():
+        raise ValueError("修订子 Run 必须为非符号链接目录")
+    manifest = _load_json_object(child_run / "run_manifest.json", "revision child run_manifest.json")
+    expected_manifest = {
+        "run_id": transaction["child_run_id"],
+        "revision_parent_run_id": transaction["parent_run_id"],
+        "revision_scope": transaction["revision_scope"],
+        "inherited_material_sha256": transaction["parent_material_digest"],
+    }
+    for field, expected in expected_manifest.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"修订子 Run {field} 与事务不一致")
+    record = _load_json_object(_revision_record_path(child_run), "revision_fork_record.json")
+    for field, expected in {
+        "revision_transaction_id": transaction["revision_transaction_id"],
+        "parent_run_id": transaction["parent_run_id"],
+        "child_run_id": transaction["child_run_id"],
+        "parent_transition_head_sha256": transaction["parent_transition_head_sha256"],
+        "parent_material_digest": transaction["parent_material_digest"],
+        "revision_scope": transaction["revision_scope"],
+    }.items():
+        if record.get(field) != expected:
+            raise ValueError(f"revision_fork_record.{field} 与事务不一致")
+    if record.get("status") not in {"prepared", "committed"}:
+        raise ValueError("revision_fork_record.status 非法")
+    current_parent = _load_json_object(parent_run / "run_manifest.json", "parent run_manifest.json")
+    if _verified_material_digest(current_parent) != transaction["parent_material_digest"]:
+        raise ValueError("当前材料摘要已变化，禁止发布修订子 Run")
+
+
+def _append_revision_fork_event(parent_run: Path, transaction: Mapping[str, Any]) -> None:
+    """将父 Run 置为 superseded；重复恢复只接受同一事务的既有事件。"""
+    expected_head = transaction["parent_transition_head_sha256"]
+    if _transaction_head_sha256(parent_run) != expected_head:
+        entries = _read_transition_entries(parent_run / "transitions.jsonl")
+        latest = entries[-1] if entries else {}
+        expected = {
+            "previous_event_sha256": expected_head,
+            "event_type": "revision_forked",
+            "state": "revision_forked",
+            "revision_transaction_id": transaction["revision_transaction_id"],
+            "child_run_id": transaction["child_run_id"],
+            "revision_scope": transaction["revision_scope"],
+            "reviewer": transaction["reviewer"],
+            "reason": transaction["reason"],
+            "lifecycle_status": "superseded",
+        }
+        if all(latest.get(field) == value for field, value in expected.items()):
+            return
+        raise ValueError("父 Run transition head 已变化，禁止覆盖新状态")
+    state = replay_transition_log(parent_run)
+    if state.get("completed") or state.get("lifecycle_status") != "active":
+        raise ValueError("父 Run 已不满足 revision fork 前提")
+    _append_transition_event(
+        parent_run / "transitions.jsonl",
+        {
+            "transition_version": TRANSITION_VERSION,
+            "event_type": "revision_forked",
+            "state": "revision_forked",
+            "revision_transaction_id": transaction["revision_transaction_id"],
+            "revision_scope": transaction["revision_scope"],
+            "child_run_id": transaction["child_run_id"],
+            "reviewer": transaction["reviewer"],
+            "reason": transaction["reason"],
+            "lifecycle_status": "superseded",
+        },
+    )
+
+
+def _commit_revision_child(child_run: Path, transaction: Mapping[str, Any]) -> None:
+    """父链已绑定后才允许子 Run 进入可推进状态。"""
+    record = _load_json_object(_revision_record_path(child_run), "revision_fork_record.json")
+    if record.get("revision_transaction_id") != transaction["revision_transaction_id"]:
+        raise ValueError("revision_fork_record 事务身份不一致")
+    if record.get("status") not in {"prepared", "committed"}:
+        raise ValueError("revision_fork_record.status 非法")
+    record["status"] = "committed"
+    write_json(_revision_record_path(child_run), record)
+
+
+def _resume_revision_fork(parent_run: Path, transaction_path: Path) -> dict[str, Any]:
+    """按事务进度恢复发布、父链绑定和子 Run 提交。"""
+    transaction = _read_revision_transaction(transaction_path)
+    if transaction["status"] == "aborted":
+        raise ValueError("已中止的 revision fork 不可恢复")
+    run_root = parent_run.parent
+    final = run_root / transaction["child_run_id"]
+    if transaction["status"] == "prepared":
+        if final.exists():
+            _verify_revision_child(parent_run, final, transaction)
+        else:
+            child = _prepare_revision_child(parent_run, transaction)
+            _verify_revision_child(parent_run, child, transaction)
+            child.replace(final)
+        transaction["status"] = "child_published"
+        _write_revision_transaction(transaction_path, transaction)
+    if transaction["status"] == "child_published":
+        _verify_revision_child(parent_run, final, transaction)
+        _append_revision_fork_event(parent_run, transaction)
+        transaction["status"] = "parent_linked"
+        _write_revision_transaction(transaction_path, transaction)
+    if transaction["status"] == "parent_linked":
+        _verify_revision_child(parent_run, final, transaction)
+        _commit_revision_child(final, transaction)
+        transaction["status"] = "committed"
+        _write_revision_transaction(transaction_path, transaction)
+    if transaction["status"] != "committed":
+        raise ValueError("revision fork 未进入 committed 状态")
+    return {"child_run": str(final), "revision_scope": transaction["revision_scope"], "transaction_id": transaction["revision_transaction_id"], "status": "committed"}
+
+
+def fork_revision_run(
+    parent_run: Path,
+    *,
+    revision_scope: str,
+    reviewer: str,
+    reason: str,
+    transaction_id: str | None = None,
+    resume: bool = False,
+) -> dict[str, Any]:
+    """可恢复地 Fork 修订 Run，并在子 Run 可验证发布后 supersede 父 Run。"""
+    if revision_scope not in {"diagnosis", "model_route", "formal_result"}:
+        raise ValueError("revision_scope 必须为 diagnosis、model_route 或 formal_result")
+    parent_run = parent_run.resolve()
+    if not parent_run.is_dir():
+        raise ValueError("--from-run 不是有效 Run 目录")
+    parent = _load_json_object(parent_run / "run_manifest.json", "run_manifest.json")
+    state = replay_transition_log(parent_run)
+    if state.get("completed") or state.get("lifecycle_status") != "active":
+        raise ValueError("仅未完成且 active 的父 Run 可以创建修订 Run")
+    if not reviewer.strip() or not reason.strip():
+        raise ValueError("reviewer 与 reason 不能为空")
+    run_root = parent_run.parent
+    transaction_id = transaction_id or (
+        datetime.now().strftime("%Y%m%d%H%M%S") + "_" + secrets.token_hex(6)
+    )
+    transaction_path = _revision_transaction_path(run_root, transaction_id)
+    lock_path = _acquire_fork_lock(run_root, parent_run.name, transaction_id, resume=resume)
+    try:
+        if transaction_path.is_file():
+            if not resume:
+                raise ValueError("修订事务已存在；请使用 --resume 继续")
+            return _resume_revision_fork(parent_run, transaction_path)
+        if resume:
+            raise ValueError("--resume 指定的修订事务不存在")
+        material_digest = _verified_material_digest(parent)
+        child_id = f"{parent_run.name}__rev_{revision_scope}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(3)}"
+        if (run_root / child_id).exists():
+            raise FileExistsError("修订子 Run ID 已存在")
+        transaction: dict[str, Any] = {
+            "transaction_version": REVISION_FORK_TRANSACTION_VERSION,
+            "revision_transaction_id": transaction_id,
+            "parent_run_id": parent_run.name,
+            "child_run_id": child_id,
+            "parent_transition_head_sha256": _transaction_head_sha256(parent_run),
+            "parent_material_digest": material_digest,
+            "revision_scope": revision_scope,
+            "reviewer": reviewer.strip(),
+            "reason": reason.strip(),
+            "status": "prepared",
+            "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        }
+        _revision_transaction_directory(run_root).mkdir(parents=True, exist_ok=True)
+        _write_revision_transaction(transaction_path, transaction)
+        return _resume_revision_fork(parent_run, transaction_path)
+    finally:
+        _release_fork_lock(lock_path, transaction_id)
+
+
 def fork_profile(
     parent_run: Path,
     *,
@@ -3052,7 +4197,9 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
                 workflow,
                 completed=bool(state.get("completed")),
                 runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
+                gate_5_review_contract_version=manifest.get("gate_5_review_contract_version"),
             )
+            extend_review_pipeline_evidence_requirements(run_dir, required_artifacts)
             if state.get("completed"):
                 extend_formal_result_evidence_requirements(run_dir, required_artifacts)
             evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
@@ -3128,6 +4275,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
                 workflow,
                 completed=True,
                 runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
+                gate_5_review_contract_version=manifest.get("gate_5_review_contract_version"),
             )
             extend_formal_result_evidence_requirements(run_dir, required)
             evidence = _load_json_object(
@@ -3215,11 +4363,16 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
     }
 
 
-def complete_and_seal_run(run_dir: Path, reviewer: str) -> dict[str, Any]:
+def complete_and_seal_run(
+    run_dir: Path,
+    reviewer: str | None = None,
+    *,
+    approved_review_id: str | None = None,
+) -> dict[str, Any]:
     """完成 Gate 5 并封存；中断后重复调用可从已完成转换处恢复。"""
     state = replay_transition_log(run_dir)
     if not state["completed"]:
-        mark_run_completed(run_dir, reviewer)
+        mark_run_completed(run_dir, reviewer, approved_review_id=approved_review_id)
 
     seal_path = run_dir / "seal_record.json"
     if seal_path.is_file():
@@ -3260,7 +4413,50 @@ def parse_args() -> argparse.Namespace:
     advance.add_argument("--decision", default="approved", choices=["approved", "rejected"])
     complete = commands.add_parser("complete", help="验证 Gate 5 并完成运行")
     complete.add_argument("--run-dir", required=True)
-    complete.add_argument("--reviewer", required=True)
+    complete.add_argument("--reviewer")
+    complete.add_argument("--approved-review-id")
+    record_review = commands.add_parser("record-gate5-review", help="保存不可变 Gate 5 v2 最终审核记录")
+    record_review.add_argument("--run-dir", required=True)
+    record_review.add_argument("--review-file", required=True)
+    handoff = commands.add_parser(
+        "prepare-human-final-review-handoff",
+        help="为当前 Candidate 生成只读人工 Gate 5 终审交接包",
+    )
+    handoff.add_argument("--run-dir", required=True)
+    candidate = commands.add_parser("register-paper-candidate", help="注册不可变论文候选稿")
+    candidate.add_argument("--run-dir", required=True)
+    candidate.add_argument("--source", action="append", required=True)
+    candidate.add_argument("--reason", required=True)
+    candidate.add_argument("--parent-candidate-id")
+    candidate.add_argument("--trigger-review-id")
+    paper_revision = commands.add_parser("submit-paper-revision", help="根据 Gate 5 needs_revision 注册新的不可变论文候选稿")
+    paper_revision.add_argument("--run-dir", required=True)
+    paper_revision.add_argument("--source", action="append", required=True)
+    paper_revision.add_argument("--reason", required=True)
+    paper_revision.add_argument("--parent-candidate-id", required=True)
+    paper_revision.add_argument("--trigger-review-id", required=True)
+    technical = commands.add_parser("record-technical-review", help="保存不可变 Technical Review")
+    technical.add_argument("--run-dir", required=True)
+    technical.add_argument("--review-file", required=True)
+    reasonable = commands.add_parser("record-reasonableness-review", help="保存独立合理性审核")
+    reasonable.add_argument("--run-dir", required=True)
+    reasonable.add_argument("--review-file", required=True)
+    reader = commands.add_parser("record-paper-reader-review", help="保存隔离 Paper Reader 审核")
+    reader.add_argument("--run-dir", required=True)
+    reader.add_argument("--review-file", required=True)
+    reader_workspace = commands.add_parser("create-paper-reader-workspace", help="创建仅含题面和论文的 Reader 输入包")
+    reader_workspace.add_argument("--workspace", required=True)
+    reader_workspace.add_argument("--problem-pdf", required=True)
+    reader_workspace.add_argument("--submission-pdf", required=True)
+    reader_workspace.add_argument("--review-contract", required=True)
+    reader_workspace.add_argument("--prompt-file", required=True)
+    revision = commands.add_parser("fork-revision", help="按 diagnosis/model_route/formal_result 创建修订 Run")
+    revision.add_argument("--from-run", required=True)
+    revision.add_argument("--scope", required=True, choices=["diagnosis", "model_route", "formal_result"])
+    revision.add_argument("--reviewer", required=True)
+    revision.add_argument("--reason", required=True)
+    revision.add_argument("--transaction-id")
+    revision.add_argument("--resume", action="store_true")
     verify = commands.add_parser("verify", help="复核当前运行状态与已完成 Gate")
     verify.add_argument("--run-dir", required=True)
     fork = commands.add_parser("fork-profile", help="从 general Gate 0 创建可恢复的专项 Profile 子 Run")
@@ -3303,9 +4499,56 @@ def main() -> None:
             state = advance_run(Path(args.run_dir), args.reviewer, args.decision)
             print(json.dumps(state, ensure_ascii=False, indent=2))
         elif args.command == "complete":
-            report = complete_and_seal_run(Path(args.run_dir), args.reviewer)
+            report = complete_and_seal_run(
+                Path(args.run_dir),
+                args.reviewer,
+                approved_review_id=args.approved_review_id,
+            )
             print(json.dumps(report, ensure_ascii=False, indent=2))
             print("[SEALED] Gate 0-5 已完成并封存。")
+        elif args.command == "record-gate5-review":
+            review_file = Path(args.review_file)
+            review = _load_json_object(review_file, str(review_file))
+            result = record_gate_5_review(Path(args.run_dir), review)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "prepare-human-final-review-handoff":
+            result = prepare_human_final_review_handoff(Path(args.run_dir))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command in {"register-paper-candidate", "submit-paper-revision"}:
+            result = register_paper_candidate(
+                Path(args.run_dir),
+                args.source,
+                reason=args.reason,
+                parent_candidate_id=args.parent_candidate_id,
+                trigger_review_id=args.trigger_review_id,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "record-technical-review":
+            result = record_technical_review(Path(args.run_dir), _load_json_object(Path(args.review_file), args.review_file))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "record-reasonableness-review":
+            result = record_reasonableness_review(Path(args.run_dir), _load_json_object(Path(args.review_file), args.review_file))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "record-paper-reader-review":
+            result = record_paper_reader_review(Path(args.run_dir), _load_json_object(Path(args.review_file), args.review_file))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "create-paper-reader-workspace":
+            contract = _load_json_object(Path(args.review_contract), args.review_contract)
+            prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+            result = create_paper_reader_workspace(
+                Path(args.workspace), problem_pdf=Path(args.problem_pdf), submission_pdf=Path(args.submission_pdf), review_contract=contract, prompt=prompt
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        elif args.command == "fork-revision":
+            result = fork_revision_run(
+                Path(args.from_run),
+                revision_scope=args.scope,
+                reviewer=args.reviewer,
+                reason=args.reason,
+                transaction_id=args.transaction_id,
+                resume=args.resume,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
         elif args.command == "verify":
             print(json.dumps(verify_run(Path(args.run_dir)), ensure_ascii=False, indent=2))
         elif args.command == "fork-profile":

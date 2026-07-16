@@ -18,7 +18,9 @@
     "human_decisions_required": {"$ref": "#/$defs/nonEmptyStrings"},
     "model_validity_contract_ref": {"$ref": "#/$defs/artifactRef"},
     "validator_independence_manifest_ref": {"$ref": "#/$defs/artifactRef"},
-    "conclusion_scope": {"type": "array", "items": {"type": "string", "minLength": 1}}
+    "conclusion_scope": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "result_role_binding": {"type": "object", "additionalProperties": false, "required": ["diagnosis_sha256", "subproblem_id", "proposed_role", "confirmation"], "properties": {"diagnosis_sha256": {"$ref": "#/$defs/sha256"}, "subproblem_id": {"type": "string", "minLength": 1}, "proposed_role": {"enum": ["final_decision", "candidate_filter", "parameter_input", "constraint_input", "diagnostic_only", "explanation_only"]}, "confirmation": {"enum": ["confirmed", "revision_required"]}}},
+    "communication": {"type": "object", "additionalProperties": false, "required": ["model_id", "reader_model_name", "purpose", "mechanism_chain", "parameters_or_weights_source", "relationship_to_next_subproblem", "reader_summary", "likely_reader_confusions", "claim_scope"], "properties": {"model_id": {"type": "string", "minLength": 1}, "reader_model_name": {"type": "string", "minLength": 1}, "purpose": {"type": "string", "minLength": 1}, "mechanism_chain": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "parameters_or_weights_source": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["name", "source_type", "source", "uncertainty"], "properties": {"name": {"type": "string", "minLength": 1}, "source_type": {"type": "string", "minLength": 1}, "source": {"type": "string", "minLength": 1}, "uncertainty": {"type": "string", "minLength": 1}}}}, "relationship_to_next_subproblem": {"type": "string", "minLength": 1}, "reader_summary": {"type": "string", "minLength": 1}, "likely_reader_confusions": {"type": "array", "items": {"type": "string", "minLength": 1}}, "claim_scope": {"type": "string", "minLength": 1}}}
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},

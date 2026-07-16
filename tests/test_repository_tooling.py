@@ -1900,7 +1900,7 @@ def test_prompt_regression_never_creates_gate_or_promotion_evidence(tmp_path: Pa
     assert report["eligible_for_promotion"] is False
 
 
-def test_modes_change_confirmation_points_not_machine_contract(tmp_path: Path) -> None:
+def test_modes_keep_ai_execution_and_human_final_decision_policy(tmp_path: Path) -> None:
     materials = tmp_path / "materials"
     materials.mkdir()
     problem = b"fake problem pdf"
@@ -1932,8 +1932,10 @@ def test_modes_change_confirmation_points_not_machine_contract(tmp_path: Path) -
 
     strict_manifest = json.loads((run_dirs[0] / "run_manifest.json").read_text("utf-8"))
     emergency_manifest = json.loads((run_dirs[1] / "run_manifest.json").read_text("utf-8"))
-    assert strict_manifest["human_confirmation_gates"] == [0, 1, 2, 3, 4, 5]
-    assert emergency_manifest["human_confirmation_gates"] == [0, 5]
+    assert strict_manifest["human_confirmation_gates"] == [5]
+    assert emergency_manifest["human_confirmation_gates"] == [5]
+    assert strict_manifest["gate_execution_policy"] == "ai_gates_human_final_v1"
+    assert emergency_manifest["gate_execution_policy"] == "ai_gates_human_final_v1"
     assert (run_dirs[0] / "runtime_pack.md").read_bytes() == (
         run_dirs[1] / "runtime_pack.md"
     ).read_bytes()

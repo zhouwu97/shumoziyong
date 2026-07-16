@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "隔离 Paper Reader 审核",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "review_id", "attempt", "run_id", "candidate_id", "candidate_manifest_sha256", "reviewed_at", "decision", "isolation", "answers", "major_misunderstandings", "missing_explanations"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_reader_review"},
+    "review_id": {"type": "string", "pattern": "^PRR-[A-Za-z0-9_-]{8,120}$"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "candidate_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "decision": {"enum": ["approved", "needs_revision", "rejected"]},
+    "isolation": {"type": "object", "additionalProperties": false, "required": ["workspace_manifest_sha256", "problem_sha256", "submission_pdf_sha256", "review_contract_sha256", "review_prompt_sha256", "repository_mounted", "parent_context_inherited", "network_access", "isolation_status", "reviewer_session_id"], "properties": {"workspace_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "problem_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "submission_pdf_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "review_contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "review_prompt_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "repository_mounted": {"type": "boolean"}, "parent_context_inherited": {"type": "boolean"}, "network_access": {"type": "boolean"}, "isolation_status": {"enum": ["workspace_enforced", "declared_only", "failed"]}, "reviewer_session_id": {"type": ["string", "null"]}, "execution_attestation": {"$ref": "#/$defs/ref"}}},
+    "answers": {"type": "object", "additionalProperties": false, "required": ["identified_model", "identified_purpose", "reconstructed_mechanism_chain", "identified_result_role", "identified_claim_scope"], "properties": {"identified_model": {"type": "string", "minLength": 1}, "identified_purpose": {"type": "string", "minLength": 1}, "reconstructed_mechanism_chain": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "identified_result_role": {"type": "string", "minLength": 1}, "identified_claim_scope": {"type": "string", "minLength": 1}}},
+    "answer_scores": {"type": "object", "additionalProperties": false, "required": ["model_name", "model_purpose", "mechanism_chain", "result_role", "claim_scope"], "properties": {"model_name": {"enum": ["correct", "partially_correct", "incorrect"]}, "model_purpose": {"enum": ["correct", "partially_correct", "incorrect"]}, "mechanism_chain": {"enum": ["correct", "partially_correct", "incorrect"]}, "result_role": {"enum": ["correct", "partially_correct", "incorrect"]}, "claim_scope": {"enum": ["correct", "partially_correct", "incorrect"]}}},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "best_effort_model_metadata": {"type": "object", "additionalProperties": false, "properties": {"provider": {"$ref": "#/$defs/capture"}, "model_name": {"$ref": "#/$defs/capture"}, "model_version": {"$ref": "#/$defs/capture"}, "deployment_id": {"$ref": "#/$defs/capture"}, "temperature": {"$ref": "#/$defs/capture"}, "seed": {"$ref": "#/$defs/capture"}}},
+    "major_misunderstandings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "missing_explanations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}},
+    "capture": {"type": "object", "additionalProperties": false, "required": ["value", "capture_status"], "properties": {"value": {"type": ["string", "number", "null"]}, "capture_status": {"enum": ["captured", "unavailable", "not_applicable"]}}}
+  }
+}

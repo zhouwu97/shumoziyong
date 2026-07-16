@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reasonableness Reviewer 审核",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "review_id", "attempt", "reviewed_at", "reviewer", "decision", "reason", "claim_restrictions", "required_limitations", "requested_revision_scope"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "reasonableness_review"},
+    "run_id": {"type": "string", "minLength": 1},
+    "review_id": {"type": "string", "pattern": "^RR-[A-Za-z0-9_-]{8,120}$"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "reviewer": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "object", "additionalProperties": false, "required": ["type", "identity", "session_id"], "properties": {"type": {"enum": ["human", "independent_llm", "ai_assistant"]}, "identity": {"type": "string", "minLength": 1}, "session_id": {"type": ["string", "null"]}}}]},
+    "decision": {"enum": ["approved", "needs_revision", "rejected"]},
+    "reason": {"type": "string", "minLength": 10},
+    "reviewed_inputs": {"type": "array", "items": {"$ref": "#/$defs/ref"}},
+    "subproblem_reviews": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["subproblem_id", "decision", "reason"], "properties": {"subproblem_id": {"type": "string", "minLength": 1}, "decision": {"enum": ["approved", "needs_revision", "rejected"]}, "reason": {"type": "string", "minLength": 1}}}},
+    "issues": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["issue_id", "severity", "description"], "properties": {"issue_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["blocking", "major", "minor"]}, "description": {"type": "string", "minLength": 1}}}},
+    "required_actions": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["action_id", "description", "acceptance_criteria"], "properties": {"action_id": {"type": "string", "minLength": 1}, "description": {"type": "string", "minLength": 1}, "acceptance_criteria": {"type": "string", "minLength": 1}}}},
+    "claim_restrictions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "required_limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "restriction_closure_requirements": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "requested_revision_scope": {"enum": ["paper_candidate", "model_route", "formal_result", "diagnosis", "terminal_rejection", null]}
+  },
+  "$defs": {
+    "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}
+  }
+}

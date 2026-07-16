@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0.0",
+  "validator_path": "validators/quality_decision_2024b/validate.py",
+  "validator_sha256": "79f020b958f28c07e8eaef48dc92d4b95cf581bcc733d19065066ee0bf6b2d1c",
+  "supported_check_ids": [
+    "objective_recomputation",
+    "constraint_residual",
+    "decision_output_consistency",
+    "variable_domain",
+    "solver_status"
+  ],
+  "report_schema_path": "validators/quality_decision_2024b/report.schema.json",
+  "report_schema_sha256": "c8c1d9fdc26c8c3729b6e03efba7c95c1642712c76a0fa37f6178827df010bb2",
+  "required_observations": {
+    "objective_recomputation": ["reported_objective", "recomputed_objective", "absolute_error"],
+    "constraint_residual": ["max_constraint_residual"],
+    "decision_output_consistency": ["decision_output_match"],
+    "variable_domain": ["max_domain_violation"],
+    "solver_status": ["solver_exit_code"]
+  },
+  "check_types": {
+    "objective_recomputation": "independent_recomputation",
+    "constraint_residual": "constraint_residual",
+    "decision_output_consistency": "decision_output_consistency",
+    "variable_domain": "variable_domain",
+    "solver_status": "solver_status"
+  },
+  "observation_rules": {
+    "objective_recomputation": {
+      "reported_objective": {"comparison": "ge", "threshold": 0.0},
+      "recomputed_objective": {"comparison": "ge", "threshold": 0.0},
+      "absolute_error": {"comparison": "le", "threshold": 1e-8}
+    },
+    "constraint_residual": {
+      "max_constraint_residual": {"comparison": "le", "threshold": 1e-12}
+    },
+    "decision_output_consistency": {
+      "decision_output_match": {"comparison": "eq", "threshold": 1.0}
+    },
+    "variable_domain": {
+      "max_domain_violation": {"comparison": "le", "threshold": 1e-12}
+    },
+    "solver_status": {
+      "solver_exit_code": {"comparison": "eq", "threshold": 0.0}
+    }
+  },
+  "required_input_roles": {
+    "problem_data": {"min_items": 1, "max_items": 1},
+    "candidate_solution": {"min_items": 1, "max_items": 1},
+    "model_parameters": {"min_items": 1, "max_items": 1},
+    "solver_log": {"min_items": 1, "max_items": 1}
+  },
+  "exact_input_set": true,
+  "timeout_seconds": 30.0
+}

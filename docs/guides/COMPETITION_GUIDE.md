@@ -8,16 +8,16 @@ Gate 0—5 的合同、材料冻结或机器校验。
 ```text
 比赛工作目录/
   problem/          # 题面与附件
-  rules/
-    runtime_pack.md
-  reports/
-  code/
-  results/
-  figures/
-  paper/
+  .shumo/           # 锁定引擎、环境、Run、attempt 与 NEXT_TASK
+  project/          # 本题代码、处理和图表
+  handoffs/         # 固定哈希 Reviewer 包
+  final/            # 最终论文、结果和验证
+  logs/
 ```
 
-原始受控材料不得提交到仓库。应先完成材料计划和等级确认，再创建 Run。
+原始受控材料不得提交到仓库。正式比赛禁止自动追随最新 main；只使用 approved tag、allowlisted
+commit 或本机已验证并锁定的比赛提交，默认离线。普通用户不需要执行 CLI，按
+[固定 AI 入口](../entrypoints/AI_WORKSPACE_BOOTSTRAP.md)启动即可。
 
 ## 2. 第一轮：仅做总控诊断
 
@@ -77,5 +77,6 @@ python scripts/run_workflow.py verify --run-dir runs/<run_id>
 ## 5. 相关文档
 
 - [新题执行流](../workflows/03_新题执行流.md)
+- [工作目录自动执行指南](WORKSPACE_AUTORUN_GUIDE.md)
 - [Runtime Pack 指南](RUNTIME_PACK_GUIDE.md)
 - [A092 状态与可信边界](../status/A092_STATUS.md)

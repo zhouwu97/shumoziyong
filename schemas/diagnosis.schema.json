@@ -147,6 +147,12 @@
       ],
       "description": "AI 推荐的路线 ID；若需要人工抉择则为 null。"
     },
+    "ambiguities": {
+      "type": "array",
+      "items": {"type": "object", "additionalProperties": false, "required": ["ambiguity_id", "question", "impact", "resolution"], "properties": {"ambiguity_id": {"type": "string", "minLength": 1}, "question": {"type": "string", "minLength": 1}, "impact": {"type": "string", "minLength": 1}, "resolution": {"type": "string", "minLength": 1}}}
+    },
+    "capability_tags": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "proposed_result_role": {"enum": ["final_decision", "candidate_filter", "parameter_input", "constraint_input", "diagnostic_only", "explanation_only"]},
     "candidate_models": {
       "type": "array",
       "items": {"type": "string", "minLength": 1},

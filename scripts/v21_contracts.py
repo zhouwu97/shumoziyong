@@ -36,7 +36,7 @@ def sha256_file(path: Path) -> str:
 
 
 def _schema_errors(value: Any, schema_name: str) -> list[str]:
-    if Draft202012Validator is None:
+    if Draft202012Validator is None or FormatChecker is None:
         return ["jsonschema 未安装"]
     path = ROOT / "schemas" / schema_name
     try:
@@ -412,6 +412,16 @@ def validate_paper_production_manifest(
         return errors
     if value.get("run_id") != admission.get("run_id"):
         errors.append("论文生产清单与 Paper Admission 不属于同一 Run")
+    try:
+        run_manifest = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        run_manifest = {}
+    if run_manifest.get("gate_4_semantic_contract_version") == "1.0.0":
+        semantic_checks = value.get("semantic_checks")
+        if not isinstance(semantic_checks, Mapping):
+            errors.append("新 Gate 4 论文候选必须声明 semantic_checks")
+        elif any(item.get("status") != "passed" for item in semantic_checks.values() if isinstance(item, Mapping)):
+            errors.append("semantic_checks 含未通过项，不能作为 Gate 4 Candidate")
     admitted = admission.get("submission_paper_allowed") is True
     paper_type = value.get("paper_type")
     if admitted and paper_type != "submission_paper":

@@ -11,6 +11,12 @@
     "run_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "transitions_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "evidence_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "gate_5_review_contract_version": {"const": "2.0.0"},
+    "gate_5_policy_version": {"enum": ["recording_only_v1", "technical_required_v1", "human_final_technical_required_v1", "technical_and_reader_required_v1"]},
+    "approved_review_id": {"type": "string", "pattern": "^G5R-[A-Za-z0-9_-]{8,120}$"},
+    "approved_review_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "gate_5_review_history_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "gate_5_review_history_head_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "formal_result_policy": {"enum": ["required_v1", "legacy_read_only_v1"]},
     "execution_contract_version": {"const": "1.0.0"},
     "formal_result_contract_version": {"const": "1.0.0"},
@@ -47,6 +53,10 @@
     "sandboxie_execution_id": {"type": "string", "minLength": 1}
   },
   "allOf": [
+    {
+      "if": {"properties": {"gate_5_review_contract_version": {"const": "2.0.0"}}, "required": ["gate_5_review_contract_version"]},
+      "then": {"required": ["gate_5_policy_version", "approved_review_id", "approved_review_sha256", "gate_5_review_history_sha256", "gate_5_review_history_head_sha256"]}
+    },
     {
       "if": {
         "properties": {"formal_result_policy": {"const": "required_v1"}},

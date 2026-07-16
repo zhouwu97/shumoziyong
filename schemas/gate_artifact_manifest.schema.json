@@ -29,6 +29,15 @@
     "formal_result_contract_version": {"const": "1.0.0"},
     "canonicalization_version": {"const": "1.0.0"},
     "gate_artifact_contract_version": {"const": "1.0.0"},
+    "reasonableness_review": {
+      "type": "object", "additionalProperties": false,
+      "required": ["review_id", "path", "sha256"],
+      "properties": {
+        "review_id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "pattern": "^reviews/reasonableness/[A-Za-z0-9_-]+\\.json$"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
     "formal_result": {
       "type": "object", "additionalProperties": false,
       "required": ["formal_result_id", "envelope_path", "envelope_file_sha256", "envelope_semantic_sha256", "formal_result_activation_status", "sandboxie_environment_observed", "sandboxie_environment_verified", "formal_result_executed_in_verified_environment", "formal_result_eligible"],

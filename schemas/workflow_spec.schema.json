@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/workflow_spec.schema.json",
+  "title": "Workspace Workflow Specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "workflow", "execution_modes", "gate_contracts", "qualification_policy"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "workflow": {"type": "string", "enum": ["full_replay", "new_problem", "paper_learning"]},
+    "execution_modes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["human_confirmation_gates", "qualification_candidate"],
+        "properties": {
+          "human_confirmation_gates": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 5}, "uniqueItems": true},
+          "qualification_candidate": {"type": "boolean"}
+        }
+      }
+    },
+    "gate_contracts": {
+      "type": "object",
+      "required": ["0", "1", "2", "3", "4", "5"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[0-5]$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required_modeling_fields", "required_validation_dimensions"],
+          "properties": {
+            "required_modeling_fields": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "required_validation_dimensions": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+          }
+        }
+      }
+    },
+    "qualification_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automatic_maturity_upgrade", "compatibility_sidecar_eligible"],
+      "properties": {
+        "automatic_maturity_upgrade": {"const": false},
+        "compatibility_sidecar_eligible": {"const": false}
+      }
+    }
+  }
+}

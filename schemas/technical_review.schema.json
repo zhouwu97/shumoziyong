@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Technical Reviewer 审核",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "review_id", "attempt", "run_id", "candidate_id", "candidate_manifest_sha256", "reviewed_at", "reviewer", "decision", "issues", "required_actions", "claim_restrictions", "required_limitations"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "technical_review"},
+    "review_id": {"type": "string", "pattern": "^TR-[A-Za-z0-9_-]{8,120}$"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "candidate_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "reviewer": {"type": "object", "additionalProperties": false, "required": ["type", "identity", "session_id"], "properties": {"type": {"enum": ["human", "independent_llm", "ai_assistant"]}, "identity": {"type": "string", "minLength": 1}, "session_id": {"type": ["string", "null"]}}},
+    "decision": {"enum": ["approved", "needs_revision", "rejected"]},
+    "reviewed_inputs": {"type": "array", "items": {"$ref": "#/$defs/ref"}},
+    "reasonableness_review_ref": {"$ref": "#/$defs/ref"},
+    "restriction_closure_refs": {"type": "array", "items": {"$ref": "#/$defs/ref"}},
+    "issues": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["issue_id", "severity", "description"], "properties": {"issue_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["blocking", "major", "minor"]}, "description": {"type": "string", "minLength": 1}}}},
+    "required_actions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "claim_restrictions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "required_limitations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "ref": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}
+  }
+}

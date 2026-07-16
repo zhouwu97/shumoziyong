@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/next_task.schema.json",
+  "title": "Shumo Next Task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "task_id", "attempt_id", "workspace_id", "run_id",
+    "workflow", "execution_mode", "role", "stage_id", "gate", "engine_commit",
+    "required_inputs", "required_outputs", "permissions", "validators",
+    "success_conditions", "failure_conditions", "checkpoint_policy",
+    "session_boundary", "stop_condition", "previous_transition_hash", "task_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "task_id": {"type": "string", "pattern": "^task_[a-f0-9]{16}$"},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "workspace_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "workflow": {"type": "string", "enum": ["full_replay", "new_problem", "paper_learning"]},
+    "execution_mode": {"type": "string", "minLength": 1},
+    "role": {"type": "string", "enum": ["executor", "collector", "validator", "reviewer"]},
+    "stage_id": {"type": "string", "minLength": 1},
+    "gate": {"type": ["integer", "null"], "minimum": 0, "maximum": 5},
+    "engine_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "required_inputs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "required_outputs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "permissions": {"$ref": "#/$defs/permissions"},
+    "validators": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "success_conditions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "failure_conditions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "checkpoint_policy": {"type": "string", "enum": ["automatic", "human_required", "new_session_required", "terminal"]},
+    "session_boundary": {"type": "string", "enum": ["same_session", "new_session_required"]},
+    "stop_condition": {"type": "string", "enum": ["HUMAN_CHECKPOINT", "NEW_SESSION_REQUIRED", "BLOCKED", "COMPLETED", "TASK_COMPLETED"]},
+    "previous_transition_hash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "task_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "pathRule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trust_model", "advisory", "enforced"],
+      "properties": {
+        "trust_model": {"const": "trusted_local"},
+        "advisory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["instructions"],
+          "properties": {"instructions": {"type": "array", "items": {"type": "string"}}}
+        },
+        "enforced": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allowed_read_paths", "forbidden_read_paths", "allowed_write_paths", "allowed_commands", "resolve_paths_before_check"],
+          "properties": {
+            "allowed_read_paths": {"type": "array", "items": {"$ref": "#/$defs/pathRule"}, "uniqueItems": true},
+            "forbidden_read_paths": {"type": "array", "items": {"$ref": "#/$defs/pathRule"}, "uniqueItems": true},
+            "allowed_write_paths": {"type": "array", "items": {"$ref": "#/$defs/pathRule"}, "uniqueItems": true},
+            "allowed_commands": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+            "resolve_paths_before_check": {"const": true}
+          }
+        }
+      }
+    }
+  }
+}

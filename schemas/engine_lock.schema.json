@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/engine_lock.schema.json",
+  "title": "Workspace Engine Lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "repository", "engine_home", "commit_sha",
+    "release_channel", "release_ref", "bootstrap_version", "dirty",
+    "repository_validation", "public_ci_evidence", "offline_capable", "locked_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "repository": {"type": "string", "minLength": 1},
+    "engine_home": {"type": "string", "minLength": 1},
+    "commit_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "release_channel": {"type": "string", "enum": ["competition", "training"]},
+    "release_ref": {"type": "string", "minLength": 1},
+    "bootstrap_version": {"const": "1.0.0"},
+    "dirty": {"type": "boolean"},
+    "repository_validation": {"type": "string", "enum": ["passed", "failed", "not_run"]},
+    "public_ci_evidence": {"type": ["string", "null"]},
+    "offline_capable": {"type": "boolean"},
+    "locked_at": {"type": "string", "format": "date-time"}
+  }
+}
