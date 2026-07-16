@@ -1,7 +1,10 @@
-# Competition Production v1（review_ready）
+# Competition Production v1（full_replay_passed）
 
 本能力只在调用方显式选择 `full_replay` 且 Profile 为 `general`、`engineering_optimization`、`evaluation`
 或 `prediction` 时编译。它不是 `new_problem` 默认能力，也不授予比赛提交资格。
+
+文件名保留 `review_ready` 是为了维持既有 Runtime Pack 路径兼容；能力登记已由五题 Campaign 报告推进至
+`full_replay_passed`，下一阶段仍须经过隐藏盲测与双盲人工评审。
 
 固定链路不得跳步或倒置：
 

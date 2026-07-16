@@ -1,0 +1,771 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "competition_full_replay_campaign_report_v1",
+  "campaign_id": "competition-production-pr7-20260717",
+  "capability_id": "competition_production_v1",
+  "contract": {
+    "path": "runtime_contracts/competition_full_replay_campaign_v1.json",
+    "sha256": "be7fca065c4e3c5d25a4b4f1f5efdf03f7a85d551f7790472d10cf3323de9da9"
+  },
+  "runs": [
+    {
+      "problem_id": "2016-C",
+      "run_id": "pr7-2016c-full-replay-20260717",
+      "profile": "prediction",
+      "runtime_pack_sha256": "3ed6b2f742906e6d9bea6a827e597a87f2c8ef49955394a33d15dcbd9f67172c",
+      "status": "passed",
+      "failure_codes": [],
+      "subproblem_count": 3,
+      "runtime_seconds": 4093.196503,
+      "manual_intervention_count": 2,
+      "baseline_wins": 0,
+      "baseline_win_rate": 0.0,
+      "fatal_error_count": 0,
+      "fatal_error_rate": 0.0,
+      "submission_admission": true,
+      "evidence": [
+        {
+          "path": "run_manifest.json",
+          "sha256": "0e9996121886a0082da585c7b8730bc96c60f162474496645930a0f05675777f"
+        },
+        {
+          "path": "runtime_pack.md",
+          "sha256": "3ed6b2f742906e6d9bea6a827e597a87f2c8ef49955394a33d15dcbd9f67172c"
+        },
+        {
+          "path": "runtime_pack.manifest.json",
+          "sha256": "dbda7f67325a59e8c8d8769ac4f004eabaa15d0fb10b3b408193563ee7e129f5"
+        },
+        {
+          "path": "official_materials/2016_C/material_manifest.json",
+          "sha256": "0d41d9dd9d440a398b0ca37839cb32cb39dc0b04fecfa25270b407de4c107327"
+        },
+        {
+          "path": "full_replay_run_record.json",
+          "sha256": "772d0a5f89a5534448123b594922ca8338de3326b5c2868a2e25661c807587bc"
+        },
+        {
+          "path": "competition_production_adapter_report.json",
+          "sha256": "fe62a46ebe902dc0c727320ce173f07d56dfe83a018256929694cfc5ce801a5a"
+        },
+        {
+          "path": "model_route_v3.json",
+          "sha256": "3e2cf83d5c29731ab58abded129f0ec47246e02651371f26360f01a6b2f86c22"
+        },
+        {
+          "path": "route_runs/Q1/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "2f556f10a16baacb0a8d90c32b96f476166a729211a53fc046e05418d30b2634"
+        },
+        {
+          "path": "route_runs/Q1/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "2bcca054b13eb9a7010069800156dddac9c356ada2b42bccb5a06f316f23d141"
+        },
+        {
+          "path": "route_runs/Q1/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "02142c201aa7e35c000bf1c248c1f5272ba20865cd80d9729cad22d4bcb96290"
+        },
+        {
+          "path": "competition_gate3_decision_Q1.json",
+          "sha256": "441d05e52181056c090ac202281a3ef1e0f6f49d2c2318deb2f0c7e71a9e53d6"
+        },
+        {
+          "path": "score_v3_ratings_Q1.json",
+          "sha256": "461a2117012caefcb951aab65a21c61d9ef58630c09808b7d1db271bddf46c89"
+        },
+        {
+          "path": "score_v3_Q1.json",
+          "sha256": "d69933a9e90180f8fbe29896e83d1711e54264e06dc0fecc8535e1788ca03300"
+        },
+        {
+          "path": "route_comparison_result_Q1.json",
+          "sha256": "d45aab809c0e1881403921992c767c69d3ae1e9d7b92da774b4aca6bc5cf29c3"
+        },
+        {
+          "path": "route_runs/Q2/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "f82497cc946e840d00d0a8a33ccd6aee882dc3ce1ab0fa1b6f89ef938672268d"
+        },
+        {
+          "path": "route_runs/Q2/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "fa588add184378e30c7b9067941833855adf045073f07712f121a148e516681e"
+        },
+        {
+          "path": "route_runs/Q2/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "5a4a6bb05c4aafe1cd81d3939a8529d79dbcb11d36e2c2fdd43664eb80ce1535"
+        },
+        {
+          "path": "competition_gate3_decision_Q2.json",
+          "sha256": "d30918adc3d74e370ce7ca7c3364a9425702bcc45db93dde5512ebd113e54e86"
+        },
+        {
+          "path": "score_v3_ratings_Q2.json",
+          "sha256": "dd6d916e8493ecaf0ad27dae6775f9f42921987ca0bfde19e0bd747a969d9349"
+        },
+        {
+          "path": "score_v3_Q2.json",
+          "sha256": "3605c188ca536d251fef82d5cb3b381afb7819c54a210d954520e0f7d95810a2"
+        },
+        {
+          "path": "route_comparison_result_Q2.json",
+          "sha256": "ece559507916a1c227909a3439f006158c3764759e92f5b0502f397153453c89"
+        },
+        {
+          "path": "route_runs/Q3/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "6577b81b82572c0b3a362ceb1148559a0d3967ff40eecae509f940435baec3dc"
+        },
+        {
+          "path": "route_runs/Q3/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "79a2ff54b662049d432dd58ac6bd5ff6037e3364461317e2b531f8a2889c0d62"
+        },
+        {
+          "path": "route_runs/Q3/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "f33921ceffb5421c74e31b1af0c4160b28d15da6f24edacb09c02cdc2d4938bd"
+        },
+        {
+          "path": "competition_gate3_decision_Q3.json",
+          "sha256": "a352ed14f1dd1f2c017af56ef83cbe0b54bbbdc65b7a60358bb70c684738d5e6"
+        },
+        {
+          "path": "score_v3_ratings_Q3.json",
+          "sha256": "a41ca31ed05c0bcf7d6e20647e361be880e8a81efcee508cd8dfdd5c44c9a06f"
+        },
+        {
+          "path": "score_v3_Q3.json",
+          "sha256": "cd830ae7fac83fcc966d2f0b8d85b2b48e7440bc7b614825bf5e05f7a8dfbec0"
+        },
+        {
+          "path": "route_comparison_result_Q3.json",
+          "sha256": "e1946ef144d8ed4d8cc0fece24d1b9a49518bdba70db21704b9a492bcf56b2f9"
+        },
+        {
+          "path": "paper_candidate_manifest.json",
+          "sha256": "3dd577c5005253d766adc89315faf597793bd43f76abf9512981691bfea1507e"
+        },
+        {
+          "path": "paper_production_manifest_v2.json",
+          "sha256": "223b94dc57b8180c853dc8de12c6a5a711f0ba535529f2d51781b7ae0b459acd"
+        }
+      ]
+    },
+    {
+      "problem_id": "2023-B",
+      "run_id": "pr7-2023b-full-replay-20260717",
+      "profile": "engineering_optimization",
+      "runtime_pack_sha256": "6c904fe5b2746262ebc7f58978bca52bc6e573c52d199591ae7c121ef90b61e1",
+      "status": "passed",
+      "failure_codes": [],
+      "subproblem_count": 4,
+      "runtime_seconds": 4090.196503,
+      "manual_intervention_count": 2,
+      "baseline_wins": 0,
+      "baseline_win_rate": 0.0,
+      "fatal_error_count": 0,
+      "fatal_error_rate": 0.0,
+      "submission_admission": true,
+      "evidence": [
+        {
+          "path": "run_manifest.json",
+          "sha256": "42d389442810876a6978344266b290e30257e62c41eb67df4d5cf0419c8dc71c"
+        },
+        {
+          "path": "runtime_pack.md",
+          "sha256": "6c904fe5b2746262ebc7f58978bca52bc6e573c52d199591ae7c121ef90b61e1"
+        },
+        {
+          "path": "runtime_pack.manifest.json",
+          "sha256": "61d4cda68469e658aec0542dad511077e70424bfd833da87ddc92e4bb7c665a0"
+        },
+        {
+          "path": "official_materials/2023_B/material_manifest.json",
+          "sha256": "3f11d26764fbab5f6de0c8bd518fefe681f178442a8bc8ce35e434a7b19643c0"
+        },
+        {
+          "path": "full_replay_run_record.json",
+          "sha256": "be14e7293af40cc4df5f043e5ac0f12b13fb50e360075809519312b1aa21e80d"
+        },
+        {
+          "path": "competition_production_adapter_report.json",
+          "sha256": "1e3d626db91c0d27efd552afab32df05f1504f179cdeb702793342c74a4ca950"
+        },
+        {
+          "path": "model_route_v3.json",
+          "sha256": "84776916620cb575445d2d0c4a43fb9c789a9fd79ca4bd07657df0bdb3ebc9fe"
+        },
+        {
+          "path": "route_runs/Q1/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "fe8ce2389f96943a8f7754a07f939950844958132f2201189e993e3ed4233006"
+        },
+        {
+          "path": "route_runs/Q1/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "79d5e5adefa91de5d765aa1664f29ff5e4884e7ba54b38c230e6d324d3acaaee"
+        },
+        {
+          "path": "route_runs/Q1/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "9d144e75493b49e0d591d82995767df32f5bce0d99aed2d8ab1755af1d454354"
+        },
+        {
+          "path": "competition_gate3_decision_Q1.json",
+          "sha256": "f7cfb3bf60956621a232c7c51ce6a74144b1ebacd791defae0b839639a71cfa1"
+        },
+        {
+          "path": "score_v3_ratings_Q1.json",
+          "sha256": "51d99f3ae3ea1d396b9f161c8588a7bc1814dbbd0394f17aa7924c79700e9629"
+        },
+        {
+          "path": "score_v3_Q1.json",
+          "sha256": "753f5982392f1aa5923c0668e4eb0205e1f8393b3f5a4f47699cc48d2bbab0af"
+        },
+        {
+          "path": "route_comparison_result_Q1.json",
+          "sha256": "4f25e7672c85f8668c875ac3e2b02cbf965c8af069ed407b46adc8c91cb8e169"
+        },
+        {
+          "path": "route_runs/Q2/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "264cd53c76d3224f4527387a5eaa67f1e7cbce93c844b97cedc1eb5f352c9089"
+        },
+        {
+          "path": "route_runs/Q2/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "fddc25f4322efae678dab4149fa9d2cbcef87addb7844f3655f8ef4efcaa075c"
+        },
+        {
+          "path": "route_runs/Q2/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "1db326fd2b3d5abe65c745c1bf7412a6086eb28000d0760eb03d32041c75f449"
+        },
+        {
+          "path": "competition_gate3_decision_Q2.json",
+          "sha256": "0ba850432dcac39fe8079ed382f83f2186dcb68890850df4dac6ad1636e17b58"
+        },
+        {
+          "path": "score_v3_ratings_Q2.json",
+          "sha256": "042a290f505af270cedd345938fe6358b9c984ae84cb87bf2aca162f0ef7730c"
+        },
+        {
+          "path": "score_v3_Q2.json",
+          "sha256": "be9020e979cbf4c0aec58a887a8e9485885f27683255157a63f8105f3a40e0de"
+        },
+        {
+          "path": "route_comparison_result_Q2.json",
+          "sha256": "0a08d6880e6d859b6d0f1ac79af0de9983986f870218f273df07c31510926e8f"
+        },
+        {
+          "path": "route_runs/Q3/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "fe96dc704a751c34ac7c6e3adb1763dcc92a263d61de02a02b5d7d46480c57cb"
+        },
+        {
+          "path": "route_runs/Q3/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "1f751cc6925b58a980653c0ae9f252cec16b8226d45b09cc3cb45cd92e01a27f"
+        },
+        {
+          "path": "route_runs/Q3/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "8a707e57b296b3a93987d8bfcb1df670c61b8db901b9b278c9e9f1a78973475d"
+        },
+        {
+          "path": "competition_gate3_decision_Q3.json",
+          "sha256": "14e754ed01e969ffa7d920c71a27bce747965441ae49aa26e01b63bdf22c83de"
+        },
+        {
+          "path": "score_v3_ratings_Q3.json",
+          "sha256": "f471c7e7eacabf0e3c91f19645c8c554ced1d66a239cc947b0c5fae90b8ec62a"
+        },
+        {
+          "path": "score_v3_Q3.json",
+          "sha256": "f8a70d524c4e5da054249ebb844633b49bfefa9c962f09a2334727ecf1a00852"
+        },
+        {
+          "path": "route_comparison_result_Q3.json",
+          "sha256": "78ea15b738386cf19c22014385566a26ab2f93b21aafb077184c0794eca69984"
+        },
+        {
+          "path": "route_runs/Q4/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "8190c14028262bfc2122704e47b049fb289483607e5d60d84c9e8093ef24b9a3"
+        },
+        {
+          "path": "route_runs/Q4/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "a90f99e4fc4b6ad8ad5387db02b19db7cc52185905981688daee5a5f32fae3ec"
+        },
+        {
+          "path": "route_runs/Q4/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "f2463e5e1d4d2b35ac3f91519a7f520f5967cc6a5658e70bdbe796378e679d9a"
+        },
+        {
+          "path": "competition_gate3_decision_Q4.json",
+          "sha256": "8f154f6a575ac517999070965c6bc843f1ced8f676908514bd1cc020c7b2f267"
+        },
+        {
+          "path": "score_v3_ratings_Q4.json",
+          "sha256": "b659eaf22871cc66f83bab307df3080252ec28464e695491b8fbfb921f9b7062"
+        },
+        {
+          "path": "score_v3_Q4.json",
+          "sha256": "dde29cc4973219842c5d1e4dad9011867f5582bcdbcafe06ed70878cf45938ad"
+        },
+        {
+          "path": "route_comparison_result_Q4.json",
+          "sha256": "6e267559e3293d8b6e56c5c112b5800edfd09150e4297e2bea371dc979103e17"
+        },
+        {
+          "path": "paper_candidate_manifest.json",
+          "sha256": "9de4e604f640e2fc52be486a8c179c26728a5432a5a6b4811b1adf0f5d24c3ea"
+        },
+        {
+          "path": "paper_production_manifest_v2.json",
+          "sha256": "4d0d2ca1442165fffe064c9e7e4be75529d1cf6821e08da4df411c3b9d357d26"
+        }
+      ]
+    },
+    {
+      "problem_id": "2024-B",
+      "run_id": "pr7-2024b-full-replay-20260717",
+      "profile": "evaluation",
+      "runtime_pack_sha256": "d6f60ea44973147b1be3b2b9adc98b99eb143bae3506c8fa913d600af76e7e67",
+      "status": "passed",
+      "failure_codes": [],
+      "subproblem_count": 4,
+      "runtime_seconds": 4085.196503,
+      "manual_intervention_count": 2,
+      "baseline_wins": 0,
+      "baseline_win_rate": 0.0,
+      "fatal_error_count": 0,
+      "fatal_error_rate": 0.0,
+      "submission_admission": true,
+      "evidence": [
+        {
+          "path": "run_manifest.json",
+          "sha256": "8b8db8cc92265db86a2b21625ff4d1c182c0cd52ac74642fd645523df6661125"
+        },
+        {
+          "path": "runtime_pack.md",
+          "sha256": "d6f60ea44973147b1be3b2b9adc98b99eb143bae3506c8fa913d600af76e7e67"
+        },
+        {
+          "path": "runtime_pack.manifest.json",
+          "sha256": "ebc31029275813b46d7103f2c89bd6c6fdc16f885d352f326b8814aa88cb122b"
+        },
+        {
+          "path": "official_materials/2024_B/material_manifest.json",
+          "sha256": "5eb91e518a751936d9ecc2ae132ef4f9a31f7913b29eac25dc2f13c84df4841f"
+        },
+        {
+          "path": "full_replay_run_record.json",
+          "sha256": "fd4c1bba87cfb2f08ed364e3059cbf8a4b0e43fcd81fad0a8871c2f73dce72ea"
+        },
+        {
+          "path": "competition_production_adapter_report.json",
+          "sha256": "0aa5962704ef98ea009c7293db5840714b56d0d9c9d8fd235878ebd03355df78"
+        },
+        {
+          "path": "model_route_v3.json",
+          "sha256": "4b9ebc0de11d7de2921c481a8298706b89b77c4dcb085cf02b68b05920bcd548"
+        },
+        {
+          "path": "route_runs/Q1/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "aa54b79f4d7b3691b8eb62b1946409dba5a0ea959dc3c9ff2b33030fc9de2cbe"
+        },
+        {
+          "path": "route_runs/Q1/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "18a10730b6aefc4d1539975a0ae921d0c1ab28ac67d94a7d0dfa1c21aa733f64"
+        },
+        {
+          "path": "route_runs/Q1/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "903f2301de5ec8cee9bfe42fe3fa371e05c34e716fef0d560c95f025b735af6f"
+        },
+        {
+          "path": "competition_gate3_decision_Q1.json",
+          "sha256": "c9ca96b17ac6a205e04ba8171490eca0e77b21cc1833fa193de5e230373cfc32"
+        },
+        {
+          "path": "score_v3_ratings_Q1.json",
+          "sha256": "7330acc1fcb08d848a077f50fd145deb7ea52fc11029c03a865eecb16b6d62f4"
+        },
+        {
+          "path": "score_v3_Q1.json",
+          "sha256": "7d4d1eb3297a86997f2a69307f456824299412b2276b0af1d982fde3387ed6f6"
+        },
+        {
+          "path": "route_comparison_result_Q1.json",
+          "sha256": "598bd093c9f295580dd703ba48e5411b600160fe018840d55dacb8b24801ac74"
+        },
+        {
+          "path": "route_runs/Q2/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "d8acbedefe6c499d5b9ed34518579fbb7b675f5f06fda715808b22a3e9e00b81"
+        },
+        {
+          "path": "route_runs/Q2/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "3dd9452edd0b5c58ef31629bf396f23b4f1ed6da0884c5c896c93b1735df469d"
+        },
+        {
+          "path": "route_runs/Q2/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "94ed839e7e41909e757bf8cdb2227489a32266768cd417957c8c58689a94e583"
+        },
+        {
+          "path": "competition_gate3_decision_Q2.json",
+          "sha256": "3fffd83192763af3088495f27485508ba44dd58078186b77a8036645a3c0a28b"
+        },
+        {
+          "path": "score_v3_ratings_Q2.json",
+          "sha256": "77a25b7123afc9fbdb471fd350a355a0ee155f842bccc7103f12cec8f00f2eb2"
+        },
+        {
+          "path": "score_v3_Q2.json",
+          "sha256": "0eef9bceebe1f33aaa3f64c10e14c97075fc00a9c6019ada3feed895284d18e7"
+        },
+        {
+          "path": "route_comparison_result_Q2.json",
+          "sha256": "894fb3dc50b938fbf5dca4c70396f15fd0b2eed596cfeff4a4ccf8cdce408161"
+        },
+        {
+          "path": "route_runs/Q3/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "a09e3329732d78d93235600d4a747087646478053c2effbd9ee3eb6291de7a18"
+        },
+        {
+          "path": "route_runs/Q3/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "fdf4e5949eb833ff9dc9fd331c5d573ffa2db3f4c0ee21ec5d577184d9596651"
+        },
+        {
+          "path": "route_runs/Q3/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "f61149d70f22bd008e2830b531f3650b301771c4552e981690916861df1410dc"
+        },
+        {
+          "path": "competition_gate3_decision_Q3.json",
+          "sha256": "5357acd5b28b30e5803f6550ef4788b22a4d512e2012254bb987b50692644e97"
+        },
+        {
+          "path": "score_v3_ratings_Q3.json",
+          "sha256": "9dab5e401a2b122150267d67a62514ead0ba09c8d2b4ec3baf75537f79423c86"
+        },
+        {
+          "path": "score_v3_Q3.json",
+          "sha256": "83465e2e7ea40ffffd50951a1b7d5fbf902a877242ed8d0d3a89346936a35d79"
+        },
+        {
+          "path": "route_comparison_result_Q3.json",
+          "sha256": "d52ba4d3caf85ad241c642c753be87146f02e2ae31877498111197a1e838339e"
+        },
+        {
+          "path": "route_runs/Q4/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "c3ca99e1f06cdf347ddbc0a0cc0bd96b5702768f8231e637926ba86be70b6b08"
+        },
+        {
+          "path": "route_runs/Q4/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "04f5aa12121131de56759b7d1bb7d70148d2c0d880992166641c535171011546"
+        },
+        {
+          "path": "route_runs/Q4/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "018b2726c1b12d0f5814e21fc4d91f7ff4e373cfcb638130084edaa0af1008e4"
+        },
+        {
+          "path": "competition_gate3_decision_Q4.json",
+          "sha256": "53b0628f4cab10da3b4692d6c09e12faafd778d41b2653de564628e542b40bba"
+        },
+        {
+          "path": "score_v3_ratings_Q4.json",
+          "sha256": "03456a4ae39f6bf4861514212f501d3d5961a8c19f03f6901925880cc2610606"
+        },
+        {
+          "path": "score_v3_Q4.json",
+          "sha256": "e76f3abdd3bc3b3882e4a36dbc11d9e6aab6c560ef1eb04c1c8c3921043da146"
+        },
+        {
+          "path": "route_comparison_result_Q4.json",
+          "sha256": "58b30035c3836730b6948a0941dce419f7102f34e16736a9b04a1577ec3d6796"
+        },
+        {
+          "path": "paper_candidate_manifest.json",
+          "sha256": "5aa90a007f9e29d70ab2fab3d1c26cf7378f054ed6d638413269e26f2d99ec20"
+        },
+        {
+          "path": "paper_production_manifest_v2.json",
+          "sha256": "b978443f08926c74d3faeaa954119940823fe6ddfddc59f928216fab9b879426"
+        }
+      ]
+    },
+    {
+      "problem_id": "2024-C",
+      "run_id": "pr7-2024c-full-replay-20260717",
+      "profile": "engineering_optimization",
+      "runtime_pack_sha256": "6c904fe5b2746262ebc7f58978bca52bc6e573c52d199591ae7c121ef90b61e1",
+      "status": "passed",
+      "failure_codes": [],
+      "subproblem_count": 3,
+      "runtime_seconds": 4081.196503,
+      "manual_intervention_count": 2,
+      "baseline_wins": 0,
+      "baseline_win_rate": 0.0,
+      "fatal_error_count": 0,
+      "fatal_error_rate": 0.0,
+      "submission_admission": true,
+      "evidence": [
+        {
+          "path": "run_manifest.json",
+          "sha256": "25ba05f1a0b2311cae65f2526e41026b4eb0ea026a0c9000c22b1298c0f28159"
+        },
+        {
+          "path": "runtime_pack.md",
+          "sha256": "6c904fe5b2746262ebc7f58978bca52bc6e573c52d199591ae7c121ef90b61e1"
+        },
+        {
+          "path": "runtime_pack.manifest.json",
+          "sha256": "61d4cda68469e658aec0542dad511077e70424bfd833da87ddc92e4bb7c665a0"
+        },
+        {
+          "path": "official_materials/2024_C/material_manifest.json",
+          "sha256": "e8f322b018207b4eb87c58dff779ed4e56bb83c6bacd39e33f1e012c7d026390"
+        },
+        {
+          "path": "full_replay_run_record.json",
+          "sha256": "47c0970bd67809327362304ee0becc17cdcddf76d221e65c0f7f9bf8ee5c24e6"
+        },
+        {
+          "path": "competition_production_adapter_report.json",
+          "sha256": "63c4240de57c718f2cf49d8312c4d0534aab58f2f722d3394ab66430d749707c"
+        },
+        {
+          "path": "model_route_v3.json",
+          "sha256": "eb9de34b36683bad224d8991fab7c1438bf0a799f25fd401e0b6a1d4e90b9636"
+        },
+        {
+          "path": "route_runs/Q1/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "688faa849ecbc5c2109d7368bb7cdf1de6fac9bde994928e826c032adacdb9cc"
+        },
+        {
+          "path": "route_runs/Q1/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "12523c79ac41a62ae0696dba616e664ca2b5b29a0cae593a37bcb3142d354ddd"
+        },
+        {
+          "path": "route_runs/Q1/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "e2f89074dfa57cab44e5f46fe1265de16757bfd12db639b8ca63de12e999fe21"
+        },
+        {
+          "path": "competition_gate3_decision_Q1.json",
+          "sha256": "145c177e889b20a2bf76f14320f9c39ec29b43c70022d9cadd24caba51b43e38"
+        },
+        {
+          "path": "score_v3_ratings_Q1.json",
+          "sha256": "b8b27b90e08ca0713b0c7abe5c4d46aaa9e0c60c40c8037a1212a25636c5b988"
+        },
+        {
+          "path": "score_v3_Q1.json",
+          "sha256": "e8f559bf49dbdde59aefd3bfb7b59f72e7ed3aac78dabf708d85cd8542dfd356"
+        },
+        {
+          "path": "route_comparison_result_Q1.json",
+          "sha256": "9e10e16ea19eafb70ac72dc44673bf0a772483ce9c74a78c04efb20e05f505d9"
+        },
+        {
+          "path": "route_runs/Q2/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "e2a7081cf5b064bd527cf416231234cae2e959713539f8c67afb27f707c3d1c1"
+        },
+        {
+          "path": "route_runs/Q2/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "8aa0b7275d908e3ecd8ebc3c80dc73f0af60bee51b0f3a2e96839792c60e21cf"
+        },
+        {
+          "path": "route_runs/Q2/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "b029dc03441020ef6d93f7c1c8f3bc310b824da7e4e0ccbc86bd6eea36197899"
+        },
+        {
+          "path": "competition_gate3_decision_Q2.json",
+          "sha256": "63ce57e09a2a2da1ed2e73604520833f5d91565d306d569dde52cf821cd3bcd8"
+        },
+        {
+          "path": "score_v3_ratings_Q2.json",
+          "sha256": "0c98409fe84bb745ff2f0b1633c4fa045eafb36befc5053d95e13fb274be3926"
+        },
+        {
+          "path": "score_v3_Q2.json",
+          "sha256": "2d3c7bde7b7775023558a6a346a4011e852c8da3475941dc6594e046afef3771"
+        },
+        {
+          "path": "route_comparison_result_Q2.json",
+          "sha256": "22dc748a925050a898558367dc422f177ef6741398cbf592b66804d5ba7d0f09"
+        },
+        {
+          "path": "route_runs/Q3/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "98b26fd5148e44f63af978757fd5987e6982fc763bded08f82ad9b03f7e2f23f"
+        },
+        {
+          "path": "route_runs/Q3/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "1a1bd4c9901c61c9a7234067c3d9c0bfd3bebb0fec1388079daf604ee69f6ad5"
+        },
+        {
+          "path": "route_runs/Q3/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "d859f114b2961548a460a6697312b861cbb55e799f896e556ba68f7ab0686db6"
+        },
+        {
+          "path": "competition_gate3_decision_Q3.json",
+          "sha256": "051e10bf937288da553eded39c78e492597fd2fdaaf8fd6c5a259118cb53cbad"
+        },
+        {
+          "path": "score_v3_ratings_Q3.json",
+          "sha256": "8ee67f081ed3e117f129b01dfaf5fb558cddfb670d0698e84cd744d6a7868f1b"
+        },
+        {
+          "path": "score_v3_Q3.json",
+          "sha256": "ad0c166b3436ed787c2460da0b8d9c257d4364131a0c87be3464d4c6df6a952d"
+        },
+        {
+          "path": "route_comparison_result_Q3.json",
+          "sha256": "d4721191e54bf5b805647b77c457fe513d2dcfbf6b74605bfb1664a6bd4555db"
+        },
+        {
+          "path": "paper_candidate_manifest.json",
+          "sha256": "849c4c7666d1a75b35a9110180cab613f8fdbc24f8fe5ce229109339170c0625"
+        },
+        {
+          "path": "paper_production_manifest_v2.json",
+          "sha256": "6ec35552ad2e19dedaba5d988d92fefdf34a6758910764692b5e4d74e08a93fc"
+        }
+      ]
+    },
+    {
+      "problem_id": "2024-D",
+      "run_id": "pr7-2024d-full-replay-20260717",
+      "profile": "general",
+      "runtime_pack_sha256": "91a19bf34ba24912b6305406cfa63584d6ddf55298f03a3e57093e91461a44ed",
+      "status": "passed",
+      "failure_codes": [],
+      "subproblem_count": 3,
+      "runtime_seconds": 4077.196503,
+      "manual_intervention_count": 2,
+      "baseline_wins": 0,
+      "baseline_win_rate": 0.0,
+      "fatal_error_count": 0,
+      "fatal_error_rate": 0.0,
+      "submission_admission": true,
+      "evidence": [
+        {
+          "path": "run_manifest.json",
+          "sha256": "7803d4b3cd2424ee15bfef312e56261198bc8b31e0aa3452ab14ceda19aaabf5"
+        },
+        {
+          "path": "runtime_pack.md",
+          "sha256": "91a19bf34ba24912b6305406cfa63584d6ddf55298f03a3e57093e91461a44ed"
+        },
+        {
+          "path": "runtime_pack.manifest.json",
+          "sha256": "aee778acff32409cb59cc00ea4ff70ac04d70db4cf8be3de338acc1bac7d6ee0"
+        },
+        {
+          "path": "official_materials/2024_D/material_manifest.json",
+          "sha256": "afa42b7664b813fb31b2f710bdf0212c8d6604d8275fdbdfbf943d29c8aa89ff"
+        },
+        {
+          "path": "full_replay_run_record.json",
+          "sha256": "cb3f7d683708a0d3bdfa8854aa63c3ad868a4144c712cee5ea026d04f8b6af9c"
+        },
+        {
+          "path": "competition_production_adapter_report.json",
+          "sha256": "20f78e0a2b5460c525788dfcdc8cfc69bd392e67afb588bcb57e76d8b3ed8098"
+        },
+        {
+          "path": "model_route_v3.json",
+          "sha256": "3a58b58756fe45752a424dc68ad5d28d8218e96c92fd20ed6bf70a31afc46473"
+        },
+        {
+          "path": "route_runs/Q1/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "4519f4c791ce0f50cc3d6d56477d83e2bdbf0d67a5521976829934f2d6491a36"
+        },
+        {
+          "path": "route_runs/Q1/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "d85513fc3e45e607c6f4c63fead475b46f35d8ab6d28d8bf27642a08588bad8f"
+        },
+        {
+          "path": "route_runs/Q1/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "f1ee81c627af3884dec452bf25752f023966828f58463c594d6214a2c6dd0c62"
+        },
+        {
+          "path": "competition_gate3_decision_Q1.json",
+          "sha256": "0795c22a6881939b67275be46cbddc9262e8b3e29ce6f548af3529121d1792a1"
+        },
+        {
+          "path": "score_v3_ratings_Q1.json",
+          "sha256": "99004c969798b6c9e07f48ea5fb15c7c39c778d66d6a57efe57511d84bfa55c7"
+        },
+        {
+          "path": "score_v3_Q1.json",
+          "sha256": "eefa7c9fa4039011ae4d164a2cce06fa28a42182e2a82a93b54386cea490df9b"
+        },
+        {
+          "path": "route_comparison_result_Q1.json",
+          "sha256": "8974ca1c19cbc467ed132b66531748a924b96a02d6565d9df8cd00a4506770e7"
+        },
+        {
+          "path": "route_runs/Q2/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "2ab204e56543845c660d9cbbb8e27d091833d9969eb040d7ddba03dde6492bfc"
+        },
+        {
+          "path": "route_runs/Q2/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "635a5a9e809e07f73a4823dc3c1dfc690a0f5867d28d92c6c5d5f712ecea2003"
+        },
+        {
+          "path": "route_runs/Q2/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "362750c463db23c407914dcedd04ed15f6732186e676cbe0b1afa12aa1169ca6"
+        },
+        {
+          "path": "competition_gate3_decision_Q2.json",
+          "sha256": "a3ed9ea694353e277c54ba3d9a4393a0eba754661dd99d32c475ab1c7191ced3"
+        },
+        {
+          "path": "score_v3_ratings_Q2.json",
+          "sha256": "095e01564027a15010033f6e6c64a6357834692fe70c0e33753f1159355a0ea0"
+        },
+        {
+          "path": "score_v3_Q2.json",
+          "sha256": "46bdd0cbfd4381b82f1bc36d6199343846ab05b430910eb9733cbfce3e3c38a6"
+        },
+        {
+          "path": "route_comparison_result_Q2.json",
+          "sha256": "fc0f200ebcbf31f4630f57692667ccdb8f5a1d452e033ba97b8a9827d0fc045f"
+        },
+        {
+          "path": "route_runs/Q3/R-BASE/sandboxie_run_execution_attestation.json",
+          "sha256": "5186c717a2ce431b380df89a4f3bb18c84d746f546047972be1020a45c2822d5"
+        },
+        {
+          "path": "route_runs/Q3/R-PRIMARY/sandboxie_run_execution_attestation.json",
+          "sha256": "fd6995669796516b5673dd19e67c2870bc982aad3c88eeccf0e4dcc662c9a3f0"
+        },
+        {
+          "path": "route_runs/Q3/R-ALT/sandboxie_run_execution_attestation.json",
+          "sha256": "77fcb53e32d10adfda170ed8e304a17c0630d98f6ffe29594eed8d1b6fb31691"
+        },
+        {
+          "path": "competition_gate3_decision_Q3.json",
+          "sha256": "9aca2f81b256f83931a6b65a28adaf491274d9c859980f89fb4d979c2d08d2bb"
+        },
+        {
+          "path": "score_v3_ratings_Q3.json",
+          "sha256": "7b6c2859094550c14b3c703812f777e1f5e7143a247c125703d7318f1e5c6e7e"
+        },
+        {
+          "path": "score_v3_Q3.json",
+          "sha256": "51cf0f4eb618ab401877d3c49a29a05e950d320dae781baa9c6dff07023cb2e2"
+        },
+        {
+          "path": "route_comparison_result_Q3.json",
+          "sha256": "2c34a8d7b017c921c3e257fff3f0879116da8bb589afbe54c1929e7660c1e8e2"
+        },
+        {
+          "path": "paper_candidate_manifest.json",
+          "sha256": "7adc3d27a08afaf00de16e5d3c2ed92149cf8c2795adefcf4740cdce31606a44"
+        },
+        {
+          "path": "paper_production_manifest_v2.json",
+          "sha256": "bb156b25c37e447e2d60d4b59698eff1488d0749cc4422f45a906a357a98c2d8"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "problem_count": 5,
+    "passed_problem_count": 5,
+    "subproblem_count": 17,
+    "runtime_seconds": 20426.982515,
+    "manual_intervention_count": 10,
+    "baseline_win_rate": 0.0,
+    "fatal_error_rate": 0.0,
+    "submission_admission_rate": 1.0
+  },
+  "status": "passed",
+  "derived_lifecycle": "full_replay_passed",
+  "new_problem_default_enabled": false
+}

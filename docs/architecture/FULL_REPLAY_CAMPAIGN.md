@@ -31,3 +31,7 @@ python scripts/validate_full_replay_campaign.py `
 ```
 
 报告只有在本地五个 Run 均存在时才具有晋级意义。运行索引或材料登记本身不构成能力通过证据。
+
+本次五题报告已全部通过，`competition_production_capability_v1.json` 因此登记为
+`full_replay_passed`，并以 SHA-256 绑定该报告。此晋级不改变激活上下文，也不启用
+`new_problem` 默认包；隐藏盲测和双盲人工评审仍属于后续资格阶段。

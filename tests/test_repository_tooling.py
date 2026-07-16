@@ -48,6 +48,7 @@ from run_workflow import (  # noqa: E402
 )
 from finalize_run_evidence import finalize_run_evidence, validate_evidence_manifest  # noqa: E402
 from evidence_validation import validate_full_run  # noqa: E402
+import validate_repository as validate_repository_module  # noqa: E402
 from validate_repository import RepositoryValidator  # noqa: E402
 from verify_materials import MaterialVerificationResult, sha256_bytes, verify_materials  # noqa: E402
 from check_promotion_eligibility import PromotionGap, check_promotion_eligibility  # noqa: E402
@@ -55,6 +56,25 @@ from export_runtime_pack import parse_args as parse_export_runtime_pack_args  # 
 import run_workflow as run_workflow_module  # noqa: E402
 from formal_result_fixtures import write_formal_result_bundle  # noqa: E402
 from paper_candidate_fixtures import write_valid_paper_candidate  # noqa: E402
+
+
+def test_repository_scans_ignore_temporary_dependencies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "tmp" / "node_modules" / "package").mkdir(parents=True)
+    (tmp_path / "tmp" / "node_modules" / "package" / "tsconfig.json").write_text(
+        "{ invalid jsonc }", encoding="utf-8"
+    )
+    (tmp_path / "tmp" / "node_modules" / "package" / "README.md").write_text(
+        "[missing](missing.md)", encoding="utf-8"
+    )
+    monkeypatch.setattr(validate_repository_module, "ROOT", tmp_path)
+    validator = RepositoryValidator()
+
+    validator.validate_all_json_syntax()
+    validator.validate_markdown_links()
+
+    assert validator.failures == []
 
 
 def _write_material_manifest(materials: Path, problem_id: str, files: dict[str, list[tuple[str, bytes]]]) -> None:

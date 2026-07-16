@@ -7,11 +7,20 @@
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "capability_id": {"const": "competition_production_v1"},
-    "lifecycle": {"const": "review_ready"},
+    "lifecycle": {"enum": ["review_ready", "full_replay_passed"]},
     "profiles": {"const": ["general", "engineering_optimization", "evaluation", "prediction"]},
     "activation_contexts": {"const": ["full_replay"]},
     "new_problem_default_enabled": {"const": false},
     "contract_version": {"const": "1.0.0"},
+    "promotion_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"const": "capability_evidence/competition_production/full_replay/campaign_report_v1.json"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
     "gate_route": {
       "const": [
         "gate_0",
@@ -22,5 +31,12 @@
         "score_v3"
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"lifecycle": {"const": "full_replay_passed"}}},
+      "then": {"required": ["promotion_evidence"]},
+      "else": {"not": {"required": ["promotion_evidence"]}}
+    }
+  ]
 }

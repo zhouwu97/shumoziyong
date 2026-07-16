@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
 MATURITIES = {"draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"}
 PROFILE_IDS = {"general", "engineering_optimization", "prediction", "evaluation", "simulation"}
+REPOSITORY_SCAN_EXCLUDED_DIRS = {".git", ".vendor", "export", "tmp"}
 
 
 class RepositoryValidator:
@@ -105,7 +106,7 @@ class RepositoryValidator:
     def validate_all_json_syntax(self) -> None:
         broken = 0
         for path in sorted(ROOT.rglob("*.json")):
-            if any(part in {".git", ".vendor"} for part in path.parts):
+            if any(part in REPOSITORY_SCAN_EXCLUDED_DIRS for part in path.parts):
                 continue
             try:
                 json.loads(path.read_text(encoding="utf-8"))
@@ -1371,7 +1372,7 @@ class RepositoryValidator:
         link_pattern = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
         missing: list[str] = []
         for path in sorted(ROOT.rglob("*.md")):
-            if any(part in {".git", ".vendor", "export"} for part in path.parts):
+            if any(part in REPOSITORY_SCAN_EXCLUDED_DIRS for part in path.parts):
                 continue
             text = path.read_text(encoding="utf-8")
             for target in link_pattern.findall(text):
@@ -1653,12 +1654,41 @@ class RepositoryValidator:
             "competition_production_capability.schema.json",
             "Competition Production 能力生命周期",
         )
-        if capability.get("lifecycle") != "review_ready":
-            self.fail("Competition Production 生命周期越过 review_ready")
+        lifecycle = capability.get("lifecycle")
+        if lifecycle not in {"review_ready", "full_replay_passed"}:
+            self.fail("Competition Production 生命周期非法")
         elif capability.get("activation_contexts") != ["full_replay"]:
             self.fail("Competition Production 只允许显式 full_replay")
         elif capability.get("new_problem_default_enabled") is not False:
             self.fail("Competition Production 不得进入 new_problem 默认包")
+        elif lifecycle == "full_replay_passed":
+            evidence = capability.get("promotion_evidence", {})
+            report_path = ROOT / str(evidence.get("path", ""))
+            report = self.load_json(str(evidence.get("path", "")))
+            actual_sha = (
+                hashlib.sha256(report_path.read_bytes()).hexdigest()
+                if report_path.is_file()
+                else None
+            )
+            if report is None:
+                return
+            report_valid = self.validate_schema(
+                report,
+                "competition_full_replay_report.schema.json",
+                "Competition Production full_replay 晋级报告",
+            )
+            if not report_valid:
+                return
+            if actual_sha != evidence.get("sha256"):
+                self.fail("Competition Production 晋级报告哈希漂移")
+            elif report.get("status") != "passed" or report.get(
+                "derived_lifecycle"
+            ) != "full_replay_passed":
+                self.fail("Competition Production 晋级报告未证明 full_replay_passed")
+            elif report.get("new_problem_default_enabled") is not False:
+                self.fail("Competition Production 晋级报告错误启用 new_problem")
+            else:
+                self.pass_("Competition Production full_replay_passed 证据闭包")
         else:
             self.pass_("Competition Production review_ready/full_replay 生命周期边界")
 

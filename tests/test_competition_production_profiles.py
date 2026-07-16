@@ -34,7 +34,7 @@ NEW_PROBLEM_SHA256 = {
 }
 
 
-def test_capability_registry_is_review_ready_full_replay_only() -> None:
+def test_capability_registry_is_full_replay_passed_but_not_default() -> None:
     capability = json.loads(
         (ROOT / "runtime_contracts" / "competition_production_capability_v1.json").read_text(
             encoding="utf-8"
@@ -46,9 +46,15 @@ def test_capability_registry_is_review_ready_full_replay_only() -> None:
         )
     )
     assert not list(Draft202012Validator(schema).iter_errors(capability))
-    assert capability["lifecycle"] == "review_ready"
+    assert capability["lifecycle"] == "full_replay_passed"
     assert capability["activation_contexts"] == ["full_replay"]
     assert capability["new_problem_default_enabled"] is False
+    evidence = capability["promotion_evidence"]
+    report_path = ROOT / evidence["path"]
+    assert hashlib.sha256(report_path.read_bytes()).hexdigest() == evidence["sha256"]
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "passed"
+    assert report["derived_lifecycle"] == "full_replay_passed"
 
 
 def test_full_replay_compiles_v3_chain_in_gate_order_for_four_profiles() -> None:
@@ -88,7 +94,7 @@ def test_full_replay_compiles_v3_chain_in_gate_order_for_four_profiles() -> None
         assert flattened.issubset(manifest_paths)
 
 
-def test_new_problem_and_prompt_regression_do_not_compile_review_ready_capability() -> None:
+def test_new_problem_and_prompt_regression_do_not_compile_non_default_capability() -> None:
     capability_path = "runtime_contracts/competition_production_capability_v1.json"
     adapter_path = "prompt_plugins/plugin_competition_production_v1.md"
     for profile, expected_sha in NEW_PROBLEM_SHA256.items():
