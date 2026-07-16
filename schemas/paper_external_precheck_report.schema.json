@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_external_precheck_report.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "adapter_id", "upstream_source", "paper_root", "body_before", "body_after", "mutation_detected", "status", "authority", "findings", "suggested_repairs"],
+  "properties": {
+    "schema_version": {"const": "paper_external_precheck_report_v1"},
+    "adapter_id": {"const": "native_writing_check_adapter_v1"},
+    "upstream_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "path", "sha256", "executed"],
+      "properties": {
+        "repository": {"const": "https://github.com/jihe520/MathModelAgent.git"},
+        "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "path": {"const": "skills/6verity/scripts/writing_check.sh"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "executed": {"const": false}
+      }
+    },
+    "paper_root": {"type": "string", "minLength": 1},
+    "body_before": {"$ref": "#/$defs/bodySnapshot"},
+    "body_after": {"$ref": "#/$defs/bodySnapshot"},
+    "mutation_detected": {"type": "boolean"},
+    "status": {"enum": ["passed", "issues_found", "mutation_detected"]},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modify_paper", "rerun_results", "decide_gate4_pass"],
+      "properties": {
+        "modify_paper": {"const": false},
+        "rerun_results": {"const": false},
+        "decide_gate4_pass": {"const": false}
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "severity", "path", "line", "message", "repair_id"],
+        "properties": {
+          "code": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "severity": {"enum": ["blocking", "advisory"]},
+          "path": {"$ref": "#/$defs/relativePath"},
+          "line": {"type": "integer", "minimum": 1},
+          "message": {"type": "string", "minLength": 1},
+          "repair_id": {"type": "string", "pattern": "^repair_[0-9]{4}$"}
+        }
+      }
+    },
+    "suggested_repairs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "automatic_apply"],
+      "properties": {
+        "path": {"const": "suggested_repairs.json"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "automatic_apply": {"const": false}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {"properties": {"mutation_detected": {"const": false}, "findings": {"maxItems": 0}}}
+    },
+    {
+      "if": {"properties": {"mutation_detected": {"const": true}}, "required": ["mutation_detected"]},
+      "then": {"properties": {"status": {"const": "mutation_detected"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "relativePath": {"type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"},
+    "bodySnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "file_count", "files"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "file_count": {"type": "integer", "minimum": 1},
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "size_bytes"],
+            "properties": {
+              "path": {"$ref": "#/$defs/relativePath"},
+              "sha256": {"$ref": "#/$defs/sha256"},
+              "size_bytes": {"type": "integer", "minimum": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

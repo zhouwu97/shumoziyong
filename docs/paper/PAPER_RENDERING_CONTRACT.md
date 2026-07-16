@@ -16,6 +16,7 @@
 4. 保存论文源文件清单、模板清单、编译记录和输出 PDF 哈希；
 5. 通过受控 Humanizer 差分检查、源码检查、编译检查和 PDF 逐页视觉验收；
 6. 任何批准模板缺失、renderer 未批准、编译失败或证据缺失都必须阻断 submission rendering，不得静默退回其他样式。
+7. 上游兼容预检只能生成只读报告和建议修复，不能修改正文或直接映射 Gate 4 PASS。
 
 ### technical_report
 
@@ -32,3 +33,6 @@
 ## Attestation 最小证据
 
 成功渲染必须生成 `paper_render_attestation.json`，至少记录文档类型、Profile、模板、renderer 及版本、源文件清单哈希、Profile 快照哈希、模板清单哈希、输出 PDF 哈希和 `compiled=true`。Attestation 证明渲染来源绑定，不证明论文内容正确，也不替代 Gate 5 独立 Reviewer。
+
+最终论文生产证据使用 `paper_production_manifest_v2` 按固定阶段顺序聚合。Manifest 的
+`submission_candidate` 仅表示材料可交给 Gate 4 独立 Validator，不等于 Gate 4 已通过。

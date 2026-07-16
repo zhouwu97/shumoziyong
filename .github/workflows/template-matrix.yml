@@ -1,0 +1,86 @@
+name: Paper Template Matrix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/template-matrix.yml"
+      - "UPSTREAM.lock.json"
+      - "upstream/mathmodelagent.sha256.json"
+      - "runtime_contracts/template_*.json"
+      - "schemas/template_*.json"
+      - "scripts/paper/check_template_matrix.py"
+      - "scripts/paper/template_registry.py"
+  pull_request:
+    paths:
+      - ".github/workflows/template-matrix.yml"
+      - "UPSTREAM.lock.json"
+      - "upstream/mathmodelagent.sha256.json"
+      - "runtime_contracts/template_*.json"
+      - "schemas/template_*.json"
+      - "scripts/paper/check_template_matrix.py"
+      - "scripts/paper/template_registry.py"
+  schedule:
+    - cron: "23 18 * * 1"
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "ordinary=17 Typst+5 XeLaTeX；full=全部 34 套"
+        required: true
+        default: ordinary
+        type: choice
+        options: [ordinary, full]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-template-matrix-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install --require-hashes -r requirements.lock
+      - uses: typst-community/setup-typst@v5
+        with:
+          typst-version: 0.15.0
+      - name: Install XeLaTeX and representative template dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fonts-noto-cjk texlive-xetex texlive-lang-chinese texlive-latex-extra
+      - name: Sync verified read-only Source Asset
+        run: python scripts/upstream/sync_mathmodelagent.py
+      - name: Select matrix mode
+        id: matrix-mode
+        shell: bash
+        run: |
+          mode="ordinary"
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "release" || "${{ inputs.mode }}" == "full" ]]; then
+            mode="full"
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+      - name: Compile registered template matrix
+        run: >-
+          python scripts/paper/check_template_matrix.py
+          --mode ${{ steps.matrix-mode.outputs.mode }}
+          --report template_matrix_report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paper-template-matrix-${{ steps.matrix-mode.outputs.mode }}
+          path: template_matrix_report.json
+          if-no-files-found: error

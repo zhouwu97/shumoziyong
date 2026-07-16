@@ -26,5 +26,29 @@
       "passes": 2,
       "encoding": "utf-8"
     }
-  }
+  },
+  "staged_rewrites": [
+    {
+      "rewrite_id": "ctex_fontset_portability",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "fontset=mac",
+      "replacements": {
+        "windows": "fontset=windows",
+        "linux": "fontset=fandol"
+      },
+      "source_asset_mutated": false
+    },
+    {
+      "rewrite_id": "latin_serif_portability",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "\\setmainfont{Times New Roman}",
+      "replacements": {
+        "windows": "\\setmainfont{Times New Roman}",
+        "linux": "\\setmainfont{TeX Gyre Termes}"
+      },
+      "source_asset_mutated": false
+    }
+  ]
 }
