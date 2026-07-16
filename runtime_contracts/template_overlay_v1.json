@@ -1,0 +1,30 @@
+{
+  "schema_version": "template_overlay_v1",
+  "overlay_id": "windows_template_overlay_v1",
+  "platform": "windows",
+  "path_policy": {
+    "manifest_separator": "/",
+    "execution_separator": "native",
+    "reject_parent_traversal": true
+  },
+  "materialization": {
+    "mode": "verified_copy",
+    "verify_before_copy": true,
+    "source_asset_read_only": true,
+    "normalize_line_endings": false
+  },
+  "engines": {
+    "typst": {
+      "executable_candidates": ["typst.exe", "typst"],
+      "command": ["{executable}", "compile", "--root", "{template_dir}", "{entry}", "{output_pdf}"],
+      "passes": 1,
+      "encoding": "utf-8"
+    },
+    "xelatex": {
+      "executable_candidates": ["xelatex.exe", "xelatex"],
+      "command": ["{executable}", "-interaction=nonstopmode", "-halt-on-error", "{entry}"],
+      "passes": 2,
+      "encoding": "utf-8"
+    }
+  }
+}
