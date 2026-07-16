@@ -8,7 +8,7 @@
 - 研究范围：`skills/5writing/`、`skills/6verity/`、`skills/3coding-visual/`、`skills/4drawio/`、`skills/_references/math_modeling_norms.md`
 - 停止条件：完成本表所列能力判断后，不再扩展到总控、Agent 编排、WebUI、RAG、检索或多模型路由。
 
-上游仓库根目录在审计提交中未发现 `LICENSE`、`COPYING` 或 `NOTICE` 文件。因此，本项目只参考公开设计与验收思想，所有模板、组件和脚本均独立实现，不直接复制上游大段源码，也不主张获得了上游代码复制授权。
+审计提交的许可文本位于 `docs/md/License.md`，并非仓库根目录。项目维护者已确认取得上游作者的直接使用与优化许可；本仓仍按该公开文本保守处理个人免费、不得商业使用、不得闭源分发、不得提供商业服务的边界。上游原文只通过固定提交与逐文件哈希校验后进入被忽略的本地 Source Asset，不直接进入 Runtime Pack。
 
 ## 能力取舍
 
@@ -34,6 +34,6 @@
 4. 文本扫描、编译检查和 PDF 逐页视觉检查是三个不同层次，不能互相替代。
 5. 验收阶段只报告或小范围修复表达问题，不重新设计模型或发明结果。
 
-## 独立实现说明
+## 受控吸收说明
 
-本目录中的 Typst 结构、样式参数、Python API、JSON 输出格式和测试均由本项目重新设计。上游仅作为需求审计依据；没有将上游模板文件或检查脚本复制到本项目。
+现有 Typst 结构、样式参数、Python API、JSON 输出格式和测试仍是本仓 Native 实现。后续允许从固定 Source Asset 提取可审计需求，并在模板生产阶段按来源哈希选择上游模板；Source Asset、Extracted Requirement 与 Native Adapter 三层必须保持隔离。

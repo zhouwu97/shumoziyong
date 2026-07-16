@@ -22,6 +22,10 @@ from run_workflow import (
     replay_transition_log,
     verify_run_seal,
 )
+from upstream.sync_mathmodelagent import (
+    UpstreamIntegrityError,
+    load_and_validate_metadata,
+)
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -95,7 +99,7 @@ class RepositoryValidator:
     def validate_all_json_syntax(self) -> None:
         broken = 0
         for path in sorted(ROOT.rglob("*.json")):
-            if ".git" in path.parts:
+            if any(part in {".git", ".vendor"} for part in path.parts):
                 continue
             try:
                 json.loads(path.read_text(encoding="utf-8"))
@@ -1361,7 +1365,7 @@ class RepositoryValidator:
         link_pattern = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
         missing: list[str] = []
         for path in sorted(ROOT.rglob("*.md")):
-            if any(part in {".git", "export"} for part in path.parts):
+            if any(part in {".git", ".vendor", "export"} for part in path.parts):
                 continue
             text = path.read_text(encoding="utf-8")
             for target in link_pattern.findall(text):
@@ -1524,6 +1528,24 @@ class RepositoryValidator:
                 "可信环境机器公钥注册表",
             )
 
+    def validate_upstream_source_lock(self) -> None:
+        try:
+            _lock, manifest = load_and_validate_metadata()
+        except (OSError, UpstreamIntegrityError) as exc:
+            self.fail(f"MathModelAgent 上游来源锁：{exc}")
+            return
+        if manifest.get("file_count") != 389:
+            self.fail("MathModelAgent 上游来源锁：固定文件数不是 389")
+            return
+        ignore_lines = {
+            line.strip()
+            for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        }
+        if ".vendor/mathmodelagent/" not in ignore_lines:
+            self.fail("MathModelAgent 上游来源锁：本地 Source Asset 未被 Git 忽略")
+            return
+        self.pass_("MathModelAgent 上游来源锁、许可与逐文件哈希")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1537,6 +1559,7 @@ class RepositoryValidator:
         self.validate_prompt_regression_cases()
         self.validate_evaluation_case_registry()
         self.validate_capability_framework()
+        self.validate_upstream_source_lock()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:

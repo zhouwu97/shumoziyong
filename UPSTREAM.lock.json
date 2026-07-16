@@ -1,0 +1,49 @@
+{
+  "schema_version": "mathmodelagent_upstream_lock_v1",
+  "repository": {
+    "url": "https://github.com/jihe520/MathModelAgent.git",
+    "commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+    "license_path": "docs/md/License.md",
+    "license_sha256": "138ed0a8abfa574b8c8b19fd53b18bb3c2854015f54cc24ce8f1952b82eab39d"
+  },
+  "vendor_path": ".vendor/mathmodelagent",
+  "manifest_path": "upstream/mathmodelagent.sha256.json",
+  "manifest_sha256": "38a58dbbf1d0d2957ba446631d309241b4149cc9f418d27bad5efc46f0e5f07b",
+  "allowed_paths": [
+    {
+      "path": "docs/md/License.md",
+      "object_type": "blob",
+      "git_object": "756b0138f66897d34af884d4f84a11bcecb47b84"
+    },
+    {
+      "path": "skills/3coding-visual",
+      "object_type": "tree",
+      "git_object": "d7221ec92b56ab6f700a8e0a57c57847c78affb8"
+    },
+    {
+      "path": "skills/4drawio",
+      "object_type": "tree",
+      "git_object": "a5302d9dfa221fb554bb41d5f5fd80f7d80150cc"
+    },
+    {
+      "path": "skills/5writing",
+      "object_type": "tree",
+      "git_object": "20b8645b9eacc8ac789a753c382c0b14186e049b"
+    },
+    {
+      "path": "skills/6verity",
+      "object_type": "tree",
+      "git_object": "d643ff71fca23ab45b7b51d063468704c50f7492"
+    },
+    {
+      "path": "skills/_references/math_modeling_norms.md",
+      "object_type": "blob",
+      "git_object": "051276b8ebbe7c5ad5dc7b4903724715ff6a63e4"
+    }
+  ],
+  "policy": {
+    "execute_upstream_content": false,
+    "materialize_allowlist_only": true,
+    "read_only_source_asset": true
+  }
+}
