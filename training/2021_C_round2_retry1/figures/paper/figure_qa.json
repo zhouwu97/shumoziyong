@@ -1,0 +1,205 @@
+{
+  "backend": "python",
+  "paper_figure_count": 11,
+  "figures": {
+    "01_supplier_metric_distributions": {
+      "paper_figure": 1,
+      "passed": true,
+      "source_rows": 402,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2597,
+          1765
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "03_material_capacity_distribution": {
+      "paper_figure": 2,
+      "passed": true,
+      "source_rows": 402,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2661,
+          1189
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "02_supplier_top20_scores": {
+      "paper_figure": 3,
+      "passed": true,
+      "source_rows": 20,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2341,
+          1765
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "11_rank_weight_sensitivity": {
+      "paper_figure": 4,
+      "passed": true,
+      "source_rows": 10,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2917,
+          1893
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "04_problem2_weekly_orders": {
+      "paper_figure": 5,
+      "passed": true,
+      "source_rows": 24,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2661,
+          1253
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "05_problem2_transporter_load": {
+      "paper_figure": 6,
+      "passed": true,
+      "source_rows": 192,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2724,
+          1157
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "06_problem2_inventory_trajectory": {
+      "paper_figure": 7,
+      "passed": true,
+      "source_rows": 49,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2661,
+          1637
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "07_problem3_material_mix": {
+      "paper_figure": 8,
+      "passed": true,
+      "source_rows": 6,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2213,
+          1317
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "08_problem3_transport_splitting": {
+      "paper_figure": 9,
+      "passed": true,
+      "source_rows": 5,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2597,
+          1253
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "09_problem4_capacity_comparison": {
+      "paper_figure": 10,
+      "passed": true,
+      "source_rows": 2,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          1893,
+          1317
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    },
+    "10_sensitivity_and_stress_tests": {
+      "paper_figure": 11,
+      "passed": true,
+      "source_rows": 7,
+      "checks": {
+        "all_formats_present": true,
+        "svg_editable_text": true,
+        "source_data_present": true,
+        "png_pixel_size": [
+          2917,
+          1381
+        ],
+        "tiff_dpi": [
+          600.0,
+          600.0
+        ]
+      }
+    }
+  },
+  "passed": true
+}

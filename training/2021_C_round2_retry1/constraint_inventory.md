@@ -3,7 +3,7 @@
 | ID | 题面原意 | 数学表达计划 | 索引 | 数据来源 | 单位 | 边界情况 | 独立检查 |
 |---|---|---|---|---|---|---|---|
 | C01 | 周生产需求 | `I[t-1]+A[t]-I[t]>=D` | t | 题面 | 产品m³ | D随问题4决策 | production_requirement |
-| C02 | 三类原料转换 | `A_t=Σ_rΣ_j x_{r,t,j}(1-l_j)/q_r` | r,t,j | 题面 | 产品m³ | q=(.6,.66,.72) | material_conversion |
+| C02 | 三类原料转换 | `A[t]=Σr/j x[r,t,j](1-l[j])/q[r]` | r,t,j | 题面 | 产品m³ | q=(.6,.66,.72) | material_conversion |
 | C03 | 供应能力 | `Σj x[r,t,j]<=cap[r]` | r,t | 附件1 | 原料m³ | cap=0不可用 | supplier_capacity |
 | C04 | 订货与供货 | `s[r,t]=alpha[r]o[r,t]` 为导出合同 | r,t | 附件1 | 原料m³ | alpha=0不选 | order_transport_consistency |
 | C05 | 最少供应商 | 问题2先最小化集合基数 | r | 附件1 | 家 | 仅问题2硬目标 | supplier_selection |
@@ -12,8 +12,8 @@
 | C08 | 承运能力 | `Σr x[r,t,j]<=6000` | t,j | 题面 | 原料m³ | 8家分别检查 | transporter_capacity |
 | C09 | 单转运商偏好 | 问题2 `Σj y[r,t,j]<=1`；问题3/4软报告 | r,t,j | 题面 | - | “尽量”非硬禁令 | transporter_assignment |
 | C10 | 同期转运汇总 | 按j、t聚合运输量 | t,j | 题面 | 原料m³ | 不混周 | transporter_capacity |
-| C11 | 运输损耗 | `loss=Σ_r x_r l_j` | t,j | 附件2 | 原料m³ | 0为未运输 | transport_loss |
-| C12 | 接收量 | `recv=Σ_j x_j(1-l_j)` | r,t | 题面/附件2 | 原料m³ | 不能等同供货 | arrival_quantity |
+| C11 | 运输损耗 | `loss=Σr x*l[j]` | t,j | 附件2 | 原料m³ | 0为未运输 | transport_loss |
+| C12 | 接收量 | `recv=Σj x(1-l[j])` | r,t | 题面/附件2 | 原料m³ | 不能等同供货 | arrival_quantity |
 | C13 | 初始库存 | `I[0]=2D` | - | 建模假设 | 产品m³ | 题面未给绝对值 | initial_inventory |
 | C14 | 期末库存 | `I[24]>=2D` | - | 题意延续 | 产品m³ | 不透支下一期 | terminal_inventory |
 | C15 | 非负性 | `o,s,x,recv,I>=0` | 全部 | 题面 | 对应单位 | 浮点容差 | order_nonnegative |

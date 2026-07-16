@@ -1,0 +1,6 @@
+﻿metric_group,category,value,denominator,share
+supplier_week_count,unsplit,7272,7320,0.9934426229508196
+supplier_week_count,split,48,7320,0.006557377049180328
+transport_volume_m3,non_split_supplier_weeks,361073.4526921668,434181.912061369,0.8316179063699255
+transport_volume_m3,split_week_primary_carrier,51145.071195152,434181.912061369,0.11779641153711386
+transport_volume_m3,split_week_secondary_carrier,21963.388174050233,434181.912061369,0.05058568209296071

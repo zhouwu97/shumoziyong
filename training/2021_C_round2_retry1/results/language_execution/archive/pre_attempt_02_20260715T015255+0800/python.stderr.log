@@ -1,0 +1,13 @@
+===== command 1: "C:\Program Files\Python312\python.exe" code/run_training.py =====
+Traceback (most recent call last):
+  File "E:\AI\数模\training\2021_C_round2_retry1\code\run_training.py", line 506, in <module>
+    _write_docs(data, audit, analysis, baseline, solutions, validation_summary, sensitivity, score, elapsed, first_feasible)
+    ^^^^^^
+  File "E:\AI\数模\training\2021_C_round2_retry1\code\run_training.py", line 485, in main
+    write_json(RESULTS / "reproduction_validation.json", reproduction)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\AI\数模\training\2021_C_round2_retry1\code\run_training.py", line 141, in _generate_figures
+    if item.get("feasible") is True and "objective" in item
+          ^^^^^^^^^^^^^^^^^
+KeyError: 'objective'
+

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "manifest_id": "2021c-attempt02-20260715T022018+0800-python-output",
-  "generated_at": "2026-07-15T02:25:24+08:00",
+  "manifest_id": "2021c-attempt02-20260716T133014+0800-python-output",
+  "generated_at": "2026-07-16T13:39:16+08:00",
   "root": ".",
   "files": [
     {
@@ -12,12 +12,12 @@
     {
       "path": "outputs/附件A 订购方案数据结果.xlsx",
       "size_bytes": 96099,
-      "sha256": "2efdbfae6d6c80fe20eb791943c199ce8447cb98b4ce5a2303a4d962f36607cc"
+      "sha256": "fcc515211f2696c471f915af029ce85299974cbdef0c38fef37f6745eff52e39"
     },
     {
       "path": "outputs/附件B 转运方案数据结果.xlsx",
       "size_bytes": 579062,
-      "sha256": "830fcce5dcc9cb01e6c3937501b5681b89204bb2411c920a5c95fe7c493b7245"
+      "sha256": "0ae17146641a00d2d99516489566cddd490527f499ea17229af5f9a5b8403825"
     },
     {
       "path": "results/baseline_result.json",
@@ -26,8 +26,8 @@
     },
     {
       "path": "results/clean_replay_validation.json",
-      "size_bytes": 47596,
-      "sha256": "f4fa6c8fac64456f7cc1395360ab804f21916b6efbaf42aa87128a9532e49681"
+      "size_bytes": 45624,
+      "sha256": "23887d3b258f83d8003c8e11e941b902fb64f145cf245c87a134a74b0ad8c5b6"
     },
     {
       "path": "results/constraint_validation.json",
@@ -42,7 +42,7 @@
     {
       "path": "results/excel_recalculation_validation.json",
       "size_bytes": 2387,
-      "sha256": "588d8aab2013ffd0baefe4648bd3c34d3d81625bd810d8a9f38c921ad609bdf5"
+      "sha256": "57c636516d83058dabba92574506d4d2e541226d23caa3915a485703bbe8c60f"
     },
     {
       "path": "results/fault_injection_report.json",
@@ -51,8 +51,8 @@
     },
     {
       "path": "results/final_human_audit_evidence.json",
-      "size_bytes": 8208,
-      "sha256": "2f31647a692b4d9fecab8ad1f69eb50e689b972781c1fb5bc3f207a3624eb7f1"
+      "size_bytes": 8207,
+      "sha256": "8a3828e258a229363ce04c1d051f35549965457f834a16a01d6b771dd1d2df08"
     },
     {
       "path": "results/formal_result.json",
@@ -72,12 +72,12 @@
     {
       "path": "results/rank_sensitivity.json",
       "size_bytes": 8077,
-      "sha256": "47f9af4384c06e97479c7e5682bdd91017e8ee9f3e012c9f4c9d7e0eea3d0e2f"
+      "sha256": "1a09a2f214296f99d34f1f582ea6511d1a323be434a23dd2dcbf37c8dcee61b9"
     },
     {
       "path": "results/raw_solution.json",
-      "size_bytes": 7529951,
-      "sha256": "9cd885e16df0e6bd967e9b67abc959c07c55ff26677143b7f181cc16f72e8148"
+      "size_bytes": 7529947,
+      "sha256": "9b2bc7ebb7068ef81f1a4ecafe657450e1043ab662c05f80006383b9ba4d0e9b"
     },
     {
       "path": "results/reproduction_validation.json",
@@ -87,17 +87,17 @@
     {
       "path": "results/runtime_log.json",
       "size_bytes": 608,
-      "sha256": "903a2c3464ee33231ba3a25a29f27e9ab644d40a813b09cb1f200862484198de"
+      "sha256": "9779d4007be50069058ce69c92540feb6eaaf8b3ec3fab8a672ecf0a3ef97059"
     },
     {
       "path": "results/sensitivity_analysis.json",
-      "size_bytes": 9248,
-      "sha256": "eabd9f28572e687c3793b49ff6aa3f3c88a48788161797d3f07d670dd4e4c394"
+      "size_bytes": 10087,
+      "sha256": "c3755c53c55f1b63f02da4e14b52f8c819b3361bdede7d8f9e35e719d8ad7780"
     },
     {
       "path": "results/solver_status.json",
-      "size_bytes": 6183,
-      "sha256": "d4d00eebf6d699657aa89094998d9ff7e4c9ec8975d753abb23efec9807fd729"
+      "size_bytes": 6201,
+      "sha256": "10fe36dedfad8b83dbdd1be2da3750caea7a823cec542ab319d78944604fcc4c"
     },
     {
       "path": "results/supplier_analysis.json",
@@ -107,12 +107,12 @@
     {
       "path": "results/supplier_usage_distribution.json",
       "size_bytes": 2994,
-      "sha256": "5a82cc538507f372ece6c3772d2b0ee33d233d5ecfd57aea167d58c5f94c7bfb"
+      "sha256": "7f9a58ea97c21eeef712ce82b7e2a66a3f8476673229304af85357cf7d402a9a"
     },
     {
       "path": "results/transport_split_analysis.json",
-      "size_bytes": 1792,
-      "sha256": "61675c671eeef854f8765fe91d736e1a42124ebe748560c05f27eb57e12644cc"
+      "size_bytes": 1791,
+      "sha256": "1595e09f5c5cc105924335b3b816c77777e38a5328f1862d0c32c778ab5bf88a"
     },
     {
       "path": "score.json",

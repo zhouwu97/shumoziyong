@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "validation_id": "2021c-attempt02-20260715T022018+0800-cross-validation",
+  "validation_id": "2021c-attempt02-20260716T133014+0800-cross-validation",
   "example_only": false,
-  "execution_evidence_id": "2021c-attempt02-20260715T022018+0800",
+  "execution_evidence_id": "2021c-attempt02-20260716T133014+0800",
   "output_manifests": {
-    "python_sha256": "cbefbb9562106cf1f2490a063a9fa7b96d09789c960688c1dcbfdcd20e4af9dd",
-    "matlab_sha256": "ecee289532538f1cce3a2ac3f63fc38538be25e4a80315ffe67248070a9fc349"
+    "python_sha256": "ade2c230a40a12ec37f47b44927a57d5f41c25ba4a3f3e3efe565621b1fe3f30",
+    "matlab_sha256": "bbc7ca879d0bf246ae62e2396940c5486f1405805e61567031d2385ca077dab3"
   },
   "objective": {
     "metric": "problem2_purchase_cost_24week",
@@ -89,7 +89,7 @@
   },
   "decision_variables": {
     "comparison_mode": "equivalent_optimum",
-    "python_manifest_sha256": "cbefbb9562106cf1f2490a063a9fa7b96d09789c960688c1dcbfdcd20e4af9dd",
-    "matlab_manifest_sha256": "ecee289532538f1cce3a2ac3f63fc38538be25e4a80315ffe67248070a9fc349"
+    "python_manifest_sha256": "ade2c230a40a12ec37f47b44927a57d5f41c25ba4a3f3e3efe565621b1fe3f30",
+    "matlab_manifest_sha256": "bbc7ca879d0bf246ae62e2396940c5486f1405805e61567031d2385ca077dab3"
   }
 }

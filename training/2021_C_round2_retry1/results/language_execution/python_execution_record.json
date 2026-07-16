@@ -33,9 +33,9 @@
     "\"C:\\Program Files\\Python312\\python.exe\" code/final_human_audit.py excel"
   ],
   "cwd": "E:\\AI\\数模\\training\\2021_C_round2_retry1",
-  "started_at": "2026-07-15T02:20:18+08:00",
-  "ended_at": "2026-07-15T02:25:24+08:00",
-  "duration_seconds": 305.910734,
+  "started_at": "2026-07-16T13:30:14+08:00",
+  "ended_at": "2026-07-16T13:39:16+08:00",
+  "duration_seconds": 542.045639,
   "exit_code": 0,
   "stdout_path": "results/language_execution/python.stdout.log",
   "stdout_sha256": "2253967e879319720307ef79fe3ddec2f43c0412cc577bf5d65632930b0d3b8b",
@@ -43,14 +43,14 @@
   "stderr_sha256": "2253967e879319720307ef79fe3ddec2f43c0412cc577bf5d65632930b0d3b8b",
   "source_manifest": {
     "path": "results/language_execution/python_source_manifest.json",
-    "sha256": "68729fd719f0f2a754be97b74963840753ddd172ea144915658477ba664e58f7"
+    "sha256": "7da4790fac662aa3a2e2f865c5cb3ace1d1b3440130c64aef0d88881a51ae8ec"
   },
   "input_manifest": {
     "path": "results/language_execution/shared_input_manifest.json",
-    "sha256": "fa0e6255967bb910ba7ee2ad41a3a47cda7fa4a3826fc7dc1cb915c7e348e1e7"
+    "sha256": "8f4bf01b9caa768d2bc35ae4388f97c431bd8ad79edf2c646ddbf00b5aa519a6"
   },
   "output_manifest": {
     "path": "results/language_execution/python_output_manifest.json",
-    "sha256": "cbefbb9562106cf1f2490a063a9fa7b96d09789c960688c1dcbfdcd20e4af9dd"
+    "sha256": "ade2c230a40a12ec37f47b44927a57d5f41c25ba4a3f3e3efe565621b1fe3f30"
   }
 }

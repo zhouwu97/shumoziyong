@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="425.99952pt" height="296.39952pt" viewBox="0 0 425.99952 296.39952" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-07-15T02:19:53.308388</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.10.8, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 296.39952 
+L 425.99952 296.39952 
+L 425.99952 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 47.107969 274.863739 
+L 418.79952 274.863739 
+L 418.79952 20.394375 
+L 47.107969 20.394375 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 64.003039 274.863739 
+L 193.323332 274.863739 
+L 193.323332 86.035369 
+L 64.003039 86.035369 
+z
+" clip-path="url(#p718b8cfd56)" style="fill: #747474"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 272.584157 274.863739 
+L 401.904449 274.863739 
+L 401.904449 51.644999 
+L 272.584157 51.644999 
+z
+" clip-path="url(#p718b8cfd56)" style="fill: #6d9f86"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <defs>
+       <path id="m673ae27f53" d="M 0 0 
+L 0 3.5 
+" style="stroke: #000000; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m673ae27f53" x="128.663186" y="274.863739" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle" x="128.663186" y="287.459364" transform="rotate(-0 128.663186 287.459364)">基准产能</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2">
+      <g>
+       <use xlink:href="#m673ae27f53" x="337.244303" y="274.863739" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_2">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle" x="337.244303" y="287.459364" transform="rotate(-0 337.244303 287.459364)">模型预测最大产能</text>
+     </g>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_3">
+      <defs>
+       <path id="mc39d6201d7" d="M 0 0 
+L -3.5 0 
+" style="stroke: #000000; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="274.863739" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="277.661551" transform="rotate(-0 40.107969 277.661551)">0</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="241.383531" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="244.181344" transform="rotate(-0 40.107969 244.181344)">5000</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_5">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="207.903324" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_5">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="210.701136" transform="rotate(-0 40.107969 210.701136)">10000</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_6">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="174.423116" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_6">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="177.220929" transform="rotate(-0 40.107969 177.220929)">15000</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_7">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="140.942909" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_7">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="143.740721" transform="rotate(-0 40.107969 143.740721)">20000</text>
+     </g>
+    </g>
+    <g id="ytick_6">
+     <g id="line2d_8">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="107.462701" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_8">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="110.260514" transform="rotate(-0 40.107969 110.260514)">25000</text>
+     </g>
+    </g>
+    <g id="ytick_7">
+     <g id="line2d_9">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="73.982494" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_9">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="76.780306" transform="rotate(-0 40.107969 76.780306)">30000</text>
+     </g>
+    </g>
+    <g id="ytick_8">
+     <g id="line2d_10">
+      <g>
+       <use xlink:href="#mc39d6201d7" x="47.107969" y="40.502286" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_10">
+      <text style="font-size: 7px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: end" x="40.107969" y="43.300099" transform="rotate(-0 40.107969 43.300099)">35000</text>
+     </g>
+    </g>
+    <g id="text_11">
+     <text style="font-size: 8px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle" x="13.595" y="147.629057" transform="rotate(-90 13.595 147.629057)">周产能（m³/周）</text>
+    </g>
+   </g>
+   <g id="patch_5">
+    <path d="M 47.107969 274.863739 
+L 47.107969 20.394375 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 47.107969 274.863739 
+L 418.79952 274.863739 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 8px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle" x="128.663186" y="80.046619" transform="rotate(-0 128.663186 80.046619)">28,200</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 8px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle" x="337.244303" y="45.656249" transform="rotate(-0 337.244303 45.656249)">33,335.925</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 10px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle; fill: #b86755" x="232.953744" y="69.502498" transform="rotate(-0 232.953744 69.502498)">提升 18.2125%</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 9px; font-family: 'Microsoft YaHei', 'Arial', 'SimHei', 'DengXian', 'DejaVu Sans', sans-serif; text-anchor: middle" x="232.953744" y="14.394375" transform="rotate(-0 232.953744 14.394375)">基准周需求与模型预测最大产能</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p718b8cfd56">
+   <rect x="47.107969" y="20.394375" width="371.691551" height="254.469364"/>
+  </clipPath>
+ </defs>
+</svg>

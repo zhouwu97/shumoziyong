@@ -1,48 +1,48 @@
 {
   "schema_version": "1.0.0",
-  "manifest_id": "2021c-attempt02-20260715T022018+0800-matlab-source",
-  "generated_at": "2026-07-15T02:20:18+08:00",
+  "manifest_id": "2021c-attempt02-20260716T133014+0800-matlab-source",
+  "generated_at": "2026-07-16T13:30:14+08:00",
   "root": ".",
   "files": [
     {
       "path": "code/matlab/build_flow_model.m",
-      "size_bytes": 2378,
-      "sha256": "a40b5e2a872f891bec3e0a98decd25886e332e4ed23914a488112ff3b3ca5df3"
+      "size_bytes": 2472,
+      "sha256": "c3c9e1d40c6a26e8b070ba222d867705edcb7a7e3ed4b5f8ef4672fe5ecdfcaa"
     },
     {
       "path": "code/matlab/evaluate_suppliers.m",
-      "size_bytes": 2256,
-      "sha256": "98671672818f465f2a1efd78da6e699e171ec9194f528edd03284b7a1648f4ca"
+      "size_bytes": 2326,
+      "sha256": "8497601ef2cfce9c84a91e3804165ebdc42882e66869999b1fde686157d21f4f"
     },
     {
       "path": "code/matlab/load_official_data.m",
-      "size_bytes": 2767,
-      "sha256": "43d726aeb5925e2b2a27097ff88cf1a44e2b200fe10c5e2a45569d7419f84251"
+      "size_bytes": 2834,
+      "sha256": "49232333de213d032f10334454ade5406a1c127127db11a018d757653aa8c1d4"
     },
     {
       "path": "code/matlab/run_cross_language_validation.m",
-      "size_bytes": 8966,
-      "sha256": "6bc27c88e349e06a936ce1498ba2509a37905a46778968a7ec210058768936fc"
+      "size_bytes": 9150,
+      "sha256": "1c39f303fa375fbed57f43efbe40973f5d2cc5e8987f04c3d9d4f728e6ecbae8"
     },
     {
       "path": "code/matlab/solve_problem2.m",
-      "size_bytes": 2955,
-      "sha256": "390f256eba1177675991de25764f5ce8e0a6751d44eee9460dee5fe5e643956d"
+      "size_bytes": 3017,
+      "sha256": "9eec7a194a669f26c2f43b839e5c9b9c1f5d328202caaf2850084522ab97acd3"
     },
     {
       "path": "code/matlab/solve_problem3.m",
-      "size_bytes": 1997,
-      "sha256": "07d47032579e03ec6c5f5cb08e5ac2d0c5023d9b41b126a422a110f0ede81d67"
+      "size_bytes": 2047,
+      "sha256": "7eca1e26b7dd64e1c26087572e1c5850407a2f6eb1d50ca22e7cafd9867c1c33"
     },
     {
       "path": "code/matlab/solve_problem4.m",
-      "size_bytes": 1235,
-      "sha256": "1b0b1ef3a6aa2581d373b1ed47f19b7d8ade1b0993bfd036295cbdede832b6a0"
+      "size_bytes": 1266,
+      "sha256": "380d13d3f8f997137042310d841ab8a3afb58159367bf55d1e3eb1f30e775bda"
     },
     {
       "path": "code/matlab/validate_solution.m",
-      "size_bytes": 1857,
-      "sha256": "aeb58f745c0fe3b156872c4872285a2583e3c10561f6c079fe6a44964a901941"
+      "size_bytes": 1905,
+      "sha256": "b523d5625998cc8fb209e9f3275449b85442b8030a7d5520d8519a925a14c535"
     }
   ]
 }

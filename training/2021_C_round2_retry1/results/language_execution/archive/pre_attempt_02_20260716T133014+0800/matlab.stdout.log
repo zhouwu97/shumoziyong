@@ -1,0 +1,3 @@
+===== command 1: E:\Matlab\bin\matlab.exe -batch "addpath('code/matlab'); run_cross_language_validation(pwd)" =====
+MATLAB cross-language validation pass=1, max_error=3.20607796311e-07
+

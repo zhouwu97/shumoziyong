@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-15T02:25:12+08:00",
+  "generated_at": "2026-07-16T13:38:56+08:00",
   "inventory_timing": {
     "arrival_interpretation": "当周到货是 shipments × (1-loss) 的接收量换算为产品等价量后进入库存；未使用尚未到达的发运量。",
     "by_problem": {
@@ -126,7 +126,7 @@
         "secondary_carrier_volume_raw_m3": 0.0,
         "secondary_carrier_volume_share": 0.0,
         "single_carrier_is_hard": true,
-        "solver_runtime_seconds": 32.383128400018904,
+        "solver_runtime_seconds": 65.36260849997052,
         "split_ratio_of_active_supplier_weeks": 0.0,
         "split_supplier_week_count": 0,
         "total_transport_volume_raw_m3": 441094.5435537821,
@@ -140,7 +140,7 @@
         "secondary_carrier_volume_raw_m3": 21963.388174050233,
         "secondary_carrier_volume_share": 0.05058568209296071,
         "single_carrier_is_hard": false,
-        "solver_runtime_seconds": 0.08554800000274554,
+        "solver_runtime_seconds": 0.19550249999156222,
         "split_ratio_of_active_supplier_weeks": 0.006557377049180328,
         "split_supplier_week_count": 48,
         "total_transport_volume_raw_m3": 434181.912061369,
@@ -149,7 +149,7 @@
         "volume_in_split_supplier_weeks_share": 0.16838209363007456
       }
     },
-    "generated_at": "2026-07-15T02:25:12+08:00",
+    "generated_at": "2026-07-16T13:38:56+08:00",
     "hard_single_carrier_comparison": {
       "comparable_loss_change_available": false,
       "problem2": "正式模型本身强制单承运商，拆分为0，可直接作为硬约束基准。",

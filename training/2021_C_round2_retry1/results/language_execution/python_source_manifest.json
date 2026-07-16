@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "manifest_id": "2021c-attempt02-20260715T022018+0800-python-source",
-  "generated_at": "2026-07-15T02:20:18+08:00",
+  "manifest_id": "2021c-attempt02-20260716T133014+0800-python-source",
+  "generated_at": "2026-07-16T13:30:14+08:00",
   "root": ".",
   "files": [
     {
@@ -56,13 +56,8 @@
     },
     {
       "path": "code/solver/optimization.py",
-      "size_bytes": 24271,
-      "sha256": "6d803524834ec91ab7b886c881bd3e1df1406c5257b92e459eecb820298a874d"
-    },
-    {
-      "path": "code/tests/test_validator.py",
-      "size_bytes": 806,
-      "sha256": "41b81ebd44038ebf9e112a54802b5b3a66217f3dd268a2c0474361f83e3e01d6"
+      "size_bytes": 24598,
+      "sha256": "c5919827c67e05e1604331fe8da442ba55a2c25361e87c3aa96a1b8617486d0b"
     },
     {
       "path": "code/validator/__init__.py",
