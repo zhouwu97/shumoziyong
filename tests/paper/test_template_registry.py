@@ -175,3 +175,39 @@ def test_windows_xelatex_overlay_changes_only_staged_copy(tmp_path: Path) -> Non
     assert "fontset=windows" in staged
     assert "fontset=mac" not in staged
     assert source_main.read_bytes() == before
+
+
+def test_linux_english_xelatex_overlay_replaces_platform_fonts(tmp_path: Path) -> None:
+    if not DEFAULT_VENDOR_ROOT.is_dir():
+        pytest.skip("本地只读 Source Asset 未同步")
+    manifest = _load(DEFAULT_MANIFEST_PATH)
+    selection = select_template(
+        manifest,
+        language="en",
+        competition_family="mcm",
+        requested_engine="xelatex",
+    )
+    template = next(
+        item for item in manifest["templates"] if item["template_id"] == selection["template_id"]
+    )
+    source_main = DEFAULT_VENDOR_ROOT / Path(template["source_dir"]) / "main.tex"
+    before = source_main.read_bytes()
+
+    target = tmp_path / "paper"
+    applied = materialize_template(
+        manifest,
+        selection,
+        target_dir=target,
+        platform_name="linux",
+    )
+
+    staged = (target / "main.tex").read_text(encoding="utf-8")
+    assert {
+        "latin_serif_portability",
+        "latin_sans_portability",
+        "latin_mono_portability",
+    }.issubset(applied)
+    assert "\\setmainfont{Latin Modern Roman}" in staged
+    assert "\\setsansfont{Latin Modern Sans}" in staged
+    assert "\\setmonofont{Latin Modern Mono}" in staged
+    assert source_main.read_bytes() == before
