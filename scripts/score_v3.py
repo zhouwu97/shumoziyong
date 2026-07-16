@@ -136,6 +136,8 @@ def build_score_v3(
     run_dir: Path,
     subproblem_id: str,
     ratings_path: Path,
+    *,
+    write_report: bool = True,
 ) -> dict[str, Any]:
     """复算 Gate 3、绑定当前哈希并应用固定权重、证据上限与致命封顶。"""
     run_root = run_dir.resolve()
@@ -244,8 +246,9 @@ def build_score_v3(
         "technical_report_allowed": True,
     }
     _validate_schema(result, "score_v3.schema.json", "score_v3")
-    output_path = run_root / f"score_v3_{subproblem_id}.json"
-    _write_json_atomic(output_path, result)
+    if write_report:
+        output_path = run_root / f"score_v3_{subproblem_id}.json"
+        _write_json_atomic(output_path, result)
     return result
 
 

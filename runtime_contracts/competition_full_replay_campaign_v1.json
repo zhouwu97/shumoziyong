@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "contract_id": "competition_full_replay_campaign_v1",
+  "capability_id": "competition_production_v1",
+  "activation_context": "full_replay",
+  "lifecycle_path": [
+    "draft",
+    "review_ready",
+    "full_replay_passed",
+    "qualification_candidate",
+    "blind_review_passed",
+    "default_candidate"
+  ],
+  "current_lifecycle": "review_ready",
+  "target_lifecycle": "full_replay_passed",
+  "new_problem_default_enabled": false,
+  "earliest_run_created_at": "2026-07-17T00:00:00+08:00",
+  "required_problems": [
+    {"problem_id": "2016-C", "material_key": "2016_C", "allowed_profiles": ["general", "engineering_optimization", "evaluation", "prediction"]},
+    {"problem_id": "2023-B", "material_key": "2023_B", "allowed_profiles": ["general", "engineering_optimization", "evaluation", "prediction"]},
+    {"problem_id": "2024-B", "material_key": "2024_B", "allowed_profiles": ["general", "engineering_optimization", "evaluation", "prediction"]},
+    {"problem_id": "2024-C", "material_key": "2024_C", "allowed_profiles": ["general", "engineering_optimization", "evaluation", "prediction"]},
+    {"problem_id": "2024-D", "material_key": "2024_D", "allowed_profiles": ["general", "engineering_optimization", "evaluation", "prediction"]}
+  ],
+  "required_runtime_plugin": {
+    "path": "prompt_plugins/plugin_competition_production_v1.md",
+    "sha256": "65624498d500dbf33fdd7f7b81cd718dc84fa51f0a4632e74cf4f155306f1e14"
+  },
+  "required_run_artifacts": [
+    "competition_production_adapter_report.json",
+    "model_route_v3.json",
+    "full_replay_run_record.json",
+    "paper_candidate_manifest.json"
+  ],
+  "pass_policy": {
+    "require_all_problems": true,
+    "require_all_subproblems": true,
+    "require_gate3_allow_paper": true,
+    "require_score_v3_submission": true,
+    "require_no_fatal_codes": true,
+    "require_gate4_candidate": true,
+    "require_no_time_leakage": true,
+    "require_no_answer_leakage": true,
+    "require_historical_assets_unchanged": true
+  }
+}

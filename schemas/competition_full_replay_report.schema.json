@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_full_replay_report.schema.json",
+  "title": "Competition Production 多题 full_replay 派生报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "campaign_id", "capability_id", "contract",
+    "runs", "metrics", "status", "derived_lifecycle", "new_problem_default_enabled"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "competition_full_replay_campaign_report_v1"},
+    "campaign_id": {"type": "string", "minLength": 8},
+    "capability_id": {"const": "competition_production_v1"},
+    "contract": {"$ref": "#/$defs/fileRef"},
+    "runs": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {"$ref": "#/$defs/runResult"}
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_count", "passed_problem_count", "subproblem_count", "runtime_seconds",
+        "manual_intervention_count", "baseline_win_rate", "fatal_error_rate",
+        "submission_admission_rate"
+      ],
+      "properties": {
+        "problem_count": {"const": 5},
+        "passed_problem_count": {"type": "integer", "minimum": 0, "maximum": 5},
+        "subproblem_count": {"type": "integer", "minimum": 0},
+        "runtime_seconds": {"type": "number", "minimum": 0},
+        "manual_intervention_count": {"type": "integer", "minimum": 0},
+        "baseline_win_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "fatal_error_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "submission_admission_rate": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "status": {"enum": ["passed", "failed"]},
+    "derived_lifecycle": {"enum": ["review_ready", "full_replay_passed"]},
+    "new_problem_default_enabled": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "derived_lifecycle": {"const": "full_replay_passed"},
+          "metrics": {"properties": {"passed_problem_count": {"const": 5}}}
+        }
+      },
+      "else": {"properties": {"derived_lifecycle": {"const": "review_ready"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "runResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_id", "run_id", "profile", "runtime_pack_sha256", "status",
+        "failure_codes", "subproblem_count", "runtime_seconds",
+        "manual_intervention_count", "baseline_wins", "baseline_win_rate",
+        "fatal_error_count", "fatal_error_rate", "submission_admission", "evidence"
+      ],
+      "properties": {
+        "problem_id": {"enum": ["2016-C", "2023-B", "2024-B", "2024-C", "2024-D"]},
+        "run_id": {"type": "string", "minLength": 1},
+        "profile": {"type": "string"},
+        "runtime_pack_sha256": {"type": "string"},
+        "status": {"enum": ["passed", "failed"]},
+        "failure_codes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^FRV_[A-Z0-9_]+$"}},
+        "subproblem_count": {"type": "integer", "minimum": 0},
+        "runtime_seconds": {"type": "number", "minimum": 0},
+        "manual_intervention_count": {"type": "integer", "minimum": 0},
+        "baseline_wins": {"type": "integer", "minimum": 0},
+        "baseline_win_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "fatal_error_count": {"type": "integer", "minimum": 0},
+        "fatal_error_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "submission_admission": {"type": "boolean"},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/fileRef"}}
+      }
+    }
+  }
+}
