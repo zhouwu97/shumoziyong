@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/upstream_requirement_registry.schema.json",
+  "title": "上游需求提取注册表",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "domain",
+    "source_repository",
+    "source_commit",
+    "requirements"
+  ],
+  "properties": {
+    "schema_version": {"const": "upstream_requirement_registry_v1"},
+    "registry_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]*_v1$"},
+    "domain": {"enum": ["production", "paper", "figure", "verity"]},
+    "source_repository": {"const": "https://github.com/jihe520/MathModelAgent.git"},
+    "source_commit": {"const": "be9c59c1aaa13c3dcb74452ea5cae11dada27589"},
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement_id",
+          "title",
+          "statement",
+          "strength",
+          "source_refs",
+          "mapping_id"
+        ],
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "pattern": "^(PROD|PAPER|FIG|VER)-[0-9]{3}$"
+          },
+          "title": {"type": "string", "minLength": 4},
+          "statement": {"type": "string", "minLength": 12},
+          "strength": {"enum": ["blocking", "advisory"]},
+          "source_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "sha256", "locator"],
+              "properties": {
+                "path": {"type": "string", "pattern": "^(docs|skills)/"},
+                "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "locator": {"type": "string", "minLength": 2}
+              }
+            }
+          },
+          "mapping_id": {"type": "string", "pattern": "^MAP-[A-Z0-9-]+$"}
+        }
+      }
+    }
+  }
+}

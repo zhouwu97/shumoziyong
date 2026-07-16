@@ -1,0 +1,90 @@
+{
+  "schema_version": "upstream_requirement_registry_v1",
+  "registry_id": "paper_requirements_v1",
+  "domain": "paper",
+  "source_repository": "https://github.com/jihe520/MathModelAgent.git",
+  "source_commit": "be9c59c1aaa13c3dcb74452ea5cae11dada27589",
+  "requirements": [
+    {
+      "requirement_id": "PAPER-001",
+      "title": "引擎与模板显式绑定",
+      "statement": "论文必须把比赛、语言、排版引擎和模板来源记录为显式选择，后续文件扩展名、编译命令和插图语法不得混用。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 0：确定排版引擎；步骤 1：选择语言和模板"}],
+      "mapping_id": "MAP-PAPER-PRODUCTION"
+    },
+    {
+      "requirement_id": "PAPER-002",
+      "title": "保留比赛模板结构",
+      "statement": "论文入口、封面、摘要、编号、页眉页脚和章节组织必须遵循当前选择的比赛模板，不得退化为空白通用文档。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 2：准备模板；步骤 4：撰写各节"},
+        {"path": "skills/6verity/SKILL.md", "sha256": "01c23df712ae126d4b71fadba3abf9df974c09bc6b8491e148f7dbf9fb1b968e", "locator": "Step 6: 引用和模板规范"}
+      ],
+      "mapping_id": "MAP-PAPER-PRODUCTION"
+    },
+    {
+      "requirement_id": "PAPER-003",
+      "title": "按实际子问题组织章节",
+      "statement": "章节数量与顺序必须匹配当前赛题和模板，不得把非三问题目强行组织成固定三段结构。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 4：撰写各节"}],
+      "mapping_id": "MAP-PAPER-PRODUCTION"
+    },
+    {
+      "requirement_id": "PAPER-004",
+      "title": "关键结论精确绑定",
+      "statement": "正文、摘要和图表中的关键数值与方向性结论必须来自当前正式结果，并使用同一舍入口径。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "模板族；步骤 6：最后撰写摘要或总结"}],
+      "mapping_id": "MAP-PAPER-TRACE"
+    },
+    {
+      "requirement_id": "PAPER-005",
+      "title": "论文不得泄露内部术语",
+      "statement": "主论文不得出现内部目录、脚本、报告文件、临时路径、哈希或工作流过程术语。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 4：撰写各节"},
+        {"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "论文写作"}
+      ],
+      "mapping_id": "MAP-PAPER-TRACE"
+    },
+    {
+      "requirement_id": "PAPER-006",
+      "title": "引用必须真实可核验",
+      "statement": "参考文献和正文引用必须对应真实来源；无法核验的文献不得进入提交稿。",
+      "strength": "blocking",
+      "source_refs": [{"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 5：参考文献"}],
+      "mapping_id": "MAP-PAPER-TRACE"
+    },
+    {
+      "requirement_id": "PAPER-007",
+      "title": "摘要最后成稿",
+      "statement": "摘要或 Summary 应在正文结论稳定后撰写，并覆盖每个子问题的方法和关键结果。",
+      "strength": "blocking",
+      "source_refs": [
+        {"path": "skills/5writing/SKILL.md", "sha256": "9dd985cf54d9b6b3f12ee1fb146602f7ebf09e41f46842ecd90f5a9125a89684", "locator": "步骤 6：最后撰写摘要或总结"},
+        {"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "摘要写作要点"}
+      ],
+      "mapping_id": "MAP-PAPER-NARRATIVE"
+    },
+    {
+      "requirement_id": "PAPER-008",
+      "title": "公式图表必须被解释",
+      "statement": "公式首次出现时应解释符号，图表前后应有引导和洞察，不得连续堆叠缺少论证文字的图表。",
+      "strength": "advisory",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "论文写作；常见写作错误"}],
+      "mapping_id": "MAP-PAPER-NARRATIVE"
+    },
+    {
+      "requirement_id": "PAPER-009",
+      "title": "报告灵敏度与局限",
+      "statement": "论文应说明关键参数扰动、模型鲁棒性、适用边界、缺点和可执行改进方向。",
+      "strength": "advisory",
+      "source_refs": [{"path": "skills/_references/math_modeling_norms.md", "sha256": "aa89b2cebb59a33bc9a07ebe86cce2eb273fa7fef8ac0dc4d633fa06fa1ecf64", "locator": "灵敏度分析规范；论文结构完整性要点"}],
+      "mapping_id": "MAP-PAPER-NARRATIVE"
+    }
+  ]
+}

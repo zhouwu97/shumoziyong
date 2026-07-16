@@ -26,6 +26,11 @@ from upstream.sync_mathmodelagent import (
     UpstreamIntegrityError,
     load_and_validate_metadata,
 )
+from upstream.validate_requirements import (
+    MAPPING_FILE as UPSTREAM_MAPPING_FILE,
+    REGISTRY_FILES as UPSTREAM_REGISTRY_FILES,
+    validate_requirement_bundle,
+)
 
 try:
     from jsonschema import Draft202012Validator, FormatChecker
@@ -1501,6 +1506,9 @@ class RepositoryValidator:
             "paper_template_manifest.schema.json",
             "paper_visual_review.schema.json",
             "paper_verify_report.schema.json",
+            "upstream_requirement_registry.schema.json",
+            "upstream_requirement_mapping.schema.json",
+            "competition_production_adapter_report.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1546,6 +1554,30 @@ class RepositoryValidator:
             return
         self.pass_("MathModelAgent 上游来源锁、许可与逐文件哈希")
 
+    def validate_upstream_requirements(self) -> None:
+        requirements_root = "runtime_contracts/upstream_requirements"
+        for filename in UPSTREAM_REGISTRY_FILES:
+            registry = self.load_json(f"{requirements_root}/{filename}")
+            if registry is not None:
+                self.validate_schema(
+                    registry,
+                    "upstream_requirement_registry.schema.json",
+                    f"上游需求注册表 {filename}",
+                )
+        mapping = self.load_json(f"{requirements_root}/{UPSTREAM_MAPPING_FILE}")
+        if mapping is not None:
+            self.validate_schema(
+                mapping,
+                "upstream_requirement_mapping.schema.json",
+                "上游需求映射注册表",
+            )
+        issues = validate_requirement_bundle(ROOT)
+        if issues:
+            for issue in issues:
+                self.fail(f"上游需求映射闭包：{issue}")
+        else:
+            self.pass_("上游需求来源、映射与 Adapter 权限闭包")
+
     def run(self) -> int:
         self.validate_all_json_syntax()
         self.validate_patch_index()
@@ -1560,6 +1592,7 @@ class RepositoryValidator:
         self.validate_evaluation_case_registry()
         self.validate_capability_framework()
         self.validate_upstream_source_lock()
+        self.validate_upstream_requirements()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:
