@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/template_selection.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "logical_key", "selection_source", "template_id", "engine", "renderer_id", "entry", "source_dir", "source_tree_sha256", "fallback_used", "overlay_id", "upstream_default_overridden"],
+  "properties": {
+    "schema_version": {"const": "template_selection_v1"},
+    "logical_key": {"type": "string", "pattern": "^(?:zh|en)/[a-z0-9_-]+$"},
+    "selection_source": {"enum": ["runtime_profile", "current_run", "competition_default", "upstream_default"]},
+    "template_id": {"type": "string", "minLength": 1},
+    "engine": {"enum": ["typst", "xelatex"]},
+    "renderer_id": {"enum": ["typst", "xelatex"]},
+    "entry": {"pattern": "^main\\.(?:typ|tex)$"},
+    "source_dir": {"type": "string", "minLength": 1},
+    "source_tree_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fallback_used": {"type": "boolean"},
+    "overlay_id": {"const": "windows_template_overlay_v1"},
+    "upstream_default_overridden": {"type": "boolean"}
+  }
+}

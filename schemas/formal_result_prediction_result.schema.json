@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_prediction_result.schema.json",
+  "title": "Prediction Formal Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version", "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version", "formal_result_id", "status", "bindings", "payload"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "prediction_result"},
+    "run_id": {"$ref": "#/$defs/id"}, "problem_id": {"$ref": "#/$defs/id"}, "profile": {"const": "prediction"},
+    "runtime_version": {"$ref": "#/$defs/id"}, "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"}, "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"}, "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"}, "formal_result_id": {"$ref": "#/$defs/id"},
+    "status": {"enum": ["execution_pending", "collected"]},
+    "bindings": {"type": "object", "required": ["execution_spec.json"], "additionalProperties": false, "properties": {"execution_spec.json": {"$ref": "#/$defs/sha"}}},
+    "payload": {"type": "object"}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "execution_pending"}}, "required": ["status"]}, "then": {"properties": {"payload": {"const": {"execution_pending": true}}}}},
+    {"if": {"properties": {"status": {"const": "collected"}}, "required": ["status"]}, "then": {"properties": {"payload": {"$ref": "#/$defs/resultPayload"}}}}
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 1},
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "assignment": {"type": "object", "additionalProperties": false, "required": ["sample_id", "group_id", "split"], "properties": {"sample_id": {"$ref": "#/$defs/id"}, "group_id": {"$ref": "#/$defs/id"}, "split": {"enum": ["train", "validation", "test"]}}},
+    "fitAudit": {"type": "object", "additionalProperties": false, "required": ["stage", "fit_scope", "training_data_sha256"], "properties": {"stage": {"$ref": "#/$defs/id"}, "fit_scope": {"const": "training_only"}, "training_data_sha256": {"$ref": "#/$defs/sha"}}},
+    "prediction": {"type": "object", "additionalProperties": false, "required": ["sample_id", "y_true", "y_score"], "properties": {"sample_id": {"$ref": "#/$defs/id"}, "y_true": {"enum": [0, 1]}, "y_score": {"type": "number", "minimum": 0, "maximum": 1}}},
+    "task": {"type": "object", "additionalProperties": false, "required": ["task_id", "task_type", "threshold", "predictions"], "properties": {"task_id": {"$ref": "#/$defs/id"}, "task_type": {"const": "binary_classification"}, "threshold": {"type": "number", "minimum": 0, "maximum": 1}, "predictions": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/prediction"}}}},
+    "resultPayload": {"type": "object", "additionalProperties": false, "required": ["group_key", "random_seed", "split_assignments", "fit_audits", "tasks"], "properties": {"group_key": {"type": "string", "minLength": 1}, "random_seed": {"type": "integer"}, "split_assignments": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/assignment"}}, "fit_audits": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/fitAudit"}}, "tasks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/task"}}}}
+  }
+}

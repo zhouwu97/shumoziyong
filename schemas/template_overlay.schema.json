@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/template_overlay.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "overlay_id", "platform", "path_policy", "materialization", "engines", "staged_rewrites"],
+  "properties": {
+    "schema_version": {"const": "template_overlay_v1"},
+    "overlay_id": {"const": "windows_template_overlay_v1"},
+    "platform": {"const": "windows"},
+    "path_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_separator", "execution_separator", "reject_parent_traversal"],
+      "properties": {
+        "manifest_separator": {"const": "/"},
+        "execution_separator": {"const": "native"},
+        "reject_parent_traversal": {"const": true}
+      }
+    },
+    "materialization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "verify_before_copy", "source_asset_read_only", "normalize_line_endings"],
+      "properties": {
+        "mode": {"const": "verified_copy"},
+        "verify_before_copy": {"const": true},
+        "source_asset_read_only": {"const": true},
+        "normalize_line_endings": {"const": false}
+      }
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["typst", "xelatex"],
+      "properties": {
+        "typst": {"$ref": "#/$defs/engine"},
+        "xelatex": {"$ref": "#/$defs/engine"}
+      }
+    },
+    "staged_rewrites": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rewrite_id", "engine", "path", "match", "replacements", "source_asset_mutated"],
+        "properties": {
+          "rewrite_id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+          "engine": {"const": "xelatex"},
+          "path": {"const": "main.tex"},
+          "match": {"type": "string", "minLength": 1},
+          "replacements": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["windows", "linux"],
+            "properties": {
+              "windows": {"type": "string", "minLength": 1},
+              "linux": {"type": "string", "minLength": 1}
+            }
+          },
+          "source_asset_mutated": {"const": false}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executable_candidates", "command", "passes", "encoding"],
+      "properties": {
+        "executable_candidates": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "command": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}},
+        "passes": {"type": "integer", "minimum": 1, "maximum": 2},
+        "encoding": {"const": "utf-8"}
+      }
+    }
+  }
+}

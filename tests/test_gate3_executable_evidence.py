@@ -14,7 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import gate3_evidence  # noqa: E402
-from gate3_evidence import collect_gate_3_math_validation, validate_gate_3_check_evidence  # noqa: E402
+from gate3_evidence import (  # noqa: E402
+    collect_gate_3_math_validation,
+    derive_implementation_status,
+    validate_gate_3_check_evidence,
+)
 from gate3_executor import execute_gate_3_validator  # noqa: E402
 import run_workflow  # noqa: E402
 
@@ -142,6 +146,31 @@ def test_plain_passed_string_cannot_grant_formal_eligibility(tmp_path: Path) -> 
     assert result["structural_validation"] == "passed"
     assert result["mathematical_validation"] == "unverified"
     assert result["formal_result_eligible"] is False
+
+
+@pytest.mark.parametrize(
+    ("structural_status", "mathematical_status", "expected"),
+    [
+        ("passed", "passed", "pass"),
+        ("passed", "not_required", "pass"),
+        ("passed", "failed", "fail"),
+        ("passed", "unverified", "fail"),
+        ("failed", "passed", "fail"),
+        ("unverified", "passed", "fail"),
+    ],
+)
+def test_implementation_status_is_derived_from_gate_3_validation(
+    structural_status: str,
+    mathematical_status: str,
+    expected: str,
+) -> None:
+    validation = {
+        "structural_validation": structural_status,
+        "mathematical_validation": mathematical_status,
+        "formal_result_eligible": False,
+    }
+
+    assert derive_implementation_status(validation) == expected
 
 
 def test_missing_validator_sha_rejected(tmp_path: Path) -> None:

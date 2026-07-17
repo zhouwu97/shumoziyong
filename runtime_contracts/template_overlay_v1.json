@@ -1,0 +1,87 @@
+{
+  "schema_version": "template_overlay_v1",
+  "overlay_id": "windows_template_overlay_v1",
+  "platform": "windows",
+  "path_policy": {
+    "manifest_separator": "/",
+    "execution_separator": "native",
+    "reject_parent_traversal": true
+  },
+  "materialization": {
+    "mode": "verified_copy",
+    "verify_before_copy": true,
+    "source_asset_read_only": true,
+    "normalize_line_endings": false
+  },
+  "engines": {
+    "typst": {
+      "executable_candidates": ["typst.exe", "typst"],
+      "command": ["{executable}", "compile", "--root", "{template_dir}", "{entry}", "{output_pdf}"],
+      "passes": 1,
+      "encoding": "utf-8"
+    },
+    "xelatex": {
+      "executable_candidates": ["xelatex.exe", "xelatex"],
+      "command": ["{executable}", "-interaction=nonstopmode", "-halt-on-error", "{entry}"],
+      "passes": 2,
+      "encoding": "utf-8"
+    }
+  },
+  "staged_rewrites": [
+    {
+      "rewrite_id": "ctex_fontset_portability",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "fontset=mac",
+      "replacements": {
+        "windows": "fontset=windows",
+        "linux": "fontset=fandol"
+      },
+      "source_asset_mutated": false
+    },
+    {
+      "rewrite_id": "latin_serif_portability",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "\\setmainfont{Times New Roman}",
+      "replacements": {
+        "windows": "\\setmainfont{Times New Roman}",
+        "linux": "\\setmainfont{Latin Modern Roman}"
+      },
+      "source_asset_mutated": false
+    },
+    {
+      "rewrite_id": "latin_sans_portability",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "\\setsansfont{Arial}",
+      "replacements": {
+        "windows": "\\setsansfont{Arial}",
+        "linux": "\\setsansfont{Latin Modern Sans}"
+      },
+      "source_asset_mutated": false
+    },
+    {
+      "rewrite_id": "latin_mono_portability",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "\\setmonofont{Courier New}",
+      "replacements": {
+        "windows": "\\setmonofont{Courier New}",
+        "linux": "\\setmonofont{Latin Modern Mono}"
+      },
+      "source_asset_mutated": false
+    },
+    {
+      "rewrite_id": "toc_entry_parameter_fix",
+      "engine": "xelatex",
+      "path": "main.tex",
+      "match": "\\leaders\\hbox{$\\cdot$}\\hfill\\ #\n  #3\\par%",
+      "replacements": {
+        "windows": "\\leaders\\hbox{$\\cdot$}\\hfill\\ #3\\par%",
+        "linux": "\\leaders\\hbox{$\\cdot$}\\hfill\\ #3\\par%"
+      },
+      "source_asset_mutated": false
+    }
+  ]
+}

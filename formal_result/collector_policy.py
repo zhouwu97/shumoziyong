@@ -16,6 +16,7 @@ COLLECTOR_ID = "m3a-json-pointer-collector-v1"
 COLLECTOR_SCRIPT_PATH = "scripts/run_in_verified_sandbox.py"
 DERIVATION_CONTRACT_ID = "m3a-engineering-objective-v1"
 RGV_2018B_DERIVATION_CONTRACT_ID = "m3a-2018b-rgv-heuristic-v1"
+PREDICTION_DERIVATION_CONTRACT_ID = "m3a-prediction-heldout-v1"
 
 TRUSTED_DERIVATION_CONTRACT: dict[str, Any] = {
     "contract_version": "1.0.0",
@@ -146,14 +147,62 @@ RGV_2018B_DOMAIN_POLICY: dict[str, Any] = {
     "required_negative_test_status": "passed",
 }
 
+PREDICTION_DERIVATION_CONTRACT: dict[str, Any] = {
+    "contract_version": "1.0.0",
+    "raw_output_path": "result.json",
+    "mappings": [
+        {
+            "source_pointer": f"/{field}",
+            "target_artifact": "prediction_result.json",
+            "target_pointer": f"/payload/{field}",
+        }
+        for field in (
+            "group_key",
+            "random_seed",
+            "split_assignments",
+            "fit_audits",
+            "tasks",
+        )
+    ]
+    + [
+        {
+            "source_pointer": "/negative_tests_status",
+            "target_artifact": "negative_tests.json",
+            "target_pointer": "/status",
+        },
+        {
+            "source_pointer": "/negative_tests",
+            "target_artifact": "negative_tests.json",
+            "target_pointer": "/payload/results",
+        },
+    ],
+}
+
+PREDICTION_DOMAIN_POLICY: dict[str, Any] = {
+    "policy_version": "1.0.0",
+    "profile": "prediction",
+    "required_raw_fields": [
+        "group_key",
+        "random_seed",
+        "split_assignments",
+        "fit_audits",
+        "tasks",
+    ],
+    "negative_tests_status_source_pointer": "/negative_tests_status",
+    "required_negative_tests": ["missing-input", "tampered-output"],
+    "required_negative_test_status": "passed",
+}
+
 TRUSTED_DERIVATION_CONTRACTS = {
     DERIVATION_CONTRACT_ID: TRUSTED_DERIVATION_CONTRACT,
     RGV_2018B_DERIVATION_CONTRACT_ID: RGV_2018B_DERIVATION_CONTRACT,
+    PREDICTION_DERIVATION_CONTRACT_ID: PREDICTION_DERIVATION_CONTRACT,
 }
 
 TRUSTED_DOMAIN_POLICIES = {
     DERIVATION_CONTRACT_ID: TRUSTED_DOMAIN_POLICY,
     RGV_2018B_DERIVATION_CONTRACT_ID: RGV_2018B_DOMAIN_POLICY,
+    PREDICTION_DERIVATION_CONTRACT_ID: PREDICTION_DOMAIN_POLICY,
 }
 
 

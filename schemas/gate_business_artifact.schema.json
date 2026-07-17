@@ -38,10 +38,7 @@
         "material_findings": {"$ref": "#/$defs/nonEmptyStrings"},
         "objectives": {"$ref": "#/$defs/nonEmptyStrings"},
         "constraints": {"type": "array", "items": {"type": "string", "minLength": 1}},
-        "risks": {"$ref": "#/$defs/nonEmptyStrings"},
-        "ambiguities": {"type": "array", "items": {"type": "object"}},
-        "capability_tags": {"type": "array", "items": {"type": "string", "minLength": 1}},
-        "proposed_result_role": {"type": "string", "minLength": 1}
+        "risks": {"$ref": "#/$defs/nonEmptyStrings"}
       },
       "required": ["problem_summary", "material_findings", "objectives", "constraints", "risks"]
     },
@@ -62,8 +59,7 @@
         "modules": {"$ref": "#/$defs/nonEmptyStrings"},
         "inputs": {"$ref": "#/$defs/nonEmptyStrings"},
         "outputs": {"$ref": "#/$defs/nonEmptyStrings"},
-        "verification_steps": {"$ref": "#/$defs/nonEmptyStrings"},
-        "communication_plan": {"type": "object", "additionalProperties": false, "required": ["subproblems"], "properties": {"subproblems": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["subproblem_id", "expected_reader_takeaway", "essential_equations", "essential_tables", "figures", "main_text_details", "appendix_only_details", "technical_report_only_details"], "properties": {"subproblem_id": {"type": "string", "minLength": 1}, "expected_reader_takeaway": {"type": "string", "minLength": 1}, "essential_equations": {"type": "array", "items": {"type": "string", "minLength": 1}}, "essential_tables": {"type": "array", "items": {"type": "string", "minLength": 1}}, "figures": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["figure_kind", "question_answered", "source_artifact", "required"], "properties": {"figure_kind": {"enum": ["data", "concept"]}, "question_answered": {"type": "string", "minLength": 1}, "source_artifact": {"type": ["string", "null"]}, "required": {"type": "boolean"}}}}, "main_text_details": {"type": "array", "items": {"type": "string", "minLength": 1}}, "appendix_only_details": {"type": "array", "items": {"type": "string", "minLength": 1}}, "technical_report_only_details": {"type": "array", "items": {"type": "string", "minLength": 1}}}}}}}
+        "verification_steps": {"$ref": "#/$defs/nonEmptyStrings"}
       },
       "required": ["commands", "modules", "inputs", "outputs", "verification_steps"]
     },
@@ -234,7 +230,21 @@
               "claim_id": {"type": "string", "pattern": "^C[0-9]{3,}$"},
               "claim": {"type": "string", "minLength": 10},
               "result_refs": {"$ref": "#/$defs/nonEmptyStrings"},
-              "evidence_refs": {"$ref": "#/$defs/nonEmptyStrings"}
+              "evidence_refs": {"$ref": "#/$defs/nonEmptyStrings"},
+              "source_file": {"type": "string", "minLength": 1},
+              "json_pointer": {"type": "string", "pattern": "^(?:/.*)?$"},
+              "raw_value": {"type": ["number", "string"]},
+              "display_value": {"type": "string", "minLength": 1},
+              "unit": {"type": "string"},
+              "rounding_rule": {
+                "type": "string",
+                "pattern": "^(?:integer|[0-9]+_decimal|percent_[0-9]+_decimal)$"
+              },
+              "conclusion_tokens": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {"type": "string", "minLength": 1}
+              }
             }
           }
         }

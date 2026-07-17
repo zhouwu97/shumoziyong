@@ -9,6 +9,7 @@ import json
 import os
 import secrets
 import shutil
+import socket
 import stat
 import subprocess
 import sys
@@ -26,6 +27,7 @@ from formal_result.collector_policy import (
     COLLECTOR_ID,
     COLLECTOR_SCRIPT_PATH,
     DERIVATION_CONTRACT_ID,
+    PREDICTION_DERIVATION_CONTRACT_ID,
     RGV_2018B_DERIVATION_CONTRACT_ID,
     bound_collector_source_commit,
     derivation_contract_sha256,
@@ -43,6 +45,7 @@ from formal_result.execution_contract import (
     sandbox_policy_sha256,
 )
 from formal_result.hashing import file_sha256, semantic_sha256
+from formal_result.prediction_validation import recompute_prediction_metrics
 from formal_result.run_execution_attestation import (
     ATTESTATION_FILENAME,
     EXECUTION_RECORD_FILENAME,
@@ -269,6 +272,107 @@ def _read_negative_control(
     }
 
 
+def _compile_sandbox_policy(
+    run_dir: Path,
+    execution_root: Path,
+    sentinels: Mapping[str, Path],
+) -> tuple[list[str], list[tuple[str, str]]]:
+    """编译可复算策略，并避免破坏 Windows Python 异步运行时。"""
+    normalized = [
+        "Enabled=y",
+        "AutoDelete=n",
+        "DropAdminRights=y",
+        "BlockNetworkFiles=y",
+        "NetworkAccess=*,Block",
+        "HideMessage=2203",
+        "NotifyInternetAccessDenied=n",
+        "ClosedFilePath=%RUN_ROOT%",
+        "ClosedFilePath=%REPO_SENTINEL%",
+        "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
+        "ClosedFilePath=%USER_HOME_SENTINEL%",
+        r"ReadFilePath=%EXECUTION_ROOT%\code",
+        r"ReadFilePath=%EXECUTION_ROOT%\input",
+        r"ReadFilePath=%EXECUTION_ROOT%\execution_spec.json",
+        r"OpenFilePath=%EXECUTION_ROOT%\output",
+        r"OpenFilePath=%EXECUTION_ROOT%\tmp",
+    ]
+    settings = [
+        ("Enabled", "y"),
+        ("AutoDelete", "n"),
+        ("DropAdminRights", "y"),
+        ("BlockNetworkFiles", "y"),
+        ("NetworkAccess", "*,Block"),
+        ("NotifyInternetAccessDenied", "n"),
+        ("HideMessage", "2203"),
+        ("ClosedFilePath", str(run_dir)),
+        ("ClosedFilePath", str(sentinels["blocked_read_repo_unlisted"])),
+        ("ClosedFilePath", str(sentinels["blocked_read_other_temp"])),
+        ("ClosedFilePath", str(sentinels["blocked_read_user_home"])),
+        ("ReadFilePath", str(execution_root / "code")),
+        ("ReadFilePath", str(execution_root / "input")),
+        ("ReadFilePath", str(execution_root / "execution_spec.json")),
+        ("OpenFilePath", str(execution_root / "output")),
+        ("OpenFilePath", str(execution_root / "tmp")),
+    ]
+    return normalized, settings
+
+
+def _network_negative_control(
+    start: Path,
+    box: str,
+    python: Path,
+    cwd: Path,
+) -> dict[str, Any]:
+    """证明异步运行时可用，同时证明 Box 无法连接宿主监听端口。"""
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(2)
+    port = int(listener.getsockname()[1])
+    host_listener_reachable = False
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=2):
+            accepted, _address = listener.accept()
+            accepted.close()
+            host_listener_reachable = True
+        probe = (
+            "import ctypes,socket,sys;"
+            "sandboxed=bool(ctypes.windll.kernel32.GetModuleHandleW('SbieDll.dll'));"
+            "sys.exit(42) if not sandboxed else None;"
+            "import _overlapped;"
+            f"target=('127.0.0.1',{port});"
+            "connected=False;"
+            "\ntry:\n s=socket.create_connection(target,timeout=2);s.close();connected=True"
+            "\nexcept OSError:\n pass"
+            "\nsys.exit(43 if connected else 0)"
+        )
+        command = [
+            str(start),
+            f"/box:{box}",
+            "/silent",
+            "/wait",
+            str(python),
+            "-c",
+            probe,
+        ]
+        result, attempt_exit_codes = _run_start_with_retry(command, timeout=30, cwd=cwd)
+    finally:
+        listener.close()
+    passed = host_listener_reachable and result.returncode == 0
+    return {
+        "control_id": "blocked_loopback_tcp_with_async_runtime",
+        "target_class": "host_loopback_listener",
+        "status": "passed" if passed else "failed",
+        "expected": "_overlapped imports and sandbox TCP connection is denied",
+        "host_listener_reachable": host_listener_reachable,
+        "sandbox_marker_detected": passed,
+        "python_async_runtime_compatible": passed,
+        "connection_denied": passed,
+        "exit_code": result.returncode,
+        "attempt_exit_codes": attempt_exit_codes,
+        "command_sha256": hashlib.sha256("\0".join(command).encode("utf-8")).hexdigest(),
+    }
+
+
 def _expand_report_path(value: str) -> Path:
     """只展开公开报告允许的固定脱敏令牌。"""
     replacements = {
@@ -369,16 +473,66 @@ def _derive_formal_result(
     contract_id = str(raw.get("derivation_contract_id", DERIVATION_CONTRACT_ID))
     contract = trusted_derivation_contract(contract_id)
     formal = run_dir / "formal_results" / formal_result_id
-    decision_path = formal / "decision_variables.json"
-    decision = _load(decision_path)
-    validation_path = formal / "optimization_validation.json"
-    validation = _load(validation_path)
-    certificate_path = formal / "optimality_certificate.json"
-    certificate = _load(certificate_path)
+    if contract_id == PREDICTION_DERIVATION_CONTRACT_ID:
+        result_path = formal / "prediction_result.json"
+        result = _load(result_path)
+        validation_path = formal / "prediction_validation.json"
+        validation = _load(validation_path)
+        certificate_path = formal / "prediction_reproducibility_certificate.json"
+        certificate = _load(certificate_path)
+    else:
+        decision_path = formal / "decision_variables.json"
+        decision = _load(decision_path)
+        validation_path = formal / "optimization_validation.json"
+        validation = _load(validation_path)
+        certificate_path = formal / "optimality_certificate.json"
+        certificate = _load(certificate_path)
     negative_path = formal / "negative_tests.json"
     negative = _load(negative_path)
 
-    if contract_id == RGV_2018B_DERIVATION_CONTRACT_ID:
+    if contract_id == PREDICTION_DERIVATION_CONTRACT_ID:
+        result_payload = {
+            field: raw.get(field)
+            for field in (
+                "group_key",
+                "random_seed",
+                "split_assignments",
+                "fit_audits",
+                "tasks",
+            )
+        }
+        metrics = recompute_prediction_metrics(result_payload)
+        result["status"] = "collected"
+        result["payload"] = result_payload
+        validation["status"] = "passed"
+        validation["bindings"] = {"prediction_result.json": semantic_sha256(result)}
+        validation["payload"] = {
+            "patient_split_check": {"status": "passed", "overlap_group_count": 0},
+            "fit_scope_checks": [
+                {"stage": audit["stage"], "status": "passed"}
+                for audit in result_payload["fit_audits"]
+            ],
+            "tasks": [
+                {"task_id": task_id, "status": "passed", "metrics": task_metrics}
+                for task_id, task_metrics in metrics.items()
+            ],
+        }
+        certificate["status"] = "passed"
+        certificate["bindings"] = {
+            "prediction_validation.json": semantic_sha256(validation)
+        }
+        certificate["payload"] = {
+            "claim_scope": "held_out_predictive_performance",
+            "random_seed": result_payload["random_seed"],
+            "grouping_key": result_payload["group_key"],
+            "preprocessing_scope": "training_only",
+            "screening_only": True,
+            "causal_claims_supported": False,
+        }
+        negative["status"] = raw.get("negative_tests_status")
+        negative["payload"] = {"results": raw.get("negative_tests")}
+        _write(result_path, result)
+    elif contract_id == RGV_2018B_DERIVATION_CONTRACT_ID:
         scenario_decisions = raw.get("scenario_decisions")
         policy_scope = raw.get("policy_scope")
         metrics = raw.get("validation_metrics")
@@ -420,14 +574,18 @@ def _derive_formal_result(
         negative["status"] = raw.get("negative_tests_status")
         negative["payload"]["results"] = raw.get("negative_tests")
 
-    _write(decision_path, decision)
-    validation["bindings"] = {"decision_variables.json": semantic_sha256(decision)}
+    if contract_id != PREDICTION_DERIVATION_CONTRACT_ID:
+        _write(decision_path, decision)
+        validation["bindings"] = {"decision_variables.json": semantic_sha256(decision)}
     _write(validation_path, validation)
-    certificate["bindings"] = {"optimization_validation.json": semantic_sha256(validation)}
+    if contract_id != PREDICTION_DERIVATION_CONTRACT_ID:
+        certificate["bindings"] = {
+            "optimization_validation.json": semantic_sha256(validation)
+        }
     _write(certificate_path, certificate)
     _write(negative_path, negative)
 
-    hashes = core_semantic_hashes(formal)
+    hashes = core_semantic_hashes(formal, contract_id)
     core_digest = semantic_sha256(hashes)
     output_sha = file_sha256(run_dir / OUTPUT_MANIFEST_FILENAME)
     derivation = {
@@ -567,45 +725,22 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
     other_temp_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
     user_sentinel = Path.home() / f".shumo-m3a-sentinel-{uuid.uuid4().hex}.txt"
     user_sentinel.write_text(secrets.token_hex(16), encoding="utf-8")
-    normalized_policy = [
-        "Enabled=y", "AutoDelete=n", "DropAdminRights=y", "BlockNetworkFiles=y",
-        "HideMessage=2203", "NotifyInternetAccessDenied=n", "ClosedFilePath=%RUN_ROOT%",
-        "ClosedFilePath=%REPO_SENTINEL%", "ClosedFilePath=%OTHER_TEMP_SENTINEL%",
-        "ClosedFilePath=%USER_HOME_SENTINEL%",
-        r"ReadFilePath=%EXECUTION_ROOT%\code", r"ReadFilePath=%EXECUTION_ROOT%\input",
-        r"ReadFilePath=%EXECUTION_ROOT%\execution_spec.json",
-        r"OpenFilePath=%EXECUTION_ROOT%\output", r"OpenFilePath=%EXECUTION_ROOT%\tmp",
-        r"ClosedFilePath=\Device\Afd*",
-        r"ClosedFilePath=\Device\Tcp*",
-        r"ClosedFilePath=\Device\RawIp",
-    ]
-    policy_sha = sandbox_policy_sha256(normalized_policy)
     sentinels = {
         "blocked_read_original_run": run_dir / "run_manifest.json",
         "blocked_read_repo_unlisted": ROOT / "README.md",
         "blocked_read_other_temp": other_temp_sentinel,
         "blocked_read_user_home": user_sentinel,
     }
-    settings = [
-        ("Enabled", "y"), ("AutoDelete", "n"), ("DropAdminRights", "y"),
-        ("BlockNetworkFiles", "y"), ("NotifyInternetAccessDenied", "n"),
-        ("HideMessage", "2203"),
-        ("ClosedFilePath", str(run_dir)),
-        ("ClosedFilePath", str(sentinels["blocked_read_repo_unlisted"])),
-        ("ClosedFilePath", str(other_temp_sentinel)),
-        ("ClosedFilePath", str(user_sentinel)),
-        ("ReadFilePath", str(execution_root / "code")),
-        ("ReadFilePath", str(execution_root / "input")),
-        ("ReadFilePath", str(execution_root / "execution_spec.json")),
-        ("OpenFilePath", str(execution_root / "output")),
-        ("OpenFilePath", str(execution_root / "tmp")),
-        ("ClosedFilePath", r"\Device\Afd*"),
-        ("ClosedFilePath", r"\Device\Tcp*"),
-        ("ClosedFilePath", r"\Device\RawIp"),
-    ]
+    normalized_policy, settings = _compile_sandbox_policy(
+        run_dir,
+        execution_root,
+        sentinels,
+    )
+    policy_sha = sandbox_policy_sha256(normalized_policy)
     result: subprocess.CompletedProcess[str] | None = None
     candidate_attempt_exit_codes: list[int] = []
     negative_controls: list[dict[str, Any]] = []
+    network_negative_controls: list[dict[str, Any]] = []
     controller_before, controller_before_exit = _process_ids("SbieCtrl")
     controller_pids_before = sorted(controller_before)
     sections_before_result = _run([str(sbie_ini), "query", "*"])
@@ -628,6 +763,14 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
             raise RuntimeError(
                 "Sandboxie Run 外宿主读取负控失败："
                 + json.dumps(negative_controls, ensure_ascii=False)
+            )
+        network_negative_controls = [
+            _network_negative_control(start, box, python, execution_root)
+        ]
+        if any(item["status"] != "passed" for item in network_negative_controls):
+            raise RuntimeError(
+                "Sandboxie Run 网络负控失败："
+                + json.dumps(network_negative_controls, ensure_ascii=False)
             )
         for attempt in range(3):
             result = _run(
@@ -812,6 +955,8 @@ def execute_in_verified_sandbox(run_dir: Path, formal_result_id: str) -> dict[st
         "environment_overrides": compiled["environment_overrides"],
         "acceptance_results": acceptance_results,
         "read_negative_controls": negative_controls,
+        "network_isolation_verified": True,
+        "network_negative_controls": network_negative_controls,
         "candidate_attempt_exit_codes": candidate_attempt_exit_codes,
         "cleanup": cleanup,
         "launch_command_sha256": command_sha, "started_at": started_at,

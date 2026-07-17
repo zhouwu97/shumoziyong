@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_narrative_input.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "thesis", "core_contributions", "model_choice_reason", "result_insights", "action_recommendations", "limitations"],
+  "properties": {
+    "schema_version": {"const": "paper_narrative_input_v1"},
+    "thesis": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/item"}},
+    "core_contributions": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/item"}},
+    "model_choice_reason": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/item"}},
+    "result_insights": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/item"}},
+    "action_recommendations": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/item"}},
+    "limitations": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/item"}}
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "evidence_refs"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^C[0-9]{3,}$"}
+        }
+      }
+    }
+  }
+}

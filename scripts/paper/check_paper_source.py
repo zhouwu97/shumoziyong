@@ -36,6 +36,11 @@ INCLUDE_PATTERN = re.compile(r'#include\s*[\( ]\s*["\']([^"\']+)["\']')
 IMAGE_PATTERN = re.compile(r'image\s*\(\s*["\']([^"\']+)["\']')
 EQUATION_LABEL_PATTERN = re.compile(r"<(?P<label>eq[-_:][A-Za-z0-9_.:-]+)>")
 EQUATION_REF_PATTERN = re.compile(r"@(?P<label>eq[-_:][A-Za-z0-9_.:-]+)")
+MATH_SPAN_PATTERNS = (
+    re.compile(r"\$[\s\S]*?\$"),
+    re.compile(r"\\\([\s\S]*?\\\)"),
+    re.compile(r"\\\[[\s\S]*?\\\]"),
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -281,6 +286,67 @@ def scan_equation_references(sources: list[tuple[Path, str]], issues: list[dict[
         )
 
 
+def mask_ranges(text: str, ranges: list[tuple[int, int]]) -> str:
+    characters = list(text)
+    for start, end in ranges:
+        for index in range(start, min(end, len(characters))):
+            if characters[index] != "\n":
+                characters[index] = " "
+    return "".join(characters)
+
+
+def scan_formula_environments(path: Path, text: str, issues: list[dict[str, Any]]) -> None:
+    """识别复杂表达式落入普通正文，以及关键公式缺少追踪标签。"""
+    math_ranges: list[tuple[int, int]] = []
+    formulas: list[tuple[int, int, str]] = []
+    for pattern in MATH_SPAN_PATTERNS:
+        for match in pattern.finditer(text):
+            math_ranges.append((match.start(), match.end()))
+            formulas.append((match.start(), match.end(), match.group(0)))
+    for position, call in iter_balanced_calls(text, "#equation"):
+        math_ranges.append((position, position + len(call)))
+        formulas.append((position, position + len(call), call))
+
+    plain = mask_ranges(text, math_ranges)
+    complex_patterns = (
+        re.compile(r"\\frac\s*\{|\bfrac\s*\("),
+        re.compile(r"\\begin\s*\{(?:p|b|v)?matrix\}|\bmatrix\s*\("),
+        re.compile(r"[∑∫]\s*[^。；\n]{0,100}(?:=|\^|_|[+*/])"),
+        re.compile(r"^\s*(?:max|min|maximize|minimize)\b[^。；\n]*(?:=|[+*/_-])", re.MULTILINE),
+    )
+    for pattern in complex_patterns:
+        match = pattern.search(plain)
+        if match:
+            add_issue(
+                issues,
+                "FAIL",
+                "complex_formula_as_plain_text",
+                "复杂或块级公式必须置于数学环境",
+                path,
+                line_number(plain, match.start()),
+            )
+            break
+
+    critical_pattern = re.compile(
+        r"\b(?:max|min|maximize|minimize)\b|operatorname\s*\(\s*(?:max|min)\s*\)|"
+        r"subject\s+to|s\.\s*t\.",
+        flags=re.IGNORECASE,
+    )
+    for position, end, formula in sorted(formulas, key=lambda item: item[0]):
+        if not critical_pattern.search(formula):
+            continue
+        label_context = text[end : end + 160]
+        if not EQUATION_LABEL_PATTERN.search(label_context):
+            add_issue(
+                issues,
+                "FAIL",
+                "critical_formula_missing_label",
+                "关键目标函数或约束公式缺少可追踪标签",
+                path,
+                line_number(text, position),
+            )
+
+
 def scan_style_rules(path: Path, text: str, issues: list[dict[str, Any]]) -> None:
     heading_color = re.compile(
         r"(?:show|set)\s+heading[\s\S]{0,240}fill\s*:\s*([^,\)\]\n]+)",
@@ -347,6 +413,7 @@ def check_paper_source(main_path: Path) -> dict[str, Any]:
         scan_internal_names(path, text, issues)
         scan_images(path, text, issues)
         scan_captions(path, text, issues)
+        scan_formula_environments(path, text, issues)
         scan_style_rules(path, text, issues)
         scan_writing_warnings(path, text, issues)
 

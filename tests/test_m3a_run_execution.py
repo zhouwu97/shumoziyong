@@ -28,6 +28,7 @@ from formal_result.collector_policy import (
 from formal_result.run_execution_attestation import (
     validate_cleanup_record,
     validate_execution_time_window,
+    validate_network_isolation_record,
     verify_run_execution_attestation,
 )
 from formal_result.trusted_local import collect_git_state, trusted_local_eligibility_scope
@@ -642,6 +643,99 @@ def test_challenge_echo_is_required(tmp_path: Path) -> None:
 def test_fixture_contains_real_child_stdout() -> None:
     stdout = FIXTURE / "execution_sandbox" / "output" / "stdout.log"
     assert stdout.read_text(encoding="utf-8").strip() == "formal test"
+
+
+def test_run_network_policy_blocks_connections_without_closing_devices(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "run"
+    execution_root = tmp_path / "execution"
+    sentinels = {
+        "blocked_read_repo_unlisted": tmp_path / "repo.txt",
+        "blocked_read_other_temp": tmp_path / "temp.txt",
+        "blocked_read_user_home": tmp_path / "home.txt",
+    }
+
+    normalized, settings = sandbox_runner._compile_sandbox_policy(
+        run_dir,
+        execution_root,
+        sentinels,
+    )
+
+    assert "NetworkAccess=*,Block" in normalized
+    assert ("NetworkAccess", "*,Block") in settings
+    assert not any(
+        item.casefold().startswith("closedfilepath=\\device\\") for item in normalized
+    )
+    assert not any(
+        name == "ClosedFilePath" and value.casefold().startswith("\\device\\")
+        for name, value in settings
+    )
+
+
+def _network_isolation_record() -> dict[str, object]:
+    return {
+        "sandbox_policy_settings": [
+            "BlockNetworkFiles=y",
+            "NetworkAccess=*,Block",
+        ],
+        "network_isolation_verified": True,
+        "network_negative_controls": [
+            {
+                "control_id": "blocked_loopback_tcp_with_async_runtime",
+                "target_class": "host_loopback_listener",
+                "status": "passed",
+                "host_listener_reachable": True,
+                "sandbox_marker_detected": True,
+                "python_async_runtime_compatible": True,
+                "connection_denied": True,
+                "exit_code": 0,
+                "attempt_exit_codes": [0],
+                "command_sha256": "a" * 64,
+            }
+        ],
+    }
+
+
+def test_new_network_policy_requires_runtime_compatible_live_control() -> None:
+    assert validate_network_isolation_record(_network_isolation_record()) is True
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("missing_control", "网络负控"),
+        ("async_runtime_failed", "网络负控"),
+        ("device_closed", "设备节点"),
+        ("network_rule_missing", "网络拒绝规则"),
+    ],
+)
+def test_new_network_policy_fails_closed(
+    mutation: str,
+    message: str,
+) -> None:
+    record = _network_isolation_record()
+    policy = record["sandbox_policy_settings"]
+    controls = record["network_negative_controls"]
+    assert isinstance(policy, list)
+    assert isinstance(controls, list)
+    if mutation == "missing_control":
+        controls.clear()
+    elif mutation == "async_runtime_failed":
+        controls[0]["python_async_runtime_compatible"] = False
+    elif mutation == "device_closed":
+        policy.append(r"ClosedFilePath=\Device\Afd*")
+    else:
+        policy.remove("NetworkAccess=*,Block")
+
+    with pytest.raises(FormalResultVerificationError, match=message):
+        validate_network_isolation_record(record)
+
+
+def test_legacy_network_policy_remains_verifiable_without_new_claim() -> None:
+    record = _load(FIXTURE / "sandboxie_run_execution_record.json")
+
+    assert validate_network_isolation_record(record) is False
 
 
 def test_fixture_binds_host_read_controls_and_cleanup() -> None:

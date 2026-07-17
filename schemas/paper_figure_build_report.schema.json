@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_figure_build_report.schema.json",
+  "title": "论文图表构建报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "figure_id",
+    "backend",
+    "core_conclusion",
+    "source_data_sha256",
+    "outputs",
+    "python_statistics",
+    "matlab_validation",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "figure_id": {"type": "string", "minLength": 1},
+    "backend": {"const": "python"},
+    "core_conclusion": {"type": "string", "minLength": 10},
+    "source_data_sha256": {"$ref": "#/$defs/sha256"},
+    "outputs": {"$ref": "#/$defs/outputs"},
+    "python_statistics": {"$ref": "#/$defs/statistics"},
+    "matlab_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "status", "outputs", "statistics", "max_abs_difference", "issues"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "status": {"enum": ["passed", "failed", "not_run"]},
+        "outputs": {"$ref": "#/$defs/outputs"},
+        "statistics": {"$ref": "#/$defs/statistics"},
+        "max_abs_difference": {"type": ["number", "null"], "minimum": 0},
+        "issues": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "status": {"enum": ["passed", "failed"]}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "size_bytes"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"$ref": "#/$defs/sha256"},
+          "size_bytes": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "statistics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["column", "count", "min", "max", "mean", "std"],
+        "properties": {
+          "column": {"type": "string", "minLength": 1},
+          "count": {"type": "integer", "minimum": 1},
+          "min": {"type": "number"},
+          "max": {"type": "number"},
+          "mean": {"type": "number"},
+          "std": {"type": "number", "minimum": 0}
+        }
+      }
+    }
+  }
+}

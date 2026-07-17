@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/model_text_consistency_report.schema.json",
+  "title": "模型、代码、结果与论文一致性报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "paper_source_sha256",
+    "model_route",
+    "model_route_sha256",
+    "result_report",
+    "result_report_sha256",
+    "checks",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "paper_source_sha256": {"$ref": "#/$defs/sha256"},
+    "model_route": {"type": "string", "minLength": 1},
+    "model_route_sha256": {"$ref": "#/$defs/sha256"},
+    "result_report": {"type": "string", "minLength": 1},
+    "result_report_sha256": {"$ref": "#/$defs/sha256"},
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objective_directions",
+        "lexicographic_order",
+        "variables",
+        "formulas",
+        "constraints",
+        "claim_scope"
+      ],
+      "properties": {
+        "objective_directions": {"$ref": "#/$defs/check"},
+        "lexicographic_order": {"$ref": "#/$defs/check"},
+        "variables": {"$ref": "#/$defs/check"},
+        "formulas": {"$ref": "#/$defs/check"},
+        "constraints": {"$ref": "#/$defs/check"},
+        "claim_scope": {"$ref": "#/$defs/check"}
+      }
+    },
+    "status": {"enum": ["passed", "failed"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "checks": {
+            "properties": {
+              "objective_directions": {"properties": {"status": {"const": "passed"}}},
+              "lexicographic_order": {"properties": {"status": {"const": "passed"}}},
+              "variables": {"properties": {"status": {"const": "passed"}}},
+              "formulas": {"properties": {"status": {"const": "passed"}}},
+              "constraints": {"properties": {"status": {"const": "passed"}}},
+              "claim_scope": {"properties": {"status": {"const": "passed"}}}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence", "issues"],
+      "properties": {
+        "status": {"enum": ["passed", "failed"]},
+        "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "issues": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

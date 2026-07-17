@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from jsonschema import Draft202012Validator
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_json(relative: str) -> dict[str, object]:
+    return json.loads((ROOT / relative).read_text(encoding="utf-8"))
+
+
+def test_paper_contract_schemas_are_valid_draft_2020_12() -> None:
+    for relative in (
+        "schemas/paper_profile.schema.json",
+        "schemas/paper_verify_report.schema.json",
+        "schemas/paper_external_precheck_report.schema.json",
+        "schemas/suggested_repairs.schema.json",
+        "schemas/template_selection.schema.json",
+        "schemas/paper_production_manifest_v2.schema.json",
+        "schemas/paper_narrative_contract.schema.json",
+        "schemas/paper_narrative_input.schema.json",
+        "schemas/paper_narrative_report.schema.json",
+    ):
+        Draft202012Validator.check_schema(load_json(relative))
+
+
+def test_cumcm_profile_satisfies_profile_schema() -> None:
+    schema = load_json("schemas/paper_profile.schema.json")
+    profile = load_json("paper_profiles/cumcm_academic_v1.json")
+
+    Draft202012Validator(schema).validate(profile)
+    assert profile["approved_renderers"] == [
+        {"id": "typst", "template_id": "cumcm_typst_academic_v1"}
+    ]
+
+
+def test_narrative_contract_satisfies_contract_schema() -> None:
+    schema = load_json("schemas/paper_narrative_contract.schema.json")
+    contract = load_json("runtime_contracts/paper_narrative_contract_v1.json")
+
+    Draft202012Validator(schema).validate(contract)
+
+
+def test_claim_map_schema_accepts_numeric_binding_fields() -> None:
+    schema = load_json("schemas/gate_business_artifact.schema.json")
+    payload = {
+        "schema_version": "1.0.0",
+        "artifact_type": "paper_claim_map",
+        "run_id": "run-1",
+        "problem_id": "2024-D",
+        "profile": "evaluation",
+        "runtime_version": "0.1.0",
+        "runtime_pack_sha256": "a" * 64,
+        "claims": [
+            {
+                "claim_id": "C001",
+                "claim": "第二问所选可行路线的目标值为 0.085841。",
+                "result_refs": ["route_comparison_result_Q2.json#/selected_route_id"],
+                "evidence_refs": ["operability_report_Q2.json#/overall_status"],
+                "source_file": "route_comparison_result_Q2.json",
+                "json_pointer": "/route_results/2/metrics/0/value",
+                "raw_value": 0.08584078662173278,
+                "display_value": "0.085841",
+                "unit": "",
+                "rounding_rule": "6_decimal",
+                "conclusion_tokens": ["可行路线"],
+            }
+        ],
+    }
+
+    Draft202012Validator(schema).validate(payload)
+
+
+def test_contract_keeps_submission_and_technical_report_separate() -> None:
+    contract = (ROOT / "docs/paper/PAPER_RENDERING_CONTRACT.md").read_text(encoding="utf-8")
+
+    assert "submission_paper" in contract
+    assert "technical_report" in contract
+    assert "ReportLab" in contract
+    assert "不得静默退回" in contract

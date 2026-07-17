@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/prediction_domain_manifest.schema.json",
+  "title": "Prediction Formal Result Domain Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "formal_result_id", "run_id", "problem_id", "profile",
+    "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version",
+    "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version",
+    "domain", "mechanism", "validator_id", "validator_version", "required_artifacts",
+    "required_certificates", "result_schema", "validation_schema", "required_metrics",
+    "metric_tolerance", "invariant_checks", "negative_test_requirements", "output_file_set",
+    "semantic_hashes"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "domain_manifest"},
+    "formal_result_id": {"$ref": "#/$defs/id"},
+    "run_id": {"$ref": "#/$defs/id"},
+    "problem_id": {"$ref": "#/$defs/id"},
+    "profile": {"const": "prediction"},
+    "runtime_version": {"$ref": "#/$defs/id"},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"},
+    "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"},
+    "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"},
+    "domain": {"const": "predictive_modeling"},
+    "mechanism": {"enum": ["supervised_learning", "repeated_measures_prediction", "survival_prediction"]},
+    "validator_id": {"$ref": "#/$defs/id"},
+    "validator_version": {"$ref": "#/$defs/id"},
+    "required_artifacts": {
+      "type": "array", "minItems": 11, "maxItems": 11,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "media_type", "file_sha256"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+          "media_type": {"enum": ["application/json", "text/plain"]},
+          "file_sha256": {"$ref": "#/$defs/sha"},
+          "semantic_sha256": {"$ref": "#/$defs/sha"},
+          "schema": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.schema\\.json$"}
+        },
+        "allOf": [
+          {"if": {"properties": {"media_type": {"const": "application/json"}}}, "then": {"required": ["semantic_sha256", "schema"]}}
+        ]
+      }
+    },
+    "required_certificates": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "contains": {"const": "prediction_reproducibility_certificate.json"},
+      "items": {"type": "string"}
+    },
+    "result_schema": {"const": "formal_result_prediction_result.schema.json"},
+    "validation_schema": {"const": "formal_result_prediction_validation.schema.json"},
+    "required_metrics": {
+      "type": "array", "minItems": 3, "uniqueItems": true,
+      "contains": {"const": "brier"},
+      "items": {"enum": ["brier", "pr_auc", "roc_auc", "recall", "precision", "positive_rate"]}
+    },
+    "metric_tolerance": {"type": "number", "minimum": 0, "maximum": 0.000001},
+    "invariant_checks": {
+      "type": "array", "minItems": 3, "uniqueItems": true,
+      "items": {"enum": ["patient_group_disjoint", "train_only_preprocessing", "held_out_metric_recomputation", "frozen_random_seed"]}
+    },
+    "negative_test_requirements": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "output_file_set": {"type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": {"type": "string"}},
+    "semantic_hashes": {"type": "object", "minProperties": 8, "additionalProperties": {"$ref": "#/$defs/sha"}}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1},
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

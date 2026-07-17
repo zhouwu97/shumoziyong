@@ -11,6 +11,7 @@ from .collector_policy import (
     COLLECTOR_ID,
     COLLECTOR_SCRIPT_PATH,
     DERIVATION_CONTRACT_ID,
+    PREDICTION_DERIVATION_CONTRACT_ID,
     collector_script_sha256_at_commit,
     derivation_contract_sha256,
     domain_policy_sha256,
@@ -22,10 +23,16 @@ from .hashing import file_sha256, semantic_sha256
 from .schema import validate_schema
 
 
-CORE_ARTIFACTS = (
+OPTIMIZATION_CORE_ARTIFACTS = (
     "decision_variables.json",
     "optimization_validation.json",
     "optimality_certificate.json",
+    "negative_tests.json",
+)
+PREDICTION_CORE_ARTIFACTS = (
+    "prediction_result.json",
+    "prediction_validation.json",
+    "prediction_reproducibility_certificate.json",
     "negative_tests.json",
 )
 PAYLOAD_MANIFEST_FILENAME = "formal_result_payload_manifest.json"
@@ -55,8 +62,20 @@ def _pointer(value: Any, pointer: str, label: str) -> Any:
     return current
 
 
-def core_semantic_hashes(formal_root: Path) -> dict[str, str]:
-    return {name: semantic_sha256(_load(formal_root / name, name)) for name in CORE_ARTIFACTS}
+def core_artifacts_for_contract(contract_id: str) -> tuple[str, ...]:
+    if contract_id == PREDICTION_DERIVATION_CONTRACT_ID:
+        return PREDICTION_CORE_ARTIFACTS
+    return OPTIMIZATION_CORE_ARTIFACTS
+
+
+def core_semantic_hashes(
+    formal_root: Path,
+    contract_id: str = DERIVATION_CONTRACT_ID,
+) -> dict[str, str]:
+    return {
+        name: semantic_sha256(_load(formal_root / name, name))
+        for name in core_artifacts_for_contract(contract_id)
+    }
 
 
 def _trusted_raw_output(
@@ -103,11 +122,13 @@ def verify_formal_result_derivation(
     payload = _load(payload_path, PAYLOAD_MANIFEST_FILENAME)
     derivation = _load(derivation_path, DERIVATION_ATTESTATION_FILENAME)
     validate_schema(payload, "formal_result_payload_manifest.schema.json", PAYLOAD_MANIFEST_FILENAME)
-    validate_schema(
-        derivation,
-        "collector_derivation_attestation.schema.json",
-        DERIVATION_ATTESTATION_FILENAME,
+    contract_id = str(derivation.get("derivation_contract_id"))
+    attestation_schema = (
+        "prediction_collector_derivation_attestation.schema.json"
+        if contract_id == PREDICTION_DERIVATION_CONTRACT_ID
+        else "collector_derivation_attestation.schema.json"
     )
+    validate_schema(derivation, attestation_schema, DERIVATION_ATTESTATION_FILENAME)
     expected_identity = {
         "run_id": _load(run_root / "run_manifest.json", "run_manifest.json")["run_id"],
         "formal_result_id": formal_result_id,
@@ -123,7 +144,7 @@ def verify_formal_result_derivation(
         "run_output_manifest_sha256"
     ] != output_sha:
         raise FormalResultVerificationError("Formal Result 派生未绑定 Run Output Manifest")
-    hashes = core_semantic_hashes(formal_root)
+    hashes = core_semantic_hashes(formal_root, contract_id)
     core_digest = semantic_sha256(hashes)
     for document in (payload, derivation):
         if document["formal_core_semantic_sha256"] != hashes:
@@ -142,7 +163,6 @@ def verify_formal_result_derivation(
     )
     if derivation["collector_script_sha256"] != expected_script_sha:
         raise FormalResultVerificationError("Collector 脚本 SHA 与 source commit 不一致")
-    contract_id = str(derivation["derivation_contract_id"])
     trusted_contract = trusted_derivation_contract(contract_id)
     if derivation["derivation_contract_sha256"] != derivation_contract_sha256(contract_id):
         raise FormalResultVerificationError("派生合同 SHA 未绑定受信合同")
@@ -155,8 +175,21 @@ def verify_formal_result_derivation(
         raise FormalResultVerificationError("产物自带派生合同不等于受信工程合同")
     raw = _trusted_raw_output(run_root, contract, output_manifest)
     domain_policy = trusted_domain_policy(contract_id)
-    if raw.get("solver_status") not in domain_policy["allowed_solver_statuses"]:
+    profile = _load(run_root / "run_manifest.json", "run_manifest.json").get("profile")
+    if profile != domain_policy["profile"]:
+        raise FormalResultVerificationError("派生合同与当前 Run Profile 不一致")
+    allowed_solver_statuses = domain_policy.get("allowed_solver_statuses")
+    if allowed_solver_statuses is not None and raw.get("solver_status") not in allowed_solver_statuses:
         raise FormalResultVerificationError("raw output solver_status 未被 Domain policy 批准")
+    missing_raw_fields = [
+        field
+        for field in domain_policy.get("required_raw_fields", [])
+        if field not in raw
+    ]
+    if missing_raw_fields:
+        raise FormalResultVerificationError(
+            f"raw output 缺少 Domain policy 字段：{missing_raw_fields}"
+        )
     if raw.get("negative_tests_status") != domain_policy[
         "required_negative_test_status"
     ]:
@@ -170,7 +203,10 @@ def verify_formal_result_derivation(
         for item in negative_tests
     ):
         raise FormalResultVerificationError("raw output 未按固定 Domain policy 提供负控证据")
-    core_values = {name: _load(formal_root / name, name) for name in CORE_ARTIFACTS}
+    core_values = {
+        name: _load(formal_root / name, name)
+        for name in core_artifacts_for_contract(contract_id)
+    }
     for mapping in contract["mappings"]:
         source = _pointer(raw, mapping["source_pointer"], "Sandbox raw output")
         target = _pointer(

@@ -11,23 +11,12 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from formal_result.domain_contracts import (
+    ENGINEERING_OPTIMIZATION_CONTRACT,
+    PREDICTION_CONTRACT,
+)
 from formal_result.hashing import file_sha256, semantic_sha256
 from formal_result.sandboxie_environment import load_and_verify_sandboxie_environment_report
-
-
-CORE_FILES = (
-    "formal_result_manifest.json",
-    "decision_variables.json",
-    "optimization_validation.json",
-    "optimality_certificate.json",
-    "collector_attestation.json",
-    "negative_tests.json",
-    "input_manifest.json",
-    "code_manifest.json",
-    "environment_manifest.json",
-    "logs/stdout.log",
-    "logs/stderr.log",
-)
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -51,6 +40,12 @@ def main() -> int:
     formal_id = args.formal_result_id
 
     run = load_json(run_dir / "run_manifest.json")
+    if run["profile"] == "prediction":
+        domain_contract = PREDICTION_CONTRACT
+    elif run["profile"] == "engineering_optimization":
+        domain_contract = ENGINEERING_OPTIMIZATION_CONTRACT
+    else:
+        raise ValueError(f"当前 Profile 尚无 Formal Result 领域合同：{run['profile']}")
     spec = load_json(run_dir / "execution_spec.json")
     task = spec["tasks"][0]
     identity = {
@@ -99,34 +94,76 @@ def main() -> int:
             {"test_id": "tampered-output", "status": "passed"},
         ]
     )
-    decision = {
-        **common, "artifact_type": "decision_variables", "status": "feasible",
-        "bindings": {"execution_spec.json": spec_semantic}, "payload": decision_payload,
-    }
-    validation = {
-        **common, "artifact_type": "optimization_validation", "status": "passed",
-        "bindings": {"decision_variables.json": semantic_sha256(decision)},
-        "payload": {"metrics": validation_metrics, "invariant_checks": invariant_checks},
-    }
-    certificate = {
-        **common, "artifact_type": "optimality_certificate", "status": "feasible",
-        "bindings": {"optimization_validation.json": semantic_sha256(validation)},
-        "payload": {
-            "solver_status": "feasible",
-            "claim_scope": "finite_heuristic_policy_family_execution_pending" if is_2018b else "execution_pending",
-        },
-    }
-    negative = {
-        **common, "artifact_type": "negative_tests", "status": "passed",
-        "bindings": {"execution_spec.json": spec_semantic},
-        "payload": {"results": negative_results},
-    }
-    for name, value in {
-        "decision_variables.json": decision,
-        "optimization_validation.json": validation,
-        "optimality_certificate.json": certificate,
-        "negative_tests.json": negative,
-    }.items():
+    if domain_contract is PREDICTION_CONTRACT:
+        pending_payload = {"execution_pending": True}
+        prediction_result = {
+            **common,
+            "artifact_type": "prediction_result",
+            "status": "execution_pending",
+            "bindings": {"execution_spec.json": spec_semantic},
+            "payload": pending_payload,
+        }
+        prediction_validation = {
+            **common,
+            "artifact_type": "prediction_validation",
+            "status": "execution_pending",
+            "bindings": {
+                "prediction_result.json": semantic_sha256(prediction_result)
+            },
+            "payload": pending_payload,
+        }
+        prediction_certificate = {
+            **common,
+            "artifact_type": "prediction_reproducibility_certificate",
+            "status": "execution_pending",
+            "bindings": {
+                "prediction_validation.json": semantic_sha256(prediction_validation)
+            },
+            "payload": pending_payload,
+        }
+        negative = {
+            **common,
+            "artifact_type": "negative_tests",
+            "status": "execution_pending",
+            "bindings": {"execution_spec.json": spec_semantic},
+            "payload": pending_payload,
+        }
+        core_values = {
+            "prediction_result.json": prediction_result,
+            "prediction_validation.json": prediction_validation,
+            "prediction_reproducibility_certificate.json": prediction_certificate,
+            "negative_tests.json": negative,
+        }
+    else:
+        decision = {
+            **common, "artifact_type": "decision_variables", "status": "feasible",
+            "bindings": {"execution_spec.json": spec_semantic}, "payload": decision_payload,
+        }
+        validation = {
+            **common, "artifact_type": "optimization_validation", "status": "passed",
+            "bindings": {"decision_variables.json": semantic_sha256(decision)},
+            "payload": {"metrics": validation_metrics, "invariant_checks": invariant_checks},
+        }
+        certificate = {
+            **common, "artifact_type": "optimality_certificate", "status": "feasible",
+            "bindings": {"optimization_validation.json": semantic_sha256(validation)},
+            "payload": {
+                "solver_status": "feasible",
+                "claim_scope": "finite_heuristic_policy_family_execution_pending" if is_2018b else "execution_pending",
+            },
+        }
+        negative = {
+            **common, "artifact_type": "negative_tests", "status": "passed",
+            "bindings": {"execution_spec.json": spec_semantic},
+            "payload": {"results": negative_results},
+        }
+        core_values = {
+            "decision_variables.json": decision,
+            "optimization_validation.json": validation,
+            "optimality_certificate.json": certificate,
+            "negative_tests.json": negative,
+        }
+    for name, value in core_values.items():
         write_json(formal / name, value)
 
     input_items = []
@@ -186,9 +223,12 @@ def main() -> int:
         write_json(formal / name, value)
 
     bound_names = [
-        "decision_variables.json", "optimization_validation.json", "optimality_certificate.json",
-        "collector_attestation.json", "negative_tests.json", "input_manifest.json",
-        "code_manifest.json", "environment_manifest.json",
+        *domain_contract.core_artifacts,
+        "collector_attestation.json",
+        "negative_tests.json",
+        "input_manifest.json",
+        "code_manifest.json",
+        "environment_manifest.json",
     ]
     collector = {
         **common, "artifact_type": "collector_attestation", "collector_id": "m3a-json-pointer-collector-v1",
@@ -205,7 +245,7 @@ def main() -> int:
         "exit_code": 0,
         "stdout_sha256": file_sha256(formal / "logs" / "stdout.log"),
         "stderr_sha256": file_sha256(formal / "logs" / "stderr.log"),
-        "output_file_set": ["decision_variables.json", "optimization_validation.json", "optimality_certificate.json"],
+        "output_file_set": list(domain_contract.output_file_set),
         "undeclared_write_check": "passed",
         "negative_test_report_sha256": file_sha256(formal / "negative_tests.json"),
     }
@@ -226,32 +266,72 @@ def main() -> int:
         "formal_result_manifest.json": "formal_result_bundle_manifest.schema.json",
         "collector_attestation.json": "collector_attestation.schema.json",
         "decision_variables.json": "formal_result_decision_variables.schema.json",
+        "prediction_result.json": "formal_result_prediction_result.schema.json",
+        "prediction_validation.json": "formal_result_prediction_validation.schema.json",
+        "prediction_reproducibility_certificate.json": "formal_result_prediction_certificate.schema.json",
         "input_manifest.json": "formal_result_provenance_manifest.schema.json",
         "code_manifest.json": "formal_result_provenance_manifest.schema.json",
         "environment_manifest.json": "formal_result_provenance_manifest.schema.json",
     }
-    for name in CORE_FILES:
+    if domain_contract is PREDICTION_CONTRACT:
+        schema_by_name["negative_tests.json"] = (
+            "formal_result_prediction_negative_tests.schema.json"
+        )
+    for name in domain_contract.required_artifacts:
         path = formal / name
         item = {"path": name, "media_type": "application/json" if path.suffix == ".json" else "text/plain", "file_sha256": file_sha256(path)}
         if path.suffix == ".json":
             item["semantic_sha256"] = semantic_sha256(load_json(path))
             item["schema"] = schema_by_name.get(name, "formal_result_core_artifact.schema.json")
         descriptors.append(item)
-    domain = {
-        **common, "artifact_type": "domain_manifest", "domain": "engineering_optimization", "mechanism": "heuristic" if is_2018b else "mip",
-        "validator_id": "m3a-formal-result-validator", "validator_version": "1.0.0",
-        "required_artifacts": descriptors, "required_certificates": ["optimality_certificate.json"],
-        "decision_schema": "formal_result_decision_variables.schema.json",
-        "metric_schema": (
-            {"scenario_count": "integer", "constraint_violation_count": "integer", "random_trial_count": "integer"}
-            if is_2018b else {"objective": "number"}
-        ),
-        "invariant_checks": list(invariant_checks),
-        "optimality_claim_level": "heuristic" if is_2018b else "feasible",
+    domain_common = {
+        **common,
+        "artifact_type": "domain_manifest",
+        "validator_version": "1.0.0",
+        "required_artifacts": descriptors,
         "negative_test_requirements": [item["test_id"] for item in negative_results],
-        "output_file_set": ["decision_variables.json", "optimization_validation.json", "optimality_certificate.json"],
-        "semantic_hashes": {item["path"]: item["semantic_sha256"] for item in descriptors if "semantic_sha256" in item},
+        "output_file_set": list(domain_contract.output_file_set),
+        "semantic_hashes": {
+            item["path"]: item["semantic_sha256"]
+            for item in descriptors
+            if "semantic_sha256" in item
+        },
     }
+    if domain_contract is PREDICTION_CONTRACT:
+        domain = {
+            **domain_common,
+            "domain": "predictive_modeling",
+            "mechanism": "repeated_measures_prediction",
+            "validator_id": "prediction-held-out-metrics-v1",
+            "required_certificates": [
+                "prediction_reproducibility_certificate.json"
+            ],
+            "result_schema": "formal_result_prediction_result.schema.json",
+            "validation_schema": "formal_result_prediction_validation.schema.json",
+            "required_metrics": ["brier", "pr_auc", "recall"],
+            "metric_tolerance": 1e-9,
+            "invariant_checks": [
+                "patient_group_disjoint",
+                "train_only_preprocessing",
+                "held_out_metric_recomputation",
+                "frozen_random_seed",
+            ],
+        }
+    else:
+        domain = {
+            **domain_common,
+            "domain": "engineering_optimization",
+            "mechanism": "heuristic" if is_2018b else "mip",
+            "validator_id": "m3a-formal-result-validator",
+            "required_certificates": ["optimality_certificate.json"],
+            "decision_schema": "formal_result_decision_variables.schema.json",
+            "metric_schema": (
+                {"scenario_count": "integer", "constraint_violation_count": "integer", "random_trial_count": "integer"}
+                if is_2018b else {"objective": "number"}
+            ),
+            "invariant_checks": list(invariant_checks),
+            "optimality_claim_level": "heuristic" if is_2018b else "feasible",
+        }
     write_json(formal / "domain_manifest.json", domain)
     envelope = {
         **common, "artifact_type": "formal_result_envelope", "execution_spec_file_sha256": spec_sha,

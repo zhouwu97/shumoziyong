@@ -98,6 +98,7 @@
               "result_report",
               "result_manifest",
               "paper_claim_map",
+              "paper_candidate_manifest",
               "gate_5_review",
               "model_route_v2_1",
               "model_validity_contract",

@@ -146,6 +146,53 @@ def validate_cleanup_record(cleanup: Any) -> None:
         raise FormalResultVerificationError("Sandboxie 清理证明未通过")
 
 
+def validate_network_isolation_record(record: Mapping[str, Any]) -> bool:
+    """验证新策略的实测断网证据；旧 AFD 策略仅保留历史兼容。"""
+    policy = record.get("sandbox_policy_settings")
+    if not isinstance(policy, list) or not all(isinstance(item, str) for item in policy):
+        raise FormalResultVerificationError("Sandboxie 网络策略记录非法")
+    policy_set = set(policy)
+    legacy_policy = {
+        "BlockNetworkFiles=y",
+        r"ClosedFilePath=\Device\Afd*",
+        r"ClosedFilePath=\Device\Tcp*",
+        r"ClosedFilePath=\Device\RawIp",
+    }
+    if "NetworkAccess=*,Block" not in policy_set:
+        if legacy_policy.issubset(policy_set):
+            return False
+        raise FormalResultVerificationError("Sandboxie 策略缺少可验证的网络拒绝规则")
+    if any(item.casefold().startswith("closedfilepath=\\device\\") for item in policy):
+        raise FormalResultVerificationError("新网络策略禁止关闭设备节点，以免破坏 Python 异步运行时")
+    if "BlockNetworkFiles=y" not in policy_set:
+        raise FormalResultVerificationError("Sandboxie 策略未阻断网络文件访问")
+    controls = record.get("network_negative_controls")
+    if not isinstance(controls, list) or len(controls) != 1:
+        raise FormalResultVerificationError("Run 缺少精确的网络负控")
+    control = controls[0]
+    attempts = control.get("attempt_exit_codes") if isinstance(control, Mapping) else None
+    if not isinstance(control, Mapping) or not (
+        control.get("control_id") == "blocked_loopback_tcp_with_async_runtime"
+        and control.get("target_class") == "host_loopback_listener"
+        and control.get("status") == "passed"
+        and control.get("host_listener_reachable") is True
+        and control.get("sandbox_marker_detected") is True
+        and control.get("python_async_runtime_compatible") is True
+        and control.get("connection_denied") is True
+        and control.get("exit_code") == 0
+        and isinstance(attempts, list)
+        and attempts
+        and attempts[-1] == 0
+        and all(code == TRANSIENT_START_EXIT for code in attempts[:-1])
+        and isinstance(control.get("command_sha256"), str)
+        and len(control["command_sha256"]) == 64
+    ):
+        raise FormalResultVerificationError("Run 网络负控未精确通过")
+    if record.get("network_isolation_verified") is not True:
+        raise FormalResultVerificationError("Run 未声明实测网络隔离通过")
+    return True
+
+
 def verify_run_execution_attestation(
     run_root: Path,
     formal_result_id: str,
@@ -286,6 +333,7 @@ def verify_run_execution_attestation(
         "sandbox_policy_sha256"
     ) != recomputed_policy_sha:
         raise FormalResultVerificationError("sandbox_policy_sha256 无法由实际策略复算")
+    network_isolation_verified = validate_network_isolation_record(record)
     python_sha = record.get("python_sha256")
     if not isinstance(python_sha, str) or len(python_sha) != 64:
         raise FormalResultVerificationError("执行记录缺少 Python 解释器 SHA-256")
@@ -436,4 +484,5 @@ def verify_run_execution_attestation(
         "privacy_mode_available": attestation["privacy_mode_available"],
         "targeted_host_read_controls_passed": True,
         "default_deny_host_reads_verified": False,
+        "network_isolation_verified": network_isolation_verified,
     }

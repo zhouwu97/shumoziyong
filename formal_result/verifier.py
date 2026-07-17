@@ -7,6 +7,7 @@ import os
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .domain_contracts import DomainContract, domain_contract_for_manifest
 from .errors import FormalResultVerificationError
 from .hashing import file_sha256, semantic_sha256
 from .identity import FORMAL_RESULT_POLICY_REQUIRED, assert_identity, immutable_identity
@@ -17,6 +18,7 @@ from .path_safety import (
     validate_execution_spec_paths,
 )
 from .schema import validate_schema
+from .prediction_validation import verify_prediction_domain_contract
 from .trusted_local import trusted_local_eligibility_scope
 from .sandboxie_environment import load_and_verify_sandboxie_environment_report
 from .run_execution_attestation import (
@@ -24,27 +26,6 @@ from .run_execution_attestation import (
     verify_run_execution_attestation,
 )
 
-
-CORE_RELATIVE_PATHS = (
-    "formal_result_manifest.json",
-    "decision_variables.json",
-    "optimization_validation.json",
-    "optimality_certificate.json",
-    "collector_attestation.json",
-    "negative_tests.json",
-    "input_manifest.json",
-    "code_manifest.json",
-    "environment_manifest.json",
-    "logs/stdout.log",
-    "logs/stderr.log",
-)
-
-EXPECTED_CORE_ARTIFACTS = {
-    "decision_variables.json": ("decision_variables", {"feasible", "optimal"}),
-    "optimization_validation.json": ("optimization_validation", {"passed"}),
-    "optimality_certificate.json": ("optimality_certificate", {"feasible", "optimal"}),
-    "negative_tests.json": ("negative_tests", {"passed"}),
-}
 
 OPTIMALITY_STATUS_BY_CLAIM = {
     "optimal": "optimal",
@@ -57,13 +38,6 @@ EXPECTED_PROVENANCE_ARTIFACTS = {
     "code_manifest.json": "code_manifest",
     "environment_manifest.json": "environment_manifest",
 }
-
-FORMAL_OUTPUT_FILE_SET = (
-    "decision_variables.json",
-    "optimization_validation.json",
-    "optimality_certificate.json",
-)
-
 
 def _load_object(path: Path, label: str) -> dict[str, Any]:
     try:
@@ -125,29 +99,45 @@ def _matches_declared_type(value: Any, declared_type: str) -> bool:
     return False
 
 
-def _verify_domain_contract(
+def _verify_negative_tests(
+    domain: dict[str, Any], values: dict[str, dict[str, Any]]
+) -> None:
+    """复核所有领域共享的负控集合和状态。"""
+    negative_results = values["negative_tests.json"].get("payload", {}).get("results")
+    if not isinstance(negative_results, list):
+        raise FormalResultVerificationError("negative_tests.payload.results 缺失")
+    by_id: dict[str, dict[str, Any]] = {}
+    for item in negative_results:
+        if isinstance(item, dict) and isinstance(item.get("test_id"), str):
+            by_id[item["test_id"]] = item
+    required_negative_tests = set(domain["negative_test_requirements"])
+    if len(by_id) != len(negative_results) or set(by_id) != required_negative_tests:
+        raise FormalResultVerificationError(
+            "negative_test_requirements 与负控结果集合不一致"
+        )
+    failed_negative_tests = sorted(
+        test_id for test_id, result in by_id.items() if result.get("status") != "passed"
+    )
+    if failed_negative_tests:
+        raise FormalResultVerificationError(
+            "负控测试未通过：" + ", ".join(failed_negative_tests)
+        )
+
+
+def _verify_optimization_domain_contract(
     domain: dict[str, Any],
     descriptors: list[dict[str, Any]],
     values: dict[str, dict[str, Any]],
+    contract: DomainContract,
 ) -> None:
-    """将 Domain Manifest 的声明绑定到实际核心产物及其结果。"""
+    """复核工程优化领域专属的证书、指标和不变量。"""
     descriptor_by_path = {item["path"]: item for item in descriptors}
-    for relative, (artifact_type, allowed_statuses) in EXPECTED_CORE_ARTIFACTS.items():
-        value = values[relative]
-        if value.get("artifact_type") != artifact_type:
-            raise FormalResultVerificationError(
-                f"{relative}.artifact_type 必须为 {artifact_type}"
-            )
-        if value.get("status") not in allowed_statuses:
-            allowed = ", ".join(sorted(allowed_statuses))
-            raise FormalResultVerificationError(f"{relative}.status 必须为 {allowed}")
-
     decision_descriptor = descriptor_by_path["decision_variables.json"]
     if decision_descriptor.get("schema") != domain["decision_schema"]:
         raise FormalResultVerificationError(
             "decision_variables.json 的 descriptor.schema 未绑定 domain.decision_schema"
         )
-    if set(domain["output_file_set"]) != set(FORMAL_OUTPUT_FILE_SET):
+    if set(domain["output_file_set"]) != set(contract.output_file_set):
         raise FormalResultVerificationError(
             "domain.output_file_set 不符合工程优化 v1 固定正式输出集合"
         )
@@ -188,25 +178,32 @@ def _verify_domain_contract(
         if not isinstance(result, dict) or result.get("status") != "passed":
             raise FormalResultVerificationError(f"领域不变量未通过：{invariant_name}")
 
-    negative_results = values["negative_tests.json"].get("payload", {}).get("results")
-    if not isinstance(negative_results, list):
-        raise FormalResultVerificationError("negative_tests.payload.results 缺失")
-    by_id: dict[str, dict[str, Any]] = {}
-    for item in negative_results:
-        if isinstance(item, dict) and isinstance(item.get("test_id"), str):
-            by_id[item["test_id"]] = item
-    required_negative_tests = set(domain["negative_test_requirements"])
-    if len(by_id) != len(negative_results) or set(by_id) != required_negative_tests:
-        raise FormalResultVerificationError(
-            "negative_test_requirements 与负控结果集合不一致"
-        )
-    failed_negative_tests = sorted(
-        test_id for test_id, result in by_id.items() if result.get("status") != "passed"
-    )
-    if failed_negative_tests:
-        raise FormalResultVerificationError(
-            "负控测试未通过：" + ", ".join(failed_negative_tests)
-        )
+
+
+def _verify_domain_contract(
+    domain: dict[str, Any],
+    descriptors: list[dict[str, Any]],
+    values: dict[str, dict[str, Any]],
+    contract: DomainContract,
+) -> None:
+    """按已注册领域合同复核文件类型、状态和领域语义。"""
+    for relative, (artifact_type, allowed_statuses) in contract.expected_artifacts.items():
+        value = values[relative]
+        if value.get("artifact_type") != artifact_type:
+            raise FormalResultVerificationError(
+                f"{relative}.artifact_type 必须为 {artifact_type}"
+            )
+        if value.get("status") not in allowed_statuses:
+            allowed = ", ".join(sorted(allowed_statuses))
+            raise FormalResultVerificationError(f"{relative}.status 必须为 {allowed}")
+    if contract.domain == "engineering_optimization":
+        _verify_optimization_domain_contract(domain, descriptors, values, contract)
+    elif contract.domain == "predictive_modeling":
+        verify_prediction_domain_contract(domain, descriptors, values, contract)
+    else:  # pragma: no cover - 注册表和分派必须同步
+        raise FormalResultVerificationError(f"领域验证器未实现：{contract.domain}")
+    if values["negative_tests.json"].get("status") == "passed":
+        _verify_negative_tests(domain, values)
 
 
 def _verify_provenance_manifests(
@@ -442,7 +439,8 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         raise FormalResultVerificationError("Formal Result Manifest 路径非法")
 
     domain = _load_object(domain_path, "domain_manifest.json")
-    validate_schema(domain, "domain_manifest.schema.json", "domain_manifest.json")
+    contract = domain_contract_for_manifest(domain)
+    validate_schema(domain, contract.manifest_schema, "domain_manifest.json")
     assert_identity(domain, identity, "domain_manifest")
     if domain.get("formal_result_id") != formal_result_id:
         raise FormalResultVerificationError("domain_manifest.formal_result_id 不匹配")
@@ -453,14 +451,16 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
 
     descriptors = domain["required_artifacts"]
     descriptor_paths = [item["path"] for item in descriptors]
-    if descriptor_paths != list(CORE_RELATIVE_PATHS):
+    if descriptor_paths != list(contract.required_artifacts):
         raise FormalResultVerificationError("Domain Manifest 核心文件集或顺序不符合 required_v1 合同")
     actual_files = sorted(
         path.relative_to(formal_root).as_posix()
         for path in formal_root.rglob("*")
         if path.is_file()
     )
-    expected_files = sorted(("formal_result_envelope.json", "domain_manifest.json", *CORE_RELATIVE_PATHS))
+    expected_files = sorted(
+        ("formal_result_envelope.json", "domain_manifest.json", *contract.required_artifacts)
+    )
     if actual_files != expected_files:
         raise FormalResultVerificationError(
             f"Formal Result 精确文件集不匹配：期望 {expected_files}，实际 {actual_files}"
@@ -486,7 +486,7 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
             item["semantic_sha256"] = descriptor["semantic_sha256"]
         verified[relative] = item
 
-    _verify_domain_contract(domain, descriptors, values)
+    _verify_domain_contract(domain, descriptors, values, contract)
     environment_summary = _verify_provenance_manifests(
         run_root,
         execution_spec,
@@ -528,20 +528,14 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
         for path, descriptor in zip(descriptor_paths, descriptors, strict=True)
         if descriptor["media_type"] == "application/json"
     }
-    chain_bindings = {
-        "decision_variables.json": {
-            "execution_spec.json": envelope["execution_spec_semantic_sha256"]
-        },
-        "optimization_validation.json": {
-            "decision_variables.json": expected_semantic["decision_variables.json"]
-        },
-        "optimality_certificate.json": {
-            "optimization_validation.json": expected_semantic["optimization_validation.json"]
-        },
-        "negative_tests.json": {
-            "execution_spec.json": envelope["execution_spec_semantic_sha256"]
-        },
-    }
+    chain_bindings = {}
+    for relative, source in contract.chain_bindings.items():
+        source_hash = (
+            envelope["execution_spec_semantic_sha256"]
+            if source == "execution_spec.json"
+            else expected_semantic[source]
+        )
+        chain_bindings[relative] = {source: source_hash}
     for relative, expected_bindings in chain_bindings.items():
         if values[relative].get("bindings") != expected_bindings:
             raise FormalResultVerificationError(f"{relative}.bindings 未形成固定语义哈希链")
@@ -556,6 +550,7 @@ def verify_formal_result_bundle(run_dir: Path, envelope_path: str | Path) -> dic
 
     summary = {
         "formal_result_id": formal_result_id,
+        "formal_result_domain": contract.domain,
         "execution_spec_file_sha256": file_sha256(execution_spec_path),
         "execution_spec_semantic_sha256": semantic_sha256(execution_spec),
         "envelope_path": expected_envelope_path,

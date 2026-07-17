@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/formal_result_prediction_certificate.schema.json",
+  "title": "Prediction Reproducibility Certificate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "formal_result_policy", "execution_contract_version", "formal_result_contract_version", "canonicalization_version", "gate_artifact_contract_version", "formal_result_id", "status", "bindings", "payload"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"}, "artifact_type": {"const": "prediction_reproducibility_certificate"},
+    "run_id": {"$ref": "#/$defs/id"}, "problem_id": {"$ref": "#/$defs/id"}, "profile": {"const": "prediction"},
+    "runtime_version": {"$ref": "#/$defs/id"}, "runtime_pack_sha256": {"$ref": "#/$defs/sha"},
+    "formal_result_policy": {"const": "required_v1"}, "execution_contract_version": {"const": "1.0.0"},
+    "formal_result_contract_version": {"const": "1.0.0"}, "canonicalization_version": {"const": "1.0.0"},
+    "gate_artifact_contract_version": {"const": "1.0.0"}, "formal_result_id": {"$ref": "#/$defs/id"},
+    "status": {"enum": ["execution_pending", "passed"]},
+    "bindings": {"type": "object", "required": ["prediction_validation.json"], "additionalProperties": false, "properties": {"prediction_validation.json": {"$ref": "#/$defs/sha"}}},
+    "payload": {"type": "object"}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "execution_pending"}}, "required": ["status"]}, "then": {"properties": {"payload": {"const": {"execution_pending": true}}}}},
+    {"if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]}, "then": {"properties": {"payload": {"$ref": "#/$defs/certificatePayload"}}}}
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 1},
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "certificatePayload": {"type": "object", "additionalProperties": false, "required": ["claim_scope", "random_seed", "grouping_key", "preprocessing_scope", "screening_only", "causal_claims_supported"], "properties": {"claim_scope": {"const": "held_out_predictive_performance"}, "random_seed": {"type": "integer"}, "grouping_key": {"type": "string", "minLength": 1}, "preprocessing_scope": {"const": "training_only"}, "screening_only": {"const": true}, "causal_claims_supported": {"const": false}}}
+  }
+}

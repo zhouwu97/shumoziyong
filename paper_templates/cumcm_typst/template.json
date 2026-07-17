@@ -1,0 +1,9 @@
+{
+  "template_id": "cumcm_typst_academic_v1",
+  "renderer_id": "typst",
+  "entry": "main.typ",
+  "protected_files": [
+    "components.typ",
+    "style.typ"
+  ]
+}

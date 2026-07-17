@@ -23,8 +23,20 @@ from formal_result.identity import (
 )
 from formal_result.verifier import verify_formal_result_bundle
 from formal_result.trusted_local import trusted_local_eligibility_scope
-from gate3_evidence import collect_gate_3_math_validation
+from gate3_evidence import collect_gate_3_math_validation, derive_implementation_status
 from model_validation import validate_model_and_execution
+try:
+    from paper.gate4_candidate import (
+        PAPER_CANDIDATE_STATUS,
+        PAPER_PIPELINE_CONTRACT_VERSION,
+        verify_candidate_manifest,
+    )
+except ModuleNotFoundError:  # pragma: no cover - 允许 pytest 以 scripts.run_workflow 导入。
+    from scripts.paper.gate4_candidate import (
+        PAPER_CANDIDATE_STATUS,
+        PAPER_PIPELINE_CONTRACT_VERSION,
+        verify_candidate_manifest,
+    )
 from communication_contracts import validate_gate_communication
 from review_pipeline import (
     approved_supporting_review,
@@ -736,6 +748,7 @@ def _initialize_common_gate_artifacts(
         ("result_report.json", "result_report"),
         ("result_manifest.json", "result_manifest"),
         ("paper_claim_map.json", "paper_claim_map"),
+        ("paper_candidate_manifest.json", "paper_candidate_manifest"),
     ):
         write_json(
             run_dir / filename,
@@ -924,6 +937,7 @@ def create_gate_run_core(
         "evidence_purpose": evidence_purpose,
         "initial_state": initial_state,
         "gate_3_evidence_contract_version": GATE_3_EVIDENCE_CONTRACT_VERSION,
+        "paper_pipeline_contract_version": PAPER_PIPELINE_CONTRACT_VERSION,
         **FORMAL_IDENTITY_DEFAULTS,
         "runtime_profile_snapshot_sha256": sha256_bytes(
             (run_dir / "runtime_profile.snapshot.json").read_bytes()
@@ -1128,6 +1142,15 @@ GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
     5: (("gate_5_review.json", "gate_5_review", "schemas/gate_5_review.schema.json", "1.0.0"),),
 }
 
+PAPER_GATE_4_ARTIFACT_SPECS: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "paper_candidate_manifest.json",
+        "paper_candidate_manifest",
+        "schemas/paper_candidate_manifest.schema.json",
+        "1.0.0",
+    ),
+)
+
 V21_GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
     0: GATE_ARTIFACT_SPECS[0],
     1: (
@@ -1177,8 +1200,32 @@ def _is_v21_run(run_dir: Path) -> bool:
     return manifest.get("runtime_manifest_version") == V21_RUNTIME_MANIFEST_VERSION or runtime.get("manifest_version") == V21_RUNTIME_MANIFEST_VERSION
 
 
+def _paper_pipeline_is_required(run_manifest: Mapping[str, Any]) -> bool:
+    """仅对显式绑定当前论文闭环合同的新 Run 强制执行严格 Gate 4。"""
+    version = run_manifest.get("paper_pipeline_contract_version")
+    if version is None:
+        return False
+    if version != PAPER_PIPELINE_CONTRACT_VERSION:
+        raise ValueError(f"paper_pipeline_contract_version 非法：{version!r}")
+    return True
+
+
 def _gate_artifact_specs_for_run(run_dir: Path, gate: int) -> tuple[tuple[str, str, str, str], ...]:
+    if gate not in GATE_ARTIFACT_SPECS:
+        raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
+    if gate == 4:
+        run_manifest = _load_json_object(
+            run_dir / "run_manifest.json", "run_manifest.json"
+        )
+        if _paper_pipeline_is_required(run_manifest):
+            return PAPER_GATE_4_ARTIFACT_SPECS
     return (V21_GATE_ARTIFACT_SPECS if _is_v21_run(run_dir) else GATE_ARTIFACT_SPECS)[gate]
+
+
+def _completed_gate_state(run_manifest: Mapping[str, Any], gate: int) -> str:
+    if gate == 4 and _paper_pipeline_is_required(run_manifest):
+        return PAPER_CANDIDATE_STATUS
+    return f"completed_gate_{gate}"
 
 
 def _formal_result_policy(run_manifest: Mapping[str, Any]) -> str:
@@ -1300,6 +1347,8 @@ def _read_transition_entries(transitions_path: Path) -> list[dict[str, Any]]:
 def _replay_v2_transition_log(
     run_dir: Path,
     entries: list[dict[str, Any]],
+    *,
+    verify_artifacts: bool = True,
 ) -> dict[str, Any]:
     """回放 v2 Gate 日志：事件表达已完成 Gate 和下一 Gate。"""
     _validate_transition_hash_chain(entries)
@@ -1428,7 +1477,8 @@ def _replay_v2_transition_log(
                 raise ValueError("completed 记录必须绑定 gate_5_review.json")
             if not isinstance(review_sha, str) or not re.fullmatch(r"[a-f0-9]{64}", review_sha):
                 raise ValueError("completed 记录缺少合法 review_record_sha256")
-            verify_gate_artifacts(run_dir, 5)
+            if verify_artifacts:
+                verify_gate_artifacts(run_dir, 5)
             _, actual_review_sha = _load_and_validate_gate_5_review(
                 run_dir, str(entry["reviewer"])
             )
@@ -1453,9 +1503,10 @@ def _replay_v2_transition_log(
             if state != f"rejected_gate_{current}":
                 raise ValueError(f"第 {idx} 条拒绝记录 state 非法")
             continue
-        if state != f"completed_gate_{current}":
+        if state != _completed_gate_state(run_manifest, current):
             raise ValueError(f"第 {idx} 条完成记录 state 非法")
-        verify_gate_artifacts(run_dir, current)
+        if verify_artifacts:
+            verify_gate_artifacts(run_dir, current)
         completed_gates.append(current)
         current = next_gate
 
@@ -1476,7 +1527,11 @@ def _replay_v2_transition_log(
     }
 
 
-def replay_transition_log(run_dir: Path) -> dict[str, Any]:
+def replay_transition_log(
+    run_dir: Path,
+    *,
+    verify_artifacts: bool = True,
+) -> dict[str, Any]:
     """严格回放 Gate 状态机，返回当前状态。
 
     该函数是 Gate 完成度和终态标记的唯一事实来源：必须恰好一次 initialized，
@@ -1509,7 +1564,11 @@ def replay_transition_log(run_dir: Path) -> dict[str, Any]:
     if transition_version is not None:
         if transition_version != TRANSITION_VERSION:
             raise ValueError(f"不支持的 transition_version：{transition_version!r}")
-        return _replay_v2_transition_log(run_dir, entries)
+        return _replay_v2_transition_log(
+            run_dir,
+            entries,
+            verify_artifacts=verify_artifacts,
+        )
 
     current: int | None = None
     completed = False
@@ -1642,7 +1701,12 @@ def record_transition(run_dir: Path, from_gate: int | None, to_gate: int, review
                 "completed_gate": real_current,
                 "next_gate": to_gate,
                 "state": (
-                    f"completed_gate_{real_current}"
+                    _completed_gate_state(
+                        _load_json_object(
+                            run_dir / "run_manifest.json", "run_manifest.json"
+                        ),
+                        real_current,
+                    )
                     if decision == "approved"
                     else f"rejected_gate_{real_current}"
                 ),
@@ -2493,6 +2557,8 @@ def build_gate_artifact_manifest(
         "artifacts": artifacts,
     }
     run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if gate == 4 and _paper_pipeline_is_required(run_manifest):
+        verify_candidate_manifest(run_dir, binding)
     if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         manifest.update(FORMAL_IDENTITY_DEFAULTS)
         if gate == 3:
@@ -2629,6 +2695,8 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             raise ValueError(f"Gate {gate} 产物 {filename} SHA-256 不匹配")
         if entry.get("size_bytes") != len(raw):
             raise ValueError(f"Gate {gate} 产物 {filename} size_bytes 不匹配")
+    if gate == 4 and _paper_pipeline_is_required(run_manifest):
+        verify_candidate_manifest(run_dir, binding)
     if gate == 1 and _is_v21_run(run_dir):
         contract = _load_json_object(run_dir / "model_validity_contract.json", "model_validity_contract.json")
         contract_errors = validate_model_validity_contract(contract)
@@ -2741,7 +2809,7 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
             if independence.get("f5_status") == "fail" and not any(item.get("code") == "F5" for item in findings):
                 findings.append({"code": "F5", "severity": "fatal", "resolved": False, "note": "Validator 非独立"})
             expected_admission = evaluate_paper_admission(
-                implementation_status="pass" if executable_evidence["mathematical_validation"] == "passed" else "fail",
+                implementation_status=derive_implementation_status(executable_evidence),
                 model_validity_status="pass" if validity_report.get("execution_status") == "passed" and not validity_report.get("fatal_codes") else "fail",
                 competition_score=float(assessment["score"]),
                 competition_status=str(assessment["status"]),
@@ -3435,7 +3503,13 @@ def _fork_lineage_errors(run_dir: Path, state: Mapping[str, Any]) -> list[str]:
                 return ["修订子 Run manifest 无法验证"]
             if child_manifest.get("revision_parent_run_id") != run_dir.name or child_record.get("status") != "committed":
                 return ["修订子 Run 未绑定父 Run"]
-            for field in ("revision_transaction_id", "revision_scope", "parent_material_digest"):
+            for field in (
+                "revision_transaction_id",
+                "revision_scope",
+                "parent_material_digest",
+                "parent_gate_artifact_refs",
+                "parent_integrity_failure",
+            ):
                 if child_record.get(field) != transaction.get(field):
                     return [f"修订子 Run {field} 与事务不一致"]
             return errors
@@ -3476,7 +3550,10 @@ def _fork_lineage_errors(run_dir: Path, state: Mapping[str, Any]) -> list[str]:
             if not isinstance(transaction_id, str) or not isinstance(parent_id, str):
                 return ["修订子 Run 缺少父子事务身份"]
             transaction = _read_revision_transaction(_revision_transaction_path(run_root, transaction_id))
-            parent_state = replay_transition_log(run_root / parent_id)
+            parent_state = replay_transition_log(
+                run_root / parent_id,
+                verify_artifacts=transaction.get("parent_integrity_failure") is None,
+            )
             if transaction.get("status") != "committed" or record.get("status") != "committed":
                 errors.append("修订子 Run 事务尚未 committed")
             if parent_state.get("superseded_by_run_id") != run_dir.name:
@@ -3770,6 +3847,61 @@ def _resume_fork_transaction(parent_run: Path, transaction_path: Path) -> dict[s
 
 REVISION_FORK_TRANSACTION_VERSION = "1.0.0"
 REVISION_FORK_STATUSES = {"prepared", "child_published", "parent_linked", "committed", "aborted"}
+REVISION_SCOPE_START_GATE = {"diagnosis": 0, "model_route": 1, "formal_result": 2}
+
+
+def _revision_gate_manifest_ref(parent_run: Path, gate: int) -> dict[str, Any]:
+    """绑定父 Run 已验证 Gate Manifest，避免修订谱系只记录题号而丢失证据来源。"""
+    relative = f"gate_artifacts/gate_{gate}.manifest.json"
+    path = parent_run / relative
+    if not path.is_file():
+        raise FileNotFoundError(f"缺少父 Run Gate {gate} Manifest：{path}")
+    return {"gate": gate, "path": relative, "sha256": sha256_bytes(path.read_bytes())}
+
+
+def _revision_parent_state(
+    parent_run: Path,
+    revision_scope: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any] | None]:
+    """严格验证父 Run；仅为 revision 识别可验证前缀和首个封存漂移。"""
+    scope_gate = REVISION_SCOPE_START_GATE[revision_scope]
+    try:
+        state = replay_transition_log(parent_run)
+    except (FileNotFoundError, ValueError) as strict_error:
+        state = replay_transition_log(parent_run, verify_artifacts=False)
+        valid_refs: list[dict[str, Any]] = []
+        failed_gate: int | None = None
+        failure_message = ""
+        for gate in state.get("completed_gates", []):
+            try:
+                verify_gate_artifacts(parent_run, int(gate))
+            except (FileNotFoundError, ValueError, json.JSONDecodeError) as exc:
+                failed_gate = int(gate)
+                failure_message = str(exc)
+                break
+            valid_refs.append(_revision_gate_manifest_ref(parent_run, int(gate)))
+        if failed_gate is None:
+            raise strict_error
+        if failed_gate < scope_gate:
+            required_scope = next(
+                name for name, gate in REVISION_SCOPE_START_GATE.items() if gate == failed_gate
+            )
+            raise ValueError(
+                f"父 Run 最早在 Gate {failed_gate} 失效，revision scope 必须改为 {required_scope}"
+            ) from strict_error
+        integrity_failure = {
+            "status": "blocked_integrity_mismatch",
+            "failed_gate": failed_gate,
+            "error": failure_message,
+        }
+        return state, valid_refs, integrity_failure
+
+    inherited_refs = []
+    for gate in state.get("completed_gates", []):
+        if int(gate) >= scope_gate:
+            break
+        inherited_refs.append(_revision_gate_manifest_ref(parent_run, int(gate)))
+    return state, inherited_refs, None
 
 
 def _revision_transaction_directory(run_root: Path) -> Path:
@@ -3804,6 +3936,35 @@ def _read_revision_transaction(path: Path) -> dict[str, Any]:
             raise ValueError(f"revision fork transaction 缺少 {field}")
     if transaction["revision_scope"] not in {"diagnosis", "model_route", "formal_result"}:
         raise ValueError("revision fork transaction.revision_scope 非法")
+    refs = transaction.get("parent_gate_artifact_refs")
+    if not isinstance(refs, list):
+        raise ValueError("revision fork transaction 缺少 parent_gate_artifact_refs")
+    seen_gates: set[int] = set()
+    for ref in refs:
+        if not isinstance(ref, Mapping):
+            raise ValueError("revision fork parent_gate_artifact_refs 必须为对象列表")
+        gate = ref.get("gate")
+        if not isinstance(gate, int) or gate < 0 or gate > 5 or gate in seen_gates:
+            raise ValueError("revision fork parent Gate 引用编号非法或重复")
+        if ref.get("path") != f"gate_artifacts/gate_{gate}.manifest.json":
+            raise ValueError("revision fork parent Gate 引用路径非法")
+        if not isinstance(ref.get("sha256"), str) or not re.fullmatch(
+            r"[a-f0-9]{64}", str(ref["sha256"])
+        ):
+            raise ValueError("revision fork parent Gate 引用缺少合法 SHA-256")
+        seen_gates.add(gate)
+    integrity_failure = transaction.get("parent_integrity_failure")
+    if integrity_failure is not None:
+        if not isinstance(integrity_failure, Mapping):
+            raise ValueError("revision fork parent_integrity_failure 必须为对象或 null")
+        if integrity_failure.get("status") != "blocked_integrity_mismatch":
+            raise ValueError("revision fork parent_integrity_failure.status 非法")
+        if not isinstance(integrity_failure.get("failed_gate"), int):
+            raise ValueError("revision fork parent_integrity_failure 缺少 failed_gate")
+        if not isinstance(integrity_failure.get("error"), str) or not str(
+            integrity_failure["error"]
+        ).strip():
+            raise ValueError("revision fork parent_integrity_failure 缺少 error")
     return transaction
 
 
@@ -3873,6 +4034,8 @@ def _prepare_revision_child(parent_run: Path, transaction: Mapping[str, Any]) ->
             "revision_reviewer": transaction["reviewer"],
             "supersedes_reason": transaction["reason"],
             "inherited_material_sha256": transaction["parent_material_digest"],
+            "revision_parent_gate_artifact_refs": transaction["parent_gate_artifact_refs"],
+            "revision_parent_integrity_failure": transaction["parent_integrity_failure"],
         }
     )
     write_json(child_run / "run_manifest.json", manifest)
@@ -3885,6 +4048,8 @@ def _prepare_revision_child(parent_run: Path, transaction: Mapping[str, Any]) ->
             "child_run_id": transaction["child_run_id"],
             "parent_transition_head_sha256": transaction["parent_transition_head_sha256"],
             "parent_material_digest": transaction["parent_material_digest"],
+            "parent_gate_artifact_refs": transaction["parent_gate_artifact_refs"],
+            "parent_integrity_failure": transaction["parent_integrity_failure"],
             "revision_scope": transaction["revision_scope"],
             "reviewer": transaction["reviewer"],
             "reason": transaction["reason"],
@@ -3905,6 +4070,8 @@ def _verify_revision_child(parent_run: Path, child_run: Path, transaction: Mappi
         "revision_parent_run_id": transaction["parent_run_id"],
         "revision_scope": transaction["revision_scope"],
         "inherited_material_sha256": transaction["parent_material_digest"],
+        "revision_parent_gate_artifact_refs": transaction["parent_gate_artifact_refs"],
+        "revision_parent_integrity_failure": transaction["parent_integrity_failure"],
     }
     for field, expected in expected_manifest.items():
         if manifest.get(field) != expected:
@@ -3916,12 +4083,20 @@ def _verify_revision_child(parent_run: Path, child_run: Path, transaction: Mappi
         "child_run_id": transaction["child_run_id"],
         "parent_transition_head_sha256": transaction["parent_transition_head_sha256"],
         "parent_material_digest": transaction["parent_material_digest"],
+        "parent_gate_artifact_refs": transaction["parent_gate_artifact_refs"],
+        "parent_integrity_failure": transaction["parent_integrity_failure"],
         "revision_scope": transaction["revision_scope"],
     }.items():
         if record.get(field) != expected:
             raise ValueError(f"revision_fork_record.{field} 与事务不一致")
     if record.get("status") not in {"prepared", "committed"}:
         raise ValueError("revision_fork_record.status 非法")
+    for ref in transaction["parent_gate_artifact_refs"]:
+        parent_path = (parent_run / str(ref["path"])).resolve()
+        if not parent_path.is_relative_to(parent_run.resolve()) or not parent_path.is_file():
+            raise ValueError("修订绑定的父 Gate Manifest 不存在或越界")
+        if sha256_bytes(parent_path.read_bytes()) != ref["sha256"]:
+            raise ValueError(f"修订绑定的父 Gate {ref['gate']} Manifest 已漂移")
     current_parent = _load_json_object(parent_run / "run_manifest.json", "parent run_manifest.json")
     if _verified_material_digest(current_parent) != transaction["parent_material_digest"]:
         raise ValueError("当前材料摘要已变化，禁止发布修订子 Run")
@@ -3947,7 +4122,10 @@ def _append_revision_fork_event(parent_run: Path, transaction: Mapping[str, Any]
         if all(latest.get(field) == value for field, value in expected.items()):
             return
         raise ValueError("父 Run transition head 已变化，禁止覆盖新状态")
-    state = replay_transition_log(parent_run)
+    state = replay_transition_log(
+        parent_run,
+        verify_artifacts=transaction.get("parent_integrity_failure") is None,
+    )
     if state.get("completed") or state.get("lifecycle_status") != "active":
         raise ValueError("父 Run 已不满足 revision fork 前提")
     _append_transition_event(
@@ -4024,7 +4202,10 @@ def fork_revision_run(
     if not parent_run.is_dir():
         raise ValueError("--from-run 不是有效 Run 目录")
     parent = _load_json_object(parent_run / "run_manifest.json", "run_manifest.json")
-    state = replay_transition_log(parent_run)
+    state, parent_gate_refs, parent_integrity_failure = _revision_parent_state(
+        parent_run,
+        revision_scope,
+    )
     if state.get("completed") or state.get("lifecycle_status") != "active":
         raise ValueError("仅未完成且 active 的父 Run 可以创建修订 Run")
     if not reviewer.strip() or not reason.strip():
@@ -4053,6 +4234,8 @@ def fork_revision_run(
             "child_run_id": child_id,
             "parent_transition_head_sha256": _transaction_head_sha256(parent_run),
             "parent_material_digest": material_digest,
+            "parent_gate_artifact_refs": parent_gate_refs,
+            "parent_integrity_failure": parent_integrity_failure,
             "revision_scope": revision_scope,
             "reviewer": reviewer.strip(),
             "reason": reason.strip(),

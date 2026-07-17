@@ -31,6 +31,18 @@ REQUIRED_OPTIMIZATION_CHECKS = {
 REQUIRED_RANDOM_CHECKS = {"random_seed_replay", "sample_manifest_consistency"}
 
 
+def derive_implementation_status(validation: Mapping[str, object]) -> str:
+    """由 Gate 3 结构与数学检查状态派生实现正确性。"""
+    structural_status = validation.get("structural_validation")
+    mathematical_status = validation.get("mathematical_validation")
+    if structural_status == "passed" and mathematical_status in {
+        "passed",
+        "not_required",
+    }:
+        return "pass"
+    return "fail"
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 

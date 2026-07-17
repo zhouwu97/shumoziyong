@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_visual_review.schema.json",
+  "title": "提交论文逐页视觉验收记录",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pdf_sha256",
+    "page_count",
+    "reviewed_pages",
+    "reviewer",
+    "issues",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "pdf_sha256": {"$ref": "#/$defs/sha256"},
+    "page_count": {"type": "integer", "minimum": 1},
+    "reviewed_pages": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 1}
+    },
+    "reviewer": {"type": "string", "minLength": 1},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["page", "severity", "issue", "status"],
+        "properties": {
+          "page": {"type": "integer", "minimum": 1},
+          "severity": {"enum": ["P0", "P1", "P2", "P3"]},
+          "issue": {"type": "string", "minLength": 1},
+          "status": {"enum": ["open", "closed"]}
+        }
+      }
+    },
+    "status": {"enum": ["passed", "failed"]}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

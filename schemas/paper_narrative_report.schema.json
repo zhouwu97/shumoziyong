@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_narrative_report.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256", "contract_sha256", "paper_body_sha256", "claim_map_sha256", "elements", "forbidden_scan", "checks", "status", "submission_allowed", "technical_report_allowed"],
+  "properties": {
+    "schema_version": {"const": "paper_narrative_report_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "profile": {"type": "string", "minLength": 1},
+    "runtime_version": {"type": "string", "minLength": 1},
+    "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "contract_sha256": {"$ref": "#/$defs/sha256"},
+    "paper_body_sha256": {"$ref": "#/$defs/sha256"},
+    "claim_map_sha256": {"$ref": "#/$defs/sha256"},
+    "elements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["thesis", "core_contributions", "model_choice_reason", "result_insights", "action_recommendations", "limitations"],
+      "properties": {
+        "thesis": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/element"}},
+        "core_contributions": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/element"}},
+        "model_choice_reason": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/element"}},
+        "result_insights": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/element"}},
+        "action_recommendations": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/element"}},
+        "limitations": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/element"}}
+      }
+    },
+    "forbidden_scan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "hits"],
+      "properties": {
+        "status": {"enum": ["passed", "failed"]},
+        "hits": {"type": "array", "items": {"$ref": "#/$defs/hit"}}
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_complete", "text_presence", "claim_binding", "forbidden_terms"],
+      "properties": {
+        "contract_complete": {"$ref": "#/$defs/check"},
+        "text_presence": {"$ref": "#/$defs/check"},
+        "claim_binding": {"$ref": "#/$defs/check"},
+        "forbidden_terms": {"$ref": "#/$defs/check"}
+      }
+    },
+    "status": {"enum": ["passed", "failed"]},
+    "submission_allowed": {"type": "boolean"},
+    "technical_report_allowed": {"const": true}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {"properties": {"submission_allowed": {"const": true}, "forbidden_scan": {"properties": {"status": {"const": "passed"}}}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "failed"}}, "required": ["status"]},
+      "then": {"properties": {"submission_allowed": {"const": false}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "line"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "line": {"type": "integer", "minimum": 1}
+      }
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "evidence_refs", "locations", "present", "evidence_bound"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1},
+        "evidence_refs": {"type": "array", "minItems": 0, "uniqueItems": true, "items": {"type": "string", "pattern": "^C[0-9]{3,}$"}},
+        "locations": {"type": "array", "items": {"$ref": "#/$defs/location"}},
+        "present": {"type": "boolean"},
+        "evidence_bound": {"type": "boolean"}
+      }
+    },
+    "hit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value", "path", "line"],
+      "properties": {
+        "kind": {"enum": ["forbidden_term", "hash"]},
+        "value": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "line": {"type": "integer", "minimum": 1}
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issues"],
+      "properties": {
+        "status": {"enum": ["passed", "failed"]},
+        "issues": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
