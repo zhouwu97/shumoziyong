@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_exploratory_review.schema.json",
+  "title": "论文编译器探索性盲评表",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "freeze_id", "reviewer_id",
+    "human_reviewer_required", "status", "independent_review_attestation",
+    "versions", "overall_preference", "decision", "completed_at", "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_exploratory_review"},
+    "freeze_id": {"type": "string", "pattern": "^review-freeze-[a-f0-9]{16}$"},
+    "reviewer_id": {"enum": ["reviewer_1", "reviewer_2", "adjudicator"]},
+    "human_reviewer_required": {"const": true},
+    "status": {"enum": ["pending", "completed"]},
+    "independent_review_attestation": {"type": "boolean"},
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["X", "Y", "Z"],
+      "properties": {
+        "X": {"$ref": "#/$defs/versionReview"},
+        "Y": {"$ref": "#/$defs/versionReview"},
+        "Z": {"$ref": "#/$defs/versionReview"}
+      }
+    },
+    "overall_preference": {"type": ["string", "null"], "enum": ["X", "Y", "Z", null]},
+    "decision": {"type": ["string", "null"], "enum": ["continue", "revise", "stop", null]},
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "signature": {"type": ["string", "null"], "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "independent_review_attestation": {"const": true},
+          "overall_preference": {"type": "string"},
+          "decision": {"type": "string"},
+          "completed_at": {"type": "string"},
+          "signature": {"type": "string"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "score": {"type": ["integer", "null"], "minimum": 1, "maximum": 5},
+    "versionReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scores", "modification_minutes", "fact_drift_detected", "comments"],
+      "properties": {
+        "scores": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result_location", "comparison_clarity", "attribution_quality",
+            "boundary_awareness", "paragraph_coherence", "template_repetition"
+          ],
+          "properties": {
+            "result_location": {"$ref": "#/$defs/score"},
+            "comparison_clarity": {"$ref": "#/$defs/score"},
+            "attribution_quality": {"$ref": "#/$defs/score"},
+            "boundary_awareness": {"$ref": "#/$defs/score"},
+            "paragraph_coherence": {"$ref": "#/$defs/score"},
+            "template_repetition": {"$ref": "#/$defs/score"}
+          }
+        },
+        "modification_minutes": {"type": ["number", "null"], "minimum": 0},
+        "fact_drift_detected": {"type": ["boolean", "null"]},
+        "comments": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

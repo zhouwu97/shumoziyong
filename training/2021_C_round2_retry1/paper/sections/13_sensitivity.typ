@@ -3,7 +3,7 @@
 
 = 敏感性与压力测试
 
-权重敏感性已在表 5 和图 4 中说明。对问题二，需求、损耗率和关键供应商能力情景均重新求解，而不是把原方案机械代入新参数。敏感性分析用于识别结论依赖的参数与失效方向 [7]，不等于证明所有扰动下均稳健。
+权重敏感性见表 5 和图 4。问题二中的需求、损耗率和关键供应商能力情景均重新求解，不直接套用原方案。敏感性分析用于识别结论依赖的参数与可能的失效方向 [7]。
 
 #three-line-table(
   [表 11 #h(0.6em) 问题二压力测试],
@@ -27,4 +27,4 @@
   [问题二压力测试。完整最优情景显示供应商数；需求增加 10%单独标记为已找到可行解但未证明成本最优。],
 )
 
-需求增加 10%时，供应商基数阶段已证明最少需 #locked.demand_plus_10_minimum_supplier_count.display 家；#locked.demand_plus_10_limited_stage.display 在 60 秒内获得周相对成本 #locked.demand_plus_10_cost_incumbent.display 的可行 incumbent，当前下界为 #locked.demand_plus_10_cost_best_bound.display，相对 MIP 间隙为 #locked.demand_plus_10_cost_gap.display，但尚未完成最优性证明。因此不能写成全局最优或不可行。关键供应商能力下降 10%和全期中断在完整模型中均得到全局最优可行解，分别需要 26 和 27 家供应商，说明开放全部候选后可通过替代组合恢复可行。实际部署仍应保留备用供应商，并在需求增长前扩充低损耗运输能力。
+需求增加 10%时，供应商基数阶段已证明最少需 #locked.demand_plus_10_minimum_supplier_count.display 家；#locked.demand_plus_10_limited_stage.display 在 60 秒内获得周相对成本 #locked.demand_plus_10_cost_incumbent.display 的可行 incumbent，当前下界为 #locked.demand_plus_10_cost_best_bound.display，相对 MIP 间隙为 #locked.demand_plus_10_cost_gap.display，最优性证明尚未结束。关键供应商能力下降 10%和全期中断在完整模型中均得到全局最优可行解，分别需要 26 和 27 家供应商。开放全部候选后，模型可通过替代组合恢复可行；实际部署仍应保留备用供应商，并在需求增长前扩充低损耗运输能力。

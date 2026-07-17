@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_qualification_boundary",
+  "pilot_id": "paper-compiler-2024c-q1-v1.1.1",
+  "automated_status": "passed",
+  "automated_scope": "paper_compiler_v1_1_1_pilot",
+  "observed_at": "2026-07-17T14:26:29+08:00",
+  "components": {
+    "pilot_orchestrator": {
+      "command": "python scripts/paper/build_paper_compiler_pilot.py",
+      "status": "passed",
+      "scope": "v1.1.1 单题、单问、两个章节及十类故障注入",
+      "passed": 10,
+      "failed": 0,
+      "exit_code": 0,
+      "summary": "当前定义的十类故障全部被预期错误码捕获"
+    },
+    "paper_tests": {
+      "command": "python -m pytest -q tests/paper",
+      "status": "passed",
+      "scope": "仓库 tests/paper 专项测试",
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "summary": "41 passed in 1.10s"
+    },
+    "repository_validator": {
+      "command": "python scripts/validate_repository.py",
+      "status": "failed_preexisting_issues",
+      "scope": "仓库结构、Schema、证据和 Markdown 链接",
+      "passed": 71,
+      "failed": 2,
+      "exit_code": 1,
+      "summary": "失败项保持为基线异常，不转换为通过"
+    },
+    "full_test_suite": {
+      "command": "python -m pytest -q",
+      "status": "blocked_workspace_optional_dependencies",
+      "scope": "当前工作区内 pytest 可发现的全部测试，包括未跟踪 tmp 参考工程",
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 2,
+      "summary": "标准入口的收集阻塞与论文编译器专项测试分开记录"
+    }
+  },
+  "baseline_exceptions": [
+    {
+      "baseline_exception_id": "BE-MD-LINK-001",
+      "check": "markdown_link_validation",
+      "file": "README.md",
+      "line": 90,
+      "target": "docs/status/CURRENT_STATUS.md",
+      "first_observed_at_commit": "2c132858c2f271374fcfa80904251a4cc40f5da5",
+      "present_in_base_commit": true,
+      "introduced_by_pilot": false,
+      "affects_pilot": false,
+      "status": "known_preexisting",
+      "owner_status": "unassigned",
+      "proof": {
+        "base_blob_sha256": "6250234b68ecf3b8b047e8e8ea0ccf38f95b3526581a6c6277f6b46ca6b9f4b7",
+        "base_line_sha256": "46445d85720707177e7607b451220d2cf4c71b1e284de974272532ca3175d068",
+        "base_line_text": "机器生成的状态快照、来源与刷新规则见[当前状态](docs/status/CURRENT_STATUS.md)。"
+      }
+    },
+    {
+      "baseline_exception_id": "BE-MD-LINK-002",
+      "check": "markdown_link_validation",
+      "file": "training/2021_C_round2_retry1/constraint_inventory.md",
+      "line": 6,
+      "target": "1-l[j]",
+      "first_observed_at_commit": "2c132858c2f271374fcfa80904251a4cc40f5da5",
+      "present_in_base_commit": true,
+      "introduced_by_pilot": false,
+      "affects_pilot": false,
+      "status": "known_preexisting",
+      "owner_status": "unassigned",
+      "proof": {
+        "base_blob_sha256": "4eb51a82d03c30a35ad149ca423210097b8df3eabf6efd188fd569ac514d350b",
+        "base_line_sha256": "39399e0f553abb1ea74383d54a29ef5c106318d4dc36d0399752009521e6081e",
+        "base_line_text": "| C02 | 三类原料转换 | `A[t]=Σr/j x[r,t,j](1-l[j])/q[r]` | r,t,j | 题面 | 产品m³ | q=(.6,.66,.72) | material_conversion |"
+      }
+    }
+  ],
+  "full_suite_blockers": [
+    {
+      "module": "pypandoc",
+      "type": "workspace_optional_reference_dependency",
+      "test_path": "training/2021_C_round2_retry1/tmp/MathModelAgent-reference/backend/app/tests/test_common_utils.py",
+      "tracked_by_repository": false,
+      "introduced_by_pilot": false,
+      "impact": "阻止全工作区 pytest 在收集阶段完成；不影响论文编译器专项测试",
+      "status": "blocked"
+    },
+    {
+      "module": "e2b_code_interpreter",
+      "type": "workspace_optional_reference_dependency",
+      "test_path": "training/2021_C_round2_retry1/tmp/MathModelAgent-reference/backend/app/tests/test_e2b.py",
+      "tracked_by_repository": false,
+      "introduced_by_pilot": false,
+      "impact": "阻止全工作区 pytest 在收集阶段完成；不影响论文编译器专项测试",
+      "status": "blocked"
+    }
+  ],
+  "unsupported_runner": {
+    "command": "pytest",
+    "status": "unsupported_runner_mismatch",
+    "reason": "裸 pytest 位于 C:\\Users\\haha\\AppData\\Local\\Programs\\Python\\Python311\\Scripts\\pytest.EXE，当前标准 Python 为 C:\\Program Files\\Python312\\python.exe；资格证据统一使用 python -m pytest"
+  }
+}

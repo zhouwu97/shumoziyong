@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "package_id": "reviewer_2_ai_pre_review",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "reviewer_type": "ai_pre_review",
+  "read_order": [
+    "Z",
+    "X",
+    "Y"
+  ],
+  "files": [
+    {
+      "path": "AI_REVIEW_PROMPT.md",
+      "sha256": "273c05ba7c306ea7420da65b86a80db0ce345cdbfdace03537c279c477a7f417",
+      "size_bytes": 1735
+    },
+    {
+      "path": "facts/REVIEW_FACTS.json",
+      "sha256": "aea041c30d9d850c19f4bdb2e4184590983dae2d70a6875a777b3f6d4c7b4a6c",
+      "size_bytes": 2486
+    },
+    {
+      "path": "materials/01_Z.md",
+      "sha256": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596",
+      "size_bytes": 703
+    },
+    {
+      "path": "materials/02_X.md",
+      "sha256": "005e89eed951cb0bcd7673ea9ad39f0b762df73bfb1337cbb8db6fd6257b30d5",
+      "size_bytes": 552
+    },
+    {
+      "path": "materials/03_Y.md",
+      "sha256": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "size_bytes": 1015
+    },
+    {
+      "path": "REVIEW_PROTOCOL.md",
+      "sha256": "d978a001cd00a145fa9ea2ce7d672d1fc04962b9f1032487f9a204f04be3f637",
+      "size_bytes": 620
+    },
+    {
+      "path": "reviewer_2_ai_pre_review.json",
+      "sha256": "4e958250cf55c5ce301b823e77109a3435bd942b83884ae9ccf8f4369d71136c",
+      "size_bytes": 3810
+    },
+    {
+      "path": "source_reuse/AUTOMATED_OVERLAP_REPORT.json",
+      "sha256": "15426db65a0499bbf604ec1404d6aa6c5ed314f12a6ef297130dddbe8fd8e454",
+      "size_bytes": 887
+    },
+    {
+      "path": "source_reuse/SOURCE_COMPARISON_EXCERPTS.md",
+      "sha256": "79b86aca1b419fd9386ce190261b4ac7a7424f64f460c41d0d9cb468871df6f1",
+      "size_bytes": 1073
+    },
+    {
+      "path": "START_HERE.md",
+      "sha256": "28bbaa77d849aab7e313fbc9e5ec432e717fa8363e7a392bbd62efc7afc5f692",
+      "size_bytes": 475
+    }
+  ],
+  "manifest_scope_excludes": [
+    "package_manifest.json"
+  ],
+  "mapping_included": false,
+  "other_reviewer_material_included": false,
+  "formal_human_review_file_modified": false,
+  "status": "ready"
+}

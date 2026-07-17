@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_rhetoric_retrieval_report",
+  "status": "passed",
+  "bundle_id": "paper-rhetoric-bundle-2024c-q1-v1-f019c5b82db3",
+  "paragraphs": [
+    {
+      "paragraph_id": "P-C-RESULT",
+      "role": "report_result",
+      "available_fact_types": [
+        "metric"
+      ],
+      "candidate_card_ids": [
+        "RC-RESULT-REPORT-001"
+      ],
+      "selected_card_ids": [
+        "RC-RESULT-REPORT-001"
+      ],
+      "selection_reason": "职责、事实类型、Candidate 状态和卡片包版本均匹配",
+      "rejected_cards": [
+        {
+          "card_id": "RC-BOUNDARY-SCOPE-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-ATTRIBUTION-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-COMPARE-001",
+          "reason": "段落职责不匹配"
+        }
+      ]
+    },
+    {
+      "paragraph_id": "P-C-COMPARE",
+      "role": "compare_with_baseline",
+      "available_fact_types": [
+        "boundary",
+        "comparison"
+      ],
+      "candidate_card_ids": [
+        "RC-RESULT-COMPARE-001"
+      ],
+      "selected_card_ids": [
+        "RC-RESULT-COMPARE-001"
+      ],
+      "selection_reason": "职责、事实类型、Candidate 状态和卡片包版本均匹配",
+      "rejected_cards": [
+        {
+          "card_id": "RC-BOUNDARY-SCOPE-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-ATTRIBUTION-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-REPORT-001",
+          "reason": "段落职责不匹配"
+        }
+      ]
+    },
+    {
+      "paragraph_id": "P-C-EXPLAIN",
+      "role": "explain_change",
+      "available_fact_types": [
+        "boundary"
+      ],
+      "candidate_card_ids": [
+        "RC-RESULT-ATTRIBUTION-001"
+      ],
+      "selected_card_ids": [
+        "RC-RESULT-ATTRIBUTION-001"
+      ],
+      "selection_reason": "职责、事实类型、Candidate 状态和卡片包版本均匹配",
+      "rejected_cards": [
+        {
+          "card_id": "RC-BOUNDARY-SCOPE-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-COMPARE-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-REPORT-001",
+          "reason": "段落职责不匹配"
+        }
+      ]
+    },
+    {
+      "paragraph_id": "P-C-BOUNDARY",
+      "role": "state_boundary",
+      "available_fact_types": [
+        "boundary"
+      ],
+      "candidate_card_ids": [
+        "RC-BOUNDARY-SCOPE-001"
+      ],
+      "selected_card_ids": [
+        "RC-BOUNDARY-SCOPE-001"
+      ],
+      "selection_reason": "职责、事实类型、Candidate 状态和卡片包版本均匹配",
+      "rejected_cards": [
+        {
+          "card_id": "RC-RESULT-ATTRIBUTION-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-COMPARE-001",
+          "reason": "段落职责不匹配"
+        },
+        {
+          "card_id": "RC-RESULT-REPORT-001",
+          "reason": "段落职责不匹配"
+        }
+      ]
+    }
+  ],
+  "issues": []
+}

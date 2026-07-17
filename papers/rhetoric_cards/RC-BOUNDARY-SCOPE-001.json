@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_rhetoric_card",
+  "card_id": "RC-BOUNDARY-SCOPE-001",
+  "state": "task_adapted",
+  "action": "限定结果适用范围与最优性等级",
+  "applicable_roles": ["state_boundary"],
+  "required_fact_types": ["boundary"],
+  "logic_pattern": ["先说明证据覆盖范围", "再说明求解状态", "最后禁止外推为全局最优"],
+  "avoid": ["适用于所有情形", "具有普遍意义", "达到全局最优"],
+  "source_provenance": {
+    "paper_id": "A127",
+    "pages": [25, 26],
+    "source_sha256": "77aae1ffa8d3c2ce29c870ab497b6b284b9ecf4236b2d5a4240c8fa9fc7a1d62"
+  },
+  "delexicalization": {
+    "problem_entities_removed": true,
+    "numbers_removed": true,
+    "formula_content_removed": true,
+    "distinctive_phrases_removed": true
+  }
+}

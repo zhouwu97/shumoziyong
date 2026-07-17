@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_exploratory_decision_policy",
+  "policy_id": "paper-compiler-v1.1.1-exploratory-policy-v1",
+  "allowed_decisions": [
+    "continue",
+    "revise",
+    "stop"
+  ],
+  "hard_stop": [
+    "任一版本被人工确认存在事实漂移",
+    "人工原文复核结论为 probable_source_reuse"
+  ],
+  "continue": [
+    "两名评阅人的独立建议均为 continue",
+    "B 相对 A 的结构指标均值为正",
+    "C 相对 B 的主要指标均值不低于 -0.25",
+    "C 的平均修改时间不超过 A 的 110%",
+    "人工原文复核仅为 no_concern 或 generic_academic_overlap"
+  ],
+  "stop": [
+    "两名评阅人的独立建议均为 stop",
+    "或 B、C 的结构指标均不优于 A 且修改时间均超过 A 的 110%"
+  ],
+  "revise": "无硬停止项但不满足 continue 或 stop 时；评委明显分歧时先仲裁",
+  "material_disagreement": "两名评阅人的 decision 不一致，或一名为 continue 而另一名为 stop",
+  "production_ready_allowed": false
+}

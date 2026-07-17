@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_typed_exemptions",
+  "source_file": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\current\\version_b_annotated.md",
+  "source_sha256": "ef11d2067a3568502216fb0bdab65a16b6762382b7fff47e9ec2e26b5ac4cdcd",
+  "detector": "paper_structure_number_parser",
+  "detector_version": "1.0.0",
+  "exemptions": []
+}

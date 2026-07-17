@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_fact_realization_plan",
+  "plan_id": "2024C-Q1-B",
+  "problem_id": "2024-C",
+  "subproblem_id": "Q1",
+  "mode": "candidate_without_cards",
+  "sections": [
+    {
+      "section_id": "result_analysis",
+      "title": "结果分析",
+      "paragraphs": [
+        {
+          "paragraph_id": "P-B-RESULT",
+          "role": "report_result",
+          "argument_nodes": ["N02", "N03"],
+          "card_ids": [],
+          "segments": [
+            {"type": "text", "value": "问题一的超产滞销与超产折价情形，七年累计复算利润分别为 "},
+            {"type": "fact_ref", "ref_type": "metric", "ref_id": "CB-Q1-WASTE-PROFIT"},
+            {"type": "text", "value": "和 "},
+            {"type": "fact_ref", "ref_type": "metric", "ref_id": "CB-Q1-DISCOUNT-PROFIT"},
+            {"type": "text", "value": "。"}
+          ]
+        },
+        {
+          "paragraph_id": "P-B-COMPARE",
+          "role": "compare_with_baseline",
+          "argument_nodes": ["N04"],
+          "card_ids": [],
+          "segments": [
+            {"type": "text", "value": "相较之下，折价销售情形"},
+            {"type": "fact_ref", "ref_type": "comparison", "ref_id": "CB-Q1-SCENARIO-DIFFERENCE"},
+            {"type": "text", "value": "。"},
+            {"type": "fact_ref", "ref_type": "boundary", "ref_id": "BD-Q1-DISCOUNT-SCOPE"},
+            {"type": "text", "value": "。"}
+          ]
+        },
+        {
+          "paragraph_id": "P-B-EXPLAIN",
+          "role": "explain_change",
+          "argument_nodes": ["N05"],
+          "card_ids": [],
+          "segments": [
+            {"type": "fact_ref", "ref_type": "boundary", "ref_id": "BD-Q1-SALES-RULE"},
+            {"type": "text", "value": "，该规则与两个情形采用不同收益口径相对应。"}
+          ]
+        }
+      ]
+    },
+    {
+      "section_id": "model_boundary",
+      "title": "模型边界",
+      "paragraphs": [
+        {
+          "paragraph_id": "P-B-BOUNDARY",
+          "role": "state_boundary",
+          "argument_nodes": ["N06", "N07"],
+          "card_ids": [],
+          "segments": [
+            {"type": "fact_ref", "ref_type": "boundary", "ref_id": "BD-Q1-WASTE-SCOPE"},
+            {"type": "text", "value": "；"},
+            {"type": "fact_ref", "ref_type": "boundary", "ref_id": "BD-Q1-OPTIMALITY"},
+            {"type": "text", "value": "。"}
+          ]
+        }
+      ]
+    }
+  ]
+}

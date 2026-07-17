@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_review_freeze.schema.json",
+  "title": "论文编译器探索性盲评冻结清单",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "freeze_id", "pilot_id", "frozen_at",
+    "review_started_at", "source_state", "generation_config", "frozen_inputs",
+    "reviewer_packages", "private_key_sha256", "mutation_policy"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_review_freeze"},
+    "freeze_id": {"type": "string", "pattern": "^review-freeze-[a-f0-9]{16}$"},
+    "pilot_id": {"const": "paper-compiler-2024c-q1-v1.1.1"},
+    "frozen_at": {"type": "string", "format": "date-time"},
+    "review_started_at": {"type": ["string", "null"], "format": "date-time"},
+    "source_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementation_base_commit_sha", "pilot_commit_sha", "working_tree_clean", "source_snapshot_sha256"],
+      "properties": {
+        "implementation_base_commit_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "pilot_commit_sha": {"type": ["string", "null"], "pattern": "^[a-f0-9]{40}$"},
+        "working_tree_clean": {"type": "boolean"},
+        "source_snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "generation_config": {"type": "object"},
+    "frozen_inputs": {
+      "type": "array",
+      "minItems": 6,
+      "items": {"$ref": "#/$defs/fileBinding"}
+    },
+    "reviewer_packages": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reviewer_id", "package_manifest", "sha256"],
+        "properties": {
+          "reviewer_id": {"enum": ["reviewer_1", "reviewer_2", "adjudicator"]},
+          "package_manifest": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "private_key_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "mutation_policy": {"const": "fail_closed_no_rebuild_after_freeze"}
+  },
+  "$defs": {
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

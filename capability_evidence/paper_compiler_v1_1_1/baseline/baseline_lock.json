@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_pilot_baseline_lock",
+  "pilot_id": "paper-compiler-2024c-q1-v1.1.1",
+  "target_branch": "codex/trusted-competition-hardening",
+  "target_commit_sha": "709019768c18b5327a3727ab1e7274c4d89c12fb",
+  "implementation_base_commit_sha": "2c132858c2f271374fcfa80904251a4cc40f5da5",
+  "historical_run": "2024C_v21_full_replay_20260715",
+  "problem_id": "2024-C",
+  "subproblem_id": "Q1",
+  "sections": [
+    "result_analysis",
+    "model_boundary"
+  ],
+  "humanization_noop_confirmed_on_target_commit": true,
+  "production_baseline_blocked_until_target_integration": true,
+  "files": [
+    {
+      "path": "schemas/paper_claim_map_v2.schema.json",
+      "sha256": "2949e76a205b7a1602250914c3dca83d157cbf10c2db414561f41f87aa8889f7"
+    },
+    {
+      "path": "scripts/paper/check_claim_bindings.py",
+      "sha256": "1cb5b3634824e67770153a3b6dd2a21f2fdfa95a4da035b12c94664325925d87"
+    },
+    {
+      "path": "schemas/formal_result_manifest.schema.json",
+      "sha256": "32ac4c2415c46b64cc5b1e52b7c0dba890a0e9719cbfa8b88f83c5b27e755fea"
+    },
+    {
+      "path": "runs/2024C_v21_full_replay_20260715/paper_claim_map.json",
+      "sha256": "05afe0316f05d119e7932a17ef7349f9781a9035213897bc052b08b0470c63e7"
+    },
+    {
+      "path": "runs/2024C_v21_full_replay_20260715/result_report.json",
+      "sha256": "516016f580ee30f4580255b809b2b79a1218595ba390bb586f171565e738593e"
+    },
+    {
+      "path": "runs/2024C_v21_full_replay_20260715/paper/submission_paper_candidate.typ",
+      "sha256": "90a39b10c1320e84821a63e090433ee651018f2b4501854a062548dfd0f075b0"
+    },
+    {
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/claim_bindings.json",
+      "sha256": "a4f798c558684363a8fc38e0d254276ad3579f0dd4db97b7cfbff1c844da62d5"
+    },
+    {
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/argument_graph.json",
+      "sha256": "00da4f2a7707613ae4b3db75541e5ff94647df8a032d0d0eb7b427f6954f5ca6"
+    },
+    {
+      "path": "高教社杯全国大学生数学建模竞赛优秀论文/2023年高教社杯全国大学生数学建模竞赛优秀论文/A127.pdf",
+      "sha256": "77aae1ffa8d3c2ce29c870ab497b6b284b9ecf4236b2d5a4240c8fa9fc7a1d62"
+    },
+    {
+      "path": "tmp/pdfs/A127_clean_extract.txt",
+      "sha256": "42914393269b54cae9b1aad8034214bbcd57b83c3d3d015dccaae29222c19d4c"
+    }
+  ]
+}

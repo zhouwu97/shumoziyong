@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_rhetoric_card",
+  "card_id": "RC-RESULT-COMPARE-001",
+  "state": "task_adapted",
+  "action": "明确比较对象、方向和幅度",
+  "applicable_roles": ["compare_with_baseline"],
+  "required_fact_types": ["comparison", "boundary"],
+  "logic_pattern": ["明确参照情形", "给出差值或比例", "立即限定比较口径"],
+  "avoid": ["显著提高", "全面优于", "算法性能提升"],
+  "source_provenance": {
+    "paper_id": "A127",
+    "pages": [25],
+    "source_sha256": "77aae1ffa8d3c2ce29c870ab497b6b284b9ecf4236b2d5a4240c8fa9fc7a1d62"
+  },
+  "delexicalization": {
+    "problem_entities_removed": true,
+    "numbers_removed": true,
+    "formula_content_removed": true,
+    "distinctive_phrases_removed": true
+  }
+}

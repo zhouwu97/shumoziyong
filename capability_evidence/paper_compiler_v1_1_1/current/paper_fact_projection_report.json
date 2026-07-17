@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_fact_projection_validation",
+  "status": "passed",
+  "projection": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\current\\paper_fact_projection.json",
+  "issues": []
+}

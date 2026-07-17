@@ -1,0 +1,143 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_ai_pre_review",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "reviewer_id": "reviewer_1",
+  "reviewer_type": "ai_pre_review",
+  "independent_review": true,
+  "formal_human_review": false,
+  "status": "completed",
+  "read_order": [
+    "X",
+    "Y",
+    "Z"
+  ],
+  "versions": {
+    "X": {
+      "hard_errors": {
+        "number_drift": false,
+        "unit_drift": false,
+        "precision_drift": false,
+        "comparison_direction_error": false,
+        "comparison_reference_error": false,
+        "optimality_overclaim": false,
+        "causal_overreach": true,
+        "boundary_removed": false,
+        "unsupported_conclusion": true,
+        "cross_problem_contamination": false,
+        "suspected_source_reuse": false
+      },
+      "scores": {
+        "result_location": 5,
+        "comparison_clarity": 3,
+        "attribution_quality": 3,
+        "boundary_awareness": 4,
+        "paragraph_coherence": 4,
+        "low_template_feel": 4,
+        "edit_readiness": 4
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": 4,
+        "time_to_understand_argument_seconds": 16,
+        "estimated_edit_minutes": 12
+      },
+      "comments": [
+        "硬性问题：原文“模型主动限制难以销售的产量”断言了具体的产量决策响应。事实视图 RF-BOUNDARY-03 只说明超产部分在滞销情形不计收入、在折价情形按正常价格的一半计入，并未提供两种情形下实际产量或种植决策变化的证据；该句属于因果越界和无证据结论，应删除，或改为仅陈述收入计入规则。",
+        "两项利润 1730.80 万元和 5406.55 万元及其单位、两位小数精度均与 RF-METRIC-01、RF-METRIC-02 一致；比较方向正确，但正文没有直接报告 RF-COMPARISON-01 的 3675.75 万元差额，读者需要自行相减，因此比较清晰度仅为 3。",
+        "边界段准确保留官方材料、价格中点、60 秒时限、约束可行方案和非零 MIP gap，并明确不能支持全局最优；若要达到更完整的边界表达，还应说明上述材料、价格口径或求解条件改变时需要重新计算。主要修改位置为结果分析首句的无证据机制表述，并补出比较差额。"
+      ]
+    },
+    "Y": {
+      "hard_errors": {
+        "number_drift": false,
+        "unit_drift": false,
+        "precision_drift": false,
+        "comparison_direction_error": false,
+        "comparison_reference_error": false,
+        "optimality_overclaim": false,
+        "causal_overreach": false,
+        "boundary_removed": false,
+        "unsupported_conclusion": false,
+        "cross_problem_contamination": false,
+        "suspected_source_reuse": false
+      },
+      "scores": {
+        "result_location": 5,
+        "comparison_clarity": 5,
+        "attribution_quality": 5,
+        "boundary_awareness": 4,
+        "paragraph_coherence": 4,
+        "low_template_feel": 5,
+        "edit_readiness": 4
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": 4,
+        "time_to_understand_argument_seconds": 20,
+        "estimated_edit_minutes": 8
+      },
+      "comments": [
+        "两项利润、3675.75 万元增量、滞销参照、增加方向、销售规则及可行解边界分别与 RF-METRIC-01、RF-METRIC-02、RF-COMPARISON-01、RF-BOUNDARY-02 至 RF-BOUNDARY-04 一致；没有数字、单位、精度、最优性或因果方面的硬错误。",
+        "归因链最完整：先报告结果与显式差额，再用“滞销不计收入、折价按正常价格的一半计入”解释差异，且两次明确排除算法改进和全局最优解释，证据强度与事实视图匹配。第二、三段对“不是算法改进”的表达略有重复，合并一次即可提高紧凑度。",
+        "边界具体覆盖冻结材料、价格中点、60 秒时限、约束可行方案和非零 MIP gap，但没有直接写明哪些输入变化后必须重新计算，故边界意识为 4。主要修改位置是压缩结果分析第二、三段的重复限定，并补一句材料、价格口径或求解条件变化时需重新计算。",
+        "原文复核中，自动报告的最高归一化连续匹配仅为通用标题“结果分析”，最长连续匹配 4、字符 8-gram 重合率 0.0；来源片段讨论定日镜场，与本匿名文本的农业销售规则论证不同，不构成疑似来源复用。"
+      ]
+    },
+    "Z": {
+      "hard_errors": {
+        "number_drift": false,
+        "unit_drift": false,
+        "precision_drift": false,
+        "comparison_direction_error": false,
+        "comparison_reference_error": false,
+        "optimality_overclaim": false,
+        "causal_overreach": false,
+        "boundary_removed": false,
+        "unsupported_conclusion": false,
+        "cross_problem_contamination": false,
+        "suspected_source_reuse": false
+      },
+      "scores": {
+        "result_location": 5,
+        "comparison_clarity": 5,
+        "attribution_quality": 4,
+        "boundary_awareness": 4,
+        "paragraph_coherence": 5,
+        "low_template_feel": 5,
+        "edit_readiness": 5
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": 3,
+        "time_to_understand_argument_seconds": 13,
+        "estimated_edit_minutes": 5
+      },
+      "comments": [
+        "两项利润、3675.75 万元增量、比较方向与参照、销售规则、60 秒可行解及非零 MIP gap 均与事实视图一致；不存在数字、单位、精度、比较、最优性、因果、边界或串题硬错误。",
+        "首句直接给出两个核心结果，次句给出参照、方向和差额，第三句解释收入计入规则，随后限定可行解边界，结果—比较—解释—边界的顺序最紧凑自然。归因准确但只说明规则对应关系，未像 Y 那样充分解释该比较的实际含义，因此归因质量为 4。",
+        "主要修改位置仅是边界段：可补充材料、价格口径或求解条件发生变化时需要重新计算，以明确不可外推和重算条件；其余内容已接近可直接使用。"
+      ]
+    }
+  },
+  "forced_comparison": {
+    "overall_ranking": [
+      "Y",
+      "Z",
+      "X"
+    ],
+    "easiest_result_location": "Z",
+    "best_attribution": "Y",
+    "most_accurate_boundary": "Y",
+    "closest_to_submission": "Z",
+    "strongest_template_feel": "X",
+    "ranking_reason": "Y 排第一，因为它不仅明确列出 1730.80 万元、5406.55 万元和相对滞销规则增加 3675.75 万元，还把差额逐项落到超产收入的两种计入规则，并同时排除算法改进和全局最优解释；其代价只是第二、三段存在可轻微压缩的重复。Z 排第二，因为核心数值和差额在前两句即可定位，随后按规则解释并给出 MIP gap 边界，整体最紧凑且最接近直接提交，但对比较实际含义和成立口径的展开少于 Y。X 排第三，因为它未显式给出 3675.75 万元差额，且“模型主动限制难以销售的产量”没有事实视图中的决策数据支持，构成不能由流畅度抵消的硬错误。三份文本均无明显固定套话，X 只是相对而言模板感最强，其概括式机制叙述未充分绑定当前证据。综合意见为继续本阶段探索，但须先修正 X 的硬错误；这是 AI 探索性预评审意见，不能替代两名外部真人评审，不能据此进入 production_ready，且未解盲前不得声称任何生成方式有效。"
+  },
+  "source_reuse_status": "generic_academic_overlap",
+  "ai_conclusion": "ai_pre_review_continue",
+  "completed_at": "2026-07-17T15:00:50+08:00",
+  "attestation": {
+    "mapping_not_inferred": true,
+    "human_identity_not_claimed": true,
+    "qualification_status_not_modified": true,
+    "production_status_not_modified": true
+  }
+}

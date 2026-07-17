@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_rhetoric_overlap_report.schema.json",
+  "title": "表达卡片来源重合自动检查报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "protocol", "source", "generated_text", "status", "human_review_status", "cards"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_rhetoric_overlap_report"},
+    "protocol": {"type": "object"},
+    "source": {"type": "object"},
+    "generated_text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "longest_contiguous_match", "char_ngram_overlap", "highest_match", "automatic_status"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "longest_contiguous_match": {"type": "integer", "minimum": 0},
+        "char_ngram_overlap": {"type": "number", "minimum": 0, "maximum": 1},
+        "highest_match": {"type": "object"},
+        "automatic_status": {"enum": ["passed", "failed"]}
+      }
+    },
+    "status": {"enum": ["automatic_passed", "automatic_failed"]},
+    "human_review_status": {"const": "pending"},
+    "cards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["card_id", "longest_contiguous_match", "char_ngram_overlap", "distinctive_phrase_hits", "highest_match", "automatic_status"],
+        "properties": {
+          "card_id": {"type": "string", "minLength": 1},
+          "longest_contiguous_match": {"type": "integer", "minimum": 0},
+          "char_ngram_overlap": {"type": "number", "minimum": 0, "maximum": 1},
+          "distinctive_phrase_hits": {"type": "array", "items": {"type": "string"}},
+          "highest_match": {"type": "object"},
+          "automatic_status": {"enum": ["passed", "failed"]}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0.0",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "status": "passed",
+  "checks": {
+    "anonymous_X_identical": true,
+    "anonymous_Y_identical": true,
+    "anonymous_Z_identical": true,
+    "only_read_order_differs": true,
+    "reviewer_1_mapping_absent": true,
+    "reviewer_2_mapping_absent": true,
+    "reviewer_1_other_material_absent": true,
+    "reviewer_2_other_material_absent": true,
+    "human_review_files_unchanged": true,
+    "source_files_unchanged": true,
+    "pilot_status_unchanged": true,
+    "reviewer_1_zip_verified": true,
+    "reviewer_2_zip_verified": true
+  },
+  "material_hashes": {
+    "reviewer_1": {
+      "X": "005e89eed951cb0bcd7673ea9ad39f0b762df73bfb1337cbb8db6fd6257b30d5",
+      "Y": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "Z": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596"
+    },
+    "reviewer_2": {
+      "Z": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596",
+      "X": "005e89eed951cb0bcd7673ea9ad39f0b762df73bfb1337cbb8db6fd6257b30d5",
+      "Y": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa"
+    }
+  },
+  "zip_verification": {
+    "reviewer_1": {
+      "status": "passed",
+      "issues": []
+    },
+    "reviewer_2": {
+      "status": "passed",
+      "issues": []
+    }
+  },
+  "protected_sources_before": {
+    "pilot_manifest": "49fedadcf7a873778f8da9e6ff4c41bf5cfcfc256c66f90b7d67f8d2ff7e0ce5",
+    "human_reviews": {
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_1.json": "223dad19eb7da7f8dff11e9062e8cc50d632f834e40f480833ff86dc7d7cc3d2",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_2.json": "31190316ec0be995cb9c18a8661ae499dee638792ccff5f5ce343c0ee66eb1e5"
+    },
+    "original_materials": {
+      "capability_evidence/paper_compiler_v1_1_1/baseline/version_a.md": "db500b0861ef4f8cb50f59e0d9e2ef97a12091f21a64b42e6c2835b8752cf99d",
+      "capability_evidence/paper_compiler_v1_1_1/current/version_b.md": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596",
+      "capability_evidence/paper_compiler_v1_1_1/current/version_c.md": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_X.md": "005e89eed951cb0bcd7673ea9ad39f0b762df73bfb1337cbb8db6fd6257b30d5",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_Y.md": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_Z.md": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596"
+    }
+  },
+  "protected_sources_after": {
+    "pilot_manifest": "49fedadcf7a873778f8da9e6ff4c41bf5cfcfc256c66f90b7d67f8d2ff7e0ce5",
+    "human_reviews": {
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_1.json": "223dad19eb7da7f8dff11e9062e8cc50d632f834e40f480833ff86dc7d7cc3d2",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_2.json": "31190316ec0be995cb9c18a8661ae499dee638792ccff5f5ce343c0ee66eb1e5"
+    },
+    "original_materials": {
+      "capability_evidence/paper_compiler_v1_1_1/baseline/version_a.md": "db500b0861ef4f8cb50f59e0d9e2ef97a12091f21a64b42e6c2835b8752cf99d",
+      "capability_evidence/paper_compiler_v1_1_1/current/version_b.md": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596",
+      "capability_evidence/paper_compiler_v1_1_1/current/version_c.md": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_X.md": "005e89eed951cb0bcd7673ea9ad39f0b762df73bfb1337cbb8db6fd6257b30d5",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_Y.md": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_Z.md": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596"
+    }
+  }
+}

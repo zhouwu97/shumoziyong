@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_ai_pre_review",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "reviewer_id": "reviewer_2",
+  "reviewer_type": "ai_pre_review",
+  "independent_review": true,
+  "formal_human_review": false,
+  "status": "pending",
+  "read_order": [
+    "Z",
+    "X",
+    "Y"
+  ],
+  "versions": {
+    "X": {
+      "hard_errors": {
+        "number_drift": null,
+        "unit_drift": null,
+        "precision_drift": null,
+        "comparison_direction_error": null,
+        "comparison_reference_error": null,
+        "optimality_overclaim": null,
+        "causal_overreach": null,
+        "boundary_removed": null,
+        "unsupported_conclusion": null,
+        "cross_problem_contamination": null,
+        "suspected_source_reuse": null
+      },
+      "scores": {
+        "result_location": null,
+        "comparison_clarity": null,
+        "attribution_quality": null,
+        "boundary_awareness": null,
+        "paragraph_coherence": null,
+        "low_template_feel": null,
+        "edit_readiness": null
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": null,
+        "time_to_understand_argument_seconds": null,
+        "estimated_edit_minutes": null
+      },
+      "comments": []
+    },
+    "Y": {
+      "hard_errors": {
+        "number_drift": null,
+        "unit_drift": null,
+        "precision_drift": null,
+        "comparison_direction_error": null,
+        "comparison_reference_error": null,
+        "optimality_overclaim": null,
+        "causal_overreach": null,
+        "boundary_removed": null,
+        "unsupported_conclusion": null,
+        "cross_problem_contamination": null,
+        "suspected_source_reuse": null
+      },
+      "scores": {
+        "result_location": null,
+        "comparison_clarity": null,
+        "attribution_quality": null,
+        "boundary_awareness": null,
+        "paragraph_coherence": null,
+        "low_template_feel": null,
+        "edit_readiness": null
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": null,
+        "time_to_understand_argument_seconds": null,
+        "estimated_edit_minutes": null
+      },
+      "comments": []
+    },
+    "Z": {
+      "hard_errors": {
+        "number_drift": null,
+        "unit_drift": null,
+        "precision_drift": null,
+        "comparison_direction_error": null,
+        "comparison_reference_error": null,
+        "optimality_overclaim": null,
+        "causal_overreach": null,
+        "boundary_removed": null,
+        "unsupported_conclusion": null,
+        "cross_problem_contamination": null,
+        "suspected_source_reuse": null
+      },
+      "scores": {
+        "result_location": null,
+        "comparison_clarity": null,
+        "attribution_quality": null,
+        "boundary_awareness": null,
+        "paragraph_coherence": null,
+        "low_template_feel": null,
+        "edit_readiness": null
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": null,
+        "time_to_understand_argument_seconds": null,
+        "estimated_edit_minutes": null
+      },
+      "comments": []
+    }
+  },
+  "forced_comparison": {
+    "overall_ranking": null,
+    "easiest_result_location": null,
+    "best_attribution": null,
+    "most_accurate_boundary": null,
+    "closest_to_submission": null,
+    "strongest_template_feel": null,
+    "ranking_reason": null
+  },
+  "source_reuse_status": null,
+  "ai_conclusion": null,
+  "completed_at": null,
+  "attestation": {
+    "mapping_not_inferred": null,
+    "human_identity_not_claimed": null,
+    "qualification_status_not_modified": null,
+    "production_status_not_modified": null
+  }
+}

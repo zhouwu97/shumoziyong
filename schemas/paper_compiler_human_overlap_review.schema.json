@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_human_overlap_review.schema.json",
+  "title": "论文编译器人工原文复核",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "freeze_id", "human_reviewer_required",
+    "status", "automatic_evidence", "items", "completed_at", "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_human_overlap_review"},
+    "freeze_id": {"type": "string", "pattern": "^review-freeze-[a-f0-9]{16}$"},
+    "human_reviewer_required": {"const": true},
+    "status": {"enum": ["pending", "completed"]},
+    "automatic_evidence": {"$ref": "#/$defs/fileBinding"},
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item_id", "scope", "evidence", "verdict", "comment"],
+        "properties": {
+          "item_id": {"type": "string", "minLength": 1},
+          "scope": {"enum": ["rhetoric_card", "generated_version_c"]},
+          "evidence": {"type": "object"},
+          "verdict": {
+            "type": ["string", "null"],
+            "enum": ["no_concern", "generic_academic_overlap", "requires_revision", "probable_source_reuse", null]
+          },
+          "comment": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "signature": {"type": ["string", "null"], "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "completed_at": {"type": "string"},
+          "signature": {"type": "string"},
+          "items": {
+            "items": {
+              "properties": {"verdict": {"type": "string"}},
+              "required": ["verdict"]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

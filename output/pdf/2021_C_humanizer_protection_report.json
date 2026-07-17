@@ -1,0 +1,17 @@
+{
+  "source": "training/2021_C_round2_retry1/paper",
+  "output_pdf": "training/2021_C_round2_retry1/paper/output/2021_C_paper_humanized.pdf",
+  "scope": "叙述性正文句式与段落衔接；不改动表格、图题、公式、数值、单位、引用和结论状态",
+  "protected_token_check": "passed",
+  "numbers_changed": [],
+  "units_changed": [],
+  "formulas_changed": [],
+  "citations_changed": [],
+  "locked_identifiers_changed": [],
+  "editing_notes": [
+    "摘要由高密度清单改为分层叙述，保留全部结果数值。",
+    "将重复的纠错式否定句改为直接说明，并把适用条件集中到假设、敏感性分析和结论。",
+    "模型评价由连续编号清单改为连贯段落。",
+    "保留自然的长短句变化和少量直接判断，不人为添加事实、公式或语法错误。"
+  ]
+}

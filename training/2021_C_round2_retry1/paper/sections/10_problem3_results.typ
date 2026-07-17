@@ -19,7 +19,7 @@
   font-size: 8.9pt,
 )
 
-与问题二相比，A 类周供货由 7,702.69 m³增至 #locked.problem3_weekly_a.display m³，C 类由 5,235.34 m³降至 #locked.problem3_weekly_c.display m³，总原料量由 18,378.94 m³降至 18,090.91 m³。三类损耗后产品等价量之和仍为 #locked.base_weekly_production.display m³/周，因此结构变化没有牺牲生产需求。
+与问题二相比，A 类周供货由 7,702.69 m³增至 #locked.problem3_weekly_a.display m³，C 类由 5,235.34 m³降至 #locked.problem3_weekly_c.display m³，总原料量由 18,378.94 m³降至 18,090.91 m³。三类损耗后产品等价量合计仍为 #locked.base_weekly_production.display m³/周，满足生产需求。
 
 #paper-figure(
   "figures/fig06_material_mix.svg",
@@ -46,4 +46,4 @@
   font-size: 8.55pt,
 )
 
-#locked.problem3_active_supplier_count.display 家供应商不是推荐合作规模，而是目标中没有固定启用成本的结果。拆分发生次数仅占 0.66%，但拆分周涉及 16.84%的总运输量，次要承运商承担 5.06%；因此只报告次数会低估调度影响。若企业要求更集中、严格单承运商的方案，应在新模型中加入启用成本、最小订单量或拆分惩罚，并重新求解，而不能事后删单。
+#locked.problem3_active_supplier_count.display 家供应商反映了目标中未设置固定启用成本。拆分发生次数仅占 0.66%，但拆分周涉及 16.84%的总运输量，次要承运商承担 5.06%，仅按次数衡量会低估调度影响。若企业需要更集中的严格单承运商方案，应在新模型中加入启用成本、最小订单量或拆分惩罚，再重新求解。

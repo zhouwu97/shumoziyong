@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_fact_realization_report",
+  "status": "passed",
+  "inputs": {
+    "plan": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\baseline\\plan_c.json",
+    "plan_sha256": "4292f3bfc6c44ac3bd2d441b81bbac904d815439dca3d8613632691eff21ae06",
+    "projection": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\current\\paper_fact_projection.json",
+    "projection_sha256": "b83b5ea9e5feff35771ebff3ba8c59c0c51e27b8dc143f7e795e1d072150ea2f",
+    "graph": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\baseline\\argument_graph.json",
+    "graph_sha256": "00da4f2a7707613ae4b3db75541e5ff94647df8a032d0d0eb7b427f6954f5ca6"
+  },
+  "summary": {
+    "bindings_checked": 7,
+    "failures": 0
+  },
+  "issues": [],
+  "reference_counts": {
+    "BD-Q1-DISCOUNT-SCOPE": 1,
+    "BD-Q1-OPTIMALITY": 1,
+    "BD-Q1-SALES-RULE": 1,
+    "BD-Q1-WASTE-SCOPE": 1,
+    "CB-Q1-DISCOUNT-PROFIT": 1,
+    "CB-Q1-SCENARIO-DIFFERENCE": 1,
+    "CB-Q1-WASTE-PROFIT": 1
+  }
+}

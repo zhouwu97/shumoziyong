@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_typed_exemptions.schema.json",
+  "title": "受信解析器生成的非语义数字豁免",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "source_file", "source_sha256", "detector", "detector_version", "exemptions"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_typed_exemptions"},
+    "source_file": {"type": "string", "minLength": 1},
+    "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "detector": {"const": "paper_structure_number_parser"},
+    "detector_version": {"const": "1.0.0"},
+    "exemptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["exemption_id", "type", "value", "source_span", "ast_node_type"],
+        "properties": {
+          "exemption_id": {"type": "string", "pattern": "^EX-[0-9]{5}$"},
+          "type": {"enum": ["year", "section_number", "figure_number", "table_number", "formula_number", "citation_number", "page_number", "algorithm_step", "subscript", "layout_number"]},
+          "value": {"type": "string", "minLength": 1},
+          "source_span": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["start_byte", "end_byte"],
+            "properties": {
+              "start_byte": {"type": "integer", "minimum": 0},
+              "end_byte": {"type": "integer", "minimum": 1}
+            }
+          },
+          "ast_node_type": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

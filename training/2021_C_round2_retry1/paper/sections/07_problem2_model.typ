@@ -26,9 +26,9 @@ $
 $ <eq-capacity-cover>
 
 @eq-cardinality 最小化供应商基数，@eq-capacity-cover 是正式模型的放松必要条件。将净产品能力记为 $b_i=u_i(1-ell_min)/q_(k(i))$ 并降序排列，则任意 25 家集合 $S$ 满足
-$sum_(i in S)b_i <= sum_(r=1)^25 b_((r)) = #locked.problem2_top25_net_capacity.display < #locked.base_weekly_production.display$。加入第 26 家后覆盖量为 #locked.problem2_top26_net_capacity.display m³/周，且正式模型存在可行解。因此最少数量恰为 #locked.problem2_minimum_supplier_count.display，而不是一次启发式返回值。该数量只对应基准需求下的数学下界，不表示企业推荐维持的长期合作规模。
+$sum_(i in S)b_i <= sum_(r=1)^25 b_((r)) = #locked.problem2_top25_net_capacity.display < #locked.base_weekly_production.display$。加入第 26 家后覆盖量为 #locked.problem2_top26_net_capacity.display m³/周，且正式模型存在可行解，由此得到最少数量为 #locked.problem2_minimum_supplier_count.display。该数量对应基准需求下的数学下界。
 
-能力排序只用于构造下界证明和透明基线，不用于固定正式候选名单。正式求解保留全部 #locked.supplier_count.display 家正能力供应商；代表性单周模型包含 3,216 个运输流变量和 3,216 个二元指派变量，供应商组合与转运分配同时由 MILP 决定。
+能力排序用于构造下界证明和透明基线。正式求解保留全部 #locked.supplier_count.display 家正能力供应商；代表性单周模型包含 3,216 个运输流变量和 3,216 个二元指派变量，由 MILP 同时确定供应商组合与转运分配。
 
 == 运输与库存约束
 

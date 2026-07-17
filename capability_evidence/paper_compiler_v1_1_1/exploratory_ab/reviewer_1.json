@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_exploratory_review",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "reviewer_id": "reviewer_1",
+  "human_reviewer_required": true,
+  "status": "pending",
+  "independent_review_attestation": false,
+  "versions": {
+    "X": {
+      "scores": {
+        "result_location": null,
+        "comparison_clarity": null,
+        "attribution_quality": null,
+        "boundary_awareness": null,
+        "paragraph_coherence": null,
+        "template_repetition": null
+      },
+      "modification_minutes": null,
+      "fact_drift_detected": null,
+      "comments": []
+    },
+    "Y": {
+      "scores": {
+        "result_location": null,
+        "comparison_clarity": null,
+        "attribution_quality": null,
+        "boundary_awareness": null,
+        "paragraph_coherence": null,
+        "template_repetition": null
+      },
+      "modification_minutes": null,
+      "fact_drift_detected": null,
+      "comments": []
+    },
+    "Z": {
+      "scores": {
+        "result_location": null,
+        "comparison_clarity": null,
+        "attribution_quality": null,
+        "boundary_awareness": null,
+        "paragraph_coherence": null,
+        "template_repetition": null
+      },
+      "modification_minutes": null,
+      "fact_drift_detected": null,
+      "comments": []
+    }
+  },
+  "overall_preference": null,
+  "decision": null,
+  "completed_at": null,
+  "signature": null
+}

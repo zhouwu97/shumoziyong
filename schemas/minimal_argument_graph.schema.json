@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/minimal_argument_graph.schema.json",
+  "title": "第一阶段最小论证图",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "subproblem_id", "planner", "nodes", "edges"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "minimal_argument_graph"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "minLength": 1},
+    "planner": {"enum": ["human_v1", "automatic_v1"]},
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "type", "role", "fact_refs"],
+        "properties": {
+          "node_id": {"type": "string", "pattern": "^N[0-9]{2}$"},
+          "type": {"enum": ["goal", "definition", "model", "formula", "constraint", "result", "comparison", "attribution", "validation", "boundary"]},
+          "role": {"type": "string", "minLength": 1},
+          "fact_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "inference_type": {"enum": ["descriptive", "mechanistic", "causal"]},
+          "claim_strength": {"enum": ["observed", "supported", "derived", "identified"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "allowed_verbs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "forbidden_verbs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"type": {"const": "attribution"}},
+              "required": ["type"]
+            },
+            "then": {
+              "required": [
+                "inference_type", "claim_strength", "evidence_refs",
+                "allowed_verbs", "forbidden_verbs"
+              ],
+              "properties": {
+                "evidence_refs": {"minItems": 1},
+                "allowed_verbs": {"minItems": 1},
+                "forbidden_verbs": {"minItems": 1}
+              }
+            }
+          }
+        ]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "type"],
+        "properties": {
+          "from": {"type": "string", "pattern": "^N[0-9]{2}$"},
+          "to": {"type": "string", "pattern": "^N[0-9]{2}$"},
+          "type": {"enum": ["supports", "derives_from", "precedes", "feeds_into", "contrasts_with", "qualifies"]}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "minimal_argument_graph",
+  "problem_id": "2024-C",
+  "subproblem_id": "Q1",
+  "planner": "human_v1",
+  "nodes": [
+    {
+      "node_id": "N01",
+      "type": "goal",
+      "role": "比较两种超产销售规则下的可行方案利润",
+      "fact_refs": []
+    },
+    {
+      "node_id": "N02",
+      "type": "result",
+      "role": "报告超产滞销情形的七年累计利润",
+      "fact_refs": ["CB-Q1-WASTE-PROFIT"]
+    },
+    {
+      "node_id": "N03",
+      "type": "result",
+      "role": "报告超产折价情形的七年累计利润",
+      "fact_refs": ["CB-Q1-DISCOUNT-PROFIT"]
+    },
+    {
+      "node_id": "N04",
+      "type": "comparison",
+      "role": "量化两种销售规则对应方案的利润差",
+      "fact_refs": ["CB-Q1-SCENARIO-DIFFERENCE"]
+    },
+    {
+      "node_id": "N05",
+      "type": "attribution",
+      "role": "把差异限定为销售收入规则变化下的描述性解释",
+      "fact_refs": ["BD-Q1-SALES-RULE", "BD-Q1-DISCOUNT-SCOPE"],
+      "inference_type": "descriptive",
+      "claim_strength": "supported",
+      "evidence_refs": [
+        "result_report.json#/model_contract/boundary_conditions/2",
+        "paper_claim_map.json#/claims/1/scope"
+      ],
+      "allowed_verbs": ["与……相对应", "主要受……约束", "反映"],
+      "forbidden_verbs": ["导致", "决定", "造成", "证明了因果关系"]
+    },
+    {
+      "node_id": "N06",
+      "type": "boundary",
+      "role": "限定材料、价格口径和求解时限",
+      "fact_refs": ["BD-Q1-WASTE-SCOPE"]
+    },
+    {
+      "node_id": "N07",
+      "type": "boundary",
+      "role": "限定最优性等级",
+      "fact_refs": ["BD-Q1-OPTIMALITY"]
+    }
+  ],
+  "edges": [
+    {"from": "N01", "to": "N02", "type": "precedes"},
+    {"from": "N01", "to": "N03", "type": "precedes"},
+    {"from": "N02", "to": "N04", "type": "contrasts_with"},
+    {"from": "N03", "to": "N04", "type": "supports"},
+    {"from": "N04", "to": "N05", "type": "precedes"},
+    {"from": "N05", "to": "N06", "type": "qualifies"},
+    {"from": "N06", "to": "N07", "type": "precedes"}
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_fact_projection",
+  "run_id": "2024C_v21_full_replay_20260715",
+  "problem_id": "2024-C",
+  "subproblem_id": "Q1",
+  "upstream_bindings": [
+    {
+      "role": "claim_map",
+      "base": "run_dir",
+      "path": "paper_claim_map.json",
+      "sha256": "05afe0316f05d119e7932a17ef7349f9781a9035213897bc052b08b0470c63e7"
+    },
+    {
+      "role": "claim_bindings",
+      "base": "repository",
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/claim_bindings.json",
+      "sha256": "a4f798c558684363a8fc38e0d254276ad3579f0dd4db97b7cfbff1c844da62d5"
+    },
+    {
+      "role": "result_report",
+      "base": "run_dir",
+      "path": "result_report.json",
+      "sha256": "516016f580ee30f4580255b809b2b79a1218595ba390bb586f171565e738593e"
+    },
+    {
+      "role": "formal_result_manifest",
+      "base": "run_dir",
+      "path": "formal_results/formal-2024c-v21-q1-001/formal_result_manifest.json",
+      "sha256": "8422611f0412962292711421c558cb2d91e6f30e95b3e3e258c7c8ff33333058"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "C001",
+      "semantic_claim": "Q1 超产滞销情形的七年累计复算利润为 17307953.25 元。",
+      "scope": "仅覆盖当前官方材料、价格中点口径和 60 秒求解时限内的约束可行方案。",
+      "status": "bounded_inference",
+      "evidence_refs": [
+        "workspace/results/formal_result.json#/scenarios/0",
+        "matlab_level_a_report.json#/checks/0"
+      ],
+      "figure_refs": [
+        "paper/figures/figure_01_scenario_profit.pdf"
+      ],
+      "claim_binding_ids": [
+        "CB-Q1-WASTE-PROFIT",
+        "FM-Q1-PROFIT",
+        "BD-Q1-WASTE-SCOPE",
+        "BD-Q1-OPTIMALITY"
+      ]
+    },
+    {
+      "claim_id": "C002",
+      "semantic_claim": "Q1 超产折价情形的七年累计复算利润为 54065488.29 元。",
+      "scope": "利润提高来自销售规则变化，不解释为同一目标函数下的算法改进或全局最优。",
+      "status": "bounded_inference",
+      "evidence_refs": [
+        "workspace/results/formal_result.json#/scenarios/1",
+        "matlab_level_a_report.json#/checks/4"
+      ],
+      "figure_refs": [
+        "paper/figures/figure_01_scenario_profit.pdf"
+      ],
+      "claim_binding_ids": [
+        "CB-Q1-DISCOUNT-PROFIT",
+        "CB-Q1-SCENARIO-DIFFERENCE",
+        "BD-Q1-DISCOUNT-SCOPE",
+        "BD-Q1-SALES-RULE"
+      ]
+    }
+  ],
+  "fact_bindings": [
+    {
+      "binding_id": "CB-Q1-WASTE-PROFIT",
+      "claim_id": "C001",
+      "ref_type": "metric",
+      "source_refs": [
+        "result_report.json#/metrics/0/value"
+      ],
+      "resolved_value": 17307953.25,
+      "source_unit": "元",
+      "rendered_text": "1730.80 万元",
+      "display": {
+        "decimal_places": 2,
+        "scale": 0.0001,
+        "prefix": "",
+        "suffix": " 万元",
+        "unit": "万元"
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "result_analysis"
+        ]
+      }
+    },
+    {
+      "binding_id": "CB-Q1-DISCOUNT-PROFIT",
+      "claim_id": "C002",
+      "ref_type": "metric",
+      "source_refs": [
+        "result_report.json#/metrics/1/value"
+      ],
+      "resolved_value": 54065488.287914,
+      "source_unit": "元",
+      "rendered_text": "5406.55 万元",
+      "display": {
+        "decimal_places": 2,
+        "scale": 0.0001,
+        "prefix": "",
+        "suffix": " 万元",
+        "unit": "万元"
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "result_analysis"
+        ]
+      }
+    },
+    {
+      "binding_id": "CB-Q1-SCENARIO-DIFFERENCE",
+      "claim_id": "C002",
+      "ref_type": "comparison",
+      "source_refs": [
+        "result_report.json#/metrics/0/value",
+        "result_report.json#/metrics/1/value"
+      ],
+      "resolved_value": 36757535.037914,
+      "source_unit": "",
+      "rendered_text": "较超产滞销情形增加 3675.75 万元",
+      "display": {
+        "decimal_places": 2,
+        "scale": 0.0001,
+        "prefix": "较超产滞销情形增加 ",
+        "suffix": " 万元",
+        "unit": "万元"
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "result_analysis"
+        ]
+      },
+      "derives_from": [
+        "CB-Q1-DISCOUNT-PROFIT",
+        "CB-Q1-WASTE-PROFIT"
+      ]
+    },
+    {
+      "binding_id": "FM-Q1-PROFIT",
+      "claim_id": "C001",
+      "ref_type": "formula",
+      "source_refs": [
+        "result_report.json#/model_contract/formulas/0/expression"
+      ],
+      "resolved_value": "profit = price_per_jin * sold - cost_per_mu * x",
+      "source_unit": "",
+      "rendered_text": "利润 = 单价 × 销量 - 单位面积成本 × 种植面积",
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "literal": "利润 = 单价 × 销量 - 单位面积成本 × 种植面积",
+        "normalized_tokens": [
+          "profit",
+          "=",
+          "price_per_jin",
+          "*",
+          "sold",
+          "-",
+          "cost_per_mu",
+          "*",
+          "x"
+        ]
+      },
+      "usage": {
+        "requirement": "optional",
+        "allowed_sections": [
+          "result_analysis",
+          "model_boundary"
+        ]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-WASTE-SCOPE",
+      "claim_id": "C001",
+      "ref_type": "boundary",
+      "source_refs": [
+        "paper_claim_map.json#/claims/0/scope"
+      ],
+      "resolved_value": "仅覆盖当前官方材料、价格中点口径和 60 秒求解时限内的约束可行方案。",
+      "source_unit": "",
+      "rendered_text": "仅覆盖当前官方材料、价格中点口径和 60 秒求解时限内的约束可行方案",
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "model_boundary"
+        ]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-DISCOUNT-SCOPE",
+      "claim_id": "C002",
+      "ref_type": "boundary",
+      "source_refs": [
+        "paper_claim_map.json#/claims/1/scope"
+      ],
+      "resolved_value": "利润提高来自销售规则变化，不解释为同一目标函数下的算法改进或全局最优。",
+      "source_unit": "",
+      "rendered_text": "利润提高来自销售规则变化，不解释为同一目标函数下的算法改进或全局最优",
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "result_analysis"
+        ]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-SALES-RULE",
+      "claim_id": "C002",
+      "ref_type": "boundary",
+      "source_refs": [
+        "result_report.json#/model_contract/boundary_conditions/2"
+      ],
+      "resolved_value": "超产部分在 Q1 浪费情形不计收入，在折价情形按 50% 单价计入。",
+      "source_unit": "",
+      "rendered_text": "超产部分在滞销情形不计收入，在折价情形按正常价格的一半计入",
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "literal": "超产部分在滞销情形不计收入，在折价情形按正常价格的一半计入",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "result_analysis"
+        ]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-OPTIMALITY",
+      "claim_id": "C001",
+      "ref_type": "boundary",
+      "source_refs": [
+        "result_report.json#/limitations/0"
+      ],
+      "resolved_value": "所有主场景均存在非零 MIP gap，只能解释为时限内可行解，不能宣称全局最优。",
+      "source_unit": "",
+      "rendered_text": "所有主场景均存在非零 MIP gap，只能解释为时限内可行解，不能宣称全局最优",
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": [
+          "model_boundary"
+        ]
+      }
+    }
+  ],
+  "typed_exemptions": []
+}

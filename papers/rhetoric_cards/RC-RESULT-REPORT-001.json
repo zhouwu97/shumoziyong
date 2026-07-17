@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_rhetoric_card",
+  "card_id": "RC-RESULT-REPORT-001",
+  "state": "task_adapted",
+  "action": "按统一口径报告可比较结果",
+  "applicable_roles": ["report_result"],
+  "required_fact_types": ["metric"],
+  "logic_pattern": ["先说明比较情形", "按相同精度依次报告结果", "不提前评价优劣"],
+  "avoid": ["结果十分理想", "性能优越", "达到最优"],
+  "source_provenance": {
+    "paper_id": "A127",
+    "pages": [25],
+    "source_sha256": "77aae1ffa8d3c2ce29c870ab497b6b284b9ecf4236b2d5a4240c8fa9fc7a1d62"
+  },
+  "delexicalization": {
+    "problem_entities_removed": true,
+    "numbers_removed": true,
+    "formula_content_removed": true,
+    "distinctive_phrases_removed": true
+  }
+}

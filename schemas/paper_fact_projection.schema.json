@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_fact_projection.schema.json",
+  "title": "Gate 4 只读论文事实投影",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "run_id", "problem_id", "subproblem_id",
+    "upstream_bindings", "claims", "fact_bindings", "typed_exemptions"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_fact_projection"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "minLength": 1},
+    "upstream_bindings": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/$defs/fileBinding"}
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/claim"}
+    },
+    "fact_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/factBinding"}
+    },
+    "typed_exemptions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/exemption"}
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "base", "path", "sha256"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "base": {"enum": ["run_dir", "repository"]},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha"}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id", "semantic_claim", "scope", "status", "evidence_refs",
+        "figure_refs", "claim_binding_ids"
+      ],
+      "properties": {
+        "claim_id": {"type": "string", "minLength": 1},
+        "semantic_claim": {"type": "string", "minLength": 1},
+        "scope": {"type": "string", "minLength": 1},
+        "status": {"enum": ["supported", "needs_evidence", "bounded_inference"]},
+        "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "figure_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "claim_binding_ids": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "factBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_id", "claim_id", "ref_type", "source_refs", "resolved_value",
+        "rendered_text", "display", "usage"
+      ],
+      "properties": {
+        "binding_id": {"type": "string", "minLength": 1},
+        "claim_id": {"type": "string", "minLength": 1},
+        "ref_type": {"enum": ["metric", "parameter", "comparison", "formula", "boundary"]},
+        "source_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "resolved_value": {},
+        "source_unit": {"type": "string"},
+        "rendered_text": {"type": "string", "minLength": 1},
+        "display": {"type": "object"},
+        "usage": {"type": "object"},
+        "derives_from": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "exemption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exemption_id", "type", "value", "source_file", "source_sha256", "source_span",
+        "ast_node_type", "detector", "detector_version"
+      ],
+      "properties": {
+        "exemption_id": {"type": "string", "pattern": "^EX-[0-9]{5}$"},
+        "type": {"enum": ["year", "section_number", "figure_number", "table_number", "formula_number", "citation_number", "page_number", "algorithm_step", "subscript", "layout_number"]},
+        "value": {"type": "string", "minLength": 1},
+        "source_file": {"type": "string", "minLength": 1},
+        "source_sha256": {"$ref": "#/$defs/sha"},
+        "source_span": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["start_byte", "end_byte"],
+          "properties": {
+            "start_byte": {"type": "integer", "minimum": 0},
+            "end_byte": {"type": "integer", "minimum": 1}
+          }
+        },
+        "ast_node_type": {"type": "string", "minLength": 1},
+        "detector": {"type": "string", "minLength": 1},
+        "detector_version": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

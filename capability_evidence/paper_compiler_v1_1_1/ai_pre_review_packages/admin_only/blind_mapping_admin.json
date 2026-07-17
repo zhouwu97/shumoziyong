@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "mapping_source": {
+    "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/private/review_keys.json",
+    "sha256": "6d7845dfa43ef14d5aee99086eef3bf5d1cec708185630216217174001ed63ef",
+    "mapping_key": "reviewer_1"
+  },
+  "anonymous_mapping": {
+    "X": "A",
+    "Y": "C",
+    "Z": "B"
+  },
+  "variant_definitions": {
+    "A": "现有固定模板",
+    "B": "argument graph + paragraph plan，不加载表达卡片",
+    "C": "argument graph + paragraph plan + 表达卡片"
+  },
+  "review_orders": {
+    "reviewer_1": [
+      "X",
+      "Y",
+      "Z"
+    ],
+    "reviewer_2": [
+      "Z",
+      "X",
+      "Y"
+    ]
+  },
+  "reviewer_packages_must_not_contain_mapping": true
+}

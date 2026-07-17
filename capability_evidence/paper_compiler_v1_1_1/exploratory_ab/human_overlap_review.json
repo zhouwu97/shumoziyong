@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_human_overlap_review",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "human_reviewer_required": true,
+  "status": "pending",
+  "automatic_evidence": {
+    "path": "capability_evidence/paper_compiler_v1_1_1/current/rhetoric_overlap_report.json",
+    "sha256": "567284950ab37febd025fa2ae40200dd1227c312b298b97cb7a62c1f3fd7ecdc"
+  },
+  "items": [
+    {
+      "item_id": "RC-BOUNDARY-SCOPE-001",
+      "scope": "rhetoric_card",
+      "evidence": {
+        "longest_contiguous_match": 3,
+        "char_ngram_overlap": 0.0,
+        "highest_match": {
+          "normalized_text": "范围与",
+          "card_normalized_start": 6,
+          "source_normalized_start": 12481,
+          "source_line": 949
+        }
+      },
+      "verdict": null,
+      "comment": null
+    },
+    {
+      "item_id": "RC-RESULT-ATTRIBUTION-001",
+      "scope": "rhetoric_card",
+      "evidence": {
+        "longest_contiguous_match": 3,
+        "char_ngram_overlap": 0.0,
+        "highest_match": {
+          "normalized_text": "说明该",
+          "card_normalized_start": 0,
+          "source_normalized_start": 7815,
+          "source_line": 532
+        }
+      },
+      "verdict": null,
+      "comment": null
+    },
+    {
+      "item_id": "RC-RESULT-COMPARE-001",
+      "scope": "rhetoric_card",
+      "evidence": {
+        "longest_contiguous_match": 2,
+        "char_ngram_overlap": 0.0,
+        "highest_match": {
+          "normalized_text": "给出",
+          "card_normalized_start": 0,
+          "source_normalized_start": 1564,
+          "source_line": 66
+        }
+      },
+      "verdict": null,
+      "comment": null
+    },
+    {
+      "item_id": "RC-RESULT-REPORT-001",
+      "scope": "rhetoric_card",
+      "evidence": {
+        "longest_contiguous_match": 2,
+        "char_ngram_overlap": 0.0,
+        "highest_match": {
+          "normalized_text": "说明",
+          "card_normalized_start": 1,
+          "source_normalized_start": 3525,
+          "source_line": 145
+        }
+      },
+      "verdict": null,
+      "comment": null
+    },
+    {
+      "item_id": "VERSION-C",
+      "scope": "generated_version_c",
+      "evidence": {
+        "longest_contiguous_match": 4,
+        "char_ngram_overlap": 0.0,
+        "highest_match": {
+          "normalized_text": "结果分析",
+          "generated_normalized_start": 0,
+          "source_normalized_start": 2612,
+          "generated_line": 1,
+          "source_line": 107
+        }
+      },
+      "verdict": null,
+      "comment": null
+    }
+  ],
+  "completed_at": null,
+  "signature": null
+}

@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_ai_pre_review",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "reviewer_id": "reviewer_2",
+  "reviewer_type": "ai_pre_review",
+  "independent_review": true,
+  "formal_human_review": false,
+  "status": "completed",
+  "read_order": [
+    "Z",
+    "X",
+    "Y"
+  ],
+  "versions": {
+    "X": {
+      "hard_errors": {
+        "number_drift": false,
+        "unit_drift": false,
+        "precision_drift": false,
+        "comparison_direction_error": false,
+        "comparison_reference_error": false,
+        "optimality_overclaim": false,
+        "causal_overreach": false,
+        "boundary_removed": false,
+        "unsupported_conclusion": true,
+        "cross_problem_contamination": false,
+        "suspected_source_reuse": false
+      },
+      "scores": {
+        "result_location": 5,
+        "comparison_clarity": 3,
+        "attribution_quality": 3,
+        "boundary_awareness": 5,
+        "paragraph_coherence": 4,
+        "low_template_feel": 4,
+        "edit_readiness": 3
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": 8,
+        "time_to_understand_argument_seconds": 24,
+        "estimated_edit_minutes": 12
+      },
+      "comments": [
+        "硬性事实检查：1730.80 万元与 5406.55 万元分别符合 RF-METRIC-01、RF-METRIC-02，单位和两位小数精度正确；场景方向、60 秒时限、非零 MIP gap 与不得宣称全局最优的边界也正确，未串题，未出现不存在的显著性、敏感性或稳健性结论。文本未写出利润公式，但也未曲解 RF-FORMULA-01。",
+        "硬性问题（unsupported_conclusion）：句子“超产滞销情形下，模型主动限制难以销售的产量”声称了具体决策行为，但事实清单只给出 RF-BOUNDARY-03 的收入计入规则，并未提供产量或种植决策变化证据；这也超出 inference_policy 允许的冻结材料、销售规则和时限内可行方案描述。应删除“模型主动限制”或改成“超产部分不计收入”。",
+        "result_location=5：两个核心利润值位于首段，场景标签紧邻数值，评委可快速定位主要结果。",
+        "comparison_clarity=3：基线对象和方向可由两个数值及“差异”推知，但未直接报告 RF-COMPARISON-01 的增加 3675.75 万元，要求评委自行计算幅度。",
+        "attribution_quality=3：正确指出差异来自经济规则而非算法性能，但“模型主动限制”缺少决策结果证据，削弱了归因的可核查性。",
+        "boundary_awareness=5：明确限定官方材料、价格中点、60 秒求解时限、约束可行方案和未关闭 MIP gap，并拒绝全局最优结论。",
+        "paragraph_coherence=4：结果、规则归因和边界顺序清楚，但首段把无证据的模型行为与已证实利润结果写在同一句中。",
+        "low_template_feel=4：表述简洁且大多指向具体场景，空话少；“模型主动限制”让文本显得像机理阐释，但并无事实支撑。",
+        "edit_readiness=3：需重写首句的决策行为表述并补入“较滞销情形增加 3675.75 万元”，工作量不大，但硬性事实问题修正前不宜提交。"
+      ]
+    },
+    "Y": {
+      "hard_errors": {
+        "number_drift": false,
+        "unit_drift": false,
+        "precision_drift": false,
+        "comparison_direction_error": false,
+        "comparison_reference_error": false,
+        "optimality_overclaim": false,
+        "causal_overreach": false,
+        "boundary_removed": false,
+        "unsupported_conclusion": false,
+        "cross_problem_contamination": false,
+        "suspected_source_reuse": false
+      },
+      "scores": {
+        "result_location": 5,
+        "comparison_clarity": 5,
+        "attribution_quality": 5,
+        "boundary_awareness": 5,
+        "paragraph_coherence": 4,
+        "low_template_feel": 3,
+        "edit_readiness": 4
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": 6,
+        "time_to_understand_argument_seconds": 29,
+        "estimated_edit_minutes": 8
+      },
+      "comments": [
+        "硬性事实检查：两个利润值、万元单位、两位小数精度、以滞销规则为参照增加 3675.75 万元的方向和幅度均分别符合 RF-METRIC-01、RF-METRIC-02 与 RF-COMPARISON-01；销售规则、适用范围、60 秒时限、非零 MIP gap 和可行解等级符合 RF-BOUNDARY-01 至 RF-BOUNDARY-04。未曲解公式含义，未出现因果越界、普遍外推、显著性、敏感性、稳健性结论或串题。",
+        "result_location=5：首段直接给出两场景利润，次段开头立即给出参照对象、方向和差额，定位成本最低。",
+        "comparison_clarity=5：基线“滞销规则”、目标“折价销售情形”、增加方向及 3675.75 万元幅度全部显式呈现。",
+        "attribution_quality=5：把差异限定为超产收入计入方式变化，并两次排除算法改进解释，归因与 RF-BOUNDARY-02、RF-BOUNDARY-03 完全一致。",
+        "boundary_awareness=5：明确冻结材料、价格中点、60 秒时限、约束可行方案与非零 MIP gap，且未把当前情景外推为普遍结论。",
+        "paragraph_coherence=4：结果—比较—规则—边界链条完整，但第二、三段重复“不是算法改进”，末段“不能宣称全局最优”与“不应给出全局最优性承诺”重复，篇幅增加未形成同等信息增量。",
+        "low_template_feel=3：内容高度贴合具体事实，但“不过”“因此”引导的重复防御性句式及“论文应报告……”略显模板化。",
+        "edit_readiness=4：没有硬错误；合并第二、三段的重复归因，删除末句重复的写作指令即可达到更紧凑的可提交状态。",
+        "原文复核：自动报告只在 Y 第 1 行与来源 S1 第 107 行命中“结果分析”，最长连续匹配 4、8 字符 n-gram 重合率 0.0。该内容是通用章节标题，不具来源辨识度；正文主题、数值和论证均未与给定来源片段形成实质重合。因此判为 generic_academic_overlap，无需为复用风险重写，不构成资格否决；自动通过本身不作为写作质量通过的依据。"
+      ]
+    },
+    "Z": {
+      "hard_errors": {
+        "number_drift": false,
+        "unit_drift": false,
+        "precision_drift": false,
+        "comparison_direction_error": false,
+        "comparison_reference_error": false,
+        "optimality_overclaim": false,
+        "causal_overreach": false,
+        "boundary_removed": false,
+        "unsupported_conclusion": false,
+        "cross_problem_contamination": false,
+        "suspected_source_reuse": false
+      },
+      "scores": {
+        "result_location": 5,
+        "comparison_clarity": 5,
+        "attribution_quality": 5,
+        "boundary_awareness": 5,
+        "paragraph_coherence": 5,
+        "low_template_feel": 4,
+        "edit_readiness": 5
+      },
+      "timing": {
+        "time_to_find_main_result_seconds": 5,
+        "time_to_understand_argument_seconds": 17,
+        "estimated_edit_minutes": 5
+      },
+      "comments": [
+        "硬性事实检查：1730.80 万元、5406.55 万元及增加 3675.75 万元分别符合 RF-METRIC-01、RF-METRIC-02、RF-COMPARISON-01，单位、两位小数精度、方向和参照均正确；销售规则、价格中点、60 秒时限、非零 MIP gap 与可行解等级符合 RF-BOUNDARY-01 至 RF-BOUNDARY-04。未曲解公式含义，未出现最优性扩大、因果越界、范围外推、无证据显著性、敏感性、稳健性结论、串题或来源复用迹象。",
+        "result_location=5：第一段直接并列两个核心利润，第二段开头给出比较差额，结果密度高且无前置铺垫。",
+        "comparison_clarity=5：比较对象、参照、增加方向和 3675.75 万元幅度均明确，不需要评委心算。",
+        "attribution_quality=5：先把利润提高归于销售规则变化，再用超产收入是否计入及半价计入解释差异，同时排除算法改进与全局最优，强度恰当。",
+        "boundary_awareness=5：官方材料、价格口径、求解时限、约束可行性和非零 MIP gap 五个限制一次说明完整。",
+        "paragraph_coherence=5：结果、比较、归因、规则细化和模型边界逐步推进，没有将篇幅当作论证充分。",
+        "low_template_feel=4：句子均承载具体数字、规则或边界，机械空话很少；两个常规小标题仍有轻微模板痕迹。",
+        "edit_readiness=5：事实和论证均可提交，仅可选地在规则说明后补一句与 RF-FORMULA-01 对应的收入项解释，预计为低成本微调。"
+      ]
+    }
+  },
+  "forced_comparison": {
+    "overall_ranking": [
+      "Z",
+      "Y",
+      "X"
+    ],
+    "easiest_result_location": "Z",
+    "best_attribution": "Y",
+    "most_accurate_boundary": "Y",
+    "closest_to_submission": "Z",
+    "strongest_template_feel": "Y",
+    "ranking_reason": "综合排序为 Z > Y > X。Z 在保留全部关键数字、比较、归因和边界的同时最短，理解耗时和修改成本最低；Y 的归因与边界最显式，但重复排除算法改进和全局最优，使篇幅增量部分转化为阅读负担；X 虽简洁，却漏报 3675.75 万元比较幅度，并以“模型主动限制难以销售的产量”引入事实清单未支持的决策行为，因此硬错误不能由语言流畅度抵消。结构规划可能产生了可观察增益：三版都采用结果分析与模型边界分区，而 Z、Y 能形成结果—比较—归因—边界的完整链条。已有结构上的额外表达增益也可观察到：Y 对参照对象、收入计入规则和证据等级的显式连接优于 X，但相对 Z 的新增文字主要是重复防御，并未更清楚。仅属“写得更长”的改善包括 Y 两次说明不是算法改进，以及末段两次否定全局最优承诺。存在“写得更像论文但证据更弱”风险的是 X：其“模型主动限制”具有机理叙述外观，却没有产量或决策变量证据。以上比较仅针对匿名 X、Y、Z，不推测任何生成方法映射。"
+  },
+  "source_reuse_status": "generic_academic_overlap",
+  "ai_conclusion": "ai_pre_review_revise",
+  "completed_at": "2026-07-17T15:02:04.7220399+08:00",
+  "attestation": {
+    "mapping_not_inferred": true,
+    "human_identity_not_claimed": true,
+    "qualification_status_not_modified": true,
+    "production_status_not_modified": true
+  }
+}

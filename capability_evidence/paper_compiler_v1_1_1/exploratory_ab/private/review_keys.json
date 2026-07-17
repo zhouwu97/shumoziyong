@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_private_review_keys",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "mappings": {
+    "reviewer_1": {
+      "X": "A",
+      "Y": "C",
+      "Z": "B"
+    },
+    "reviewer_2": {
+      "X": "C",
+      "Y": "A",
+      "Z": "B"
+    },
+    "adjudicator": {
+      "X": "C",
+      "Y": "B",
+      "Z": "A"
+    }
+  },
+  "disclosure": "全部独立评阅完成并锁定前不得向评阅人提供"
+}

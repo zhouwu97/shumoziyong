@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_rhetoric_card.schema.json",
+  "title": "去题目化论文表达卡片",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "card_id", "state", "action", "applicable_roles",
+    "required_fact_types", "logic_pattern", "avoid", "source_provenance", "delexicalization"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_rhetoric_card"},
+    "card_id": {"type": "string", "pattern": "^RC-[A-Z0-9-]+-[0-9]{3}$"},
+    "state": {"enum": ["extracted", "delexicalized", "plagiarism_checked", "task_adapted", "eligible_for_qualification"]},
+    "action": {"type": "string", "minLength": 1},
+    "applicable_roles": {"type": "array", "minItems": 1, "items": {"enum": ["report_result", "compare_with_baseline", "explain_change", "state_boundary"]}},
+    "required_fact_types": {"type": "array", "items": {"enum": ["metric", "parameter", "comparison", "formula", "boundary"]}},
+    "logic_pattern": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "avoid": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "inference_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_inference_types", "allowed_verbs", "forbidden_verbs"],
+      "properties": {
+        "allowed_inference_types": {"type": "array", "items": {"enum": ["descriptive", "mechanistic", "causal"]}},
+        "allowed_verbs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "forbidden_verbs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "source_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paper_id", "pages", "source_sha256"],
+      "properties": {
+        "paper_id": {"type": "string", "minLength": 1},
+        "pages": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}},
+        "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "delexicalization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["problem_entities_removed", "numbers_removed", "formula_content_removed", "distinctive_phrases_removed"],
+      "properties": {
+        "problem_entities_removed": {"const": true},
+        "numbers_removed": {"const": true},
+        "formula_content_removed": {"const": true},
+        "distinctive_phrases_removed": {"const": true}
+      }
+    }
+  }
+}

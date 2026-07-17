@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_rhetoric_bundle",
+  "bundle_id": "paper-rhetoric-bundle-2024c-q1-v1-f019c5b82db3",
+  "content_sha256": "f019c5b82db30902bc6f343bea3de6ebff609f66acea744e703e9d84911eca24",
+  "status": "qualification_candidate",
+  "cards": [
+    {
+      "card_id": "RC-BOUNDARY-SCOPE-001",
+      "path": "papers/rhetoric_cards/RC-BOUNDARY-SCOPE-001.json",
+      "sha256": "9c0b08779ba8fb4a82da830c79aae2a3b3ae4da2f37a526657c3fe5fed4c82e3"
+    },
+    {
+      "card_id": "RC-RESULT-ATTRIBUTION-001",
+      "path": "papers/rhetoric_cards/RC-RESULT-ATTRIBUTION-001.json",
+      "sha256": "a3aa9c84ab75f6c47b95411f1941f0262247c253e9c2d95308b531e39ade9a9a"
+    },
+    {
+      "card_id": "RC-RESULT-COMPARE-001",
+      "path": "papers/rhetoric_cards/RC-RESULT-COMPARE-001.json",
+      "sha256": "52c00a7ae6e8d77a99497c146d2bf7707af073fb60b0be7f99a692bc23d09804"
+    },
+    {
+      "card_id": "RC-RESULT-REPORT-001",
+      "path": "papers/rhetoric_cards/RC-RESULT-REPORT-001.json",
+      "sha256": "42e8402b3a04462451a6db9fc280c03e2756b66ee50daf5c7828f21a9248e929"
+    }
+  ],
+  "compatible_planner_versions": [
+    "human_v1"
+  ],
+  "compatible_validator_versions": [
+    "paper-fact-validator-v1.1.1"
+  ],
+  "qualification_evidence": [],
+  "production_allowed": false
+}

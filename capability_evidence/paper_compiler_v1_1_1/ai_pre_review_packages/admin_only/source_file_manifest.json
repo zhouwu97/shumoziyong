@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0.0",
+  "pilot_id": "paper_compiler_v1_1_1",
+  "mapping_resolved": true,
+  "mapping_resolution": "从冻结私有映射的 reviewer_1 键唯一解析，并用原始版本哈希复核",
+  "files": [
+    {
+      "role": "version_a",
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/version_a.md",
+      "sha256": "db500b0861ef4f8cb50f59e0d9e2ef97a12091f21a64b42e6c2835b8752cf99d",
+      "size_bytes": 545
+    },
+    {
+      "role": "version_b",
+      "path": "capability_evidence/paper_compiler_v1_1_1/current/version_b.md",
+      "sha256": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596",
+      "size_bytes": 703
+    },
+    {
+      "role": "version_c",
+      "path": "capability_evidence/paper_compiler_v1_1_1/current/version_c.md",
+      "sha256": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "size_bytes": 1015
+    },
+    {
+      "role": "canonical_x",
+      "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_X.md",
+      "sha256": "005e89eed951cb0bcd7673ea9ad39f0b762df73bfb1337cbb8db6fd6257b30d5",
+      "size_bytes": 552
+    },
+    {
+      "role": "canonical_y",
+      "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_Y.md",
+      "sha256": "2d9df8407288010c95778a6f2843b3b6b96e70d9ef2c199d158c4c447360befa",
+      "size_bytes": 1015
+    },
+    {
+      "role": "canonical_z",
+      "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_packages/reviewer_1/version_Z.md",
+      "sha256": "46776fc91210b911454cb9b9e304a2d9a362bc5808f73f7d9d082cb8fde36596",
+      "size_bytes": 703
+    },
+    {
+      "role": "mapping_source",
+      "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/private/review_keys.json",
+      "sha256": "6d7845dfa43ef14d5aee99086eef3bf5d1cec708185630216217174001ed63ef",
+      "size_bytes": 484
+    },
+    {
+      "role": "fact_projection",
+      "path": "capability_evidence/paper_compiler_v1_1_1/current/paper_fact_projection.json",
+      "sha256": "b83b5ea9e5feff35771ebff3ba8c59c0c51e27b8dc143f7e795e1d072150ea2f",
+      "size_bytes": 8989
+    },
+    {
+      "role": "automatic_overlap",
+      "path": "capability_evidence/paper_compiler_v1_1_1/current/rhetoric_overlap_report.json",
+      "sha256": "567284950ab37febd025fa2ae40200dd1227c312b298b97cb7a62c1f3fd7ecdc",
+      "size_bytes": 2713
+    },
+    {
+      "role": "overlap_source",
+      "path": "tmp/pdfs/A127_clean_extract.txt",
+      "sha256": "42914393269b54cae9b1aad8034214bbcd57b83c3d3d015dccaae29222c19d4c",
+      "size_bytes": 107313
+    },
+    {
+      "role": "version_source_lock",
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/baseline_lock.json",
+      "sha256": "7d5662080236fcae3956bab8565c859184734a7ab26c41ec09c9bb93e46a129a",
+      "size_bytes": 2449
+    },
+    {
+      "role": "version_b_record",
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/plan_b.json",
+      "sha256": "716f4c1ba1f051a79de9c4b72d37246606bf75803f35c3ade39e3278537b67e6",
+      "size_bytes": 2463
+    },
+    {
+      "role": "version_c_record",
+      "path": "capability_evidence/paper_compiler_v1_1_1/baseline/plan_c.json",
+      "sha256": "4292f3bfc6c44ac3bd2d441b81bbac904d815439dca3d8613632691eff21ae06",
+      "size_bytes": 2953
+    },
+    {
+      "role": "generation_bundle_record",
+      "path": "capability_evidence/paper_compiler_v1_1_1/current/rhetoric_bundle.json",
+      "sha256": "c8aa02a525072876578f60df57c450cdefb541c1fec36feaaf96e7beba233446",
+      "size_bytes": 1338
+    },
+    {
+      "role": "human_reviewer_1",
+      "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_1.json",
+      "sha256": "223dad19eb7da7f8dff11e9062e8cc50d632f834e40f480833ff86dc7d7cc3d2",
+      "size_bytes": 1494
+    },
+    {
+      "role": "human_reviewer_2",
+      "path": "capability_evidence/paper_compiler_v1_1_1/exploratory_ab/reviewer_2.json",
+      "sha256": "31190316ec0be995cb9c18a8661ae499dee638792ccff5f5ce343c0ee66eb1e5",
+      "size_bytes": 1494
+    },
+    {
+      "role": "pilot_manifest",
+      "path": "capability_evidence/paper_compiler_v1_1_1/current/pilot_manifest.json",
+      "sha256": "49fedadcf7a873778f8da9e6ff4c41bf5cfcfc256c66f90b7d67f8d2ff7e0ce5",
+      "size_bytes": 14641
+    }
+  ]
+}

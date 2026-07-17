@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_qualification_boundary.schema.json",
+  "title": "论文编译器试点资格边界报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "pilot_id", "automated_status",
+    "automated_scope", "observed_at", "components", "baseline_exceptions",
+    "full_suite_blockers"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_qualification_boundary"},
+    "pilot_id": {"type": "string", "minLength": 1},
+    "automated_status": {"enum": ["passed", "failed"]},
+    "automated_scope": {"const": "paper_compiler_v1_1_1_pilot"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pilot_orchestrator", "paper_tests", "repository_validator", "full_test_suite"],
+      "properties": {
+        "pilot_orchestrator": {"$ref": "#/$defs/component"},
+        "paper_tests": {"$ref": "#/$defs/component"},
+        "repository_validator": {"$ref": "#/$defs/component"},
+        "full_test_suite": {"$ref": "#/$defs/component"}
+      }
+    },
+    "baseline_exceptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/baselineException"}
+    },
+    "full_suite_blockers": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/blocker"}
+    },
+    "unsupported_runner": {"$ref": "#/$defs/runner"}
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "status", "scope"],
+      "properties": {
+        "command": {"type": "string", "minLength": 1},
+        "status": {
+          "enum": [
+            "passed", "passed_with_skips", "failed_preexisting_issues",
+            "blocked_workspace_optional_dependencies", "failed"
+          ]
+        },
+        "scope": {"type": "string", "minLength": 1},
+        "passed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "skipped": {"type": "integer", "minimum": 0},
+        "exit_code": {"type": "integer"},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    },
+    "baselineException": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline_exception_id", "check", "file", "line", "target",
+        "first_observed_at_commit", "present_in_base_commit", "introduced_by_pilot",
+        "affects_pilot", "status", "owner_status", "proof"
+      ],
+      "properties": {
+        "baseline_exception_id": {"type": "string", "pattern": "^BE-[A-Z0-9-]+$"},
+        "check": {"const": "markdown_link_validation"},
+        "file": {"type": "string", "minLength": 1},
+        "line": {"type": "integer", "minimum": 1},
+        "target": {"type": "string", "minLength": 1},
+        "first_observed_at_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "present_in_base_commit": {"const": true},
+        "introduced_by_pilot": {"const": false},
+        "affects_pilot": {"const": false},
+        "status": {"const": "known_preexisting"},
+        "owner_status": {"enum": ["unassigned", "pending", "assigned", "resolved"]},
+        "proof": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base_blob_sha256", "base_line_sha256", "base_line_text"],
+          "properties": {
+            "base_blob_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "base_line_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "base_line_text": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module", "type", "test_path", "tracked_by_repository",
+        "introduced_by_pilot", "impact", "status"
+      ],
+      "properties": {
+        "module": {"type": "string", "minLength": 1},
+        "type": {
+          "enum": [
+            "workspace_optional_reference_dependency", "environment_dependency",
+            "repository_or_legacy_code", "runner_mismatch"
+          ]
+        },
+        "test_path": {"type": "string", "minLength": 1},
+        "tracked_by_repository": {"type": "boolean"},
+        "introduced_by_pilot": {"const": false},
+        "impact": {"type": "string", "minLength": 1},
+        "status": {"enum": ["blocked", "known", "resolved"]}
+      }
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "status", "reason"],
+      "properties": {
+        "command": {"type": "string", "minLength": 1},
+        "status": {"const": "unsupported_runner_mismatch"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

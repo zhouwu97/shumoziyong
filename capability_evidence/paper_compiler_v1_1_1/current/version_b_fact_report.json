@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_fact_realization_report",
+  "status": "passed",
+  "inputs": {
+    "paper": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\current\\version_b_annotated.md",
+    "paper_sha256": "ef11d2067a3568502216fb0bdab65a16b6762382b7fff47e9ec2e26b5ac4cdcd",
+    "projection": "E:\\AI\\数模\\capability_evidence\\paper_compiler_v1_1_1\\current\\paper_fact_projection.json",
+    "projection_sha256": "b83b5ea9e5feff35771ebff3ba8c59c0c51e27b8dc143f7e795e1d072150ea2f"
+  },
+  "summary": {
+    "bindings_checked": 8,
+    "failures": 0
+  },
+  "issues": [],
+  "reference_counts": {
+    "BD-Q1-DISCOUNT-SCOPE": 1,
+    "BD-Q1-OPTIMALITY": 1,
+    "BD-Q1-SALES-RULE": 1,
+    "BD-Q1-WASTE-SCOPE": 1,
+    "CB-Q1-DISCOUNT-PROFIT": 1,
+    "CB-Q1-SCENARIO-DIFFERENCE": 1,
+    "CB-Q1-WASTE-PROFIT": 1
+  }
+}

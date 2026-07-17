@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_exploratory_review_status",
+  "freeze_id": "review-freeze-e14cc767cda63355",
+  "status": "awaiting_external_human_review",
+  "integrity_status": "passed",
+  "required_reviewers": 2,
+  "completed_reviewers": 0,
+  "human_overlap_status": "pending",
+  "adjudicator_required": false,
+  "decision": null,
+  "allowed_decisions": [
+    "continue",
+    "revise",
+    "stop"
+  ],
+  "ai_may_sign": false,
+  "production_ready_allowed": false,
+  "issues": []
+}

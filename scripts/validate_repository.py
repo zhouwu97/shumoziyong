@@ -1512,6 +1512,22 @@ class RepositoryValidator:
             "workflow_spec.schema.json",
             "review_outcome.schema.json",
             "remediation_evidence.schema.json",
+            "paper_claim_binding.schema.json",
+            "paper_fact_projection.schema.json",
+            "minimal_argument_graph.schema.json",
+            "paper_rhetoric_card.schema.json",
+            "paper_rhetoric_bundle.schema.json",
+            "paper_fact_realization_plan.schema.json",
+            "paper_fact_realization_report.schema.json",
+            "paper_typed_exemptions.schema.json",
+            "paper_rhetoric_overlap_report.schema.json",
+            "paper_compiler_qualification_boundary.schema.json",
+            "paper_compiler_exploratory_review.schema.json",
+            "paper_compiler_review_freeze.schema.json",
+            "paper_compiler_human_overlap_review.schema.json",
+            "paper_compiler_review_status.schema.json",
+            "paper_compiler_pilot_manifest.schema.json",
+            "paper_compiler_ai_pre_review.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:

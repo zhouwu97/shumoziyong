@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_fact_realization_plan.schema.json",
+  "title": "受约束段落事实实现计划",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "plan_id", "problem_id", "subproblem_id", "mode", "sections"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_fact_realization_plan"},
+    "plan_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "subproblem_id": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["candidate_without_cards", "candidate_with_cards", "production"]},
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/section"}
+    }
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section_id", "title", "paragraphs"],
+      "properties": {
+        "section_id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "paragraphs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/paragraph"}}
+      }
+    },
+    "paragraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paragraph_id", "role", "argument_nodes", "card_ids", "segments"],
+      "properties": {
+        "paragraph_id": {"type": "string", "minLength": 1},
+        "role": {"enum": ["report_result", "compare_with_baseline", "explain_change", "state_boundary"]},
+        "argument_nodes": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "card_ids": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "segments": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/segment"}}
+      }
+    },
+    "segment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "value"],
+          "properties": {
+            "type": {"const": "text"},
+            "value": {"type": "string", "minLength": 1, "pattern": "^[^0-9０-９]*$"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "ref_type", "ref_id"],
+          "properties": {
+            "type": {"const": "fact_ref"},
+            "ref_type": {"enum": ["metric", "parameter", "comparison", "formula", "boundary"]},
+            "ref_id": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    }
+  }
+}

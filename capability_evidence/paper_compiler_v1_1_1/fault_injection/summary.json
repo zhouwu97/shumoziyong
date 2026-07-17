@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_compiler_fault_injection_summary",
+  "status": "passed",
+  "cases_total": 10,
+  "cases_caught": 10,
+  "cases": [
+    {
+      "case_id": "number_drift",
+      "expected_code": "PFC_NUMBER_DRIFT",
+      "actual_codes": [
+        "PFC_NUMBER_DRIFT"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "precision_drift",
+      "expected_code": "PFC_PRECISION_DRIFT",
+      "actual_codes": [
+        "PFC_PRECISION_DRIFT"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "unit_drift",
+      "expected_code": "PFC_UNIT_DRIFT",
+      "actual_codes": [
+        "PFC_UNIT_DRIFT"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "direction_drift",
+      "expected_code": "PFC_DIRECTION_DRIFT",
+      "actual_codes": [
+        "PFC_DIRECTION_DRIFT"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "baseline_mismatch",
+      "expected_code": "PFC_BASELINE_MISMATCH",
+      "actual_codes": [
+        "PFC_BASELINE_MISMATCH"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "optimality_overclaim",
+      "expected_code": "PFC_OPTIMALITY_OVERCLAIM",
+      "actual_codes": [
+        "PFC_OPTIMALITY_OVERCLAIM"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "boundary_removed",
+      "expected_code": "PFC_BOUNDARY_REMOVED",
+      "actual_codes": [
+        "PFC_BOUNDARY_REMOVED"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "unsupported_significance",
+      "expected_code": "PFC_UNSUPPORTED_SIGNIFICANCE",
+      "actual_codes": [
+        "PFC_UNSUPPORTED_SIGNIFICANCE"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "unbound_number",
+      "expected_code": "PFC_UNBOUND_SEMANTIC_NUMBER",
+      "actual_codes": [
+        "PFC_UNBOUND_SEMANTIC_NUMBER"
+      ],
+      "caught": true
+    },
+    {
+      "case_id": "wrong_card",
+      "expected_code": "PFC_CARD_SEMANTIC_MISMATCH",
+      "actual_codes": [
+        "PFC_CARD_SEMANTIC_MISMATCH"
+      ],
+      "caught": true
+    }
+  ]
+}

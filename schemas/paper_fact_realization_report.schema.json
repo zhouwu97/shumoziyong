@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_fact_realization_report.schema.json",
+  "title": "论文事实实现验证报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "status", "inputs", "summary", "issues", "reference_counts"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_fact_realization_report"},
+    "status": {"enum": ["passed", "failed"]},
+    "inputs": {"type": "object"},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bindings_checked", "failures"],
+      "properties": {
+        "bindings_checked": {"type": "integer", "minimum": 0},
+        "failures": {"type": "integer", "minimum": 0}
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "code", "message"],
+        "properties": {
+          "severity": {"const": "FAIL"},
+          "code": {"type": "string", "minLength": 1},
+          "message": {"type": "string", "minLength": 1},
+          "ref_id": {"type": "string"}
+        }
+      }
+    },
+    "reference_counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}
+  }
+}

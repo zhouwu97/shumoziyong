@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_claim_bindings",
+  "run_id": "2024C_v21_full_replay_20260715",
+  "problem_id": "2024-C",
+  "bindings": [
+    {
+      "binding_id": "CB-Q1-WASTE-PROFIT",
+      "claim_id": "C001",
+      "ref_type": "metric",
+      "source": {
+        "kind": "direct",
+        "path": "result_report.json",
+        "json_pointer": "/metrics/0/value",
+        "unit_pointer": "/metrics/0/unit"
+      },
+      "display": {
+        "decimal_places": 2,
+        "scale": 0.0001,
+        "prefix": "",
+        "suffix": " 万元",
+        "unit": "万元"
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["result_analysis"]
+      }
+    },
+    {
+      "binding_id": "CB-Q1-DISCOUNT-PROFIT",
+      "claim_id": "C002",
+      "ref_type": "metric",
+      "source": {
+        "kind": "direct",
+        "path": "result_report.json",
+        "json_pointer": "/metrics/1/value",
+        "unit_pointer": "/metrics/1/unit"
+      },
+      "display": {
+        "decimal_places": 2,
+        "scale": 0.0001,
+        "prefix": "",
+        "suffix": " 万元",
+        "unit": "万元"
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["result_analysis"]
+      }
+    },
+    {
+      "binding_id": "CB-Q1-SCENARIO-DIFFERENCE",
+      "claim_id": "C002",
+      "ref_type": "comparison",
+      "source": {
+        "kind": "derived",
+        "operation": "subtract",
+        "input_binding_ids": ["CB-Q1-DISCOUNT-PROFIT", "CB-Q1-WASTE-PROFIT"]
+      },
+      "display": {
+        "decimal_places": 2,
+        "scale": 0.0001,
+        "prefix": "较超产滞销情形增加 ",
+        "suffix": " 万元",
+        "unit": "万元"
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["result_analysis"]
+      }
+    },
+    {
+      "binding_id": "FM-Q1-PROFIT",
+      "claim_id": "C001",
+      "ref_type": "formula",
+      "source": {
+        "kind": "direct",
+        "path": "result_report.json",
+        "json_pointer": "/model_contract/formulas/0/expression"
+      },
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "literal": "利润 = 单价 × 销量 - 单位面积成本 × 种植面积"
+      },
+      "usage": {
+        "requirement": "optional",
+        "allowed_sections": ["result_analysis", "model_boundary"]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-WASTE-SCOPE",
+      "claim_id": "C001",
+      "ref_type": "boundary",
+      "source": {
+        "kind": "direct",
+        "path": "paper_claim_map.json",
+        "json_pointer": "/claims/0/scope"
+      },
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["model_boundary"]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-DISCOUNT-SCOPE",
+      "claim_id": "C002",
+      "ref_type": "boundary",
+      "source": {
+        "kind": "direct",
+        "path": "paper_claim_map.json",
+        "json_pointer": "/claims/1/scope"
+      },
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["result_analysis"]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-SALES-RULE",
+      "claim_id": "C002",
+      "ref_type": "boundary",
+      "source": {
+        "kind": "direct",
+        "path": "result_report.json",
+        "json_pointer": "/model_contract/boundary_conditions/2"
+      },
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "literal": "超产部分在滞销情形不计收入，在折价情形按正常价格的一半计入",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["result_analysis"]
+      }
+    },
+    {
+      "binding_id": "BD-Q1-OPTIMALITY",
+      "claim_id": "C001",
+      "ref_type": "boundary",
+      "source": {
+        "kind": "direct",
+        "path": "result_report.json",
+        "json_pointer": "/limitations/0"
+      },
+      "display": {
+        "decimal_places": null,
+        "scale": 1,
+        "prefix": "",
+        "suffix": "",
+        "unit": "",
+        "strip_terminal_punctuation": true
+      },
+      "usage": {
+        "requirement": "required_once",
+        "allowed_sections": ["model_boundary"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "reviewer_1": {
+    "status": "passed",
+    "findings": []
+  },
+  "reviewer_2": {
+    "status": "passed",
+    "findings": []
+  }
+}

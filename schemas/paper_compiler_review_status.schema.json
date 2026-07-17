@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_review_status.schema.json",
+  "title": "论文编译器探索性评审状态",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "freeze_id", "status", "integrity_status",
+    "required_reviewers", "completed_reviewers", "human_overlap_status",
+    "adjudicator_required", "decision", "allowed_decisions", "ai_may_sign",
+    "production_ready_allowed", "issues"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_exploratory_review_status"},
+    "freeze_id": {"type": "string", "pattern": "^review-freeze-[a-f0-9]{16}$"},
+    "status": {
+      "enum": [
+        "awaiting_external_human_review", "awaiting_human_overlap_review",
+        "awaiting_adjudication", "completed", "failed_integrity"
+      ]
+    },
+    "integrity_status": {"enum": ["passed", "failed"]},
+    "required_reviewers": {"const": 2},
+    "completed_reviewers": {"type": "integer", "minimum": 0, "maximum": 2},
+    "human_overlap_status": {"enum": ["pending", "completed"]},
+    "adjudicator_required": {"type": "boolean"},
+    "decision": {"type": ["string", "null"], "enum": ["continue", "revise", "stop", null]},
+    "allowed_decisions": {"const": ["continue", "revise", "stop"]},
+    "ai_may_sign": {"const": false},
+    "production_ready_allowed": {"const": false},
+    "issues": {"type": "array", "items": {"type": "object"}}
+  }
+}

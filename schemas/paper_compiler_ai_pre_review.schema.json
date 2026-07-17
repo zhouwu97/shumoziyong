@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_ai_pre_review.schema.json",
+  "title": "论文编译器 AI 预评审表",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "freeze_id",
+    "pilot_id",
+    "reviewer_id",
+    "reviewer_type",
+    "independent_review",
+    "formal_human_review",
+    "status",
+    "read_order",
+    "versions",
+    "forced_comparison",
+    "source_reuse_status",
+    "ai_conclusion",
+    "completed_at",
+    "attestation"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_ai_pre_review"},
+    "freeze_id": {"type": "string", "pattern": "^review-freeze-[a-f0-9]{16}$"},
+    "pilot_id": {"const": "paper_compiler_v1_1_1"},
+    "reviewer_id": {"enum": ["reviewer_1", "reviewer_2"]},
+    "reviewer_type": {"const": "ai_pre_review"},
+    "independent_review": {"const": true},
+    "formal_human_review": {"const": false},
+    "status": {"enum": ["pending", "completed"]},
+    "read_order": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {"enum": ["X", "Y", "Z"]}
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["X", "Y", "Z"],
+      "properties": {
+        "X": {"$ref": "#/$defs/versionReview"},
+        "Y": {"$ref": "#/$defs/versionReview"},
+        "Z": {"$ref": "#/$defs/versionReview"}
+      }
+    },
+    "forced_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_ranking",
+        "easiest_result_location",
+        "best_attribution",
+        "most_accurate_boundary",
+        "closest_to_submission",
+        "strongest_template_feel",
+        "ranking_reason"
+      ],
+      "properties": {
+        "overall_ranking": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {"enum": ["X", "Y", "Z"]}
+            }
+          ]
+        },
+        "easiest_result_location": {"$ref": "#/$defs/nullableLabel"},
+        "best_attribution": {"$ref": "#/$defs/nullableLabel"},
+        "most_accurate_boundary": {"$ref": "#/$defs/nullableLabel"},
+        "closest_to_submission": {"$ref": "#/$defs/nullableLabel"},
+        "strongest_template_feel": {"$ref": "#/$defs/nullableLabel"},
+        "ranking_reason": {"type": ["string", "null"]}
+      }
+    },
+    "source_reuse_status": {
+      "type": ["string", "null"],
+      "enum": [
+        "no_concern",
+        "generic_academic_overlap",
+        "requires_revision",
+        "probable_source_reuse",
+        null
+      ]
+    },
+    "ai_conclusion": {
+      "type": ["string", "null"],
+      "enum": [
+        "ai_pre_review_continue",
+        "ai_pre_review_revise",
+        "ai_pre_review_stop",
+        "ai_pre_review_inconclusive",
+        null
+      ]
+    },
+    "completed_at": {"type": ["string", "null"], "format": "date-time"},
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapping_not_inferred",
+        "human_identity_not_claimed",
+        "qualification_status_not_modified",
+        "production_status_not_modified"
+      ],
+      "properties": {
+        "mapping_not_inferred": {"type": ["boolean", "null"]},
+        "human_identity_not_claimed": {"type": ["boolean", "null"]},
+        "qualification_status_not_modified": {"type": ["boolean", "null"]},
+        "production_status_not_modified": {"type": ["boolean", "null"]}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "forced_comparison": {
+            "properties": {
+              "overall_ranking": {"type": "array"},
+              "easiest_result_location": {"type": "string"},
+              "best_attribution": {"type": "string"},
+              "most_accurate_boundary": {"type": "string"},
+              "closest_to_submission": {"type": "string"},
+              "strongest_template_feel": {"type": "string"},
+              "ranking_reason": {"type": "string", "minLength": 1}
+            }
+          },
+          "source_reuse_status": {"type": "string"},
+          "ai_conclusion": {"type": "string"},
+          "completed_at": {"type": "string"},
+          "attestation": {
+            "properties": {
+              "mapping_not_inferred": {"const": true},
+              "human_identity_not_claimed": {"const": true},
+              "qualification_status_not_modified": {"const": true},
+              "production_status_not_modified": {"const": true}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nullableLabel": {"type": ["string", "null"], "enum": ["X", "Y", "Z", null]},
+    "nullableScore": {"type": ["integer", "null"], "minimum": 1, "maximum": 5},
+    "nullableNonnegative": {"type": ["number", "null"], "minimum": 0},
+    "versionReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hard_errors", "scores", "timing", "comments"],
+      "properties": {
+        "hard_errors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "number_drift",
+            "unit_drift",
+            "precision_drift",
+            "comparison_direction_error",
+            "comparison_reference_error",
+            "optimality_overclaim",
+            "causal_overreach",
+            "boundary_removed",
+            "unsupported_conclusion",
+            "cross_problem_contamination",
+            "suspected_source_reuse"
+          ],
+          "properties": {
+            "number_drift": {"type": ["boolean", "null"]},
+            "unit_drift": {"type": ["boolean", "null"]},
+            "precision_drift": {"type": ["boolean", "null"]},
+            "comparison_direction_error": {"type": ["boolean", "null"]},
+            "comparison_reference_error": {"type": ["boolean", "null"]},
+            "optimality_overclaim": {"type": ["boolean", "null"]},
+            "causal_overreach": {"type": ["boolean", "null"]},
+            "boundary_removed": {"type": ["boolean", "null"]},
+            "unsupported_conclusion": {"type": ["boolean", "null"]},
+            "cross_problem_contamination": {"type": ["boolean", "null"]},
+            "suspected_source_reuse": {"type": ["boolean", "null"]}
+          }
+        },
+        "scores": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result_location",
+            "comparison_clarity",
+            "attribution_quality",
+            "boundary_awareness",
+            "paragraph_coherence",
+            "low_template_feel",
+            "edit_readiness"
+          ],
+          "properties": {
+            "result_location": {"$ref": "#/$defs/nullableScore"},
+            "comparison_clarity": {"$ref": "#/$defs/nullableScore"},
+            "attribution_quality": {"$ref": "#/$defs/nullableScore"},
+            "boundary_awareness": {"$ref": "#/$defs/nullableScore"},
+            "paragraph_coherence": {"$ref": "#/$defs/nullableScore"},
+            "low_template_feel": {"$ref": "#/$defs/nullableScore"},
+            "edit_readiness": {"$ref": "#/$defs/nullableScore"}
+          }
+        },
+        "timing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "time_to_find_main_result_seconds",
+            "time_to_understand_argument_seconds",
+            "estimated_edit_minutes"
+          ],
+          "properties": {
+            "time_to_find_main_result_seconds": {"$ref": "#/$defs/nullableNonnegative"},
+            "time_to_understand_argument_seconds": {"$ref": "#/$defs/nullableNonnegative"},
+            "estimated_edit_minutes": {"$ref": "#/$defs/nullableNonnegative"}
+          }
+        },
+        "comments": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
