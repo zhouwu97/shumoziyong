@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_qualification_authority_registry_v2.schema.json",
+  "title": "Competition Production 人工资格所有者公钥注册表",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "status", "identity_verification", "keys"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "registry_id": {"const": "competition_qualification_authorities_v2"},
+    "status": {"enum": ["unconfigured", "active"]},
+    "identity_verification": {"const": "out_of_band_human_verification_required"},
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key_id", "pseudonym", "role", "human_identity_verified", "status",
+          "signature_algorithm", "rsa_modulus_hex", "rsa_exponent", "not_before", "not_after"
+        ],
+        "properties": {
+          "key_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$"},
+          "pseudonym": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$"},
+          "role": {"const": "human_qualification_owner"},
+          "human_identity_verified": {"const": true},
+          "status": {"enum": ["active", "revoked"]},
+          "signature_algorithm": {"const": "RSASSA-PKCS1-v1_5-SHA256"},
+          "rsa_modulus_hex": {"type": "string", "pattern": "^[a-f0-9]{128,1024}$"},
+          "rsa_exponent": {"type": "integer", "minimum": 3},
+          "not_before": {"type": "string", "format": "date-time"},
+          "not_after": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "unconfigured"}}},
+      "then": {"properties": {"keys": {"maxItems": 0}}},
+      "else": {"properties": {"keys": {"minItems": 1}}}
+    }
+  ]
+}

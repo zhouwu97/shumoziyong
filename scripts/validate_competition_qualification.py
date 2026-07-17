@@ -1,4 +1,4 @@
-"""验证 Competition Production 六题隐藏盲测与双盲人工评审证据。"""
+"""验证 Competition Production 六题隐藏盲测资格证据。"""
 
 from __future__ import annotations
 
@@ -21,15 +21,54 @@ from formal_result.hashing import file_sha256, semantic_sha256
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL_PATH = ROOT / "runtime_contracts" / "competition_qualification_protocol_v1.json"
+PROTOCOL_PATH = ROOT / "runtime_contracts" / "competition_qualification_protocol_v2.json"
 AUTHORITY_REGISTRY_PATH = (
-    ROOT / "policies" / "competition_qualification_authorities_v1.json"
+    ROOT / "policies" / "competition_qualification_authorities_v2.json"
 )
 SHA256_DIGEST_INFO_PREFIX = bytes.fromhex("3031300d060960864801650304020105000420")
+
+QUALIFICATION_SPECS: dict[str, dict[str, Any]] = {
+    "competition_qualification_v1": {
+        "protocol_schema": "competition_qualification_protocol.schema.json",
+        "authority_schema": "competition_qualification_authority_registry.schema.json",
+        "evidence_schema": "competition_qualification_evidence.schema.json",
+        "report_schema": "competition_qualification_report.schema.json",
+        "protocol_path": "runtime_contracts/competition_qualification_protocol_v1.json",
+        "authority_path": "policies/competition_qualification_authorities_v1.json",
+        "review_field": "blind_reviews",
+        "authority_role": "human_reviewer",
+        "coordinator_role": "qualification_coordinator",
+        "passed_lifecycle": "blind_review_passed",
+        "report_schema_version": "1.0.0",
+        "human_assisted": False,
+    },
+    "competition_qualification_v2": {
+        "protocol_schema": "competition_qualification_protocol_v2.schema.json",
+        "authority_schema": "competition_qualification_authority_registry_v2.schema.json",
+        "evidence_schema": "competition_qualification_evidence_v2.schema.json",
+        "report_schema": "competition_qualification_report_v2.schema.json",
+        "protocol_path": "runtime_contracts/competition_qualification_protocol_v2.json",
+        "authority_path": "policies/competition_qualification_authorities_v2.json",
+        "review_field": "human_assisted_reviews",
+        "authority_role": "human_qualification_owner",
+        "coordinator_role": "human_qualification_owner",
+        "passed_lifecycle": "human_assisted_review_passed",
+        "report_schema_version": "2.0.0",
+        "human_assisted": True,
+    },
+}
 
 
 class QualificationError(ValueError):
     """资格证据无法安全解释。"""
+
+
+def _qualification_spec(protocol: Mapping[str, Any]) -> Mapping[str, Any]:
+    protocol_id = str(protocol.get("protocol_id", ""))
+    spec = QUALIFICATION_SPECS.get(protocol_id)
+    if spec is None:
+        raise QualificationError(f"不支持的资格协议：{protocol_id or '<missing>'}")
+    return spec
 
 
 def _load_json(path: Path, label: str) -> dict[str, Any]:
@@ -207,23 +246,24 @@ def validate_qualification(
     root: Path = ROOT,
 ) -> dict[str, Any]:
     """复算资格指标并按证据强度派生生命周期。"""
-    _validate_schema(protocol, "competition_qualification_protocol.schema.json", "资格协议")
+    spec = _qualification_spec(protocol)
+    _validate_schema(protocol, str(spec["protocol_schema"]), "资格协议")
     _validate_schema(
         authority_registry,
-        "competition_qualification_authority_registry.schema.json",
+        str(spec["authority_schema"]),
         "资格评审公钥注册表",
     )
-    _validate_schema(evidence, "competition_qualification_evidence.schema.json", "资格证据")
+    _validate_schema(evidence, str(spec["evidence_schema"]), "资格证据")
     protocol_path = _verify_file_ref(
         root,
         evidence["protocol_ref"],
-        expected_path="runtime_contracts/competition_qualification_protocol_v1.json",
+        expected_path=str(spec["protocol_path"]),
         label="资格协议引用",
     )
     registry_path = _verify_file_ref(
         root,
         evidence["authority_registry_ref"],
-        expected_path="policies/competition_qualification_authorities_v1.json",
+        expected_path=str(spec["authority_path"]),
         label="资格评审公钥注册表引用",
     )
     registered_authorities = _load_json(registry_path, "已登记资格评审公钥注册表")
@@ -239,7 +279,7 @@ def validate_qualification(
     if capability.get("lifecycle") != "full_replay_passed":
         raise QualificationError("资格活动只能从 full_replay_passed 启动")
     if authority_registry.get("status") != "active":
-        raise QualificationError("真实人工评审公钥注册表尚未激活")
+        raise QualificationError("人工资格公钥注册表尚未激活")
     keys = {str(item["key_id"]): item for item in authority_registry["keys"]}
     if len(keys) != len(authority_registry["keys"]):
         raise QualificationError("资格评审公钥 key_id 重复")
@@ -260,7 +300,7 @@ def validate_qualification(
     selection_key = _active_key(
         keys,
         str(selection_attestation["coordinator_key_id"]),
-        role="qualification_coordinator",
+        role=str(spec["coordinator_role"]),
         signed_at=selection_signed_at,
         label="隐藏题选题承诺",
     )
@@ -276,6 +316,7 @@ def validate_qualification(
     )
 
     package_to_arm: dict[str, tuple[str, str, datetime]] = {}
+    package_created_at: dict[str, datetime] = {}
     run_metrics: dict[str, list[Mapping[str, Any]]] = {"baseline": [], "treatment": []}
     for case in cases:
         slot = str(case["case_slot"])
@@ -327,36 +368,58 @@ def validate_qualification(
             if package_id in package_to_arm:
                 raise QualificationError("跨题匿名包 ID 重复")
             package_to_arm[package_id] = (slot, str(mapping[package["label"]]), mapping_revealed)
+            package_created_at[package_id] = created
 
-    reviews = list(evidence["blind_reviews"])
+    reviews = list(evidence[str(spec["review_field"])])
     review_ids = [str(item["review_id"]) for item in reviews]
     if len(review_ids) != len(set(review_ids)):
-        raise QualificationError("盲评记录 review_id 重复")
+        raise QualificationError("评测记录 review_id 重复")
     reviews_by_package: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     arm_reviews: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     case_arm_reviews: dict[tuple[str, str], list[Mapping[str, Any]]] = defaultdict(list)
     reviewer_ids: set[str] = set()
+    ai_record_ids: set[str] = set()
     for review in reviews:
         package_id = str(review["package_id"])
         package_binding = package_to_arm.get(package_id)
         if package_binding is None:
-            raise QualificationError("盲评引用了未知匿名包")
+            raise QualificationError("评测引用了未知匿名包")
         slot, arm_name, mapping_revealed = package_binding
         if review["case_slot"] != slot:
-            raise QualificationError("盲评 case_slot 与匿名包不一致")
+            raise QualificationError("评测 case_slot 与匿名包不一致")
         signed_at = _parse_time(str(review["signed_at"]), f"{review['review_id']}.signed_at")
         if signed_at >= mapping_revealed:
             fatal_codes.append("QF_ARM_IDENTITY_LEAKAGE")
+        if bool(spec["human_assisted"]):
+            recorder = review["ai_recorder"]
+            record_id = str(recorder["record_id"])
+            if record_id in ai_record_ids:
+                raise QualificationError("AI 记录 record_id 重复")
+            ai_record_ids.add(record_id)
+            recorder_started = _parse_time(
+                str(recorder["started_at"]), f"{review['review_id']}.ai_recorder.started_at"
+            )
+            recorder_completed = _parse_time(
+                str(recorder["completed_at"]), f"{review['review_id']}.ai_recorder.completed_at"
+            )
+            if not package_created_at[package_id] <= recorder_started <= recorder_completed < signed_at:
+                fatal_codes.append("QF_AI_RECORD_TIME_ORDER")
+            if review["human_decision_confirmed"] is not True:
+                fatal_codes.append("QF_HUMAN_DECISION_MISSING")
+            if review["ai_decision_authority"] is not False or recorder[
+                "decision_authority"
+            ] is not False:
+                fatal_codes.append("QF_AI_DECISION_SUBSTITUTION")
         key_id = str(review["reviewer_key_id"])
         key = _active_key(
             keys,
             key_id,
-            role="human_reviewer",
+            role=str(spec["authority_role"]),
             signed_at=signed_at,
-            label=f"盲评 {review['review_id']}",
+            label=f"人工评测 {review['review_id']}",
         )
         _verify_rsa_signature(
-            _unsigned(review), str(review["signature"]), key, f"盲评 {review['review_id']}"
+            _unsigned(review), str(review["signature"]), key, f"人工评测 {review['review_id']}"
         )
         reviewer_ids.add(key_id)
         reviews_by_package[package_id].append(review)
@@ -368,9 +431,15 @@ def validate_qualification(
         package_reviews = reviews_by_package.get(package_id, [])
         package_reviewer_ids = {str(item["reviewer_key_id"]) for item in package_reviews}
         if len(package_reviews) != expected_reviewers or len(package_reviewer_ids) != expected_reviewers:
-            gaps.append(f"匿名包 {package_id} 未获得 {expected_reviewers} 名独立人工评审")
+            if bool(spec["human_assisted"]):
+                gaps.append(f"匿名包 {package_id} 未获得一份人工签名的 AI 辅助记录")
+            else:
+                gaps.append(f"匿名包 {package_id} 未获得 {expected_reviewers} 名独立人工评审")
     if len(reviews) != len(package_to_arm) * expected_reviewers:
-        gaps.append("盲评总数未精确覆盖六题双臂双评审")
+        if bool(spec["human_assisted"]):
+            gaps.append("人工辅助评测总数未精确覆盖六题双臂")
+        else:
+            gaps.append("盲评总数未精确覆盖六题双臂双评审")
 
     latest_review = max(
         (_parse_time(str(item["signed_at"]), f"{item['review_id']}.signed_at") for item in reviews),
@@ -390,7 +459,7 @@ def validate_qualification(
     coordinator_key = _active_key(
         keys,
         str(attestation["coordinator_key_id"]),
-        role="qualification_coordinator",
+        role=str(spec["coordinator_role"]),
         signed_at=coordinator_signed_at,
         label="资格协调员证明",
     )
@@ -520,21 +589,27 @@ def validate_qualification(
     fatal_codes = sorted(set(fatal_codes))
     derived_lifecycle = "full_replay_passed"
     status = "failed"
-    double_blind_attested = not fatal_codes and not any("盲评" in item for item in gaps)
+    review_coverage_complete = not any("评测" in item or "盲评" in item for item in gaps)
+    review_attested = not fatal_codes and review_coverage_complete
+    human_decision_attested = review_coverage_complete and "QF_HUMAN_DECISION_MISSING" not in fatal_codes
+    ai_record_only_attested = review_coverage_complete and not {
+        "QF_AI_DECISION_SUBSTITUTION",
+        "QF_AI_RECORD_TIME_ORDER",
+    }.intersection(fatal_codes)
     if not fatal_codes:
         derived_lifecycle = "qualification_candidate"
         status = "qualification_candidate"
         if not gaps:
-            derived_lifecycle = "blind_review_passed"
-            status = "blind_review_passed"
+            derived_lifecycle = str(spec["passed_lifecycle"])
+            status = str(spec["passed_lifecycle"])
 
     approval = evidence.get("promotion_approval")
-    if status == "blind_review_passed" and isinstance(approval, Mapping):
+    if status == str(spec["passed_lifecycle"]) and isinstance(approval, Mapping):
         approved_at = _parse_time(str(approval["approved_at"]), "promotion_approval.approved_at")
         approval_key = _active_key(
             keys,
             str(approval["coordinator_key_id"]),
-            role="qualification_coordinator",
+            role=str(spec["coordinator_role"]),
             signed_at=approved_at,
             label="默认候选人工批准",
         )
@@ -548,11 +623,11 @@ def validate_qualification(
         )
         derived_lifecycle = "default_candidate"
         status = "default_candidate"
-    elif status == "blind_review_passed":
-        gaps.append("尚缺独立的 default_candidate 人工批准；盲评通过不自动启用默认能力")
+    elif status == str(spec["passed_lifecycle"]):
+        gaps.append("尚缺单独签署的 default_candidate 人工批准；评测通过不自动启用默认能力")
 
     report = {
-        "schema_version": "1.0.0",
+        "schema_version": str(spec["report_schema_version"]),
         "report_id": f"{evidence['campaign_id']}-report",
         "campaign_id": evidence["campaign_id"],
         "protocol_sha256": file_sha256(protocol_path),
@@ -563,14 +638,26 @@ def validate_qualification(
         "metrics": metrics,
         "fatal_codes": fatal_codes,
         "gaps": gaps,
-        "review_summary": {
-            "review_count": len(reviews),
-            "distinct_human_reviewers": len(reviewer_ids),
-            "all_signatures_valid": True,
-            "double_blind_attested": double_blind_attested,
-        },
+        "review_summary": (
+            {
+                "review_count": len(reviews),
+                "distinct_human_reviewers": len(reviewer_ids),
+                "ai_record_count": len(ai_record_ids),
+                "all_signatures_valid": True,
+                "human_decision_attested": human_decision_attested,
+                "ai_record_only_attested": ai_record_only_attested,
+                "arm_blind_attested": "QF_ARM_IDENTITY_LEAKAGE" not in fatal_codes,
+            }
+            if bool(spec["human_assisted"])
+            else {
+                "review_count": len(reviews),
+                "distinct_human_reviewers": len(reviewer_ids),
+                "all_signatures_valid": True,
+                "double_blind_attested": review_attested,
+            }
+        ),
     }
-    _validate_schema(report, "competition_qualification_report.schema.json", "资格派生报告")
+    _validate_schema(report, str(spec["report_schema"]), "资格派生报告")
     return report
 
 

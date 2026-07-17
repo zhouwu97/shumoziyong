@@ -114,9 +114,10 @@ def _resign_coordinator(
     attestation["case_commitment_root"] = _commitment_root(evidence["cases"])
     attestation["mapping_sha256"] = _mapping_digest(evidence["cases"])
     attestation["campaign_evidence_digest"] = qualification_campaign_digest(evidence)
+    coordinator_key_id = str(attestation["coordinator_key_id"])
     attestation["signature"] = _sign(
         {key: value for key, value in attestation.items() if key != "signature"},
-        private_keys["qualification-coordinator"],
+        private_keys[coordinator_key_id],
     )
 
 
@@ -284,6 +285,114 @@ def _fixture(tmp_path: Path) -> tuple[
     return evidence, protocol, registry, private_keys
 
 
+def _human_assisted_fixture(tmp_path: Path) -> tuple[
+    dict[str, Any], dict[str, Any], dict[str, Any], dict[str, tuple[int, int]]
+]:
+    legacy_evidence, _legacy_protocol, _legacy_registry, _legacy_keys = _fixture(tmp_path)
+    protocol = json.loads(
+        (ROOT / "runtime_contracts/competition_qualification_protocol_v2.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    protocol_path = tmp_path / "runtime_contracts/competition_qualification_protocol_v2.json"
+    _write_json(protocol_path, protocol)
+
+    owner, owner_private_key = _test_key(
+        404, "human-qualification-owner", "human_qualification_owner"
+    )
+    private_keys = {"human-qualification-owner": owner_private_key}
+    registry = {
+        "schema_version": "2.0.0",
+        "registry_id": "competition_qualification_authorities_v2",
+        "status": "active",
+        "identity_verification": "out_of_band_human_verification_required",
+        "keys": [owner],
+    }
+    registry_path = tmp_path / "policies/competition_qualification_authorities_v2.json"
+    _write_json(registry_path, registry)
+
+    cases = copy.deepcopy(legacy_evidence["cases"])
+    reviews: list[dict[str, Any]] = []
+    for case in cases:
+        for package in case["review_packages"]:
+            package_id = str(package["package_id"])
+            arm = case["package_arm_mapping"][package["label"]]
+            review = {
+                "review_id": f"{package_id}-H1",
+                "case_slot": case["case_slot"],
+                "package_id": package_id,
+                "reviewer_key_id": "human-qualification-owner",
+                "reviewer_kind": "human",
+                "assessment_mode": "human_decision_ai_recorded",
+                "human_decision_confirmed": True,
+                "ai_decision_authority": False,
+                "ai_recorder": {
+                    "record_id": f"{package_id}-record",
+                    "provider": "fixture-provider",
+                    "model": "fixture-recorder",
+                    "model_version": "2026-08-01",
+                    "session_id": f"fixture-{case['case_slot']}",
+                    "system_prompt_sha256": hashlib.sha256(b"record-only").hexdigest(),
+                    "transcript_sha256": hashlib.sha256(
+                        f"{package_id}-transcript".encode()
+                    ).hexdigest(),
+                    "record_sha256": hashlib.sha256(f"{package_id}-record".encode()).hexdigest(),
+                    "started_at": "2026-08-01T00:06:10Z",
+                    "completed_at": "2026-08-01T00:06:30Z",
+                    "decision_authority": False,
+                },
+                "model_quality_score": 75 if arm == "baseline" else 85,
+                "paper_quality_score": 76 if arm == "baseline" else 86,
+                "fatal_error": False,
+                "signed_at": "2026-08-01T00:07:00Z",
+                "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+            }
+            review["signature"] = _sign(review, owner_private_key)
+            reviews.append(review)
+
+    selection_attestation = {
+        "coordinator_key_id": "human-qualification-owner",
+        "case_commitment_root": _commitment_root(cases),
+        "locked_at": "2026-08-01T00:00:00Z",
+        "case_identity_hidden_before_lock": True,
+        "answers_withheld": True,
+        "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+    }
+    selection_attestation["signature"] = _sign(selection_attestation, owner_private_key)
+    evidence: dict[str, Any] = {
+        "schema_version": "2.0.0",
+        "campaign_id": "human-assisted-qualification-fixture-v2",
+        "protocol_ref": {
+            "path": "runtime_contracts/competition_qualification_protocol_v2.json",
+            "sha256": file_sha256(protocol_path),
+        },
+        "authority_registry_ref": {
+            "path": "policies/competition_qualification_authorities_v2.json",
+            "sha256": file_sha256(registry_path),
+        },
+        "source_capability_ref": copy.deepcopy(legacy_evidence["source_capability_ref"]),
+        "locked_at": "2026-08-01T00:00:00Z",
+        "cases": cases,
+        "selection_attestation": selection_attestation,
+        "human_assisted_reviews": reviews,
+    }
+    attestation = {
+        "coordinator_key_id": "human-qualification-owner",
+        "case_commitment_root": _commitment_root(cases),
+        "mapping_sha256": _mapping_digest(cases),
+        "campaign_evidence_digest": qualification_campaign_digest(evidence),
+        "case_selection_locked_before_runs": True,
+        "arm_mapping_hidden_until_reviews_complete": True,
+        "human_decisions_confirmed": True,
+        "ai_records_bound_to_human_decisions": True,
+        "signed_at": "2026-08-01T00:10:00Z",
+        "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+    }
+    attestation["signature"] = _sign(attestation, owner_private_key)
+    evidence["coordinator_attestation"] = attestation
+    return evidence, protocol, registry, private_keys
+
+
 def test_qualification_contracts_and_current_registry_are_valid() -> None:
     pairs = [
         (
@@ -293,6 +402,14 @@ def test_qualification_contracts_and_current_registry_are_valid() -> None:
         (
             "competition_qualification_authority_registry.schema.json",
             "policies/competition_qualification_authorities_v1.json",
+        ),
+        (
+            "competition_qualification_protocol_v2.schema.json",
+            "runtime_contracts/competition_qualification_protocol_v2.json",
+        ),
+        (
+            "competition_qualification_authority_registry_v2.schema.json",
+            "policies/competition_qualification_authorities_v2.json",
         ),
     ]
     for schema_name, instance_name in pairs:
@@ -317,6 +434,87 @@ def test_complete_signed_double_blind_evidence_passes_without_defaulting(
     }
     assert report["metrics"]["treatment_executable_rate"] == 1.0
     assert "不自动启用默认能力" in report["gaps"][0]
+
+
+def test_human_assisted_ai_recorded_evidence_passes_without_defaulting(
+    tmp_path: Path,
+) -> None:
+    evidence, protocol, registry, _private_keys = _human_assisted_fixture(tmp_path)
+    report = validate_qualification(evidence, protocol, registry, root=tmp_path)
+    assert report["status"] == "human_assisted_review_passed"
+    assert report["derived_lifecycle"] == "human_assisted_review_passed"
+    assert report["new_problem_default_enabled"] is False
+    assert report["review_summary"] == {
+        "review_count": 12,
+        "distinct_human_reviewers": 1,
+        "ai_record_count": 12,
+        "all_signatures_valid": True,
+        "human_decision_attested": True,
+        "ai_record_only_attested": True,
+        "arm_blind_attested": True,
+    }
+
+
+def test_human_assisted_ai_cannot_claim_decision_authority(tmp_path: Path) -> None:
+    evidence, protocol, registry, _private_keys = _human_assisted_fixture(tmp_path)
+    evidence["human_assisted_reviews"][0]["ai_decision_authority"] = True
+    with pytest.raises(QualificationError, match="资格证据不符合 Schema"):
+        validate_qualification(evidence, protocol, registry, root=tmp_path)
+
+
+def test_human_assisted_ai_record_must_precede_human_signature(tmp_path: Path) -> None:
+    evidence, protocol, registry, private_keys = _human_assisted_fixture(tmp_path)
+    review = evidence["human_assisted_reviews"][0]
+    review["ai_recorder"]["completed_at"] = "2026-08-01T00:08:00Z"
+    review["signature"] = _sign(
+        {key: value for key, value in review.items() if key != "signature"},
+        private_keys["human-qualification-owner"],
+    )
+    _resign_coordinator(evidence, private_keys)
+    report = validate_qualification(evidence, protocol, registry, root=tmp_path)
+    assert report["status"] == "failed"
+    assert report["derived_lifecycle"] == "full_replay_passed"
+    assert "QF_AI_RECORD_TIME_ORDER" in report["fatal_codes"]
+
+
+def test_human_assisted_score_tampering_breaks_human_signature(tmp_path: Path) -> None:
+    evidence, protocol, registry, _private_keys = _human_assisted_fixture(tmp_path)
+    evidence["human_assisted_reviews"][0]["paper_quality_score"] = 100
+    with pytest.raises(QualificationError, match="签名验证失败"):
+        validate_qualification(evidence, protocol, registry, root=tmp_path)
+
+
+def test_human_assisted_default_candidate_requires_separate_human_approval(
+    tmp_path: Path,
+) -> None:
+    evidence, protocol, registry, private_keys = _human_assisted_fixture(tmp_path)
+    approval = {
+        "coordinator_key_id": "human-qualification-owner",
+        "evidence_digest": qualification_evidence_digest(evidence),
+        "target_lifecycle": "default_candidate",
+        "approved_at": "2026-08-01T00:11:00Z",
+        "signature_algorithm": "RSASSA-PKCS1-v1_5-SHA256",
+    }
+    approval["signature"] = _sign(approval, private_keys["human-qualification-owner"])
+    evidence["promotion_approval"] = approval
+    report = validate_qualification(evidence, protocol, registry, root=tmp_path)
+    assert report["status"] == "default_candidate"
+    assert report["derived_lifecycle"] == "default_candidate"
+    assert report["new_problem_default_enabled"] is False
+
+
+def test_unconfigured_human_owner_registry_cannot_qualify(tmp_path: Path) -> None:
+    evidence, protocol, _registry, _private_keys = _human_assisted_fixture(tmp_path)
+    registry = json.loads(
+        (ROOT / "policies/competition_qualification_authorities_v2.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    registry_path = tmp_path / "policies/competition_qualification_authorities_v2.json"
+    _write_json(registry_path, registry)
+    evidence["authority_registry_ref"]["sha256"] = file_sha256(registry_path)
+    with pytest.raises(QualificationError, match="尚未激活"):
+        validate_qualification(evidence, protocol, registry, root=tmp_path)
 
 
 def test_metric_failure_stays_qualification_candidate(tmp_path: Path) -> None:
@@ -453,4 +651,9 @@ def test_higher_lifecycle_requires_qualification_report_binding() -> None:
         ),
         "sha256": "c" * 64,
     }
+    Draft202012Validator(schema).validate(capability)
+    capability["lifecycle"] = "human_assisted_review_passed"
+    capability["qualification_evidence"]["path"] = (
+        "capability_evidence/competition_production/qualification/qualification_report_v2.json"
+    )
     Draft202012Validator(schema).validate(capability)

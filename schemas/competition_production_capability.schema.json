@@ -10,7 +10,7 @@
     "lifecycle": {
       "enum": [
         "review_ready", "full_replay_passed", "qualification_candidate",
-        "blind_review_passed", "default_candidate"
+        "blind_review_passed", "human_assisted_review_passed", "default_candidate"
       ]
     },
     "profiles": {"const": ["general", "engineering_optimization", "evaluation", "prediction"]},
@@ -37,7 +37,10 @@
       "required": ["path", "sha256"],
       "properties": {
         "path": {
-          "const": "capability_evidence/competition_production/qualification/qualification_report_v1.json"
+          "enum": [
+            "capability_evidence/competition_production/qualification/qualification_report_v1.json",
+            "capability_evidence/competition_production/qualification/qualification_report_v2.json"
+          ]
         },
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
@@ -70,7 +73,10 @@
       "if": {
         "properties": {
           "lifecycle": {
-            "enum": ["qualification_candidate", "blind_review_passed", "default_candidate"]
+            "enum": [
+              "qualification_candidate", "blind_review_passed",
+              "human_assisted_review_passed", "default_candidate"
+            ]
           }
         }
       },
@@ -105,7 +111,7 @@
           "lifecycle": {
             "enum": [
               "review_ready", "full_replay_passed", "qualification_candidate",
-              "blind_review_passed"
+              "blind_review_passed", "human_assisted_review_passed"
             ]
           }
         }

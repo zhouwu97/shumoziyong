@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_qualification_report_v2.schema.json",
+  "title": "Competition Production 人工主导 AI 记录资格派生报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "report_id", "campaign_id", "protocol_sha256", "evidence_sha256",
+    "status", "derived_lifecycle", "new_problem_default_enabled", "metrics", "fatal_codes",
+    "gaps", "review_summary"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "report_id": {"type": "string", "minLength": 1},
+    "campaign_id": {"type": "string", "minLength": 1},
+    "protocol_sha256": {"$ref": "#/$defs/sha256"},
+    "evidence_sha256": {"$ref": "#/$defs/sha256"},
+    "status": {
+      "enum": ["failed", "qualification_candidate", "human_assisted_review_passed", "default_candidate"]
+    },
+    "derived_lifecycle": {
+      "enum": [
+        "full_replay_passed", "qualification_candidate",
+        "human_assisted_review_passed", "default_candidate"
+      ]
+    },
+    "new_problem_default_enabled": {"const": false},
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline_model_quality", "treatment_model_quality", "model_quality_gain",
+        "baseline_paper_quality", "treatment_paper_quality", "paper_quality_gain",
+        "baseline_executable_rate", "treatment_executable_rate",
+        "baseline_manual_revision_minutes", "treatment_manual_revision_minutes",
+        "revision_time_reduction_ratio", "baseline_overclaim_rate", "treatment_overclaim_rate",
+        "cases_with_combined_quality_gain"
+      ],
+      "properties": {
+        "baseline_model_quality": {"type": "number"},
+        "treatment_model_quality": {"type": "number"},
+        "model_quality_gain": {"type": "number"},
+        "baseline_paper_quality": {"type": "number"},
+        "treatment_paper_quality": {"type": "number"},
+        "paper_quality_gain": {"type": "number"},
+        "baseline_executable_rate": {"type": "number"},
+        "treatment_executable_rate": {"type": "number"},
+        "baseline_manual_revision_minutes": {"type": "number"},
+        "treatment_manual_revision_minutes": {"type": "number"},
+        "revision_time_reduction_ratio": {"type": "number"},
+        "baseline_overclaim_rate": {"type": "number"},
+        "treatment_overclaim_rate": {"type": "number"},
+        "cases_with_combined_quality_gain": {"type": "integer", "minimum": 0, "maximum": 6}
+      }
+    },
+    "fatal_codes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^QF_[A-Z0-9_]+$"}
+    },
+    "gaps": {"type": "array", "items": {"type": "string"}},
+    "review_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_count", "distinct_human_reviewers", "ai_record_count",
+        "all_signatures_valid", "human_decision_attested", "ai_record_only_attested",
+        "arm_blind_attested"
+      ],
+      "properties": {
+        "review_count": {"type": "integer", "minimum": 0},
+        "distinct_human_reviewers": {"type": "integer", "minimum": 0},
+        "ai_record_count": {"type": "integer", "minimum": 0},
+        "all_signatures_valid": {"type": "boolean"},
+        "human_decision_attested": {"type": "boolean"},
+        "ai_record_only_attested": {"type": "boolean"},
+        "arm_blind_attested": {"type": "boolean"}
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}
