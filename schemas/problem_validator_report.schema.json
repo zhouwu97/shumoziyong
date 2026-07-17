@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/problem_validator_report.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "validator_id", "validator_version", "problem_id",
+    "run_id", "subproblem_ids", "official_materials", "decision_variables", "objective_recomputation",
+    "hard_constraint_recomputation", "unit_checks", "bound_checks", "required_outputs",
+    "random_checks", "candidate_self_attested", "independent_execution", "status",
+    "failure_codes"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "problem_validator_report_v1"},
+    "validator_id": {"type": "string", "minLength": 1},
+    "validator_version": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "subproblem_ids": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^Q[1-9][0-9]*$"}
+    },
+    "official_materials": {"$ref": "#/$defs/fileRef"},
+    "decision_variables": {"$ref": "#/$defs/fileRef"},
+    "objective_recomputation": {"$ref": "#/$defs/checkGroup"},
+    "hard_constraint_recomputation": {"$ref": "#/$defs/checkGroup"},
+    "unit_checks": {"$ref": "#/$defs/checkGroup"},
+    "bound_checks": {"$ref": "#/$defs/checkGroup"},
+    "required_outputs": {
+      "type": "array", "minItems": 1,
+      "items": {"$ref": "#/$defs/fileRef"}
+    },
+    "random_checks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["seed", "sample_count", "samples_hash", "passed"],
+      "properties": {
+        "seed": {"type": "integer", "minimum": 0},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "samples_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "passed": {"const": true}
+      }
+    },
+    "candidate_self_attested": {"const": false},
+    "independent_execution": {"const": true},
+    "status": {"enum": ["passed", "failed"]},
+    "failure_codes": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^PVR_[A-Z0-9_]+$"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {"properties": {"failure_codes": {"maxItems": 0}}}
+    }
+  ],
+  "$defs": {
+    "fileRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "checkGroup": {
+      "type": "object", "additionalProperties": false,
+      "required": ["checks", "passed"],
+      "properties": {
+        "checks": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["check_id", "expression", "observed", "expected", "unit", "passed"],
+            "properties": {
+              "check_id": {"type": "string", "minLength": 1},
+              "expression": {"type": "string", "minLength": 1},
+              "observed": {},
+              "expected": {},
+              "unit": {"type": "string", "minLength": 1},
+              "passed": {"type": "boolean"}
+            }
+          }
+        },
+        "passed": {"const": true}
+      }
+    }
+  }
+}

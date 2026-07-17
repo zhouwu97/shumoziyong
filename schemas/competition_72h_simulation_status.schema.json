@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_72h_simulation_status.schema.json",
+  "title": "Competition Production 72 小时模拟赛当前状态",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_id", "status", "default_candidate_eligible", "reason"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "protocol_id": {"const": "competition_72h_simulation_v1"},
+    "status": {"const": "not_run"},
+    "default_candidate_eligible": {"const": false},
+    "reason": {"type": "string", "minLength": 1}
+  }
+}

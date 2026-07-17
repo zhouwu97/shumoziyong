@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_id": "competition_72h_simulation_v1",
+  "status": "not_run",
+  "default_candidate_eligible": false,
+  "reason": "尚未执行由人工观察并签名确认的完整 72 小时模拟赛。"
+}

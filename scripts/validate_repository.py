@@ -1537,10 +1537,19 @@ class RepositoryValidator:
             "score_v3_ratings.schema.json",
             "score_v3.schema.json",
             "route_contract_dispatch.schema.json",
-            "competition_full_replay_campaign.schema.json",
-            "competition_full_replay_manifest.schema.json",
+            "competition_integration_fixture_campaign.schema.json",
+            "competition_integration_fixture_manifest.schema.json",
             "competition_full_replay_run_record.schema.json",
-            "competition_full_replay_report.schema.json",
+            "competition_integration_fixture_report.schema.json",
+            "competition_full_replay_acceptance.schema.json",
+            "competition_full_replay_acceptance_manifest.schema.json",
+            "competition_full_replay_acceptance_report.schema.json",
+            "problem_replay_requirements_registry.schema.json",
+            "problem_semantics_registry.schema.json",
+            "paper_semantic_map.schema.json",
+            "paper_semantic_report.schema.json",
+            "problem_validator_registry.schema.json",
+            "problem_validator_report.schema.json",
             "competition_qualification_protocol.schema.json",
             "competition_qualification_authority_registry.schema.json",
             "competition_qualification_evidence.schema.json",
@@ -1549,6 +1558,15 @@ class RepositoryValidator:
             "competition_qualification_authority_registry_v2.schema.json",
             "competition_qualification_evidence_v2.schema.json",
             "competition_qualification_report_v2.schema.json",
+            "competition_qualification_protocol_v3.schema.json",
+            "competition_qualification_authority_registry_v3.schema.json",
+            "competition_qualification_evidence_v3.schema.json",
+            "competition_qualification_report_v3.schema.json",
+            "competition_72h_simulation_protocol.schema.json",
+            "competition_72h_simulation_authority_registry.schema.json",
+            "competition_72h_simulation_evidence.schema.json",
+            "competition_72h_simulation_report.schema.json",
+            "competition_72h_simulation_status.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1669,6 +1687,7 @@ class RepositoryValidator:
         lifecycle = capability.get("lifecycle")
         allowed_lifecycles = {
             "review_ready",
+            "integration_fixture_campaign_passed",
             "full_replay_passed",
             "qualification_candidate",
             "blind_review_passed",
@@ -1683,7 +1702,7 @@ class RepositoryValidator:
             self.fail("Competition Production 晋级前只允许显式 full_replay")
         elif capability.get("new_problem_default_enabled") is True and lifecycle != "default_candidate":
             self.fail("只有 default_candidate 才可能启用 new_problem 默认能力")
-        elif lifecycle == "full_replay_passed":
+        elif lifecycle == "integration_fixture_campaign_passed":
             evidence = capability.get("promotion_evidence", {})
             report_path = ROOT / str(evidence.get("path", ""))
             report = self.load_json(str(evidence.get("path", "")))
@@ -1692,8 +1711,8 @@ class RepositoryValidator:
                 return
             report_valid = self.validate_schema(
                 report,
-                "competition_full_replay_report.schema.json",
-                "Competition Production full_replay 晋级报告",
+                "competition_integration_fixture_report.schema.json",
+                "Competition Production 集成 fixture 证据报告",
             )
             if not report_valid:
                 return
@@ -1701,10 +1720,33 @@ class RepositoryValidator:
                 self.fail("Competition Production 晋级报告哈希漂移")
             elif report.get("status") != "passed" or report.get(
                 "derived_lifecycle"
-            ) != "full_replay_passed":
-                self.fail("Competition Production 晋级报告未证明 full_replay_passed")
+            ) != "integration_fixture_campaign_passed":
+                self.fail("Competition Production 报告未证明 integration_fixture_campaign_passed")
             elif report.get("new_problem_default_enabled") is not False:
                 self.fail("Competition Production 晋级报告错误启用 new_problem")
+            else:
+                self.pass_("Competition Production integration_fixture_campaign_passed 证据闭包")
+        elif lifecycle == "full_replay_passed":
+            evidence = capability.get("promotion_evidence", {})
+            report_path = ROOT / str(evidence.get("path", ""))
+            report = self.load_json(str(evidence.get("path", "")))
+            actual_sha = self.sha256_lf_text(report_path) if report_path.is_file() else None
+            if report is None:
+                return
+            if not self.validate_schema(
+                report,
+                "competition_full_replay_acceptance_report.schema.json",
+                "Competition Production 完整官方旧题回放准入报告",
+            ):
+                return
+            if actual_sha != evidence.get("sha256"):
+                self.fail("Competition Production 完整回放报告哈希漂移")
+            elif report.get("status") != "passed" or report.get(
+                "derived_lifecycle"
+            ) != "full_replay_passed":
+                self.fail("Competition Production 完整回放报告未证明 full_replay_passed")
+            elif report.get("new_problem_default_enabled") is not False:
+                self.fail("Competition Production 完整回放报告错误启用 new_problem")
             else:
                 self.pass_("Competition Production full_replay_passed 证据闭包")
         else:
@@ -1719,40 +1761,71 @@ class RepositoryValidator:
             elif not self.validate_schema(
                 report,
                 (
-                    "competition_qualification_report_v2.schema.json"
-                    if str(qualification_ref.get("path", "")).endswith("_v2.json")
-                    else "competition_qualification_report.schema.json"
+                    "competition_qualification_report_v3.schema.json"
+                    if str(qualification_ref.get("path", "")).endswith("_v3.json")
+                    else (
+                        "competition_qualification_report_v2.schema.json"
+                        if str(qualification_ref.get("path", "")).endswith("_v2.json")
+                        else "competition_qualification_report.schema.json"
+                    )
                 ),
                 "Competition Production 资格晋级报告",
             ):
                 return
             elif actual_sha != qualification_ref.get("sha256"):
                 self.fail("Competition Production 资格报告哈希漂移")
-            elif report.get("derived_lifecycle") != lifecycle or report.get("status") != lifecycle:
+            elif report.get("derived_lifecycle") != (
+                "blind_review_passed" if lifecycle == "default_candidate" else lifecycle
+            ) or report.get("status") != (
+                "blind_review_passed" if lifecycle == "default_candidate" else lifecycle
+            ):
                 self.fail("Competition Production 资格报告与登记生命周期不一致")
             elif report.get("new_problem_default_enabled") is not False:
                 self.fail("资格报告不得自行启用 new_problem 默认能力")
+            elif lifecycle == "default_candidate":
+                simulation_ref = capability.get("simulation_evidence", {})
+                simulation_path = ROOT / str(simulation_ref.get("path", ""))
+                simulation_report = self.load_json(str(simulation_ref.get("path", "")))
+                simulation_sha = (
+                    self.sha256_lf_text(simulation_path)
+                    if simulation_path.is_file()
+                    else None
+                )
+                if simulation_report is None:
+                    self.fail("default_candidate 缺少 72 小时模拟赛报告")
+                elif not self.validate_schema(
+                    simulation_report,
+                    "competition_72h_simulation_report.schema.json",
+                    "Competition Production 72 小时模拟赛报告",
+                ):
+                    return
+                elif simulation_sha != simulation_ref.get("sha256"):
+                    self.fail("72 小时模拟赛报告哈希漂移")
+                elif simulation_report.get("status") != "competition_72h_simulation_passed":
+                    self.fail("72 小时模拟赛报告未证明通过")
+                else:
+                    self.pass_("Competition Production default_candidate 双证据闭包")
             else:
                 self.pass_(f"Competition Production {lifecycle} 资格证据闭包")
 
-    def validate_full_replay_campaign_contract(self) -> None:
+    def validate_integration_fixture_campaign_contract(self) -> None:
         contract = self.load_json(
-            "runtime_contracts/competition_full_replay_campaign_v1.json"
+            "runtime_contracts/competition_integration_fixture_campaign_v1.json"
         )
         manifest = self.load_json(
-            "capability_evidence/competition_production/full_replay/campaign_manifest_v1.json"
+            "capability_evidence/competition_production/integration_fixture/campaign_manifest_v1.json"
         )
         if contract is None or manifest is None:
             return
         contract_valid = self.validate_schema(
             contract,
-            "competition_full_replay_campaign.schema.json",
-            "Competition Production full_replay Campaign 合同",
+            "competition_integration_fixture_campaign.schema.json",
+            "Competition Production 集成 fixture Campaign 合同",
         )
         manifest_valid = self.validate_schema(
             manifest,
-            "competition_full_replay_manifest.schema.json",
-            "Competition Production full_replay Campaign 索引",
+            "competition_integration_fixture_manifest.schema.json",
+            "Competition Production 集成 fixture Campaign 索引",
         )
         if not contract_valid or not manifest_valid:
             return
@@ -1770,26 +1843,117 @@ class RepositoryValidator:
             else None
         )
         expected_contract_ref = {
-            "path": "runtime_contracts/competition_full_replay_campaign_v1.json",
+            "path": "runtime_contracts/competition_integration_fixture_campaign_v1.json",
             "sha256": hashlib.sha256(
-                (ROOT / "runtime_contracts/competition_full_replay_campaign_v1.json").read_bytes()
+                (ROOT / "runtime_contracts/competition_integration_fixture_campaign_v1.json").read_bytes()
             ).hexdigest(),
         }
         if contract_problems != expected_problems or manifest_problems != expected_problems:
-            self.fail("full_replay Campaign 未恰好覆盖固定五题")
+            self.fail("集成 fixture Campaign 未恰好覆盖固定五题")
         elif len(run_ids) != len(set(run_ids)):
-            self.fail("full_replay Campaign 的五个 Run ID 不唯一")
+            self.fail("集成 fixture Campaign 的五个 Run ID 不唯一")
         elif manifest.get("contract") != expected_contract_ref:
-            self.fail("full_replay Campaign 索引未绑定当前合同哈希")
+            self.fail("集成 fixture Campaign 索引未绑定当前合同哈希")
         elif actual_plugin_sha != plugin.get("sha256"):
-            self.fail("full_replay Campaign 合同中的 Adapter 哈希漂移")
+            self.fail("集成 fixture Campaign 合同中的 Adapter 哈希漂移")
         elif contract.get("new_problem_default_enabled") is not False:
-            self.fail("full_replay Campaign 不得启用 new_problem 默认能力")
+            self.fail("集成 fixture Campaign 不得启用 new_problem 默认能力")
         else:
-            self.pass_("full_replay Campaign 固定题集、唯一 Run 与 Adapter 哈希闭包")
+            self.pass_("集成 fixture Campaign 固定题集、唯一 Run 与 Adapter 哈希闭包")
+
+    def validate_full_replay_acceptance_contract(self) -> None:
+        contract = self.load_json(
+            "runtime_contracts/competition_full_replay_acceptance_v1.json"
+        )
+        if contract is None:
+            return
+        if self.validate_schema(
+            contract,
+            "competition_full_replay_acceptance.schema.json",
+            "Competition Production 完整官方旧题回放准入合同",
+        ):
+            self.pass_("完整回放要求官方全材料、逐问复算、题目专用 Validator 与完整论文")
+
+    def validate_problem_semantics_registry(self) -> None:
+        registry = self.load_json("runtime_contracts/problem_semantics_registry_v1.json")
+        if registry is None:
+            return
+        if not self.validate_schema(
+            registry,
+            "problem_semantics_registry.schema.json",
+            "题目论文语义注册表",
+        ):
+            return
+        problems = registry.get("problems", [])
+        problem_ids = [item.get("problem_id") for item in problems]
+        expected = {"2016-C", "2023-B", "2024-B", "2024-C", "2024-D"}
+        sections = set(registry.get("required_section_aliases", {}))
+        acceptance = self.load_json(
+            "runtime_contracts/competition_full_replay_acceptance_v1.json"
+        )
+        if acceptance is None:
+            return
+        required_sections = set(
+            acceptance.get("paper_requirements", {}).get("required_sections", [])
+        )
+        if len(problem_ids) != len(set(problem_ids)) or set(problem_ids) != expected:
+            self.fail("题目论文语义注册表未唯一覆盖固定五题")
+        elif sections != required_sections:
+            self.fail("题目论文语义章节与完整回放合同不一致")
+        else:
+            self.pass_("题目论文语义实体、禁入主题、逐问绑定与正式章节闭包")
+
+    def validate_problem_validator_registry(self) -> None:
+        registry = self.load_json("runtime_contracts/problem_validator_registry_v1.json")
+        if registry is None:
+            return
+        if not self.validate_schema(
+            registry,
+            "problem_validator_registry.schema.json",
+            "题目专用 Validator 注册表",
+        ):
+            return
+        entries = registry.get("validators", [])
+        problem_ids = [item.get("problem_id") for item in entries]
+        expected = {"2016-C", "2023-B", "2024-B", "2024-C", "2024-D"}
+        hashes_valid = True
+        for entry in entries:
+            module_path = ROOT / str(entry.get("module_path", ""))
+            if not module_path.is_file() or hashlib.sha256(module_path.read_bytes()).hexdigest() != entry.get("module_sha256"):
+                hashes_valid = False
+                break
+        if len(problem_ids) != len(set(problem_ids)) or set(problem_ids) != expected:
+            self.fail("题目专用 Validator 注册表未唯一覆盖固定五题")
+        elif not hashes_valid:
+            self.fail("题目专用 Validator 模块缺失或哈希漂移")
+        else:
+            active_count = sum(item.get("status") == "active" for item in entries)
+            self.pass_(
+                f"五题 Validator 注册与哈希闭包（active={active_count}/5；其余失败关闭）"
+            )
+
+    def validate_problem_replay_requirements(self) -> None:
+        registry = self.load_json(
+            "runtime_contracts/problem_replay_requirements_registry_v1.json"
+        )
+        if registry is None:
+            return
+        if not self.validate_schema(
+            registry,
+            "problem_replay_requirements_registry.schema.json",
+            "完整回放逐题输出要求注册表",
+        ):
+            return
+        entries = registry.get("problems", [])
+        problem_ids = [item.get("problem_id") for item in entries]
+        expected = {"2016-C", "2023-B", "2024-B", "2024-C", "2024-D"}
+        if len(problem_ids) != len(set(problem_ids)) or set(problem_ids) != expected:
+            self.fail("完整回放输出要求未唯一覆盖固定五题")
+        else:
+            self.pass_("完整回放逐题子问题与附件输出要求闭包")
 
     def validate_competition_qualification_contract(self) -> None:
-        """验证历史双人工协议与当前人工主导 AI 记录协议。"""
+        """验证历史协议、单人工辅助协议与可信双外部人工协议。"""
         expected_slots = ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06"]
         expected_metrics = {
             "model_quality",
@@ -1816,6 +1980,15 @@ class RepositoryValidator:
                 "competition_qualification_authority_registry_v2.schema.json",
                 1,
                 "human_qualification_owner",
+            ),
+            (
+                "v3",
+                "runtime_contracts/competition_qualification_protocol_v3.json",
+                "policies/competition_qualification_authorities_v3.json",
+                "competition_qualification_protocol_v3.schema.json",
+                "competition_qualification_authority_registry_v3.schema.json",
+                2,
+                "external_human_reviewer",
             ),
         )
         for (
@@ -1849,24 +2022,61 @@ class RepositoryValidator:
                 self.fail(f"资格协议 {version} 未覆盖固定五项基线对比指标")
             elif protocol.get("blinding", {}).get("reviewers_per_package") != reviewers_per_package:
                 self.fail(f"资格协议 {version} 的每包人工决定数不符合冻结值")
-            elif version == "v2" and (
+            elif version in {"v2", "v3"} and (
                 protocol.get("blinding", {}).get("ai_decision_authority") is not False
                 or protocol.get("blinding", {}).get("human_decision_required") is not True
             ):
-                self.fail("资格协议 v2 未冻结人工决策、AI 仅记录边界")
+                self.fail(f"资格协议 {version} 未冻结人工决策、AI 仅记录边界")
             elif registry.get("status") == "unconfigured" and registry.get("keys") == []:
                 self.pass_(f"资格协议 {version} 已预注册；人工公钥尚未配置，生命周期保持不晋级")
             elif registry.get("status") == "active":
                 roles = [item.get("role") for item in registry.get("keys", [])]
-                minimum = 2 if version == "v1" else 1
+                minimum = 2 if version in {"v1", "v3"} else 1
                 if roles.count(required_role) < minimum:
                     self.fail(f"active 资格公钥注册表 {version} 缺少所需人工角色")
                 elif version == "v1" and roles.count("qualification_coordinator") < 1:
                     self.fail("active 资格公钥注册表 v1 缺少资格协调员")
+                elif version == "v3" and roles.count("independent_coordinator") < 1:
+                    self.fail("active 资格公钥注册表 v3 缺少独立协调员")
                 else:
                     self.pass_(f"资格协议 {version} 与人工公钥信任边界")
             else:
                 self.fail(f"资格评审公钥注册表 {version} 状态非法")
+
+    def validate_competition_72h_simulation_contract(self) -> None:
+        """验证 72 小时模拟赛预注册协议和未运行事实状态。"""
+        protocol = self.load_json(
+            "runtime_contracts/competition_72h_simulation_protocol_v1.json"
+        )
+        registry = self.load_json(
+            "policies/competition_72h_simulation_authorities_v1.json"
+        )
+        status = self.load_json(
+            "capability_evidence/competition_production/simulation/status_v1.json"
+        )
+        if protocol is None or registry is None or status is None:
+            return
+        valid = self.validate_schema(
+            protocol,
+            "competition_72h_simulation_protocol.schema.json",
+            "Competition Production 72 小时模拟赛协议",
+        )
+        valid = self.validate_schema(
+            registry,
+            "competition_72h_simulation_authority_registry.schema.json",
+            "Competition Production 72 小时模拟赛人工公钥注册表",
+        ) and valid
+        valid = self.validate_schema(
+            status,
+            "competition_72h_simulation_status.schema.json",
+            "Competition Production 72 小时模拟赛当前状态",
+        ) and valid
+        if not valid:
+            return
+        if registry.get("status") == "unconfigured" and status.get("status") == "not_run":
+            self.pass_("72 小时模拟赛已预注册，当前如实保持 not_run 且不可晋级")
+        else:
+            self.fail("72 小时模拟赛当前仓库状态与未配置人工观察员事实不一致")
 
     def validate_template_registry(self) -> None:
         registry = self.load_json("runtime_contracts/template_source_manifest_v1.json")
@@ -1916,8 +2126,13 @@ class RepositoryValidator:
         self.validate_route_contract_dispatch()
         self.validate_score_v3_policy()
         self.validate_competition_production_capability()
-        self.validate_full_replay_campaign_contract()
+        self.validate_integration_fixture_campaign_contract()
+        self.validate_full_replay_acceptance_contract()
+        self.validate_problem_semantics_registry()
+        self.validate_problem_validator_registry()
+        self.validate_problem_replay_requirements()
         self.validate_competition_qualification_contract()
+        self.validate_competition_72h_simulation_contract()
         self.validate_template_registry()
         for message in self.passes:
             print(f"[PASS] {message}")

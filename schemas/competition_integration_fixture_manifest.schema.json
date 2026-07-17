@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://shumo.local/schemas/competition_full_replay_manifest.schema.json",
-  "title": "多题 full_replay Campaign 本地运行索引",
+  "$id": "https://shumo.local/schemas/competition_integration_fixture_manifest.schema.json",
+  "title": "多题集成 fixture Campaign 本地运行索引",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "campaign_id", "contract", "runs"],

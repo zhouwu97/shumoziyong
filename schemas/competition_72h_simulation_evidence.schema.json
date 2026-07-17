@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_72h_simulation_evidence.schema.json",
+  "title": "Competition Production 72 小时模拟赛证据",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "simulation_id", "protocol_ref", "authority_registry_ref", "source_qualification_ref", "started_at", "completed_at", "official_problem_complete", "all_official_attachments_included", "stages", "timing", "artifacts", "formal_validation_passed", "problem_validator_passed", "ai_recorder", "observer_attestation"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "simulation_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"},
+    "protocol_ref": {"$ref": "#/$defs/file_ref"},
+    "authority_registry_ref": {"$ref": "#/$defs/file_ref"},
+    "source_qualification_ref": {"allOf": [{"$ref": "#/$defs/file_ref"}, {"type": "object", "required": ["derived_lifecycle"], "properties": {"derived_lifecycle": {"const": "blind_review_passed"}}}]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "official_problem_complete": {"const": true},
+    "all_official_attachments_included": {"const": true},
+    "stages": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "#/$defs/stage"}},
+    "timing": {"$ref": "#/$defs/timing"},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paper_pdf", "final_excel", "appendix", "submission_bundle", "final_validation_report"],
+      "properties": {
+        "paper_pdf": {"$ref": "#/$defs/file_ref"},
+        "final_excel": {"$ref": "#/$defs/file_ref"},
+        "appendix": {"$ref": "#/$defs/file_ref"},
+        "submission_bundle": {"$ref": "#/$defs/file_ref"},
+        "final_validation_report": {"$ref": "#/$defs/file_ref"}
+      }
+    },
+    "formal_validation_passed": {"const": true},
+    "problem_validator_passed": {"const": true},
+    "ai_recorder": {"$ref": "#/$defs/ai_recorder"},
+    "observer_attestation": {"$ref": "#/$defs/observer_attestation"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "derived_lifecycle": {"type": "string"}
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage_id", "started_at", "completed_at", "human_minutes", "ai_minutes", "audit_minutes", "completed"],
+      "properties": {
+        "stage_id": {"enum": ["problem_selection", "material_ingestion", "modeling", "code_execution", "figure_generation", "paper_completion", "submission_artifacts", "final_validation"]},
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "human_minutes": {"type": "number", "minimum": 0},
+        "ai_minutes": {"type": "number", "minimum": 0},
+        "audit_minutes": {"type": "number", "minimum": 0},
+        "completed": {"const": true}
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_work_minutes", "audit_process_minutes", "human_revision_minutes", "interruption_minutes"],
+      "properties": {
+        "active_work_minutes": {"type": "number", "exclusiveMinimum": 0},
+        "audit_process_minutes": {"type": "number", "minimum": 0},
+        "human_revision_minutes": {"type": "number", "minimum": 0},
+        "interruption_minutes": {"type": "number", "minimum": 0}
+      }
+    },
+    "ai_recorder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "model_version", "session_id", "transcript_sha256", "started_at", "completed_at", "decision_authority"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1},
+        "session_id": {"type": "string", "minLength": 1},
+        "transcript_sha256": {"$ref": "#/$defs/sha256"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "decision_authority": {"const": false}
+      }
+    },
+    "observer_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observer_key_id", "evidence_digest", "continuous_simulation_confirmed", "all_stages_observed", "final_artifacts_opened_and_verified", "human_final_decision_confirmed", "ai_decision_authority", "signed_at", "signature_algorithm", "signature"],
+      "properties": {
+        "observer_key_id": {"type": "string", "minLength": 1},
+        "evidence_digest": {"$ref": "#/$defs/sha256"},
+        "continuous_simulation_confirmed": {"const": true},
+        "all_stages_observed": {"const": true},
+        "final_artifacts_opened_and_verified": {"const": true},
+        "human_final_decision_confirmed": {"const": true},
+        "ai_decision_authority": {"const": false},
+        "signed_at": {"type": "string", "format": "date-time"},
+        "signature_algorithm": {"const": "RSASSA-PKCS1-v1_5-SHA256"},
+        "signature": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

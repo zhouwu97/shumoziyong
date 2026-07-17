@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import validate_full_replay_campaign as campaign  # noqa: E402
+import validate_integration_fixture_campaign as campaign  # noqa: E402
 from export_runtime_pack import build_manifest, build_pack  # noqa: E402
 
 
@@ -145,7 +145,7 @@ def _campaign_manifest(workspace: Path) -> Path:
         "schema_version": "1.0.0",
         "campaign_id": "competition-production-pr7-20260717",
         "contract": {
-            "path": "runtime_contracts/competition_full_replay_campaign_v1.json",
+            "path": "runtime_contracts/competition_integration_fixture_campaign_v1.json",
             "sha256": _sha(campaign.CONTRACT_PATH),
         },
         "runs": [_make_run(workspace, problem_id, key) for problem_id, key in PROBLEMS.items()],
@@ -168,23 +168,23 @@ def _stub_deep_validators(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_campaign_contract_freezes_problem_set_and_lifecycle() -> None:
     contract = json.loads(campaign.CONTRACT_PATH.read_text(encoding="utf-8"))
     schema = json.loads(
-        (ROOT / "schemas" / "competition_full_replay_campaign.schema.json").read_text(encoding="utf-8")
+        (ROOT / "schemas" / "competition_integration_fixture_campaign.schema.json").read_text(encoding="utf-8")
     )
     assert not list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(contract))
     assert {item["problem_id"] for item in contract["required_problems"]} == set(PROBLEMS)
     assert contract["current_lifecycle"] == "review_ready"
-    assert contract["target_lifecycle"] == "full_replay_passed"
+    assert contract["target_lifecycle"] == "integration_fixture_campaign_passed"
     assert contract["new_problem_default_enabled"] is False
 
 
-def test_five_verified_runs_derive_full_replay_passed(
+def test_five_verified_runs_only_derive_integration_fixture_campaign_passed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _stub_deep_validators(monkeypatch)
     manifest_path = _campaign_manifest(tmp_path)
     report = campaign.evaluate_campaign(manifest_path, tmp_path, tmp_path)
     assert report["status"] == "passed"
-    assert report["derived_lifecycle"] == "full_replay_passed"
+    assert report["derived_lifecycle"] == "integration_fixture_campaign_passed"
     assert report["metrics"] == {
         "problem_count": 5,
         "passed_problem_count": 5,

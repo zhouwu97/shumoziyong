@@ -1,18 +1,19 @@
 {
   "schema_version": "1.0.0",
-  "contract_id": "competition_full_replay_campaign_v1",
+  "contract_id": "competition_integration_fixture_campaign_v1",
   "capability_id": "competition_production_v1",
   "activation_context": "full_replay",
   "lifecycle_path": [
     "draft",
     "review_ready",
+    "integration_fixture_campaign_passed",
     "full_replay_passed",
     "qualification_candidate",
     "blind_review_passed",
     "default_candidate"
   ],
   "current_lifecycle": "review_ready",
-  "target_lifecycle": "full_replay_passed",
+  "target_lifecycle": "integration_fixture_campaign_passed",
   "new_problem_default_enabled": false,
   "earliest_run_created_at": "2026-07-17T00:00:00+08:00",
   "required_problems": [
@@ -33,6 +34,8 @@
     "paper_candidate_manifest.json"
   ],
   "pass_policy": {
+    "evidence_scope": "synthetic_or_simplified_integration_fixture_only",
+    "full_replay_claim_forbidden": true,
     "require_all_problems": true,
     "require_all_subproblems": true,
     "require_gate3_allow_paper": true,

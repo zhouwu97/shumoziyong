@@ -21,9 +21,9 @@ from formal_result.hashing import file_sha256, semantic_sha256
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL_PATH = ROOT / "runtime_contracts" / "competition_qualification_protocol_v2.json"
+PROTOCOL_PATH = ROOT / "runtime_contracts" / "competition_qualification_protocol_v3.json"
 AUTHORITY_REGISTRY_PATH = (
-    ROOT / "policies" / "competition_qualification_authorities_v2.json"
+    ROOT / "policies" / "competition_qualification_authorities_v3.json"
 )
 SHA256_DIGEST_INFO_PREFIX = bytes.fromhex("3031300d060960864801650304020105000420")
 
@@ -41,6 +41,7 @@ QUALIFICATION_SPECS: dict[str, dict[str, Any]] = {
         "passed_lifecycle": "blind_review_passed",
         "report_schema_version": "1.0.0",
         "human_assisted": False,
+        "allow_default_candidate": True,
     },
     "competition_qualification_v2": {
         "protocol_schema": "competition_qualification_protocol_v2.schema.json",
@@ -55,6 +56,22 @@ QUALIFICATION_SPECS: dict[str, dict[str, Any]] = {
         "passed_lifecycle": "human_assisted_review_passed",
         "report_schema_version": "2.0.0",
         "human_assisted": True,
+        "allow_default_candidate": False,
+    },
+    "competition_qualification_v3": {
+        "protocol_schema": "competition_qualification_protocol_v3.schema.json",
+        "authority_schema": "competition_qualification_authority_registry_v3.schema.json",
+        "evidence_schema": "competition_qualification_evidence_v3.schema.json",
+        "report_schema": "competition_qualification_report_v3.schema.json",
+        "protocol_path": "runtime_contracts/competition_qualification_protocol_v3.json",
+        "authority_path": "policies/competition_qualification_authorities_v3.json",
+        "review_field": "human_assisted_reviews",
+        "authority_role": "external_human_reviewer",
+        "coordinator_role": "independent_coordinator",
+        "passed_lifecycle": "blind_review_passed",
+        "report_schema_version": "3.0.0",
+        "human_assisted": True,
+        "allow_default_candidate": False,
     },
 }
 
@@ -604,7 +621,11 @@ def validate_qualification(
             status = str(spec["passed_lifecycle"])
 
     approval = evidence.get("promotion_approval")
-    if status == str(spec["passed_lifecycle"]) and isinstance(approval, Mapping):
+    if (
+        bool(spec["allow_default_candidate"])
+        and status == str(spec["passed_lifecycle"])
+        and isinstance(approval, Mapping)
+    ):
         approved_at = _parse_time(str(approval["approved_at"]), "promotion_approval.approved_at")
         approval_key = _active_key(
             keys,
@@ -624,7 +645,12 @@ def validate_qualification(
         derived_lifecycle = "default_candidate"
         status = "default_candidate"
     elif status == str(spec["passed_lifecycle"]):
-        gaps.append("尚缺单独签署的 default_candidate 人工批准；评测通过不自动启用默认能力")
+        if protocol.get("protocol_id") == "competition_qualification_v3":
+            gaps.append("可信盲评通过；仍须通过独立 72 小时模拟赛才能成为 default_candidate")
+        elif bool(spec["allow_default_candidate"]):
+            gaps.append("尚缺单独签署的 default_candidate 人工批准；评测通过不自动启用默认能力")
+        else:
+            gaps.append("历史或单人工资格证据最多保留当前评测状态，不能产生 default_candidate")
 
     report = {
         "schema_version": str(spec["report_schema_version"]),

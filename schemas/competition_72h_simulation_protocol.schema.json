@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_72h_simulation_protocol.schema.json",
+  "title": "Competition Production 72 小时模拟赛协议",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_id", "capability_id", "state", "source_lifecycle", "maximum_elapsed_hours", "maximum_audit_overhead_ratio", "required_stages", "required_artifacts", "human_authority", "fatal_conditions"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "protocol_id": {"const": "competition_72h_simulation_v1"},
+    "capability_id": {"const": "competition_production_v1"},
+    "state": {"const": "preregistered"},
+    "source_lifecycle": {"const": "blind_review_passed"},
+    "maximum_elapsed_hours": {"const": 72},
+    "maximum_audit_overhead_ratio": {"const": 0.25},
+    "required_stages": {"const": ["problem_selection", "material_ingestion", "modeling", "code_execution", "figure_generation", "paper_completion", "submission_artifacts", "final_validation"]},
+    "required_artifacts": {"const": ["paper_pdf", "final_excel", "appendix", "submission_bundle", "final_validation_report"]},
+    "human_authority": {
+      "const": {"final_validation_required": true, "signature_required": true, "ai_recording_allowed": true, "ai_decision_authority": false}
+    },
+    "fatal_conditions": {"const": ["elapsed_time_over_72h", "missing_stage", "stage_time_order", "incomplete_official_materials", "missing_submission_artifact", "artifact_hash_drift", "formal_validation_failed", "problem_validator_failed", "ai_decision_substitution", "human_attestation_invalid"]}
+  }
+}

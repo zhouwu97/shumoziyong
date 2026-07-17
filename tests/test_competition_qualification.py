@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import random
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Mapping
@@ -29,6 +30,7 @@ from validate_competition_qualification import (  # noqa: E402
     validate_qualification,
 )
 from qualification_signature_payload import attach_signature, signing_payload  # noqa: E402
+import validate_repository as repository_module  # noqa: E402
 
 
 DIGEST_INFO_PREFIX = bytes.fromhex("3031300d060960864801650304020105000420")
@@ -134,6 +136,8 @@ def _fixture(tmp_path: Path) -> tuple[
             encoding="utf-8"
         )
     )
+    # 资格校验器单元测试使用已完成完整回放的隔离源能力；仓库当前能力仍保持降级状态。
+    capability["lifecycle"] = "full_replay_passed"
     protocol_path = tmp_path / "runtime_contracts/competition_qualification_protocol_v1.json"
     capability_path = tmp_path / "runtime_contracts/competition_production_capability_v1.json"
     _write_json(protocol_path, protocol)
@@ -393,6 +397,126 @@ def _human_assisted_fixture(tmp_path: Path) -> tuple[
     return evidence, protocol, registry, private_keys
 
 
+def _trusted_fixture(tmp_path: Path) -> tuple[
+    dict[str, Any], dict[str, Any], dict[str, Any], dict[str, tuple[int, int]]
+]:
+    evidence, _legacy_protocol, legacy_registry, private_keys = _fixture(tmp_path)
+    protocol = json.loads(
+        (ROOT / "runtime_contracts/competition_qualification_protocol_v3.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    protocol_path = tmp_path / "runtime_contracts/competition_qualification_protocol_v3.json"
+    _write_json(protocol_path, protocol)
+
+    role_by_key = {
+        "human-reviewer-a": "external_human_reviewer",
+        "human-reviewer-b": "external_human_reviewer",
+        "qualification-coordinator": "independent_coordinator",
+    }
+    keys = copy.deepcopy(legacy_registry["keys"])
+    for key in keys:
+        key["role"] = role_by_key[key["key_id"]]
+        key["project_external"] = True
+    registry = {
+        "schema_version": "3.0.0",
+        "registry_id": "competition_qualification_authorities_v3",
+        "status": "active",
+        "identity_verification": "out_of_band_human_verification_required",
+        "keys": keys,
+    }
+    registry_path = tmp_path / "policies/competition_qualification_authorities_v3.json"
+    _write_json(registry_path, registry)
+
+    for case in evidence["cases"]:
+        case.update(
+            {
+                "complete_official_problem": True,
+                "all_official_attachments_included": True,
+                "not_used_during_development": True,
+                "runner_answer_isolation": True,
+            }
+        )
+        for arm_name in ("baseline", "treatment"):
+            case[arm_name].update(
+                {
+                    "problem_validator_passed": True,
+                    "complete_paper_generated": True,
+                    "excel_validated": True,
+                    "appendix_validated": True,
+                    "submission_manifest_sha256": hashlib.sha256(
+                        f"{case['case_slot']}-{arm_name}-submission".encode()
+                    ).hexdigest(),
+                }
+            )
+
+    reviews = evidence.pop("blind_reviews")
+    for review in reviews:
+        review.update(
+            {
+                "reviewer_kind": "external_human",
+                "assessment_mode": "human_decision_ai_recorded",
+                "human_decision_confirmed": True,
+                "ai_decision_authority": False,
+                "excel_and_appendix_verified": True,
+                "ai_recorder": {
+                    "record_id": f"{review['review_id']}-record",
+                    "provider": "fixture-provider",
+                    "model": "fixture-recorder",
+                    "model_version": "2026-08-01",
+                    "session_id": f"fixture-{review['review_id']}",
+                    "system_prompt_sha256": hashlib.sha256(b"record-only").hexdigest(),
+                    "transcript_sha256": hashlib.sha256(
+                        f"{review['review_id']}-transcript".encode()
+                    ).hexdigest(),
+                    "record_sha256": hashlib.sha256(
+                        f"{review['review_id']}-record".encode()
+                    ).hexdigest(),
+                    "started_at": "2026-08-01T00:06:10Z",
+                    "completed_at": "2026-08-01T00:06:30Z",
+                    "decision_authority": False,
+                },
+            }
+        )
+        review["signature"] = _sign(
+            {key: value for key, value in review.items() if key != "signature"},
+            private_keys[review["reviewer_key_id"]],
+        )
+    evidence["human_assisted_reviews"] = reviews
+    evidence["schema_version"] = "3.0.0"
+    evidence["campaign_id"] = "trusted-qualification-fixture-v3"
+    evidence["protocol_ref"] = {
+        "path": "runtime_contracts/competition_qualification_protocol_v3.json",
+        "sha256": file_sha256(protocol_path),
+    }
+    evidence["authority_registry_ref"] = {
+        "path": "policies/competition_qualification_authorities_v3.json",
+        "sha256": file_sha256(registry_path),
+    }
+    selection = evidence["selection_attestation"]
+    selection["development_use_excluded"] = True
+    selection["signature"] = _sign(
+        {key: value for key, value in selection.items() if key != "signature"},
+        private_keys["qualification-coordinator"],
+    )
+    attestation = evidence["coordinator_attestation"]
+    attestation.update(
+        {
+            "human_decisions_confirmed": True,
+            "ai_records_bound_to_human_decisions": True,
+            "two_external_reviewers_confirmed": True,
+            "coordinator_independence_confirmed": True,
+            "final_excel_and_appendices_verified": True,
+        }
+    )
+    attestation["campaign_evidence_digest"] = qualification_campaign_digest(evidence)
+    attestation["signature"] = _sign(
+        {key: value for key, value in attestation.items() if key != "signature"},
+        private_keys["qualification-coordinator"],
+    )
+    return evidence, protocol, registry, private_keys
+
+
 def test_qualification_contracts_and_current_registry_are_valid() -> None:
     pairs = [
         (
@@ -410,6 +534,14 @@ def test_qualification_contracts_and_current_registry_are_valid() -> None:
         (
             "competition_qualification_authority_registry_v2.schema.json",
             "policies/competition_qualification_authorities_v2.json",
+        ),
+        (
+            "competition_qualification_protocol_v3.schema.json",
+            "runtime_contracts/competition_qualification_protocol_v3.json",
+        ),
+        (
+            "competition_qualification_authority_registry_v3.schema.json",
+            "policies/competition_qualification_authorities_v3.json",
         ),
     ]
     for schema_name, instance_name in pairs:
@@ -455,6 +587,20 @@ def test_human_assisted_ai_recorded_evidence_passes_without_defaulting(
     }
 
 
+def test_trusted_double_external_human_review_passes_without_defaulting(
+    tmp_path: Path,
+) -> None:
+    evidence, protocol, registry, _private_keys = _trusted_fixture(tmp_path)
+    report = validate_qualification(evidence, protocol, registry, root=tmp_path)
+    assert report["status"] == "blind_review_passed"
+    assert report["derived_lifecycle"] == "blind_review_passed"
+    assert report["new_problem_default_enabled"] is False
+    assert report["review_summary"]["review_count"] == 24
+    assert report["review_summary"]["distinct_human_reviewers"] == 2
+    assert report["review_summary"]["ai_record_count"] == 24
+    assert "72 小时模拟赛" in report["gaps"][-1]
+
+
 def test_human_assisted_ai_cannot_claim_decision_authority(tmp_path: Path) -> None:
     evidence, protocol, registry, _private_keys = _human_assisted_fixture(tmp_path)
     evidence["human_assisted_reviews"][0]["ai_decision_authority"] = True
@@ -484,7 +630,7 @@ def test_human_assisted_score_tampering_breaks_human_signature(tmp_path: Path) -
         validate_qualification(evidence, protocol, registry, root=tmp_path)
 
 
-def test_human_assisted_default_candidate_requires_separate_human_approval(
+def test_single_human_assisted_review_cannot_reach_default_candidate(
     tmp_path: Path,
 ) -> None:
     evidence, protocol, registry, private_keys = _human_assisted_fixture(tmp_path)
@@ -498,9 +644,10 @@ def test_human_assisted_default_candidate_requires_separate_human_approval(
     approval["signature"] = _sign(approval, private_keys["human-qualification-owner"])
     evidence["promotion_approval"] = approval
     report = validate_qualification(evidence, protocol, registry, root=tmp_path)
-    assert report["status"] == "default_candidate"
-    assert report["derived_lifecycle"] == "default_candidate"
+    assert report["status"] == "human_assisted_review_passed"
+    assert report["derived_lifecycle"] == "human_assisted_review_passed"
     assert report["new_problem_default_enabled"] is False
+    assert "不能产生 default_candidate" in report["gaps"][-1]
 
 
 def test_unconfigured_human_owner_registry_cannot_qualify(tmp_path: Path) -> None:
@@ -657,3 +804,144 @@ def test_higher_lifecycle_requires_qualification_report_binding() -> None:
         "capability_evidence/competition_production/qualification/qualification_report_v2.json"
     )
     Draft202012Validator(schema).validate(capability)
+
+
+def test_default_candidate_requires_v3_qualification_and_72h_simulation() -> None:
+    schema = json.loads(
+        (ROOT / "schemas/competition_production_capability.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    capability = json.loads(
+        (ROOT / "runtime_contracts/competition_production_capability_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    capability["lifecycle"] = "default_candidate"
+    capability["qualification_evidence"] = {
+        "path": "capability_evidence/competition_production/qualification/qualification_report_v2.json",
+        "sha256": "c" * 64,
+    }
+    assert list(Draft202012Validator(schema).iter_errors(capability))
+
+    capability["qualification_evidence"]["path"] = (
+        "capability_evidence/competition_production/qualification/qualification_report_v3.json"
+    )
+    capability["simulation_evidence"] = {
+        "path": "capability_evidence/competition_production/simulation/simulation_report_v1.json",
+        "sha256": "d" * 64,
+    }
+    Draft202012Validator(schema).validate(capability)
+
+
+def test_repository_validator_accepts_default_candidate_only_as_composite_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    schema_names = [
+        "competition_production_capability.schema.json",
+        "competition_qualification_report_v3.schema.json",
+        "competition_72h_simulation_report.schema.json",
+    ]
+    for schema_name in schema_names:
+        target = tmp_path / "schemas" / schema_name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / "schemas" / schema_name, target)
+
+    metrics = {
+        "baseline_model_quality": 75,
+        "treatment_model_quality": 85,
+        "model_quality_gain": 10,
+        "baseline_paper_quality": 76,
+        "treatment_paper_quality": 86,
+        "paper_quality_gain": 10,
+        "baseline_executable_rate": 0.5,
+        "treatment_executable_rate": 1.0,
+        "baseline_manual_revision_minutes": 600,
+        "treatment_manual_revision_minutes": 480,
+        "revision_time_reduction_ratio": 0.2,
+        "baseline_overclaim_rate": 0.1,
+        "treatment_overclaim_rate": 0.0,
+        "cases_with_combined_quality_gain": 6,
+    }
+    qualification_report = {
+        "schema_version": "3.0.0",
+        "report_id": "trusted-qualification-report",
+        "campaign_id": "trusted-qualification",
+        "protocol_sha256": "a" * 64,
+        "evidence_sha256": "b" * 64,
+        "status": "blind_review_passed",
+        "derived_lifecycle": "blind_review_passed",
+        "new_problem_default_enabled": False,
+        "metrics": metrics,
+        "fatal_codes": [],
+        "gaps": ["仍须通过独立 72 小时模拟赛"],
+        "review_summary": {
+            "review_count": 24,
+            "distinct_human_reviewers": 2,
+            "ai_record_count": 24,
+            "all_signatures_valid": True,
+            "human_decision_attested": True,
+            "ai_record_only_attested": True,
+            "arm_blind_attested": True,
+        },
+    }
+    qualification_path = (
+        tmp_path
+        / "capability_evidence/competition_production/qualification/qualification_report_v3.json"
+    )
+    _write_json(qualification_path, qualification_report)
+    simulation_report = {
+        "schema_version": "1.0.0",
+        "report_id": "trusted-simulation-report",
+        "simulation_id": "trusted-simulation",
+        "protocol_sha256": "c" * 64,
+        "evidence_sha256": "d" * 64,
+        "status": "competition_72h_simulation_passed",
+        "default_candidate_eligible": True,
+        "elapsed_hours": 68,
+        "audit_overhead_ratio": 0.2,
+        "stage_count": 8,
+        "artifact_count": 5,
+        "human_attested": True,
+        "ai_record_only": True,
+        "fatal_codes": [],
+        "gaps": [],
+    }
+    simulation_path = (
+        tmp_path
+        / "capability_evidence/competition_production/simulation/simulation_report_v1.json"
+    )
+    _write_json(simulation_path, simulation_report)
+    capability = json.loads(
+        (ROOT / "runtime_contracts/competition_production_capability_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    capability.update(
+        {
+            "lifecycle": "default_candidate",
+            "qualification_evidence": {
+                "path": "capability_evidence/competition_production/qualification/qualification_report_v3.json",
+                "sha256": hashlib.sha256(
+                    qualification_path.read_text(encoding="utf-8").encode("utf-8")
+                ).hexdigest(),
+            },
+            "simulation_evidence": {
+                "path": "capability_evidence/competition_production/simulation/simulation_report_v1.json",
+                "sha256": hashlib.sha256(
+                    simulation_path.read_text(encoding="utf-8").encode("utf-8")
+                ).hexdigest(),
+            },
+        }
+    )
+    _write_json(
+        tmp_path / "runtime_contracts/competition_production_capability_v1.json",
+        capability,
+    )
+
+    monkeypatch.setattr(repository_module, "ROOT", tmp_path)
+    monkeypatch.setattr(repository_module, "SCHEMA_DIR", tmp_path / "schemas")
+    validator = repository_module.RepositoryValidator()
+    validator.validate_competition_production_capability()
+    assert validator.failures == []
+    assert "Competition Production default_candidate 双证据闭包" in validator.passes

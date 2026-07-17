@@ -1,12 +1,12 @@
-# Competition Production v1（full_replay_passed）
+# Competition Production v1（integration_fixture_campaign_passed）
 
 本能力只在调用方显式选择 `full_replay` 且 Profile 为 `general`、`engineering_optimization`、`evaluation`
 或 `prediction` 时编译。它不是 `new_problem` 默认能力，也不授予比赛提交资格。
 
-文件名保留 `review_ready` 是为了维持既有 Runtime Pack 路径兼容；能力登记已由五题 Campaign 报告推进至
-`full_replay_passed`。下一阶段默认使用已预注册的 v2 六题隐藏盲测合同：人工负责评分和签名，AI 只记录
-过程并提供哈希。当前 v2 人工资格公钥注册表仍为 `unconfigured`，因此不得登记为
-`qualification_candidate` 或更高状态；历史 v1 双人工合同继续只读兼容。
+文件名保留 `review_ready` 是为了维持既有 Runtime Pack 路径兼容；历史五题只证明简化代理链路能够
+集成运行，因此能力登记为 `integration_fixture_campaign_passed`。只有完整官方材料、逐问题目专用复算、
+全部附件输出和完整题目论文通过后，才允许进入 `full_replay_passed`。资格活动仍从
+`full_replay_passed` 启动，当前不得形成资格结论。
 
 固定链路不得跳步或倒置：
 

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_semantic_report.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "run_id", "problem_id", "status",
+    "failure_codes", "checked_subproblems", "required_entities", "forbidden_entities"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_semantic_report_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["passed", "failed"]},
+    "failure_codes": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^PSM_[A-Z0-9_]+$"}
+    },
+    "checked_subproblems": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "required_entities": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "forbidden_entities": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_full_replay_acceptance.schema.json",
+  "title": "Competition Production 完整官方旧题回放准入合同",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "contract_id", "capability_id", "source_lifecycle",
+    "target_lifecycle", "new_problem_default_enabled", "material_requirements",
+    "execution_requirements", "validator_requirements", "paper_requirements",
+    "promotion_policy"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "contract_id": {"const": "competition_full_replay_acceptance_v1"},
+    "capability_id": {"const": "competition_production_v1"},
+    "source_lifecycle": {"const": "integration_fixture_campaign_passed"},
+    "target_lifecycle": {"const": "full_replay_passed"},
+    "new_problem_default_enabled": {"const": false},
+    "material_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "complete_official_problem_statement", "all_official_attachments",
+        "all_official_output_templates", "source_and_sha256_closure",
+        "answer_or_solution_material_forbidden"
+      ],
+      "properties": {
+        "complete_official_problem_statement": {"const": true},
+        "all_official_attachments": {"const": true},
+        "all_official_output_templates": {"const": true},
+        "source_and_sha256_closure": {"const": true},
+        "answer_or_solution_material_forbidden": {"const": true}
+      }
+    },
+    "execution_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all_original_subproblems", "original_objectives_and_constraints_only",
+        "simplified_proxy_inputs_forbidden", "all_required_tables_and_files",
+        "candidate_self_report_is_not_evidence"
+      ],
+      "properties": {
+        "all_original_subproblems": {"const": true},
+        "original_objectives_and_constraints_only": {"const": true},
+        "simplified_proxy_inputs_forbidden": {"const": true},
+        "all_required_tables_and_files": {"const": true},
+        "candidate_self_report_is_not_evidence": {"const": true}
+      }
+    },
+    "validator_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_specific_validator_required", "independent_from_candidate_executor",
+        "recompute_from_decision_variables", "all_original_subproblems_bound", "fail_closed"
+      ],
+      "properties": {
+        "problem_specific_validator_required": {"const": true},
+        "independent_from_candidate_executor": {"const": true},
+        "recompute_from_decision_variables": {
+          "const": [
+            "objective", "hard_constraints", "units", "bounds",
+            "required_output_attachments", "random_samples_and_seed"
+          ]
+        },
+        "all_original_subproblems_bound": {"const": true},
+        "fail_closed": {"const": true}
+      }
+    },
+    "paper_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "complete_problem_specific_paper", "semantic_chain", "required_sections",
+        "generic_single_formula_candidate_forbidden"
+      ],
+      "properties": {
+        "complete_problem_specific_paper": {"const": true},
+        "semantic_chain": {
+          "const": [
+            "problem", "subproblem", "mathematical_task", "model_formula",
+            "solver_result", "figure_or_table", "conclusion"
+          ]
+        },
+        "required_sections": {
+          "const": [
+            "problem_specific_variable_table", "key_model_derivation",
+            "objective_function", "constraint_groups", "solution_algorithm",
+            "model_validation", "result_figures", "sensitivity_or_error_analysis",
+            "targeted_references"
+          ]
+        },
+        "generic_single_formula_candidate_forbidden": {"const": true}
+      }
+    },
+    "promotion_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all_cases_must_pass", "all_artifact_hashes_bound", "manual_override_forbidden"],
+      "properties": {
+        "all_cases_must_pass": {"const": true},
+        "all_artifact_hashes_bound": {"const": true},
+        "manual_override_forbidden": {"const": true}
+      }
+    }
+  }
+}

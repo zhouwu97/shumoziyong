@@ -151,6 +151,7 @@ output/               生成报告与闭环摘要
 - [Runtime Pack 指南](docs/guides/RUNTIME_PACK_GUIDE.md)、[比赛执行指南](docs/guides/COMPETITION_GUIDE.md)和[Patch 实验指南](docs/guides/PATCH_EXPERIMENT_GUIDE.md)
 - [机器合同](schemas/)、[运行政策](policies/)与[A092 状态](docs/status/A092_STATUS.md)
 - [Competition Production 六题隐藏盲测资格](docs/architecture/COMPETITION_QUALIFICATION.md)
+- [Competition Production 72 小时模拟赛](docs/architecture/COMPETITION_72H_SIMULATION.md)
 - [当前开发安排](docs/status/CURRENT_DEVELOPMENT.md)和[历史/实现报告](docs/reports/)
 
 ## 可信边界
