@@ -1545,6 +1545,10 @@ class RepositoryValidator:
             "competition_qualification_authority_registry.schema.json",
             "competition_qualification_evidence.schema.json",
             "competition_qualification_report.schema.json",
+            "competition_qualification_protocol_v2.schema.json",
+            "competition_qualification_authority_registry_v2.schema.json",
+            "competition_qualification_evidence_v2.schema.json",
+            "competition_qualification_report_v2.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1668,6 +1672,7 @@ class RepositoryValidator:
             "full_replay_passed",
             "qualification_candidate",
             "blind_review_passed",
+            "human_assisted_review_passed",
             "default_candidate",
         }
         if lifecycle not in allowed_lifecycles:
@@ -1713,7 +1718,11 @@ class RepositoryValidator:
                 self.fail("Competition Production 高阶生命周期缺少资格报告")
             elif not self.validate_schema(
                 report,
-                "competition_qualification_report.schema.json",
+                (
+                    "competition_qualification_report_v2.schema.json"
+                    if str(qualification_ref.get("path", "")).endswith("_v2.json")
+                    else "competition_qualification_report.schema.json"
+                ),
                 "Competition Production 资格晋级报告",
             ):
                 return
@@ -1780,27 +1789,7 @@ class RepositoryValidator:
             self.pass_("full_replay Campaign 固定题集、唯一 Run 与 Adapter 哈希闭包")
 
     def validate_competition_qualification_contract(self) -> None:
-        """验证 PR-8 预注册协议和真实人工评审信任边界。"""
-        protocol = self.load_json(
-            "runtime_contracts/competition_qualification_protocol_v1.json"
-        )
-        registry = self.load_json(
-            "policies/competition_qualification_authorities_v1.json"
-        )
-        if protocol is None or registry is None:
-            return
-        protocol_valid = self.validate_schema(
-            protocol,
-            "competition_qualification_protocol.schema.json",
-            "Competition Production 六题隐藏盲测协议",
-        )
-        registry_valid = self.validate_schema(
-            registry,
-            "competition_qualification_authority_registry.schema.json",
-            "Competition Production 资格评审公钥注册表",
-        )
-        if not protocol_valid or not registry_valid:
-            return
+        """验证历史双人工协议与当前人工主导 AI 记录协议。"""
         expected_slots = ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06"]
         expected_metrics = {
             "model_quality",
@@ -1809,22 +1798,75 @@ class RepositoryValidator:
             "manual_revision_minutes",
             "conclusion_overclaim_rate",
         }
-        if protocol.get("case_slots") != expected_slots:
-            self.fail("资格协议未冻结六个唯一隐藏题槽位")
-        elif set(protocol.get("metrics", [])) != expected_metrics:
-            self.fail("资格协议未覆盖固定五项基线对比指标")
-        elif protocol.get("blinding", {}).get("reviewers_per_package") != 2:
-            self.fail("资格协议未要求每个匿名包由两名独立人工评审")
-        elif registry.get("status") == "unconfigured" and registry.get("keys") == []:
-            self.pass_("资格协议已预注册；真实人工评审公钥尚未配置，生命周期保持不晋级")
-        elif registry.get("status") == "active":
-            roles = [item.get("role") for item in registry.get("keys", [])]
-            if roles.count("human_reviewer") < 2 or roles.count("qualification_coordinator") < 1:
-                self.fail("active 资格公钥注册表缺少两名人工评审或资格协调员")
+        variants = (
+            (
+                "v1",
+                "runtime_contracts/competition_qualification_protocol_v1.json",
+                "policies/competition_qualification_authorities_v1.json",
+                "competition_qualification_protocol.schema.json",
+                "competition_qualification_authority_registry.schema.json",
+                2,
+                "human_reviewer",
+            ),
+            (
+                "v2",
+                "runtime_contracts/competition_qualification_protocol_v2.json",
+                "policies/competition_qualification_authorities_v2.json",
+                "competition_qualification_protocol_v2.schema.json",
+                "competition_qualification_authority_registry_v2.schema.json",
+                1,
+                "human_qualification_owner",
+            ),
+        )
+        for (
+            version,
+            protocol_path,
+            registry_path,
+            protocol_schema,
+            registry_schema,
+            reviewers_per_package,
+            required_role,
+        ) in variants:
+            protocol = self.load_json(protocol_path)
+            registry = self.load_json(registry_path)
+            if protocol is None or registry is None:
+                continue
+            protocol_valid = self.validate_schema(
+                protocol,
+                protocol_schema,
+                f"Competition Production 资格协议 {version}",
+            )
+            registry_valid = self.validate_schema(
+                registry,
+                registry_schema,
+                f"Competition Production 资格公钥注册表 {version}",
+            )
+            if not protocol_valid or not registry_valid:
+                continue
+            if protocol.get("case_slots") != expected_slots:
+                self.fail(f"资格协议 {version} 未冻结六个唯一隐藏题槽位")
+            elif set(protocol.get("metrics", [])) != expected_metrics:
+                self.fail(f"资格协议 {version} 未覆盖固定五项基线对比指标")
+            elif protocol.get("blinding", {}).get("reviewers_per_package") != reviewers_per_package:
+                self.fail(f"资格协议 {version} 的每包人工决定数不符合冻结值")
+            elif version == "v2" and (
+                protocol.get("blinding", {}).get("ai_decision_authority") is not False
+                or protocol.get("blinding", {}).get("human_decision_required") is not True
+            ):
+                self.fail("资格协议 v2 未冻结人工决策、AI 仅记录边界")
+            elif registry.get("status") == "unconfigured" and registry.get("keys") == []:
+                self.pass_(f"资格协议 {version} 已预注册；人工公钥尚未配置，生命周期保持不晋级")
+            elif registry.get("status") == "active":
+                roles = [item.get("role") for item in registry.get("keys", [])]
+                minimum = 2 if version == "v1" else 1
+                if roles.count(required_role) < minimum:
+                    self.fail(f"active 资格公钥注册表 {version} 缺少所需人工角色")
+                elif version == "v1" and roles.count("qualification_coordinator") < 1:
+                    self.fail("active 资格公钥注册表 v1 缺少资格协调员")
+                else:
+                    self.pass_(f"资格协议 {version} 与人工公钥信任边界")
             else:
-                self.pass_("资格协议与真实人工评审公钥信任边界")
-        else:
-            self.fail("资格评审公钥注册表状态非法")
+                self.fail(f"资格评审公钥注册表 {version} 状态非法")
 
     def validate_template_registry(self) -> None:
         registry = self.load_json("runtime_contracts/template_source_manifest_v1.json")
