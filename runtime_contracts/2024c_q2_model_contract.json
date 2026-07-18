@@ -3,7 +3,7 @@
   "contract_id": "2024c-q2-uncertainty-v1",
   "problem_id": "2024-C",
   "subproblem_id": "Q2",
-  "status": "model_contract_draft_review_pending",
+  "status": "model_contract_frozen_solver_pending",
   "decision_policy": "non_adaptive_single_plan",
   "sales_handling": "waste_surplus_revenue_zero",
   "random": {

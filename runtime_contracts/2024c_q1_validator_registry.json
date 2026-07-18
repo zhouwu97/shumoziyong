@@ -16,7 +16,7 @@
       "subproblem_id": "Q2",
       "validator_id": null,
       "module_path": null,
-      "status": "model_contract_draft_review_pending",
+      "status": "model_contract_frozen_solver_pending",
       "independent_from_candidate": true,
       "contract_path": "runtime_contracts/2024c_q2_model_contract.json",
       "required_recomputations": ["scenario_generation", "objective", "risk_statistics", "q1_paired_baseline", "official_output_workbook"]

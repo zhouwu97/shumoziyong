@@ -2,13 +2,13 @@
 
 ## 1. 合同状态与边界
 
-本候选合同定义 Q2 的不确定性语义，供后续 Solver、Formal Result 和独立 Validator 审查。它不声明合同已正式冻结，不声明 Solver 已完成，不产生 `result2.xlsx`，也不覆盖 Q3 的相关性、替代性或互补性模型。
+本合同冻结 Q2 的不确定性语义，供后续 Solver、Formal Result 和独立 Validator 使用。合同冻结不等于 Solver 已完成；本文件不产生 `result2.xlsx`，也不覆盖 Q3 的相关性、替代性或互补性模型。
 
 ```yaml
 problem_id: 2024-C
 subproblem_id: Q2
 contract_id: 2024c-q2-uncertainty-v1
-status: model_contract_draft_review_pending
+status: model_contract_frozen_solver_pending
 proxy_data_used: false
 qualification_claimed: false
 ```

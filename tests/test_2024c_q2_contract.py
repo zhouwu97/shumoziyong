@@ -18,7 +18,7 @@ def test_q2_contract_is_frozen_but_not_implemented() -> None:
     contract = _contract()
     assert contract["problem_id"] == "2024-C"
     assert contract["subproblem_id"] == "Q2"
-    assert contract["status"] == "model_contract_draft_review_pending"
+    assert contract["status"] == "model_contract_frozen_solver_pending"
     assert contract["validation"]["qualification_authority"] is False
 
     registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
