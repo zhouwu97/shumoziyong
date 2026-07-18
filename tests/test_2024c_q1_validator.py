@@ -141,6 +141,43 @@ def test_q1_constraints_detect_annual_rotation_for_non_greenhouse_plot() -> None
 
 
 @pytest.mark.unit_contract
+def test_q1_rotation_allows_ordinary_greenhouse_crop_after_intervening_mushroom() -> None:
+    data = {
+        "plots": {"D1": {"type": "普通大棚", "area": 0.6}},
+        "stats": {
+            ("普通大棚", "第一季", 17): {"yield": 1.0, "cost": 1.0, "price": 1.0},
+            ("普通大棚", "第二季", 35): {"yield": 1.0, "cost": 1.0, "price": 1.0},
+        },
+        "planting_2023": [],
+    }
+    assignments = [
+        {"year": year, "plot_id": "D1", "season": season, "crop_id": crop_id, "area_mu": 0.6}
+        for year in (2024, 2025)
+        for season, crop_id in (("第一季", 17), ("第二季", 35))
+    ]
+    violations, _ = check_q1_constraints(assignments, data, check_legume_windows=False)
+    assert not any(item.startswith("continuous_crop:") for item in violations)
+
+
+@pytest.mark.unit_contract
+def test_q1_rotation_rejects_adjacent_smart_greenhouse_seasons() -> None:
+    data = {
+        "plots": {"F1": {"type": "智慧大棚", "area": 0.6}},
+        "stats": {
+            ("智慧大棚", "第一季", 17): {"yield": 1.0, "cost": 1.0, "price": 1.0},
+            ("智慧大棚", "第二季", 17): {"yield": 1.0, "cost": 1.0, "price": 1.0},
+        },
+        "planting_2023": [],
+    }
+    assignments = [
+        {"year": 2024, "plot_id": "F1", "season": season, "crop_id": 17, "area_mu": 0.6}
+        for season in ("第一季", "第二季")
+    ]
+    violations, _ = check_q1_constraints(assignments, data, check_legume_windows=False)
+    assert any(item.startswith("continuous_crop:") for item in violations)
+
+
+@pytest.mark.unit_contract
 def test_q1_manifest_rejects_empty_manifest(tmp_path: Path) -> None:
     manifest = tmp_path / "material_manifest.json"
     manifest.write_text("{}\n", encoding="utf-8")
