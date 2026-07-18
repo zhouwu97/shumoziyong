@@ -4,7 +4,8 @@
   "execution_modes": {
     "strict": {"human_confirmation_gates": [0, 1, 2, 3, 4, 5], "qualification_candidate": false},
     "standard": {"human_confirmation_gates": [0, 2, 5], "qualification_candidate": false},
-    "emergency": {"human_confirmation_gates": [0, 5], "qualification_candidate": false}
+    "emergency": {"human_confirmation_gates": [0, 5], "qualification_candidate": false},
+    "development": {"human_confirmation_gates": [5], "qualification_candidate": false}
   },
   "gate_contracts": {
     "0": {

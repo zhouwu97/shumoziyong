@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_compiler_ai_pre_review_validation.schema.json",
+  "title": "AI 预评审证据校验报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "pilot_id",
+    "overall_status",
+    "validation_command",
+    "observed_state",
+    "components",
+    "evidence_index",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_compiler_ai_pre_review_validation"},
+    "pilot_id": {"const": "paper_compiler_v1_1_1"},
+    "overall_status": {
+      "enum": [
+        "existing_evidence_validated_zip_recheck_incomplete",
+        "existing_evidence_and_original_zips_verified",
+        "evidence_invalid"
+      ]
+    },
+    "validation_command": {"type": "string", "minLength": 1},
+    "observed_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qualification_status", "production_allowed", "ai_pre_review_conclusion"],
+      "properties": {
+        "qualification_status": {"const": "awaiting_external_human_review"},
+        "production_allowed": {"const": false},
+        "ai_pre_review_conclusion": {"const": "ai_pre_review_revise"}
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_schema_validation",
+        "protocol_and_mapping_validation",
+        "admin_integrity_and_source_protection",
+        "original_zip_reverification"
+      ],
+      "properties": {
+        "review_schema_validation": {"$ref": "#/$defs/passedComponent"},
+        "protocol_and_mapping_validation": {"$ref": "#/$defs/passedComponent"},
+        "admin_integrity_and_source_protection": {"$ref": "#/$defs/passedComponent"},
+        "original_zip_reverification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "summary", "expected_zips"],
+          "properties": {
+            "status": {"enum": ["missing", "verified", "invalid"]},
+            "summary": {"type": "string", "minLength": 1},
+            "expected_zips": {
+              "type": "array",
+              "minItems": 2,
+              "items": {"$ref": "#/$defs/expectedZip"}
+            }
+          }
+        }
+      }
+    },
+    "evidence_index": {
+      "type": "array",
+      "minItems": 7,
+      "items": {"$ref": "#/$defs/fileEvidence"}
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "fileEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256", "size_bytes"],
+      "properties": {
+        "role": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "passedComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "summary", "checks"],
+      "properties": {
+        "status": {"const": "passed"},
+        "summary": {"type": "string", "minLength": 1},
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "expectedZip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "expected_sha256", "actual_sha256", "exists", "status", "member_count", "issues"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "expected_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "actual_sha256": {
+          "anyOf": [
+            {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            {"type": "null"}
+          ]
+        },
+        "exists": {"type": "boolean"},
+        "status": {"enum": ["missing", "verified", "invalid"]},
+        "member_count": {"type": "integer", "minimum": 0},
+        "issues": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}

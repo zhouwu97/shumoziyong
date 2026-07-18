@@ -3,7 +3,7 @@
   "workflow": "full_replay",
   "execution_modes": {
     "autonomous_rehearsal": {"human_confirmation_gates": [5], "qualification_candidate": false},
-    "competition_rehearsal": {"human_confirmation_gates": [0, 2, 5], "qualification_candidate": true}
+    "competition_rehearsal": {"human_confirmation_gates": [0, 2, 5], "qualification_candidate": false}
   },
   "gate_contracts": {
     "0": {
