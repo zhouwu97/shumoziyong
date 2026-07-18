@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "2024c_q1_validator_report",
+  "problem_id": "2024-C",
+  "validator": "2024-c-q1-independent-validator-v1",
+  "formal_result_path": "formal_result/cases/2024_C/q1/q1_formal_result.json",
+  "formal_result_sha256": "cd1c30563eaed3b5943240ebd66ff90bc2a71b45c1d0915a7849e9df73ee7c85",
+  "material_manifest_path": "formal_result/cases/2024_C/material_manifest.json",
+  "material_manifest_sha256": "c101ac8e18881552523bf72c91fc7a1fbcbbffadb9622f43dd7bb2d5ff6e28ca",
+  "solver_run_log_path": "formal_result/cases/2024_C/q1/q1_solver_run_log.json",
+  "solver_run_log_sha256": "9fa2fa3bcdc7b0adea29dcc44a5302b6889e5cf4ec90109a22859daf55c4ff84",
+  "solver": "scipy.optimize.milp/HiGHS",
+  "settings": {
+    "minimum_area_ratio": 0.1,
+    "minimum_area_mu": 0.3,
+    "fragmentation_penalty_yuan": 1.0,
+    "time_limit_seconds": 180.0,
+    "mip_relative_gap": 0.0001,
+    "random_seed": 20240718
+  },
+  "scenarios": [
+    {
+      "scenario_id": "q1_discount",
+      "solver_status": 1,
+      "mip_gap": 0.00015873588077829008,
+      "optimality_proven": false,
+      "solver_objective_yuan": 63922311.6626514,
+      "exported_objective_yuan": 63922311.642113775,
+      "workbook_sha256": "d624a76ac25cfc3ab3dc1c2439797a2a32041a21992e9d41af9f2e4a93eb75d6",
+      "workbook_validation_passed": true
+    },
+    {
+      "scenario_id": "q1_waste",
+      "solver_status": 1,
+      "mip_gap": 0.022563562484854853,
+      "optimality_proven": false,
+      "solver_objective_yuan": 40523383.56833521,
+      "exported_objective_yuan": 40523383.52588501,
+      "workbook_sha256": "6597b5d0d768975d599eee08d43ab8c2a9de52394bcb7786844fb4d34ea397ec",
+      "workbook_validation_passed": true
+    }
+  ],
+  "mathematical_validation": {
+    "validator": "2024-c-q1-independent-validator-v1",
+    "problem_id": "2024-C",
+    "q1_status": "implemented",
+    "reports": [
+      {
+        "scenario_id": "q1_waste",
+        "objective_recomputed": 40523383.52588501,
+        "objective_reported": 40523383.52588501,
+        "objective_difference": 0.0,
+        "violated_constraints": [],
+        "max_raw_constraint_violation": 0.0,
+        "output_workbook_status": "generated",
+        "valid": true
+      },
+      {
+        "scenario_id": "q1_discount",
+        "objective_recomputed": 63922311.642113775,
+        "objective_reported": 63922311.642113775,
+        "objective_difference": 0.0,
+        "violated_constraints": [],
+        "max_raw_constraint_violation": 9.999999974752427e-07,
+        "output_workbook_status": "generated",
+        "valid": true
+      }
+    ],
+    "valid": true,
+    "production_ready": false
+  },
+  "valid": true,
+  "production_ready": false
+}

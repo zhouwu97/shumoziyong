@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "2024c_q1_s1_evidence_manifest",
+  "problem_id": "2024-C",
+  "q1_solver_status": "implemented",
+  "q1_formal_result_status": "generated",
+  "q1_mathematical_validation": "passed",
+  "q1_workbook_status": "pending_s2_baseline_freeze",
+  "q1_baseline_frozen": false,
+  "production_ready": false,
+  "files": [
+    {
+      "role": "formal_result",
+      "path": "formal_result/cases/2024_C/q1/q1_formal_result.json",
+      "sha256": "cd1c30563eaed3b5943240ebd66ff90bc2a71b45c1d0915a7849e9df73ee7c85"
+    },
+    {
+      "role": "solver_run_log",
+      "path": "formal_result/cases/2024_C/q1/q1_solver_run_log.json",
+      "sha256": "9fa2fa3bcdc7b0adea29dcc44a5302b6889e5cf4ec90109a22859daf55c4ff84"
+    },
+    {
+      "role": "validator_report",
+      "path": "formal_result/cases/2024_C/q1/q1_validator_report.json",
+      "sha256": "7ca81369bc16ca4c0701e28be983a584b2c6497ffc96f7e71f5ea1e95043f313"
+    }
+  ],
+  "scenario_evidence": [
+    {
+      "scenario_id": "q1_discount",
+      "solver_status": 1,
+      "mip_gap": 0.00015873588077829008,
+      "optimality_proven": false,
+      "solver_objective_yuan": 63922311.6626514,
+      "exported_objective_yuan": 63922311.642113775,
+      "workbook_sha256": "d624a76ac25cfc3ab3dc1c2439797a2a32041a21992e9d41af9f2e4a93eb75d6",
+      "workbook_validation_passed": true
+    },
+    {
+      "scenario_id": "q1_waste",
+      "solver_status": 1,
+      "mip_gap": 0.022563562484854853,
+      "optimality_proven": false,
+      "solver_objective_yuan": 40523383.56833521,
+      "exported_objective_yuan": 40523383.52588501,
+      "workbook_sha256": "6597b5d0d768975d599eee08d43ab8c2a9de52394bcb7786844fb4d34ea397ec",
+      "workbook_validation_passed": true
+    }
+  ]
+}
