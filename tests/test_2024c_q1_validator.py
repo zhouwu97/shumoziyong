@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from official_integration import official_2024c_attachments
 from validators.problem_2024c_q1.validate import (
     check_q1_constraints,
     evaluate_q1_objective,
@@ -15,7 +16,6 @@ from validators.problem_2024c_q1.validate import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MATERIALS = ROOT / "official_materials" / "2024_C"
 
 
 def _synthetic_data() -> dict:
@@ -31,13 +31,16 @@ def _synthetic_data() -> dict:
     }
 
 
+@pytest.mark.official_integration
 def test_official_loader_recovers_q1_input_shape() -> None:
-    data = load_q1_data(MATERIALS / "attachments/附件1.xlsx", MATERIALS / "attachments/附件2.xlsx")
+    attachment_1, attachment_2 = official_2024c_attachments()
+    data = load_q1_data(attachment_1, attachment_2)
     assert len(data["plots"]) == 54
     assert len(data["planting_2023"]) == 87
     assert data["plots"]["F1"]["type"] == "智慧大棚"
 
 
+@pytest.mark.unit_contract
 def test_q1_waste_and_discount_objectives_are_distinct() -> None:
     data = _synthetic_data()
     assignment = [{"year": 2024, "plot_id": "A1", "season": "单季", "crop_id": 2, "area_mu": 10.0}]
@@ -45,6 +48,7 @@ def test_q1_waste_and_discount_objectives_are_distinct() -> None:
     assert evaluate_q1_objective(assignment, data, "q1_discount") == 1000.0
 
 
+@pytest.mark.unit_contract
 def test_q1_constraints_fail_closed_on_capacity_and_suitability() -> None:
     data = _synthetic_data()
     bad = [{"year": 2024, "plot_id": "A1", "season": "单季", "crop_id": 99, "area_mu": 11.0}]
@@ -53,6 +57,7 @@ def test_q1_constraints_fail_closed_on_capacity_and_suitability() -> None:
     assert max_violation == 0.0
 
 
+@pytest.mark.official_integration
 def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Path) -> None:
     manifest = tmp_path / "material_manifest.json"
     manifest.write_text("{}\n", encoding="utf-8")
@@ -67,9 +72,10 @@ def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Pat
             for scenario in ("q1_waste", "q1_discount")
         ],
     }
-    report = validate_q1_result(result, MATERIALS / "attachments/附件1.xlsx", MATERIALS / "attachments/附件2.xlsx", manifest, check_legume_windows=False)
+    attachment_1, attachment_2 = official_2024c_attachments()
+    report = validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
     assert report["valid"] is True
     assert report["production_ready"] is False
     result["scenarios"].pop()
     with pytest.raises(ValueError):
-        validate_q1_result(result, MATERIALS / "attachments/附件1.xlsx", MATERIALS / "attachments/附件2.xlsx", manifest, check_legume_windows=False)
+        validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
