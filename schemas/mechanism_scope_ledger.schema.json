@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/mechanism_scope_ledger.schema.json",
+  "title": "机制覆盖范围登记 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "source_mechanism_ids", "mechanisms"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "mechanism_scope_ledger_v1"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "source_mechanism_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^MECH-[A-Z0-9-]+$"}},
+    "mechanisms": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/mechanism"}}
+  },
+  "$defs": {
+    "strings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "mechanism": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mechanism_id", "name", "source_requirement_ids", "criticality", "decision", "coverage_scope", "validity_domain", "unmodeled_aspects", "approximation_error_evidence", "model_spec_refs", "verification_bindings"],
+      "properties": {
+        "mechanism_id": {"type": "string", "pattern": "^MECH-[A-Z0-9-]+$"},
+        "name": {"type": "string", "minLength": 1},
+        "source_requirement_ids": {"$ref": "#/$defs/strings"},
+        "criticality": {"enum": ["core", "supporting"]},
+        "decision": {"enum": ["modeled", "proxied", "descoped", "unsupported"]},
+        "coverage_scope": {"enum": ["full", "partial", "local_approximation", "proxy_only"]},
+        "validity_domain": {"$ref": "#/$defs/strings"},
+        "unmodeled_aspects": {"$ref": "#/$defs/strings"},
+        "approximation_error_evidence": {"$ref": "#/$defs/strings"},
+        "model_spec_refs": {"$ref": "#/$defs/strings"},
+        "verification_bindings": {"$ref": "#/$defs/strings"},
+        "human_approval_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

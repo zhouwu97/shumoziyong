@@ -1,0 +1,15 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+metrics:
+  q1_overlap_ratio:
+    numerator: 前一覆盖带浅水侧半宽加当前覆盖带深水侧半宽减坡面测线间距
+    denominator: 前一条测线的完整海底覆盖宽度
+  q3_adjacent_overlap_ratio:
+    numerator: 相邻有效覆盖带沿比较截面的有符号交叠宽度
+    denominator: 前一条测线在同一截面的有效覆盖宽度
+  q4_uncovered_area_ratio:
+    numerator: 待测边界内未被任一冻结覆盖带覆盖的面积
+    denominator: 4 海里乘 5 海里的完整待测海域面积
+  q4_excessive_overlap_length:
+    numerator: 相邻覆盖比较中重叠率严格大于 0.20 的测线参数区间长度
+    denominator: 不适用；正式输出单位为米，不输出百分比

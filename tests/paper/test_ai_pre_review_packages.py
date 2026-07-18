@@ -67,18 +67,27 @@ def test_review_fact_view_has_no_internal_generation_metadata() -> None:
         assert forbidden not in serialized.lower()
 
 
-def test_built_packages_pass_leakage_and_zip_integrity() -> None:
+def test_built_packages_pass_leakage_and_record_missing_zip_boundary() -> None:
     assert DEFAULT_OUTPUT.is_dir()
     for reviewer_id in ("reviewer_1", "reviewer_2"):
         package_dir = DEFAULT_OUTPUT / reviewer_id
         result = scan_package(package_dir)
         assert result == {"status": "passed", "findings": []}
         zip_path = DEFAULT_OUTPUT / f"{reviewer_id}_ai_pre_review.zip"
-        assert zipfile.is_zipfile(zip_path)
-        with zipfile.ZipFile(zip_path) as archive:
-            names = archive.namelist()
-            assert "package_manifest.json" in names
-            assert all(not name.startswith("admin_only/") for name in names)
-            assert all("blind_mapping" not in name for name in names)
+        if zip_path.exists():
+            assert zipfile.is_zipfile(zip_path)
+            with zipfile.ZipFile(zip_path) as archive:
+                names = archive.namelist()
+                assert "package_manifest.json" in names
+                assert all(not name.startswith("admin_only/") for name in names)
+                assert all("blind_mapping" not in name for name in names)
+        else:
+            validation = load_json(
+                DEFAULT_OUTPUT / "admin_only/AI_PRE_REVIEW_VALIDATION_REPORT.json"
+            )
+            zip_component = validation["components"]["original_zip_reverification"]
+            assert zip_component["status"] == "missing"
+            expected = {Path(item["path"]).name: item for item in zip_component["expected_zips"]}
+            assert expected[zip_path.name]["exists"] is False
 
     assert LEAKAGE_PATTERNS

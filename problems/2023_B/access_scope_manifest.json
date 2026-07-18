@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "access_scope_manifest_v1",
+  "problem_id": "2023-B",
+  "allowed_roots": [
+    "official_materials/2023_B",
+    "problems/2023_B",
+    "validators/problem_boundary_v2",
+    "protocols/a092_v2",
+    "experiments/2023b_validator_pilot_v2"
+  ],
+  "forbidden_sources": ["同题优秀论文", "同题题解", "同题参考答案", "他人最终测线"],
+  "proxy_substitution_allowed": false,
+  "network_allowed": false
+}

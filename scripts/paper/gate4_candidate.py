@@ -347,18 +347,26 @@ def build_candidate_manifest(run_dir: Path, binding: Mapping[str, str]) -> dict[
         )
     manifest = {
         "schema_version": "1.0.0",
-        "artifact_type": "paper_candidate_manifest",
+        "artifact_type": "paper_production_candidate_manifest",
         **binding,
         "candidate_status": PAPER_CANDIDATE_STATUS,
         "artifacts": artifacts,
     }
-    validate_schema(manifest, "paper_candidate_manifest.schema.json", "paper_candidate_manifest.json")
+    validate_schema(
+        manifest,
+        "paper_production_candidate_manifest.schema.json",
+        "paper_candidate_manifest.json",
+    )
     return manifest
 
 
 def verify_candidate_manifest(run_dir: Path, binding: Mapping[str, str]) -> dict[str, Any]:
     manifest = load_json_object(run_dir / "paper_candidate_manifest.json", "paper candidate manifest")
-    validate_schema(manifest, "paper_candidate_manifest.schema.json", "paper_candidate_manifest.json")
+    validate_schema(
+        manifest,
+        "paper_production_candidate_manifest.schema.json",
+        "paper_candidate_manifest.json",
+    )
     for field, expected in binding.items():
         if manifest.get(field) != expected:
             raise ValueError(f"paper_candidate_manifest.json.{field} 与当前运行现场不一致")

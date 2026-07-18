@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "attachment_structure_audit_v1",
+  "path": "official_materials/2023_B/attachments/附件.xlsx",
+  "sha256": "5f92dee1af5906869bd7dca45d73b90090bb971d882beb7d8461c6b563eee40a",
+  "worksheets": ["Sheet1"],
+  "active_worksheet": "Sheet1",
+  "worksheet_shape": [253, 203],
+  "effective_grid_shape": [251, 201],
+  "x_range_nm": [0.0, 4.0],
+  "y_range_nm": [0.0, 5.0],
+  "depth_range_m": [20.0, 197.2],
+  "depth_mean_m": 62.53868466432777,
+  "missing_value_count": 0,
+  "audit_status": "passed"
+}

@@ -110,7 +110,7 @@ def _reconcile_orphan_candidates(run_dir: Path) -> list[dict[str, Any]]:
             raise ValueError("孤立 Candidate 的编号必须紧接 history 末端")
         manifest_path = candidate_dir / "paper_candidate_manifest.json"
         record = _json(manifest_path)
-        _schema(record, "paper_candidate_manifest.schema.json")
+        _schema(record, "review_candidate_manifest.schema.json")
         expected_parent = history[-1]["candidate_id"] if history else None
         if record.get("candidate_id") != expected_id or record.get("parent_candidate_id") != expected_parent:
             raise ValueError("孤立 Candidate 的身份或父级不连续")
@@ -171,12 +171,22 @@ def register_paper_candidate(
             target = candidate_dir / source.name
             atomic_write_bytes(target, source.read_bytes())
             files.append({"source_path": source_text, "path": target.relative_to(candidate_dir).as_posix(), "sha256": sha256_bytes(target.read_bytes())})
-        record: dict[str, Any] = {"schema_version": "1.0.0", "candidate_id": candidate_id, "run_id": manifest["run_id"], "parent_candidate_id": parent_candidate_id, "created_at": _now(), "reason": reason, "trigger_review_id": trigger_review_id, "source_files": files}
+        record: dict[str, Any] = {
+            "schema_version": "1.0.0",
+            "artifact_type": "review_candidate_manifest",
+            "candidate_id": candidate_id,
+            "run_id": manifest["run_id"],
+            "parent_candidate_id": parent_candidate_id,
+            "created_at": _now(),
+            "reason": reason,
+            "trigger_review_id": trigger_review_id,
+            "source_files": files,
+        }
         if not history:
             legacy = run_dir / "gate_artifacts" / "gate_4.manifest.json"
             if legacy.is_file():
                 record["legacy_gate_4_manifest_sha256"] = sha256_bytes(legacy.read_bytes())
-        _schema(record, "paper_candidate_manifest.schema.json")
+        _schema(record, "review_candidate_manifest.schema.json")
         manifest_path = candidate_dir / "paper_candidate_manifest.json"
         atomic_write_bytes(manifest_path, (json.dumps(record, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
         manifest_sha = sha256_bytes(manifest_path.read_bytes())

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/contribution_ledger.schema.json",
+  "title": "技术贡献登记 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "entries"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "contribution_ledger_v1"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "entries": {"type": "array", "items": {"$ref": "#/$defs/entry"}}
+  },
+  "$defs": {
+    "strings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contribution_id", "claim", "requirement_ids", "mechanism_ids", "technical_status", "novelty_status", "non_obvious_reason", "regime_of_validity", "failure_conditions", "technical_evidence", "novelty_evidence", "paper_claim_ids"],
+      "properties": {
+        "contribution_id": {"type": "string", "pattern": "^CONTRIB-[A-Z0-9-]+$"},
+        "claim": {"type": "string", "minLength": 1},
+        "requirement_ids": {"$ref": "#/$defs/strings"},
+        "mechanism_ids": {"$ref": "#/$defs/strings"},
+        "technical_status": {"enum": ["candidate", "implemented", "validator_supported", "paper_load_bearing", "technically_rejected"]},
+        "novelty_status": {"enum": ["unassessed", "common_method", "literature_screened", "potentially_novel", "external_review_supported", "not_novel"]},
+        "non_obvious_reason": {"type": "string", "minLength": 1},
+        "regime_of_validity": {"$ref": "#/$defs/strings"},
+        "failure_conditions": {"$ref": "#/$defs/strings"},
+        "technical_evidence": {"$ref": "#/$defs/strings"},
+        "novelty_evidence": {"$ref": "#/$defs/strings"},
+        "paper_claim_ids": {"$ref": "#/$defs/strings"}
+      }
+    }
+  }
+}

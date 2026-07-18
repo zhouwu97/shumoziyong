@@ -1,0 +1,9 @@
+{
+  "case_id": "Q3-FLAT-RECTANGLE-HAND",
+  "rectangle_m": {"width": 1000.0, "height": 500.0},
+  "constant_swath_width_m": 100.0,
+  "parallel_line_count": 6,
+  "line_length_m": 1000.0,
+  "expected_total_length_m": 6000.0,
+  "metamorphic_properties": ["测线顺序重排不改变覆盖并集", "测线顺序重排不改变总长度"]
+}

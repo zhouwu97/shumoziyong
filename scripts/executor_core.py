@@ -419,7 +419,17 @@ def execute_spec(spec_path: Path, run_dir: Path, executor_id: str) -> dict[str, 
         },
         "task_executions": task_executions,
         "blocker_ref": blocker_ref,
-        "formal_result_authority": "collector_required",
+        "formal_result_activation_status": "code_complete_candidate",
+        "sandboxie_environment_observed": False,
+        "sandboxie_environment_verified": False,
+        "formal_result_executed_in_verified_environment": False,
+        "formal_result_eligible": False,
+        "execution_trust_model": spec["execution_mode"],
+        "formal_result_authority": (
+            "none_rehearsal"
+            if spec["formal_result_policy"] == "rehearsal_unqualified_v1"
+            else "collector_required"
+        ),
     }
     _validate(record, RECORD_SCHEMA_PATH, "candidate_execution_record")
     _write_json(run_dir / "candidate_execution_record.json", record)

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import subprocess
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -10,6 +10,9 @@ from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from freeze_hash import canonical_file_sha256  # noqa: E402
 
 
 def _load_json(path: str) -> object:
@@ -45,7 +48,7 @@ def test_v4_freeze_matches_every_bound_component() -> None:
     record = module.build_freeze_record()
     assert record == _load_json("protocols/a092_v4/protocol_freeze.json")
     for component, expected in record["components"].items():
-        assert hashlib.sha256((ROOT / component).read_bytes()).hexdigest() == expected
+        assert canonical_file_sha256(ROOT / component) == expected
 
 
 def test_v4_runner_promotes_matching_permission_mode(tmp_path: Path, monkeypatch) -> None:

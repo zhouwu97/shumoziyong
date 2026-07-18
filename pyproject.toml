@@ -14,6 +14,18 @@ reportMissingImports = false
 reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = [
+    ".git",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "training",
+    "tmp",
+    "output",
+    "qualification_runs",
+]
 markers = [
     "unit_contract: 纯合同、Schema 和公式测试，不依赖外部材料。",
     "integration_fixture: 使用仓库公开最小回归样本的集成测试。",

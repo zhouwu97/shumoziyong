@@ -978,7 +978,7 @@ def test_new_problem_initialization_uses_competition_artifacts_only(tmp_path: Pa
 
 
 def test_new_problem_seals_without_training_artifacts_and_never_promotes(tmp_path: Path) -> None:
-    """比赛运行可独立完整封存，且现场派生的晋级资格恒为 false。"""
+    """本机演练可独立完整封存，且 Formal Result 资格恒为 false。"""
     materials = tmp_path / "materials"
     materials.mkdir()
     problem = b"competition problem"
@@ -1000,6 +1000,7 @@ def test_new_problem_seals_without_training_artifacts_and_never_promotes(tmp_pat
         target_patch=None,
         workflow="new_problem",
         mode="standard",
+        formal_result_policy="rehearsal_unqualified_v1",
     )
     run_dir, ready = create_new_problem_run(args)
     assert ready is True
@@ -1009,6 +1010,11 @@ def test_new_problem_seals_without_training_artifacts_and_never_promotes(tmp_pat
     assert report["completed"] is True
     assert report["sealed"] is True
     assert report["eligible_for_promotion"] is False
+    assert report["formal_result_activation_status"] == "code_complete_candidate"
+    assert report["formal_result_eligible"] is False
+    assert report["sandboxie_environment_observed"] is False
+    assert report["sandboxie_environment_verified"] is False
+    assert report["execution_trust_model"] == "direct_local_unqualified"
     assert not (run_dir / "score.json").exists()
     assert not (run_dir / "failure_labels.json").exists()
     assert not (run_dir / "patch_suggestions.md").exists()
@@ -1064,7 +1070,7 @@ def test_full_replay_seal_requires_training_specific_artifacts(tmp_path: Path) -
         run_id="missing_training_artifact",
         output_root=str(tmp_path / "runs"),
         problem="2024-D",
-        profile="general",
+        profile="engineering_optimization",
         gates="0-5",
         materials=str(materials),
         candidate_patch=[],
@@ -1084,6 +1090,39 @@ def test_full_replay_seal_requires_training_specific_artifacts(tmp_path: Path) -
 
     with pytest.raises(ValueError, match="score.json"):
         complete_and_seal_run(run_dir, "test_reviewer")
+
+
+def test_required_general_fails_before_gate_3_without_domain_contract(
+    tmp_path: Path,
+) -> None:
+    """general 只是入口 Profile，正式资格运行必须先派生专项合同。"""
+    materials = tmp_path / "general-materials"
+    materials.mkdir()
+    problem = b"unclassified competition problem"
+    (materials / "problem.pdf").write_bytes(problem)
+    _write_material_manifest(materials, "2026-G", {"problem": [("problem.pdf", problem)]})
+    args = Namespace(
+        run_id="unresolved_general",
+        output_root=str(tmp_path / "runs"),
+        problem="2026-G",
+        profile="general",
+        gates="0-5",
+        materials=str(materials),
+        candidate_patch=[],
+        exclude_patch=[],
+        material_file=[],
+        promotion_evidence=False,
+        experiment_group_id=None,
+        experiment_role=None,
+        target_patch=None,
+        workflow="new_problem",
+        mode="standard",
+    )
+    run_dir, ready = create_new_problem_run(args)
+    assert ready is True
+
+    with pytest.raises(ValueError, match="general 仅是入口 Profile"):
+        _write_valid_gate_artifact(run_dir, 3)
 
 
 @pytest.mark.parametrize("workflow", ["full_replay", "new_problem"])

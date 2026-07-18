@@ -13,7 +13,11 @@ from typing import Any, Mapping
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from atomic_io import atomic_write_bytes
-from formal_result.identity import FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_POLICY_REQUIRED
+from formal_result.identity import (
+    FORMAL_RESULT_POLICY_LEGACY,
+    FORMAL_RESULT_POLICY_REHEARSAL,
+    FORMAL_RESULT_POLICY_REQUIRED,
+)
 from formal_result.verifier import verify_formal_result_bundle
 from review_ledger import verify_history as verify_review_history
 from run_workflow import (
@@ -199,7 +203,11 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         (run_dir / "runtime_pack.manifest.json").read_text(encoding="utf-8")
     )
     formal_policy = run_manifest.get("formal_result_policy", FORMAL_RESULT_POLICY_LEGACY)
-    if formal_policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_LEGACY}:
+    if formal_policy not in {
+        FORMAL_RESULT_POLICY_REQUIRED,
+        FORMAL_RESULT_POLICY_LEGACY,
+        FORMAL_RESULT_POLICY_REHEARSAL,
+    }:
         raise ValueError(f"formal_result_policy 非法：{formal_policy!r}")
     if formal_policy == FORMAL_RESULT_POLICY_LEGACY and runtime_manifest.get("manifest_version") == "1.3.0":
         raise ValueError("Runtime 1.3 legacy_read_only_v1 Run 禁止重新 complete 或 seal")
@@ -259,8 +267,8 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
         ).encode("utf-8")
         overrides = {"run_manifest.json": run_manifest_bytes}
     evidence_manifest = build_run_evidence_manifest(run_dir, run_id, overrides)
-    if formal_policy == FORMAL_RESULT_POLICY_LEGACY:
-        # 旧运行继续显式输出“不具备 Formal Result 资格”，保持历史报告字段稳定。
+    if formal_policy in {FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_POLICY_REHEARSAL}:
+        # 旧运行和本机演练均固定为非资格结果，不能被后续封存提升。
         evidence_manifest.update(
             {
                 "formal_result_activation_status": "code_complete_candidate",
@@ -268,7 +276,11 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                 "sandboxie_environment_verified": False,
                 "formal_result_executed_in_verified_environment": False,
                 "formal_result_eligible": False,
-                "formal_result_eligibility_scope": "trusted_local",
+                "execution_trust_model": (
+                    "direct_local_unqualified"
+                    if formal_policy == FORMAL_RESULT_POLICY_REHEARSAL
+                    else "trusted_local"
+                ),
             }
         )
     errors = validate_evidence_manifest(run_dir, evidence_manifest, required_artifacts, overrides)
@@ -367,17 +379,39 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
                             "sandboxie_execution_id": environment["execution_id"],
                     }
                 )
-        elif formal_policy == FORMAL_RESULT_POLICY_LEGACY:
+        elif formal_policy in {FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_POLICY_REHEARSAL}:
             seal_record.update(
                 {
+                    "formal_result_policy": formal_policy,
                     "formal_result_activation_status": "code_complete_candidate",
                     "sandboxie_environment_observed": False,
                     "sandboxie_environment_verified": False,
                     "formal_result_executed_in_verified_environment": False,
                     "formal_result_eligible": False,
-                    "formal_result_eligibility_scope": "trusted_local",
+                    "execution_trust_model": (
+                        "direct_local_unqualified"
+                        if formal_policy == FORMAL_RESULT_POLICY_REHEARSAL
+                        else "trusted_local"
+                    ),
                 }
             )
+            if formal_policy == FORMAL_RESULT_POLICY_REHEARSAL:
+                seal_record.update(
+                    {
+                        "execution_contract_version": run_manifest[
+                            "execution_contract_version"
+                        ],
+                        "formal_result_contract_version": run_manifest[
+                            "formal_result_contract_version"
+                        ],
+                        "canonicalization_version": run_manifest[
+                            "canonicalization_version"
+                        ],
+                        "gate_artifact_contract_version": run_manifest[
+                            "gate_artifact_contract_version"
+                        ],
+                    }
+                )
         write_json(
             run_dir / "seal_record.json",
             seal_record,

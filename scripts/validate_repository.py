@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from evaluate_prompt_response import evaluate_case, load_case, evaluate_manifest_alignment
 from evaluation_case_registry import validate_registry
 from evidence_validation import derive_v2_matrix_results
+from modeling_contracts import validate_case as validate_modeling_case
 from profile_derivation import derive_profile_report
 from promotion_engine import evaluate_status_eligibility, load_json as pe_load_json, stable_evidence_digest
 from run_workflow import (
@@ -33,6 +34,20 @@ except ImportError as exc:  # pragma: no cover - 只在依赖缺失时触发
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
+FORMAT_CHECKER = FormatChecker()
+
+
+@FORMAT_CHECKER.checks("date-time", raises=(ValueError, TypeError))
+def _is_rfc3339_datetime(value: object) -> bool:
+    if not isinstance(value, str):
+        return True
+    if not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})",
+        value,
+    ):
+        return False
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.tzinfo is not None
 MATURITIES = {"draft", "review_ready", "regression_verified", "competition_evidenced", "deprecated"}
 PROFILE_IDS = {"general", "engineering_optimization", "prediction", "evaluation", "simulation"}
 REPOSITORY_SCAN_EXCLUDED_PARTS = {
@@ -89,7 +104,7 @@ class RepositoryValidator:
             Draft202012Validator(
                 schema,
                 registry=registry,
-                format_checker=FormatChecker(),
+                format_checker=FORMAT_CHECKER,
             ).iter_errors(data),
             key=lambda error: list(error.absolute_path),
         )
@@ -1484,6 +1499,16 @@ class RepositoryValidator:
 
         for schema_name in (
             "capability_evidence.schema.json",
+            "historical_case_registry.schema.json",
+            "2023b_decision_variables.schema.json",
+            "requirement_map.schema.json",
+            "mechanism_scope_ledger.schema.json",
+            "route_applicability.schema.json",
+            "route_falsification_plan.schema.json",
+            "reference_oracle_registry.schema.json",
+            "contribution_ledger.schema.json",
+            "headline_claim_registry.schema.json",
+            "modeling_evidence_bundle.schema.json",
             "model_route_v2.schema.json",
             "execution_spec.schema.json",
             "executor_handoff.schema.json",
@@ -1528,7 +1553,8 @@ class RepositoryValidator:
             "paper_typed_exemptions.schema.json",
             "paper_rhetoric_overlap_report.schema.json",
             "model_text_consistency_report.schema.json",
-            "paper_candidate_manifest.schema.json",
+            "review_candidate_manifest.schema.json",
+            "paper_production_candidate_manifest.schema.json",
             "paper_external_precheck_report.schema.json",
             "paper_figure_build_report.schema.json",
             "paper_figure_spec.schema.json",
@@ -1555,6 +1581,7 @@ class RepositoryValidator:
             "paper_compiler_review_status.schema.json",
             "paper_compiler_pilot_manifest.schema.json",
             "paper_compiler_ai_pre_review.schema.json",
+            "paper_compiler_ai_pre_review_validation.schema.json",
         ):
             schema = self.load_json(f"schemas/{schema_name}")
             if schema is None:
@@ -1566,6 +1593,18 @@ class RepositoryValidator:
             else:
                 self.pass_(f"能力合同 Schema：{schema_name}")
 
+        ai_validation_path = (
+            "capability_evidence/paper_compiler_v1_1_1/ai_pre_review_packages/"
+            "admin_only/AI_PRE_REVIEW_VALIDATION_REPORT.json"
+        )
+        ai_validation = self.load_json(ai_validation_path)
+        if ai_validation is not None:
+            self.validate_schema(
+                ai_validation,
+                "paper_compiler_ai_pre_review_validation.schema.json",
+                "AI 预评审落盘校验报告",
+            )
+
         trusted_registry = self.load_json("policies/trusted_environment_registry.json")
         if trusted_registry is not None:
             self.validate_schema(
@@ -1573,6 +1612,76 @@ class RepositoryValidator:
                 "trusted_environment_registry.schema.json",
                 "可信环境机器公钥注册表",
             )
+
+    def validate_modeling_gate_freeze(self) -> None:
+        """校验固定上游来源和 2023-B Gate A-C 冻结证据。"""
+        lock = self.load_json("upstream/mathodology.lock.json")
+        expected_files = {
+            ".claude/agents/mathodology-problem-analyst.md": "f832de334d4cdefd307e6e812be27999f94c2119",
+            ".claude/agents/mathodology-modeler.md": "35f0559aa54fce878f4395f2c9d7d6373236179c",
+            ".claude/agents/mathodology-critic.md": "ec81da3b95f1cfc8f6ae5ef5a6ae8bad526ac1a0",
+            "LICENSE": "afee0be8b90c2c4bf1ca0f4cb7395f7a5b5eea86",
+        }
+        if not isinstance(lock, dict):
+            self.fail("Mathodology 来源锁无法读取")
+        else:
+            actual_files = {
+                path: value.get("blob_sha")
+                for path, value in lock.get("files", {}).items()
+                if isinstance(value, dict)
+            }
+            if lock.get("commit") != "987644876160d105f0fa768248f5d23764f288b2":
+                self.fail("Mathodology 固定 Commit 漂移")
+            elif actual_files != expected_files:
+                self.fail("Mathodology 固定 Blob SHA 漂移")
+            elif any(
+                lock.get(field) is not False
+                for field in (
+                    "runtime_import_allowed",
+                    "execution_allowed",
+                    "workflow_activation_allowed",
+                    "automatic_sync_allowed",
+                )
+            ):
+                self.fail("Mathodology 上游执行或同步边界被放宽")
+            elif not (ROOT / "upstream/LICENSE.mathodology").is_file():
+                self.fail("Mathodology MIT License 缺失")
+            elif not (ROOT / "upstream/mathodology_requirement_mapping.md").is_file():
+                self.fail("Mathodology 规则映射缺失")
+            else:
+                self.pass_("Mathodology 固定来源、Blob、许可和非执行边界")
+
+        case_dir = ROOT / "problems" / "2023_B"
+        try:
+            report = validate_modeling_case(case_dir)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            self.fail(f"2023-B Gate A-C 冻结证据无法校验：{exc}")
+            return
+        if report.get("status") != "gate_c_modeling_design_frozen":
+            for gate, errors in report.get("errors", {}).items():
+                for error in errors:
+                    self.fail(f"2023-B Gate {gate}：{error}")
+        elif report.get("formal_result_eligible") is not False:
+            self.fail("2023-B 求解前冻结规格不得成为 Formal Result")
+        else:
+            self.pass_("2023-B Gate A-C 求解前规格与 Modeling Bundle")
+
+        historical = self.load_json("policies/historical_case_registry.json")
+        if isinstance(historical, dict) and self.validate_schema(
+            historical,
+            "historical_case_registry.schema.json",
+            "历史案例用途登记",
+        ):
+            missing_refs = [
+                item.get("evidence_ref")
+                for item in historical.get("cases", [])
+                if not isinstance(item.get("evidence_ref"), str)
+                or not (ROOT / item["evidence_ref"]).is_file()
+            ]
+            if missing_refs:
+                self.fail(f"历史案例用途登记引用缺失：{missing_refs}")
+            else:
+                self.pass_("历史案例仅作为 integration_fixture / pipeline_smoke_test")
 
     def run(self) -> int:
         self.validate_all_json_syntax()
@@ -1587,6 +1696,7 @@ class RepositoryValidator:
         self.validate_prompt_regression_cases()
         self.validate_evaluation_case_registry()
         self.validate_capability_framework()
+        self.validate_modeling_gate_freeze()
         for message in self.passes:
             print(f"[PASS] {message}")
         for message in self.failures:

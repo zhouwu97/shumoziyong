@@ -1,0 +1,11 @@
+{
+  "case_id": "Q12-SYMMETRY-SCALE",
+  "targets": ["coverage_width_formula", "q1_overlap_formula"],
+  "properties": [
+    "固定船位水深时 beta 与 beta+180 的覆盖宽度相等",
+    "方向角增加 360 度覆盖宽度不变",
+    "全部长度同倍缩放时重叠率不变",
+    "坐标旋转但保持相对方向时覆盖宽度不变"
+  ],
+  "tolerance": 1e-10
+}

@@ -49,7 +49,7 @@ def test_strict_gate4_accepts_only_hash_closed_passed_candidate(tmp_path: Path) 
 
     manifest = verify_gate_artifacts(run_dir, 4)
 
-    assert manifest["artifacts"][0]["role"] == "paper_candidate_manifest"
+    assert manifest["artifacts"][0]["role"] == "paper_production_candidate_manifest"
     assert json.loads((run_dir / "paper_candidate_manifest.json").read_text(encoding="utf-8"))[
         "candidate_status"
     ] == "paper_candidate_ready_for_independent_review"

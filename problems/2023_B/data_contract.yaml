@@ -1,0 +1,39 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+coordinate_system:
+  x_axis: east
+  y_axis: north
+  depth_axis: vertical_down_positive
+units:
+  horizontal_source: nautical_mile
+  horizontal_internal: metre
+  depth: metre
+  angle_input: degree
+  angle_internal: radian
+  nautical_mile_to_metre: 1852.0
+subproblems:
+  Q1:
+    inputs: [beam_opening_angle, slope_angle, center_depth, signed_offsets]
+    outputs: [depth, seafloor_swath_width, signed_overlap_ratio]
+  Q2:
+    inputs: [beam_opening_angle, slope_angle, center_depth, direction_angle, offsets]
+    outputs: [directional_depth, seafloor_swath_width]
+  Q3:
+    inputs: [rectangle_boundary, plane_slope, beam_opening_angle, overlap_bounds]
+    outputs: [complete_line_decision_vector, total_length, constraint_residuals]
+  Q4:
+    inputs: [official_bathymetry_grid, sea_boundary, beam_opening_angle]
+    outputs: [complete_line_decision_vector, total_length, uncovered_area_ratio, excessive_overlap_length]
+attachment:
+  workbook: official_materials/2023_B/attachments/附件.xlsx
+  worksheet: Sheet1
+  worksheet_shape: [253, 203]
+  effective_grid_shape: [251, 201]
+  x_range_nm: [0.0, 4.0]
+  y_range_nm: [0.0, 5.0]
+  depth_range_m: [20.0, 197.2]
+  missing_values: 0
+transformation_log:
+  - 原始坐标乘以 1852 转换为米，原始水深值保持米制。
+  - 第一、二行和第一、二列按工作表标题与坐标轴解释，不进入 251x201 水深矩阵。
+  - 不填补、不平滑、不外推；插值选择留待冻结的数值合同约束。

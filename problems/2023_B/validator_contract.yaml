@@ -1,0 +1,20 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+status: frozen_before_solver
+q1_q2:
+  validator: validators/problem_boundary_v2/validate.py
+  independent_reference: scripts/run_2023b_validator_pilot.py
+  frozen_formula: protocols/a092_v2/2023b_validator_formula_freeze.json
+  tolerance: 1.0e-6
+q3:
+  required_inputs: [official_problem_statement, complete_line_decision_vector]
+  formal_objective: sum_of_boundary_clipped_line_lengths_m
+  hard_constraints: [complete_coverage, adjacent_overlap_lower_0_10, adjacent_overlap_upper_0_20, finite_geometry]
+  required_outputs: [objective_recomputed_m, coverage_residual_m2, pairwise_overlap_residuals, boundary_residuals]
+  illegal_cases: [missing_line_endpoint, zero_length_line, line_outside_boundary, coverage_gap, overlap_below_0_10, overlap_above_0_20, non_finite_coordinate]
+q4:
+  required_inputs: [official_bathymetry_attachment, complete_line_decision_vector]
+  formal_objective: lexicographic_uncovered_excessive_overlap_total_length
+  hard_constraints: [finite_geometry, positive_interpolated_depth, in_domain_evaluation]
+  required_outputs: [total_length_m, uncovered_area_ratio, excessive_overlap_length_m, area_uncertainty_upper_bound]
+solver_reported_metrics_are_authoritative: false

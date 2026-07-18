@@ -1,0 +1,21 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+material_root: official_materials/2023_B
+source_kind: official
+contains_answer_or_solution: false
+files:
+  - role: official_problem_statement
+    path: problem/B题.pdf
+    sha256: e709e066139ea0a4bb64aa7e56ea097725a1f2b4e5161fc8c7e50c48be079396
+  - role: official_bathymetry_attachment
+    path: attachments/附件.xlsx
+    sha256: 5f92dee1af5906869bd7dca45d73b90090bb971d882beb7d8461c6b563eee40a
+  - role: official_q1_template
+    path: templates/result1.xlsx
+    sha256: 9a86f9f4b9755447bda0ab9c3d8f4123561a0bfa735ede7d0c08b1c457ae83bd
+  - role: official_q2_template
+    path: templates/result2.xlsx
+    sha256: 426941a7da69da8694d73be68ba82b976af675f57618154f4b4fc11d19f6dbd8
+  - role: official_paper_template
+    path: templates/format2023.doc
+    sha256: 1d5c03591148d155bb1d5bb0a305661bfaff29c3102595446cfcc06ceb4e82ec

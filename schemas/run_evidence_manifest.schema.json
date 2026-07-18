@@ -15,7 +15,7 @@
     "formal_result_executed_in_verified_environment": {"type": "boolean"},
     "formal_result_eligible": {"type": "boolean"},
     "formal_result_eligibility_scope": {"const": "trusted_local"},
-    "execution_trust_model": {"const": "trusted_local"},
+    "execution_trust_model": {"enum": ["trusted_local", "direct_local_unqualified"]},
     "git_head": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
     "git_state_clean": {"const": true},
     "targeted_host_read_controls_passed": {"const": true},

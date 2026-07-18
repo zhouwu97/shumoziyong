@@ -1,0 +1,8 @@
+{
+  "case_id": "Q4-SINGLE-LINE-RECTANGLE",
+  "sea_rectangle_m": {"width": 1000.0, "height": 500.0},
+  "swath_rectangle_m": {"width": 1000.0, "height": 100.0},
+  "expected_clipped_coverage_area_m2": 100000.0,
+  "expected_line_length_m": 1000.0,
+  "tolerance": 1e-5
+}

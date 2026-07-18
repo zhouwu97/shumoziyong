@@ -3,7 +3,7 @@
   "protocol_id": "A092-CONFIRMATORY-CODEX-V1",
   "state": "frozen_pre_execution",
   "execution_started": false,
-  "component_manifest_sha256": "2ee2748926de02424ddf58d608e7d9a649cf843d8dcbd8b5f5af9fa2a9be916d",
+  "component_manifest_sha256": "69de2de44455d09858571560b7f650a745259593c4e1d35aa6325babee5d5533",
   "components": {
     "protocols/a092_codex_v1/a092_confirmatory_codex_v1.json": "a136965577ef7e367a8e64bfc3c3c2a21cbb0cefa26491b031cdb9c0ea67f73c",
     "schemas/a092_confirmatory_codex_v1.schema.json": "23d311e7e6895d19bdaed967d79e0e692c150612cc61ad9f09d0ba3221ab097b",
@@ -21,7 +21,7 @@
     "validators/problem_positive_v2/validate.py": "08604c07a70097ec833225821ed4696f4726d766df5e33daa070fdd75b4dfc0f",
     "validators/problem_negative/validate.py": "390cc881f7796cf3f418c0a1177beeed531db80ad0a713e2061af3e1615fac11",
     "scripts/attempt_workspace.py": "8b9f88ac18a503e9540cde60ba781483b8248592c5e2119a6f922c9c4c879227",
-    "scripts/process_tree.py": "ab34670a24a8ba1ab0e2a2df9388411c8c332a1136e5f26095315b2dcdcfacef",
+    "scripts/process_tree.py": "55d77e70aa1350a62ec0ed012aac7148ea5247150b119713ac92c6ff14e124c7",
     "scripts/run_a092_codex_v1.py": "c51c49bc11430d1e8fd2e75b3f08a90b27f23edc8713345c598ee98fe1bdef11",
     "scripts/validate_a092_codex_v1.py": "644609727b0e85272802037b8fa03806633e56a6c6363c142bcca94e1823140d",
     "scripts/build_a092_codex_v1_pair.py": "cd16c77b42ec7c93664579a003bfcbb955e67bec60c5af5bd3f558298cf42605",

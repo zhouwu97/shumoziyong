@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "contribution_ledger_v1",
+  "problem_id": "2023-B",
+  "entries": [
+    {
+      "contribution_id": "CONTRIB-DIRECTIONAL-GEOMETRY",
+      "claim": "在统一坐标合同下连接船位水深、横向有效坡度与海底覆盖宽度",
+      "requirement_ids": ["REQ-Q1-MODEL", "REQ-Q2-MODEL"],
+      "mechanism_ids": ["MECH-DEPTH", "MECH-SLOPE", "MECH-HEADING", "MECH-SWATH"],
+      "technical_status": "validator_supported",
+      "novelty_status": "unassessed",
+      "non_obvious_reason": "显式区分沿线水深投影与横向坡度投影，并冻结方向正负约定。",
+      "regime_of_validity": ["局部海底可视为平面", "声线按题面直线传播"],
+      "failure_conditions": ["边缘波束与坡面不存在有限交点", "局部平面误差超过数值合同上限"],
+      "technical_evidence": ["experiments/2023b_validator_pilot_v2/pilot_result.json"],
+      "novelty_evidence": [],
+      "paper_claim_ids": []
+    }
+  ]
+}

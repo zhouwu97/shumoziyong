@@ -445,6 +445,7 @@ def test_gate_3_task_keeps_three_validation_dimensions() -> None:
         "validation_dimension:model_validity",
         "validation_dimension:competition_value",
     }.issubset(task["required_outputs"])
+    assert task["permissions"]["trust_model"] == "direct_local_unqualified"
 
 
 def test_gate_1_task_exposes_problem_specific_modeling_contract() -> None:
@@ -516,6 +517,39 @@ def test_native_attempt_reuses_blocked_transaction(tmp_path: Path) -> None:
     assert first_id == second_id
     assert first_path == second_path
     assert len(list((shumo / "attempts").iterdir())) == 1
+
+
+def test_existing_native_run_cannot_cross_formal_result_policy(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_id = "ws_" + "a" * 16
+    run_dir = workspace_root / ".shumo" / "runs" / ("run_" + "a" * 16)
+    write_json(
+        run_dir / "run_manifest.json",
+        {
+            "run_id": "run_" + "a" * 16,
+            "problem_id": "2026-A",
+            "workflow": "new_problem",
+            "profile": "general",
+            "formal_result_policy": "required_v1",
+        },
+    )
+    config = {
+        "problem_id": "2026-A",
+        "workflow": "new_problem",
+        "profile": "general",
+        "formal_result_policy": "rehearsal_unqualified_v1",
+    }
+
+    with pytest.raises(ValueError, match="不一致的运行占用"):
+        orchestrator.ensure_native_run(
+            Path(sys.executable),
+            tmp_path / "engine",
+            workspace_root,
+            tmp_path / "materials",
+            config,
+            workspace_id,
+            tmp_path / "attempt",
+        )
 
 
 def test_native_bootstrap_publishes_once_after_all_steps(

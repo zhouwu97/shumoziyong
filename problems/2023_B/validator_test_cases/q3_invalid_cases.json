@@ -1,0 +1,12 @@
+{
+  "case_set": "Q3-ILLEGAL",
+  "required_rejections": [
+    "missing_line_endpoint",
+    "zero_length_line",
+    "line_outside_boundary",
+    "coverage_gap",
+    "overlap_below_0_10",
+    "overlap_above_0_20",
+    "non_finite_coordinate"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/2023b_decision_variables.schema.json",
+  "title": "2023-B 完整测线决策变量 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "subproblem_id", "coordinate_unit", "lines"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "2023b_line_decision_variables_v1"},
+    "problem_id": {"const": "2023-B"},
+    "subproblem_id": {"enum": ["Q3", "Q4"]},
+    "coordinate_unit": {"const": "metre"},
+    "lines": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["line_id", "order", "start", "end"],
+        "properties": {
+          "line_id": {"type": "string", "pattern": "^L[0-9]+$"},
+          "order": {"type": "integer", "minimum": 1},
+          "start": {"$ref": "#/$defs/point"},
+          "end": {"$ref": "#/$defs/point"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "object", "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {"x": {"type": "number"}, "y": {"type": "number"}}
+    }
+  }
+}

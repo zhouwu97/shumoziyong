@@ -5,22 +5,38 @@
   "description": "Executor 真实运行的原始记录。它只能证明候选执行发生过，不能作为 Gate 3 正式结果。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "artifact_type", "run_id", "execution_spec_sha256", "executor_id", "execution_mode", "status", "started_at", "completed_at", "environment", "task_executions", "formal_result_authority"],
+  "required": ["schema_version", "artifact_type", "run_id", "execution_spec_sha256", "executor_id", "execution_mode", "status", "started_at", "completed_at", "environment", "task_executions", "formal_result_activation_status", "sandboxie_environment_observed", "sandboxie_environment_verified", "formal_result_executed_in_verified_environment", "formal_result_eligible", "execution_trust_model", "formal_result_authority"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "artifact_type": {"const": "candidate_execution_record"},
     "run_id": {"type": "string", "minLength": 1},
     "execution_spec_sha256": {"$ref": "#/$defs/sha256"},
     "executor_id": {"type": "string", "minLength": 1},
-    "execution_mode": {"const": "trusted_local"},
+    "execution_mode": {"enum": ["trusted_local", "direct_local_unqualified"]},
     "status": {"enum": ["completed", "blocked"]},
     "started_at": {"type": "string", "format": "date-time"},
     "completed_at": {"type": "string", "format": "date-time"},
     "environment": {"type": "object", "additionalProperties": false, "required": ["python", "runner_token", "resolved_runner", "resolved_runner_sha256", "python_version", "platform", "cwd"], "properties": {"python": {"type": "string", "minLength": 1}, "runner_token": {"const": "python"}, "resolved_runner": {"type": "string", "minLength": 1}, "resolved_runner_sha256": {"$ref": "#/$defs/sha256"}, "python_version": {"type": "string", "minLength": 1}, "platform": {"type": "string", "minLength": 1}, "cwd": {"type": "string", "minLength": 1}}},
     "task_executions": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["execution_id", "task_id", "seed", "argv", "working_directory", "started_at", "completed_at", "exit_code", "stdout", "stderr", "inputs", "outputs", "acceptance_checks"], "properties": {"execution_id": {"type": "string", "minLength": 1}, "task_id": {"type": "string", "minLength": 1}, "seed": {"type": "integer", "minimum": 0}, "argv": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "working_directory": {"type": "string", "minLength": 1}, "started_at": {"type": "string", "format": "date-time"}, "completed_at": {"type": "string", "format": "date-time"}, "exit_code": {"type": ["integer", "null"]}, "stdout": {"$ref": "#/$defs/fileRef"}, "stderr": {"$ref": "#/$defs/fileRef"}, "inputs": {"type": "array", "items": {"$ref": "#/$defs/fileRef"}}, "outputs": {"type": "array", "items": {"$ref": "#/$defs/fileRef"}}, "acceptance_checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["check_id", "status", "detail"], "properties": {"check_id": {"type": "string", "minLength": 1}, "status": {"enum": ["passed", "failed", "not_evaluated"]}, "detail": {"type": "string", "minLength": 1}}}}}}},
     "blocker_ref": {"type": ["string", "null"]},
-    "formal_result_authority": {"const": "collector_required"}
+    "formal_result_activation_status": {"const": "code_complete_candidate"},
+    "sandboxie_environment_observed": {"const": false},
+    "sandboxie_environment_verified": {"const": false},
+    "formal_result_executed_in_verified_environment": {"const": false},
+    "formal_result_eligible": {"const": false},
+    "execution_trust_model": {"enum": ["trusted_local", "direct_local_unqualified"]},
+    "formal_result_authority": {"enum": ["collector_required", "none_rehearsal"]}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"execution_mode": {"const": "trusted_local"}}, "required": ["execution_mode"]},
+      "then": {"properties": {"execution_trust_model": {"const": "trusted_local"}, "formal_result_authority": {"const": "collector_required"}}}
+    },
+    {
+      "if": {"properties": {"execution_mode": {"const": "direct_local_unqualified"}}, "required": ["execution_mode"]},
+      "then": {"properties": {"execution_trust_model": {"const": "direct_local_unqualified"}, "formal_result_authority": {"const": "none_rehearsal"}}}
+    }
+  ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "fileRef": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "size_bytes"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"$ref": "#/$defs/sha256"}, "size_bytes": {"type": "integer", "minimum": 0}}}

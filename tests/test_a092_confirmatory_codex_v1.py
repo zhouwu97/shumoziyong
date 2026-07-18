@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import subprocess
 import sys
@@ -12,6 +11,8 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+
+from freeze_hash import canonical_file_sha256  # noqa: E402
 
 
 def _load_json(relative: str) -> dict[str, object]:
@@ -43,7 +44,7 @@ def test_codex_v1_freeze_matches_every_bound_component() -> None:
     record = module.build_freeze_record()
     assert record == _load_json("protocols/a092_codex_v1/protocol_freeze.json")
     for component, expected in record["components"].items():
-        assert hashlib.sha256((ROOT / component).read_bytes()).hexdigest() == expected
+        assert canonical_file_sha256(ROOT / component) == expected
 
 
 def test_codex_runner_promotes_only_complete_formal_result(tmp_path: Path, monkeypatch) -> None:

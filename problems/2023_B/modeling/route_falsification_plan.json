@@ -1,0 +1,64 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "route_falsification_plan_v1",
+  "problem_id": "2023-B",
+  "created_before_solver": true,
+  "routes": [
+    {
+      "route_id": "R-Q3-BASELINE", "subproblem_id": "Q3", "role": "baseline",
+      "mechanism_claims": ["固定方向等距平行测线提供可复算基线"],
+      "identifiability_risks": ["单一参考宽度不能代表坡面两端的实际覆盖宽度"],
+      "falsification_tests": [
+        {"test_id":"FALS-Q3-BASE-ANA","category":"analytic","description":"平面矩形手算案例中边界覆盖或总长度不等于解析值","evidence_source":"validator_test_cases/q3_rectangle_hand_case.json","failure_effect":"route_rejected","triggerability":"demonstrated_by_fixture"},
+        {"test_id":"FALS-Q3-BASE-NUM","category":"numerical","description":"减半测线采样间距后最小覆盖残差仍不收敛到冻结容差","evidence_source":"validation_numerics.yaml#line_sampling_convergence","failure_effect":"route_rejected","triggerability":"threshold_defined"}
+      ]
+    },
+    {
+      "route_id": "R-Q3-PRIMARY", "subproblem_id": "Q3", "role": "primary",
+      "mechanism_claims": ["方向搜索与位置自适应间距可在硬约束内降低总长度"],
+      "identifiability_risks": ["方向和首线位置对离散搜索尺度敏感"],
+      "falsification_tests": [
+        {"test_id":"FALS-Q3-PRIMARY-ANA","category":"analytic","description":"候选在矩形平坡极限下不能退化为可行平行测线方案","evidence_source":"validator_test_cases/q3_rectangle_hand_case.json","failure_effect":"model_invalid","triggerability":"demonstrated_by_fixture"},
+        {"test_id":"FALS-Q3-PRIMARY-NUM","category":"numerical","description":"方向网格加密后总长度排序发生超过冻结误差的反转","evidence_source":"modeling/headline_claim_registry.json#HEAD-Q4-RANKING","failure_effect":"fallback_required","triggerability":"threshold_defined"}
+      ],
+      "fallback_route_id": "R-Q3-ALT"
+    },
+    {
+      "route_id": "R-Q3-ALT", "subproblem_id": "Q3", "role": "structural_alternative",
+      "mechanism_claims": ["边界驱动的非等距构造可避免固定间距的边缘浪费"],
+      "identifiability_risks": ["边缘覆盖约束可能造成非连续可行域"],
+      "falsification_tests": [
+        {"test_id":"FALS-Q3-ALT-MECH","category":"mechanism","description":"移除边界修正后结果不变化，说明结构机制没有实际承载作用","evidence_source":"validator_test_cases/q3_invalid_cases.json","failure_effect":"route_rejected","triggerability":"demonstrated_by_fixture"},
+        {"test_id":"FALS-Q3-ALT-NUM","category":"numerical","description":"边界容差缩小后方案出现覆盖缺口或总长度不收敛","evidence_source":"validation_numerics.yaml#constraint_residual_tolerance","failure_effect":"route_rejected","triggerability":"threshold_defined"}
+      ]
+    },
+    {
+      "route_id": "R-Q4-BASELINE", "subproblem_id": "Q4", "role": "baseline",
+      "mechanism_claims": ["平均水深下的等距平行线提供简单可解释基线"],
+      "identifiability_risks": ["平均水深会掩盖浅水区漏测与深水区过度重叠"],
+      "falsification_tests": [
+        {"test_id":"FALS-Q4-BASE-MECH","category":"mechanism","description":"浅水极端案例出现漏测即否定平均水深可行性假设","evidence_source":"validator_test_cases/q4_boundary_clip.json","failure_effect":"route_rejected","triggerability":"demonstrated_by_fixture"},
+        {"test_id":"FALS-Q4-BASE-NUM","category":"numerical","description":"网格加密后漏测面积仍超过面积误差上界或不收敛","evidence_source":"validation_numerics.yaml#grid_convergence","failure_effect":"route_rejected","triggerability":"threshold_defined"}
+      ]
+    },
+    {
+      "route_id": "R-Q4-PRIMARY", "subproblem_id": "Q4", "role": "primary",
+      "mechanism_claims": ["地形自适应方向与间距联合优化可降低漏测和冗余"],
+      "identifiability_risks": ["局部坡度对插值方法和导数尺度敏感"],
+      "falsification_tests": [
+        {"test_id":"FALS-Q4-PRIMARY-MECH","category":"mechanism","description":"更换域内插值方法后覆盖与路线排序超出冻结不确定范围","evidence_source":"validation_numerics.yaml#interpolation_comparison","failure_effect":"claim_weakened","triggerability":"threshold_defined"},
+        {"test_id":"FALS-Q4-PRIMARY-NUM","category":"numerical","description":"网格与测线采样连续加密后核心指标相对变化超过百分之一","evidence_source":"validation_numerics.yaml#grid_convergence","failure_effect":"fallback_required","triggerability":"threshold_defined"}
+      ],
+      "fallback_route_id": "R-Q4-ALT"
+    },
+    {
+      "route_id": "R-Q4-ALT", "subproblem_id": "Q4", "role": "structural_alternative",
+      "mechanism_claims": ["分区定向后拼接局部平行线可降低全局非凸搜索依赖"],
+      "identifiability_risks": ["分区接缝可能引入漏测或过度重叠"],
+      "falsification_tests": [
+        {"test_id":"FALS-Q4-ALT-MECH","category":"mechanism","description":"分区接缝处的边界裁剪极端案例产生无法消除的覆盖缺口","evidence_source":"validator_test_cases/q4_boundary_clip.json","failure_effect":"route_rejected","triggerability":"demonstrated_by_fixture"},
+        {"test_id":"FALS-Q4-ALT-NUM","category":"numerical","description":"分区尺度减半后接缝漏测面积和总长度不满足收敛阈值","evidence_source":"validation_numerics.yaml#grid_convergence","failure_effect":"route_rejected","triggerability":"threshold_defined"}
+      ]
+    }
+  ]
+}

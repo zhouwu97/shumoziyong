@@ -18,6 +18,7 @@ from export_runtime_pack import RUNTIME_CONTRACTS, build_manifest, build_pack
 from formal_result.identity import (
     CONTRACT_VERSION as FORMAL_CONTRACT_VERSION,
     FORMAL_RESULT_POLICY_LEGACY,
+    FORMAL_RESULT_POLICY_REHEARSAL,
     FORMAL_RESULT_POLICY_REQUIRED,
     IMMUTABLE_IDENTITY_FIELDS,
 )
@@ -89,6 +90,16 @@ FORMAL_IDENTITY_DEFAULTS = {
     "canonicalization_version": FORMAL_CONTRACT_VERSION,
     "gate_artifact_contract_version": FORMAL_CONTRACT_VERSION,
 }
+
+
+class UnresolvedDomainContractError(ValueError):
+    """入口 Profile 尚未解析为可封存的正式结果领域合同。"""
+
+
+def _formal_identity_defaults(policy: str) -> dict[str, str]:
+    if policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_REHEARSAL}:
+        raise ValueError(f"新 Run 不支持 formal_result_policy={policy!r}")
+    return {**FORMAL_IDENTITY_DEFAULTS, "formal_result_policy": policy}
 GATE_3_EVIDENCE_CONTRACT_VERSION = "1.0.0"
 GATE_5_REVIEW_V2_CONTRACT_VERSION = "2.0.0"
 GATE_5_RECORDING_POLICY = "recording_only_v1"
@@ -748,7 +759,7 @@ def _initialize_common_gate_artifacts(
         ("result_report.json", "result_report"),
         ("result_manifest.json", "result_manifest"),
         ("paper_claim_map.json", "paper_claim_map"),
-        ("paper_candidate_manifest.json", "paper_candidate_manifest"),
+        ("paper_candidate_manifest.json", "paper_production_candidate_manifest"),
     ):
         write_json(
             run_dir / filename,
@@ -938,7 +949,9 @@ def create_gate_run_core(
         "initial_state": initial_state,
         "gate_3_evidence_contract_version": GATE_3_EVIDENCE_CONTRACT_VERSION,
         "paper_pipeline_contract_version": PAPER_PIPELINE_CONTRACT_VERSION,
-        **FORMAL_IDENTITY_DEFAULTS,
+        **_formal_identity_defaults(
+            str(getattr(args, "formal_result_policy", FORMAL_RESULT_POLICY_REQUIRED))
+        ),
         "runtime_profile_snapshot_sha256": sha256_bytes(
             (run_dir / "runtime_profile.snapshot.json").read_bytes()
         ),
@@ -1145,8 +1158,8 @@ GATE_ARTIFACT_SPECS: dict[int, tuple[tuple[str, str, str, str], ...]] = {
 PAPER_GATE_4_ARTIFACT_SPECS: tuple[tuple[str, str, str, str], ...] = (
     (
         "paper_candidate_manifest.json",
-        "paper_candidate_manifest",
-        "schemas/paper_candidate_manifest.schema.json",
+        "paper_production_candidate_manifest",
+        "schemas/paper_production_candidate_manifest.schema.json",
         "1.0.0",
     ),
 )
@@ -1233,7 +1246,11 @@ def _formal_result_policy(run_manifest: Mapping[str, Any]) -> str:
     policy = run_manifest.get("formal_result_policy")
     if policy is None:
         return FORMAL_RESULT_POLICY_LEGACY
-    if policy not in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_LEGACY}:
+    if policy not in {
+        FORMAL_RESULT_POLICY_REQUIRED,
+        FORMAL_RESULT_POLICY_LEGACY,
+        FORMAL_RESULT_POLICY_REHEARSAL,
+    }:
         raise ValueError(f"formal_result_policy 非法：{policy!r}")
     return str(policy)
 
@@ -1284,9 +1301,20 @@ def _assert_formal_result_mutable(run_dir: Path) -> None:
     policy = _formal_result_policy(manifest)
     if policy == FORMAL_RESULT_POLICY_LEGACY:
         raise ValueError("legacy_read_only_v1 Run 只允许历史验证与导出，禁止继续推进、完成或重新封存")
-    for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
+    for field, expected in _formal_identity_defaults(policy).items():
         if manifest.get(field) != expected:
             raise ValueError(f"run_manifest.{field} 已漂移，禁止继续推进")
+
+
+def _assert_resolved_domain_contract(run_manifest: Mapping[str, Any]) -> None:
+    """正式资格运行不得把入口 Profile 当作领域合同封存。"""
+    if (
+        _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED
+        and run_manifest.get("profile") == "general"
+    ):
+        raise UnresolvedDomainContractError(
+            "general 仅是入口 Profile；Gate 3 前必须使用 fork-profile 派生已注册专项 Profile"
+        )
 
 TRANSITION_VERSION = "2.0.0"
 
@@ -2138,7 +2166,7 @@ def prepare_human_final_review_handoff(run_dir: Path) -> dict[str, Any]:
         )
         candidate_manifest = _load_json_object(candidate_manifest_path, "当前 Candidate Manifest")
         _validate_json_schema(
-            candidate_manifest, "schemas/paper_candidate_manifest.schema.json", "当前 Candidate Manifest"
+            candidate_manifest, "schemas/review_candidate_manifest.schema.json", "当前 Candidate Manifest"
         )
         candidate_manifest_ref = {
             "candidate_id": candidate["candidate_id"],
@@ -2349,7 +2377,8 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
     run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
     if seal.get("run_id") != run_manifest.get("run_id"):
         raise ValueError("seal_record.run_id 与 run_manifest.run_id 不一致")
-    if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
+    formal_policy = _formal_result_policy(run_manifest)
+    if formal_policy == FORMAL_RESULT_POLICY_REQUIRED:
         for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
             if seal.get(field) != expected or run_manifest.get(field) != expected:
                 raise ValueError(f"seal_record.{field} 未绑定当前 required_v1 不可变身份")
@@ -2412,6 +2441,21 @@ def verify_run_seal(run_dir: Path) -> dict[str, Any]:
         for field, expected in expected_formal.items():
             if seal.get(field) != expected:
                 raise ValueError(f"seal_record.{field} 与当前 Formal Result 不一致")
+    elif formal_policy == FORMAL_RESULT_POLICY_REHEARSAL:
+        for field, expected in _formal_identity_defaults(formal_policy).items():
+            if seal.get(field) != expected or run_manifest.get(field) != expected:
+                raise ValueError(f"seal_record.{field} 未绑定本机演练不可变身份")
+        expected_unqualified = {
+            "formal_result_activation_status": "code_complete_candidate",
+            "sandboxie_environment_observed": False,
+            "sandboxie_environment_verified": False,
+            "formal_result_executed_in_verified_environment": False,
+            "formal_result_eligible": False,
+            "execution_trust_model": "direct_local_unqualified",
+        }
+        for field, expected in expected_unqualified.items():
+            if seal.get(field) != expected:
+                raise ValueError(f"seal_record.{field} 违反本机演练非资格边界")
 
     if _is_gate_5_v2_run(run_dir):
         state = replay_transition_log(run_dir)
@@ -2511,6 +2555,9 @@ def build_gate_artifact_manifest(
     if gate not in GATE_ARTIFACT_SPECS:
         raise ValueError(f"未知 Gate：{gate}（允许 0-5）")
     binding = _load_current_run_binding(run_dir)
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if gate == 3:
+        _assert_resolved_domain_contract(run_manifest)
     artifacts: list[dict[str, Any]] = []
     if gate == 5 and _is_gate_5_v2_run(run_dir):
         if approved_review_id is None:
@@ -2556,11 +2603,12 @@ def build_gate_artifact_manifest(
         **binding,
         "artifacts": artifacts,
     }
-    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
     if gate == 4 and _paper_pipeline_is_required(run_manifest):
         verify_candidate_manifest(run_dir, binding)
-    if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
-        manifest.update(FORMAL_IDENTITY_DEFAULTS)
+    formal_policy = _formal_result_policy(run_manifest)
+    if formal_policy in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_REHEARSAL}:
+        manifest.update(_formal_identity_defaults(formal_policy))
+    if formal_policy == FORMAL_RESULT_POLICY_REQUIRED:
         if gate == 3:
             summary = _verify_required_formal_result(run_dir)
             manifest["formal_result"] = {
@@ -2572,11 +2620,18 @@ def build_gate_artifact_manifest(
             }
     if gate == 3 and run_manifest.get("reasonableness_contract_version") == REASONABLENESS_CONTRACT_VERSION:
         manifest["reasonableness_review"] = require_approved_reasonableness_review(run_dir)
-    if gate == 3 and _formal_result_policy(run_manifest) != FORMAL_RESULT_POLICY_REQUIRED:
-        # 历史 Runtime 1.1/1.2 的 Gate 3 清单保留旧字段，明确表示没有 Formal Result 资格。
+    if gate == 3 and formal_policy != FORMAL_RESULT_POLICY_REQUIRED:
+        # 历史与演练运行均显式保留非资格状态，不能被下游误认作正式结果。
+        rehearsal = formal_policy == FORMAL_RESULT_POLICY_REHEARSAL
         manifest["formal_result"] = {
-            "formal_result_id": "legacy-unavailable",
-            "envelope_path": "formal_results/legacy/formal_result_envelope.json",
+            "formal_result_id": (
+                "rehearsal-unqualified" if rehearsal else "legacy-unavailable"
+            ),
+            "envelope_path": (
+                "formal_results/rehearsal-unqualified/formal_result_envelope.json"
+                if rehearsal
+                else "formal_results/legacy/formal_result_envelope.json"
+            ),
             "envelope_file_sha256": "0" * 64,
             "envelope_semantic_sha256": "0" * 64,
             "formal_result_activation_status": "code_complete_candidate",
@@ -2584,7 +2639,9 @@ def build_gate_artifact_manifest(
             "sandboxie_environment_verified": False,
             "formal_result_executed_in_verified_environment": False,
             "formal_result_eligible": False,
-            "formal_result_eligibility_scope": "trusted_local",
+            "execution_trust_model": (
+                "direct_local_unqualified" if rehearsal else "trusted_local"
+            ),
         }
     return manifest
 
@@ -2628,10 +2685,11 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         if manifest.get(field) != expected:
             raise ValueError(f"gate_{gate}.manifest.json.{field} 与当前运行现场不一致")
     run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
-    if _formal_result_policy(run_manifest) == FORMAL_RESULT_POLICY_REQUIRED:
-        for field, expected in FORMAL_IDENTITY_DEFAULTS.items():
+    formal_policy = _formal_result_policy(run_manifest)
+    if formal_policy in {FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_REHEARSAL}:
+        for field, expected in _formal_identity_defaults(formal_policy).items():
             if manifest.get(field) != expected or run_manifest.get(field) != expected:
-                raise ValueError(f"gate_{gate}.manifest.json.{field} 未绑定 required_v1 不可变身份")
+                raise ValueError(f"gate_{gate}.manifest.json.{field} 未绑定当前不可变身份")
 
     if gate == 5 and _is_gate_5_v2_run(run_dir):
         entries = manifest.get("artifacts", [])
@@ -3342,6 +3400,7 @@ def _prepare_fork_child(
         mode=parent_manifest.get("mode", "standard"),
         # Fork 必须继承父 Run 的合同版本，避免 v2.1 父 Run 降级为历史合同。
         v21=(parent_manifest.get("runtime_manifest_version") == V21_RUNTIME_MANIFEST_VERSION),
+        formal_result_policy=_formal_result_policy(parent_manifest),
     )
     child_run, ready = create_new_problem_run(args)
     if not ready:
@@ -3652,6 +3711,9 @@ def _verify_fork_child_for_resume(
         "run_id": transaction["child_run_id"],
         "profile": transaction["selected_profile"],
         "workflow": "new_problem",
+        "formal_result_policy": _formal_result_policy(
+            _load_json_object(parent_run / "run_manifest.json", "parent run_manifest.json")
+        ),
     }.items():
         if run_manifest.get(field) != expected:
             raise ValueError(f"{label}的 run_manifest.json.{field} 与事务不一致")
@@ -4016,6 +4078,7 @@ def _prepare_revision_child(parent_run: Path, transaction: Mapping[str, Any]) ->
         material_file=[],
         gates=parent.get("gates", "0-5"),
         v21=parent.get("runtime_manifest_version") == V21_RUNTIME_MANIFEST_VERSION,
+        formal_result_policy=_formal_result_policy(parent),
     )
     if parent["workflow"] == "full_replay":
         child_run, ready = create_full_replay_run(args)
@@ -4493,9 +4556,16 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         "default_deny_host_reads_verified": False,
         "privacy_mode_available": None,
     }
-    if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_LEGACY:
+    if _formal_result_policy(manifest) in {
+        FORMAL_RESULT_POLICY_LEGACY,
+        FORMAL_RESULT_POLICY_REHEARSAL,
+    }:
         formal_result_activation_status = "code_complete_candidate"
-        formal_scope["formal_result_eligibility_scope"] = "trusted_local"
+        formal_scope["execution_trust_model"] = (
+            "direct_local_unqualified"
+            if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REHEARSAL
+            else "trusted_local"
+        )
     if _formal_result_policy(manifest) == FORMAL_RESULT_POLICY_REQUIRED:
         try:
             formal_summary = _verify_required_formal_result(run_dir)
@@ -4574,6 +4644,12 @@ def _add_init_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--problem", required=True, help="题号，例如 2024-C。")
     parser.add_argument("--profile", help="Runtime Profile；new_problem 未提供时使用 general。")
     parser.add_argument("--mode", default="standard", choices=["strict", "standard", "emergency"])
+    parser.add_argument(
+        "--formal-result-policy",
+        default=FORMAL_RESULT_POLICY_REQUIRED,
+        choices=[FORMAL_RESULT_POLICY_REQUIRED, FORMAL_RESULT_POLICY_REHEARSAL],
+        help="正式资格运行或本机非资格演练策略。",
+    )
     parser.add_argument("--materials", help="材料根目录；new_problem 必须显式提供。")
     parser.add_argument("--output-root", default="runs")
     parser.add_argument("--run-id")

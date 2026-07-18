@@ -1,0 +1,8 @@
+{
+  "case_id": "Q1-FIRST-PAIR-HAND",
+  "previous_offset_m": -800.0,
+  "current_offset_m": -600.0,
+  "expected_overlap_ratio": 0.33639959281203413,
+  "tolerance": 1e-12,
+  "authority": "独立手算并由三维几何 Pilot 交叉核对"
+}

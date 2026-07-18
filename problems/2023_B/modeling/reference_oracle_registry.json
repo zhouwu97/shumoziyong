@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "reference_oracle_registry_v1",
+  "problem_id": "2023-B",
+  "oracles": [
+    {"oracle_id":"ORACLE-Q12-RAY","target":"coverage_width_formula","oracle_class":"truth","type":"analytic_exact_case","critical":true,"artifact":"experiments/2023b_validator_pilot_v2/pilot_result.json#independent_ray_plane_checkpoints","expected":"闭式公式与三维射线-平面求交最大差不超过 1e-10","tolerance":1e-10,"authority":"official_problem_geometry"},
+    {"oracle_id":"ORACLE-Q12-SYMMETRY","target":"coverage_width_formula","oracle_class":"property","type":"symmetry_invariant","critical":true,"artifact":"validator_test_cases/q1_q2_symmetry.json","expected":"beta 与 beta+180 在相同船位水深下具有相同覆盖宽度","tolerance":1e-10,"authority":"frozen_model_spec"},
+    {"oracle_id":"ORACLE-Q1-HAND","target":"q1_overlap_formula","oracle_class":"truth","type":"human_hand_calculation","critical":true,"artifact":"validator_test_cases/q1_overlap_hand_case.json","expected":0.33639959281203413,"tolerance":1e-12,"authority":"frozen_model_spec"},
+    {"oracle_id":"ORACLE-Q1-SCALE","target":"q1_overlap_formula","oracle_class":"property","type":"unit_scaling_property","critical":true,"artifact":"validator_test_cases/q1_q2_symmetry.json","expected":"全部长度同倍缩放时重叠率不变","tolerance":1e-12,"authority":"dimensional_analysis"},
+    {"oracle_id":"ORACLE-Q3-RECT","target":"q3_coverage_and_objective","oracle_class":"truth","type":"human_hand_calculation","critical":true,"artifact":"validator_test_cases/q3_rectangle_hand_case.json","expected":"矩形平底案例的覆盖和总长度可手算","tolerance":1e-6,"authority":"frozen_validator_contract"},
+    {"oracle_id":"ORACLE-Q3-ORDER","target":"q3_coverage_and_objective","oracle_class":"property","type":"metamorphic_property","critical":true,"artifact":"validator_test_cases/q3_rectangle_hand_case.json","expected":"测线顺序重排不改变覆盖并集和总长度","tolerance":1e-8,"authority":"set_union_invariant"},
+    {"oracle_id":"ORACLE-Q4-RECT","target":"q4_coverage_union_area","oracle_class":"truth","type":"analytic_exact_case","critical":true,"artifact":"validator_test_cases/q4_single_line_rectangle.json","expected":"单条矩形覆盖带与边界交集面积为解析矩形面积","tolerance":1e-5,"authority":"frozen_validator_contract"},
+    {"oracle_id":"ORACLE-Q4-TRANSLATION","target":"q4_coverage_union_area","oracle_class":"property","type":"coordinate_invariance","critical":true,"artifact":"validator_test_cases/q4_boundary_clip.json","expected":"坐标整体平移不改变长度、覆盖率和重叠率","tolerance":1e-8,"authority":"euclidean_geometry"},
+    {"oracle_id":"ORACLE-Q4-HIGH-PRECISION","target":"q4_excessive_overlap_length","oracle_class":"truth","type":"high_precision_reference","critical":true,"artifact":"validator_test_cases/q4_single_line_rectangle.json","expected":"高精度边界交点作为正式离散结果的参考","tolerance":1e-5,"authority":"independent_reference_implementation"},
+    {"oracle_id":"ORACLE-Q4-MESH","target":"q4_excessive_overlap_length","oracle_class":"property","type":"mesh_convergence","critical":true,"artifact":"validation_numerics.yaml#grid_convergence","expected":"两次连续加密的相对变化不超过 0.01","tolerance":0.01,"authority":"frozen_validation_numerics"}
+  ]
+}

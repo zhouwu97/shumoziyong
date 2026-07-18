@@ -10,6 +10,7 @@ from .errors import FormalResultVerificationError
 
 FORMAL_RESULT_POLICY_REQUIRED = "required_v1"
 FORMAL_RESULT_POLICY_LEGACY = "legacy_read_only_v1"
+FORMAL_RESULT_POLICY_REHEARSAL = "rehearsal_unqualified_v1"
 CONTRACT_VERSION = "1.0.0"
 IMMUTABLE_IDENTITY_FIELDS = (
     "run_id",

@@ -1,0 +1,13 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+title: 多波束测线问题
+source: 2023 年高教社杯全国大学生数学建模竞赛官方题包
+prior_exposure: fully_exposed_official_problem
+contamination_level: reference_exposed
+evidence_mode: reference_exposed_reconstruction
+highest_allowed_status: single_problem_technical_closure_passed
+qualification_usage:
+  technical_closure: true
+  unseen_problem_generalization: false
+  hidden_benchmark: false
+  competition_qualification: false

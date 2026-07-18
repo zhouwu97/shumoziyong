@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/historical_case_registry.schema.json",
+  "title": "历史案例用途登记 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "cases"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "historical_case_registry_v1"},
+    "cases": {
+      "type": "array", "minItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["case_id", "evidence_ref", "classification", "purpose", "qualification_usage"],
+        "properties": {
+          "case_id": {"type": "string", "minLength": 1},
+          "evidence_ref": {"type": "string", "minLength": 1},
+          "classification": {"const": "integration_fixture"},
+          "purpose": {"const": "pipeline_smoke_test"},
+          "qualification_usage": {
+            "type": "object", "additionalProperties": false,
+            "required": ["technical_closure", "unseen_problem_generalization", "hidden_benchmark", "competition_qualification"],
+            "properties": {
+              "technical_closure": {"const": false},
+              "unseen_problem_generalization": {"const": false},
+              "hidden_benchmark": {"const": false},
+              "competition_qualification": {"const": false}
+            }
+          }
+        }
+      }
+    }
+  }
+}

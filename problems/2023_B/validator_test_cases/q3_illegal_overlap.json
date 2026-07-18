@@ -1,0 +1,8 @@
+{
+  "case_id": "Q3-OVERLAP-ILLEGAL",
+  "cases": [
+    {"spacing_m": 101.0, "width_m": 100.0, "expected": "coverage_gap"},
+    {"spacing_m": 95.0, "width_m": 100.0, "expected": "overlap_below_0_10"},
+    {"spacing_m": 75.0, "width_m": 100.0, "expected": "overlap_above_0_20"}
+  ]
+}

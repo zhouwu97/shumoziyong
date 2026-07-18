@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/route_applicability.schema.json",
+  "title": "路线适用性 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "subproblems"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "route_applicability_v1"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "subproblems": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/subproblem"}}
+  },
+  "$defs": {
+    "subproblem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subproblem_id", "solution_strategy", "route_requirement", "required_alternatives"],
+      "properties": {
+        "subproblem_id": {"enum": ["Q1", "Q2", "Q3", "Q4"]},
+        "solution_strategy": {"enum": ["analytic_derivation", "decision_optimization"]},
+        "route_requirement": {
+          "type": "object", "additionalProperties": false,
+          "required": ["applicability", "minimum_structural_routes", "required_roles", "justification"],
+          "properties": {
+            "applicability": {"enum": ["not_applicable", "required"]},
+            "minimum_structural_routes": {"type": "integer", "minimum": 1},
+            "required_roles": {"type": "array", "uniqueItems": true, "items": {"enum": ["baseline", "primary", "structural_alternative"]}},
+            "justification": {"type": "string", "minLength": 10}
+          }
+        },
+        "required_alternatives": {"type": "array", "uniqueItems": true, "items": {"enum": ["independent_reference_implementation", "reference_oracle"]}}
+      }
+    }
+  }
+}

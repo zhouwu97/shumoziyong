@@ -593,6 +593,13 @@ packages_ready_for_ai_pre_review
 
 def build_packages(output_dir: Path = DEFAULT_OUTPUT) -> dict[str, Any]:
     output_dir = ensure_output_path(output_dir)
+    completed_evidence = [
+        output_dir / "reviewer_1_ai_pre_review/reviewer_1_ai_pre_review.json",
+        output_dir / "reviewer_2_ai_pre_review/reviewer_2_ai_pre_review.json",
+        output_dir / "admin_only/AI_PRE_REVIEW_SUMMARY.md",
+    ]
+    if any(path.exists() for path in completed_evidence):
+        raise ValueError("已存在 AI 预评审回传或汇总证据，拒绝重建并覆盖材料包")
     pilot_path = SOURCE_ROOT / "current/pilot_manifest.json"
     human_paths = [REVIEW_ROOT / "reviewer_1.json", REVIEW_ROOT / "reviewer_2.json"]
     original_paths = [

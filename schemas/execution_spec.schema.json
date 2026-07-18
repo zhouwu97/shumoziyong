@@ -14,12 +14,12 @@
     "profile": {"type": "string", "minLength": 1},
     "runtime_version": {"type": "string", "minLength": 1},
     "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
-    "formal_result_policy": {"const": "required_v1"},
+    "formal_result_policy": {"enum": ["required_v1", "rehearsal_unqualified_v1"]},
     "execution_contract_version": {"const": "1.0.0"},
     "formal_result_contract_version": {"const": "1.0.0"},
     "canonicalization_version": {"const": "1.0.0"},
     "gate_artifact_contract_version": {"const": "1.0.0"},
-    "execution_mode": {"const": "trusted_local"},
+    "execution_mode": {"enum": ["trusted_local", "direct_local_unqualified"]},
     "declared_workspace": {"type": "string", "pattern": "^(workspace|collector_workspace)(/(?!\\.{1,2}(?:/|$))[A-Za-z0-9._-]+)*$"},
     "network_access": {"const": false},
     "declared_writable_paths": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^(workspace|collector_workspace)(/(?!\\.{1,2}(?:/|$))[A-Za-z0-9._-]+)*$"}},
@@ -28,6 +28,16 @@
     "tasks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["task_id", "runner", "entrypoint", "entrypoint_arg_index", "argv", "working_directory", "inputs", "required_outputs", "depends_on", "timeout_seconds", "seed_policy", "acceptance_checks", "fallback"], "properties": {"task_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}, "runner": {"const": "python"}, "entrypoint": {"type": "string", "pattern": "^code(?:/(?!\\.{1,2}(?:/|$))[A-Za-z0-9._-]+)+$"}, "entrypoint_arg_index": {"const": 1}, "argv": {"type": "array", "minItems": 2, "prefixItems": [{"const": "python"}], "items": {"type": "string", "minLength": 1}}, "working_directory": {"type": "string", "pattern": "^(workspace|collector_workspace)(/(?!\\.{1,2}(?:/|$))[A-Za-z0-9._-]+)*$"}, "inputs": {"type": "array", "items": {"$ref": "#/$defs/hashedPath"}}, "required_outputs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/outputPath"}}, "depends_on": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}}, "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 7200}, "seed_policy": {"type": "object", "additionalProperties": false, "required": ["deterministic_expected", "seeds"], "properties": {"deterministic_expected": {"type": "boolean"}, "seeds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}}}}, "acceptance_checks": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["check_id", "kind", "expectation"], "properties": {"check_id": {"type": "string", "minLength": 1}, "kind": {"enum": ["file_exists", "json_schema", "metric_range", "constraint_residual", "repeated_run", "custom"]}, "expectation": {"type": "string", "minLength": 1}}}}, "fallback": {"const": "emit_blocker"}}}},
     "contract_notes": {"type": "array", "items": {"type": "string", "minLength": 1}}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"formal_result_policy": {"const": "required_v1"}}, "required": ["formal_result_policy"]},
+      "then": {"properties": {"execution_mode": {"const": "trusted_local"}}}
+    },
+    {
+      "if": {"properties": {"formal_result_policy": {"const": "rehearsal_unqualified_v1"}}, "required": ["formal_result_policy"]},
+      "then": {"properties": {"execution_mode": {"const": "direct_local_unqualified"}}}
+    }
+  ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "hashedPath": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "pattern": "^(problem|workspace|collector_workspace)(?:/(?!\\.{1,2}(?:/|$))[A-Za-z0-9._-]+)+$"}, "sha256": {"$ref": "#/$defs/sha256"}}},

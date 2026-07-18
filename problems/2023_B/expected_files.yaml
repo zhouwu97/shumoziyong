@@ -1,0 +1,19 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+required_before_solver:
+  - case_identity.yaml
+  - manifest.yaml
+  - hashes.sha256
+  - data_contract.yaml
+  - model_spec.md
+  - validator_contract.yaml
+  - validation_numerics.yaml
+  - dependency_boundary_policy.yaml
+  - modeling/requirement_map.json
+  - modeling/mechanism_scope_ledger.json
+  - modeling/route_applicability.json
+  - modeling/route_falsification_plan.json
+  - modeling/reference_oracle_registry.json
+  - modeling/contribution_ledger.json
+  - modeling/headline_claim_registry.json
+  - modeling/modeling_evidence_bundle.json

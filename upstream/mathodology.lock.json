@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "repository": "sweetcornna/mathodology",
+  "commit": "987644876160d105f0fa768248f5d23764f288b2",
+  "files": {
+    ".claude/agents/mathodology-problem-analyst.md": {
+      "blob_sha": "f832de334d4cdefd307e6e812be27999f94c2119"
+    },
+    ".claude/agents/mathodology-modeler.md": {
+      "blob_sha": "35f0559aa54fce878f4395f2c9d7d6373236179c"
+    },
+    ".claude/agents/mathodology-critic.md": {
+      "blob_sha": "ec81da3b95f1cfc8f6ae5ef5a6ae8bad526ac1a0"
+    },
+    "LICENSE": {
+      "blob_sha": "afee0be8b90c2c4bf1ca0f4cb7395f7a5b5eea86"
+    }
+  },
+  "license": "MIT",
+  "runtime_import_allowed": false,
+  "execution_allowed": false,
+  "workflow_activation_allowed": false,
+  "automatic_sync_allowed": false
+}

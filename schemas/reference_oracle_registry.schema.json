@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/reference_oracle_registry.schema.json",
+  "title": "参考真值登记 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "oracles"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "reference_oracle_registry_v1"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "oracles": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/oracle"}}
+  },
+  "$defs": {
+    "oracle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["oracle_id", "target", "oracle_class", "type", "critical", "artifact", "tolerance", "authority"],
+      "properties": {
+        "oracle_id": {"type": "string", "pattern": "^ORACLE-[A-Z0-9-]+$"},
+        "target": {"type": "string", "minLength": 1},
+        "oracle_class": {"enum": ["truth", "property"]},
+        "type": {"enum": ["analytic_exact_case", "human_hand_calculation", "dimensional_invariant", "symmetry_invariant", "limit_case", "coordinate_invariance", "unit_scaling_property", "metamorphic_property", "independent_literature_formula", "high_precision_reference", "mesh_convergence"]},
+        "critical": {"type": "boolean"},
+        "artifact": {"type": "string", "minLength": 1},
+        "expected": {},
+        "tolerance": {"type": "number", "minimum": 0},
+        "authority": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

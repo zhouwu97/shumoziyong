@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import hashlib
 import json
+import sys
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -9,6 +9,9 @@ from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from freeze_hash import canonical_file_sha256  # noqa: E402
 
 
 def _load_json(path: str) -> object:
@@ -34,7 +37,7 @@ def test_confirmatory_v2_freeze_hashes_every_bound_component() -> None:
     record = module.build_freeze_record()
 
     for component, expected in record["components"].items():
-        actual = hashlib.sha256((ROOT / component).read_bytes()).hexdigest()
+        actual = canonical_file_sha256(ROOT / component)
         assert actual == expected
 
     frozen = _load_json("protocols/a092_v2/protocol_freeze.json")

@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "route_applicability_v1",
+  "problem_id": "2023-B",
+  "subproblems": [
+    {"subproblem_id":"Q1","solution_strategy":"analytic_derivation","route_requirement":{"applicability":"not_applicable","minimum_structural_routes":1,"required_roles":[],"justification":"题目要求固定几何条件下的解析推导，不存在实质模型选择空间。"},"required_alternatives":["independent_reference_implementation","reference_oracle"]},
+    {"subproblem_id":"Q2","solution_strategy":"analytic_derivation","route_requirement":{"applicability":"not_applicable","minimum_structural_routes":1,"required_roles":[],"justification":"题目要求方向投影后的解析覆盖宽度，不应制造三条同公式变体。"},"required_alternatives":["independent_reference_implementation","reference_oracle"]},
+    {"subproblem_id":"Q3","solution_strategy":"decision_optimization","route_requirement":{"applicability":"required","minimum_structural_routes":3,"required_roles":["baseline","primary","structural_alternative"],"justification":"测线方向、间距和边界处理存在实质结构选择，必须进行路线竞争。"},"required_alternatives":[]},
+    {"subproblem_id":"Q4","solution_strategy":"decision_optimization","route_requirement":{"applicability":"required","minimum_structural_routes":3,"required_roles":["baseline","primary","structural_alternative"],"justification":"二维复杂地形上的表示、方向与覆盖并集计算存在实质结构选择。"},"required_alternatives":[]}
+  ]
+}

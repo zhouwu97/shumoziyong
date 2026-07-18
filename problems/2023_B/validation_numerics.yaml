@@ -1,0 +1,18 @@
+schema_version: 1.0.0
+problem_id: 2023-B
+status: frozen_before_solver
+angle_tolerance_rad: 1.0e-10
+length_absolute_tolerance_m: 1.0e-6
+constraint_residual_tolerance: 1.0e-8
+grid_convergence:
+  refinement_ratios: [1.0, 0.5, 0.25]
+  uncovered_area_relative_change_max: 0.01
+  excessive_overlap_length_relative_change_max: 0.01
+line_sampling_convergence:
+  spacing_m: [20.0, 10.0, 5.0]
+  metric_relative_change_max: 0.01
+area_uncertainty_upper_bound:
+  method: boundary_cell_envelope_plus_refinement_difference
+  required: true
+  reporting_rule: 若估计漏测面积不大于误差上界，只能报告当前离散精度下未检测到显著漏测。
+interpolation_comparison: [bilinear, bicubic_or_piecewise_linear_cross_check]

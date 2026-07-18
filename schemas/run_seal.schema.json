@@ -17,7 +17,7 @@
     "approved_review_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "gate_5_review_history_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "gate_5_review_history_head_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "formal_result_policy": {"enum": ["required_v1", "legacy_read_only_v1"]},
+    "formal_result_policy": {"enum": ["required_v1", "legacy_read_only_v1", "rehearsal_unqualified_v1"]},
     "execution_contract_version": {"const": "1.0.0"},
     "formal_result_contract_version": {"const": "1.0.0"},
     "canonicalization_version": {"const": "1.0.0"},
@@ -31,7 +31,7 @@
     "formal_result_executed_in_verified_environment": {"type": "boolean"},
     "formal_result_eligible": {"type": "boolean"},
     "formal_result_eligibility_scope": {"const": "trusted_local"},
-    "execution_trust_model": {"const": "trusted_local"},
+    "execution_trust_model": {"enum": ["trusted_local", "direct_local_unqualified"]},
     "git_head": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
     "git_state_clean": {"const": true},
     "targeted_host_read_controls_passed": {"const": true},
@@ -77,6 +77,20 @@
           "formal_result_executed_in_verified_environment",
           "formal_result_eligible"
         ]
+      }
+    },
+    {
+      "if": {"properties": {"formal_result_policy": {"const": "rehearsal_unqualified_v1"}}, "required": ["formal_result_policy"]},
+      "then": {
+        "required": ["formal_result_activation_status", "sandboxie_environment_observed", "sandboxie_environment_verified", "formal_result_executed_in_verified_environment", "formal_result_eligible", "execution_trust_model"],
+        "properties": {
+          "formal_result_activation_status": {"const": "code_complete_candidate"},
+          "sandboxie_environment_observed": {"const": false},
+          "sandboxie_environment_verified": {"const": false},
+          "formal_result_executed_in_verified_environment": {"const": false},
+          "formal_result_eligible": {"const": false},
+          "execution_trust_model": {"const": "direct_local_unqualified"}
+        }
       }
     },
     {

@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "modeling_evidence_bundle_v1",
+  "problem_id": "2023-B",
+  "bundle_status": "frozen_for_solver",
+  "frozen_at": "2026-07-17T18:39:08Z",
+  "bundle_sha256": "79f484fcee89970b1a010733197e97855f3cbf32221f9c37e78957c00bc5b1ec",
+  "artifacts": [
+    {
+      "role": "contribution_ledger",
+      "path": "modeling/contribution_ledger.json",
+      "sha256": "227e0f41f163c75d235e63344522798c9076a710afae1a445d9fcfbc3bdfa1ce"
+    },
+    {
+      "role": "data_contract",
+      "path": "data_contract.yaml",
+      "sha256": "f0cfad89e43124defbcad5810205ec4dd07c128061cbac7a29f8dc9d1e32e799"
+    },
+    {
+      "role": "dependency_boundary_policy",
+      "path": "dependency_boundary_policy.yaml",
+      "sha256": "304eca9b1a830c17655f85f65ff1dab574dec5f3c8348a6766d11ca2747bcf9b"
+    },
+    {
+      "role": "headline_claim_registry",
+      "path": "modeling/headline_claim_registry.json",
+      "sha256": "45c8434b671155f30b2a5a9f2a40c1d67a63143dd0c3bcd47af5d6c046a831e0"
+    },
+    {
+      "role": "mechanism_scope_ledger",
+      "path": "modeling/mechanism_scope_ledger.json",
+      "sha256": "57e695f2da4d2c9170624839ce87c98f4ff86b0186f476a48a73e9353701ed64"
+    },
+    {
+      "role": "model_spec",
+      "path": "model_spec.md",
+      "sha256": "4dbd4660a10e6d41230ea219dcfa515dea43e9cbdebd45721808cac67c7adbfd"
+    },
+    {
+      "role": "problem_manifest",
+      "path": "manifest.yaml",
+      "sha256": "4967d3a052f23f4af793f1562828dc4f95aade6596af91f65cd2e892238f7203"
+    },
+    {
+      "role": "reference_oracle_registry",
+      "path": "modeling/reference_oracle_registry.json",
+      "sha256": "f715d2093d5e65f0c812fc3df734f779b75c5a54f536dedae42307a4c5119069"
+    },
+    {
+      "role": "requirement_map",
+      "path": "modeling/requirement_map.json",
+      "sha256": "a3a27cb38f05ba7b33416777fd3f7541e7b7d52c303c0c060b2525fa9df5240e"
+    },
+    {
+      "role": "route_applicability",
+      "path": "modeling/route_applicability.json",
+      "sha256": "7c4ed91ca2c9dda06fd8ef305debb83b3478e7722475a3d69f7490f762d88231"
+    },
+    {
+      "role": "route_falsification_plan",
+      "path": "modeling/route_falsification_plan.json",
+      "sha256": "2b4df98fd62d1e48b3e2d2a4b2e3e1c3a7bcd33f120ac5dbf3479d3b8efd8aad"
+    },
+    {
+      "role": "validation_numerics",
+      "path": "validation_numerics.yaml",
+      "sha256": "8b55ecb26d0818990298059d07a0ca43a46a5ca5481933488bc4496548f5f9bd"
+    },
+    {
+      "role": "validator_contract",
+      "path": "validator_contract.yaml",
+      "sha256": "de51c87b840938e9a5b80e6e43888cf77a7b84ff28e9a76a18fb2ff1510f912d"
+    }
+  ]
+}

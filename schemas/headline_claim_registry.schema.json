@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/headline_claim_registry.schema.json",
+  "title": "核心结论稳健性登记 v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "claims"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "headline_claim_registry_v1"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "claims": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/claim"}}
+  },
+  "$defs": {
+    "strings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "claim": {
+      "type": "object", "additionalProperties": false,
+      "required": ["claim_id", "claim_type", "description", "verification_bindings", "sensitive_parameters", "required_stress_tests", "validation_dimensions", "status"],
+      "properties": {
+        "claim_id": {"type": "string", "pattern": "^HEAD-[A-Z0-9-]+$"},
+        "claim_type": {"enum": ["point_estimate", "interval", "inequality", "ranking", "feasibility", "recommendation", "qualitative_mechanism"]},
+        "description": {"type": "string", "minLength": 1},
+        "verification_bindings": {"$ref": "#/$defs/strings"},
+        "sensitive_parameters": {"$ref": "#/$defs/strings"},
+        "required_stress_tests": {"$ref": "#/$defs/strings"},
+        "validation_dimensions": {"$ref": "#/$defs/strings"},
+        "status": {"enum": ["registered", "supported", "weakened", "unsupported"]}
+      }
+    }
+  }
+}

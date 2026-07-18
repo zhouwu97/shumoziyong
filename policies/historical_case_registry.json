@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "historical_case_registry_v1",
+  "cases": [
+    {
+      "case_id": "legacy-2023-A165",
+      "evidence_ref": "tests/old_problems/旧题测试_工程优化_2023A165_2026-07-02.md",
+      "classification": "integration_fixture",
+      "purpose": "pipeline_smoke_test",
+      "qualification_usage": {"technical_closure": false, "unseen_problem_generalization": false, "hidden_benchmark": false, "competition_qualification": false}
+    },
+    {
+      "case_id": "legacy-2023-A175",
+      "evidence_ref": "tests/old_problems/旧题测试_工程优化_2023A175_2026-07-02.md",
+      "classification": "integration_fixture",
+      "purpose": "pipeline_smoke_test",
+      "qualification_usage": {"technical_closure": false, "unseen_problem_generalization": false, "hidden_benchmark": false, "competition_qualification": false}
+    },
+    {
+      "case_id": "legacy-2023-B226",
+      "evidence_ref": "tests/old_problems/旧题测试_工程优化_2023B226_2026-07-02.md",
+      "classification": "integration_fixture",
+      "purpose": "pipeline_smoke_test",
+      "qualification_usage": {"technical_closure": false, "unseen_problem_generalization": false, "hidden_benchmark": false, "competition_qualification": false}
+    },
+    {
+      "case_id": "legacy-2023-B-official-t3",
+      "evidence_ref": "tests/old_problems/旧题测试_工程优化_2023B官方T3_2026-07-02.md",
+      "classification": "integration_fixture",
+      "purpose": "pipeline_smoke_test",
+      "qualification_usage": {"technical_closure": false, "unseen_problem_generalization": false, "hidden_benchmark": false, "competition_qualification": false}
+    },
+    {
+      "case_id": "legacy-2024-C-official-t3",
+      "evidence_ref": "tests/old_problems/旧题测试_工程优化_2024C官方T3_2026-07-05.md",
+      "classification": "integration_fixture",
+      "purpose": "pipeline_smoke_test",
+      "qualification_usage": {"technical_closure": false, "unseen_problem_generalization": false, "hidden_benchmark": false, "competition_qualification": false}
+    },
+    {
+      "case_id": "legacy-2024-B-official-t4",
+      "evidence_ref": "tests/old_problems/旧题测试_工程优化_2024B官方T4_2026-07-09.md",
+      "classification": "integration_fixture",
+      "purpose": "pipeline_smoke_test",
+      "qualification_usage": {"technical_closure": false, "unseen_problem_generalization": false, "hidden_benchmark": false, "competition_qualification": false}
+    }
+  ]
+}

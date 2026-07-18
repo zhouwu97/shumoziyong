@@ -6,6 +6,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from freeze_hash import canonical_file_sha256
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "protocols" / "a092_codex_v1" / "protocol_freeze.json"
@@ -40,7 +42,7 @@ COMPONENTS = (
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return canonical_file_sha256(path)
 
 
 def build_freeze_record() -> dict[str, object]:

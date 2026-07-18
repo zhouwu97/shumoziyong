@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "modeling_gate_report_v1",
+  "problem_id": "2023-B",
+  "gates": {
+    "A": true,
+    "B": true,
+    "C": true
+  },
+  "status": "gate_c_modeling_design_frozen",
+  "formal_result_eligible": false,
+  "errors": {
+    "A": [],
+    "B": [],
+    "C": []
+  }
+}

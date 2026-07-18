@@ -45,7 +45,7 @@
       "additionalProperties": false,
       "required": ["trust_model", "advisory", "enforced"],
       "properties": {
-        "trust_model": {"const": "trusted_local"},
+        "trust_model": {"enum": ["trusted_local", "direct_local_unqualified"]},
         "advisory": {
           "type": "object",
           "additionalProperties": false,

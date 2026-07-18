@@ -273,9 +273,30 @@ def test_executor_runs_candidate_and_requires_collector(tmp_path: Path) -> None:
 
     assert record["status"] == "completed"
     assert record["formal_result_authority"] == "collector_required"
+    assert record["formal_result_activation_status"] == "code_complete_candidate"
+    assert record["formal_result_eligible"] is False
+    assert record["execution_trust_model"] == "trusted_local"
     assert record["environment"]["runner_token"] == "python"
     assert Path(record["environment"]["resolved_runner"]).resolve() == Path(sys.executable).resolve()
     assert len(record["environment"]["resolved_runner_sha256"]) == 64
     assert record["environment"]["python_version"]
     assert (run_dir / "candidate_execution_record.json").is_file()
     assert not (run_dir / "executor_blocker.json").exists()
+
+
+def test_rehearsal_policy_only_pairs_with_direct_local_execution() -> None:
+    schema = json.loads(
+        (ROOT / "schemas/execution_spec.schema.json").read_text(encoding="utf-8")
+    )
+    spec = json.loads(
+        (ROOT / "tests/fixtures/m3a_verified_run/execution_spec.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    spec["formal_result_policy"] = "rehearsal_unqualified_v1"
+
+    spec["execution_mode"] = "trusted_local"
+    assert list(Draft202012Validator(schema).iter_errors(spec))
+
+    spec["execution_mode"] = "direct_local_unqualified"
+    assert not list(Draft202012Validator(schema).iter_errors(spec))
