@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "2024c_q1_baseline_manifest",
+  "problem_id": "2024-C",
+  "q1_baseline_frozen": true,
+  "production_ready": false,
+  "files": [
+    {
+      "role": "material_manifest",
+      "path": "formal_result/cases/2024_C/material_manifest.json",
+      "sha256": "c101ac8e18881552523bf72c91fc7a1fbcbbffadb9622f43dd7bb2d5ff6e28ca"
+    },
+    {
+      "role": "formal_result",
+      "path": "formal_result/cases/2024_C/q1/q1_formal_result.json",
+      "sha256": "cd1c30563eaed3b5943240ebd66ff90bc2a71b45c1d0915a7849e9df73ee7c85"
+    },
+    {
+      "role": "validator_report",
+      "path": "formal_result/cases/2024_C/q1/q1_validator_report.json",
+      "sha256": "7ca81369bc16ca4c0701e28be983a584b2c6497ffc96f7e71f5ea1e95043f313"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "q1_waste",
+      "objective_yuan": 40523383.52588501,
+      "assignment_count": 725,
+      "candidate_assignments_sha256": "103d1093ad4d5889d0dee785957fff808b289125548f44bd13521910621821d6",
+      "template_path": "official_materials/2024_C/templates/result1_1.xlsx",
+      "template_sha256": "4f2484c0d70a5c4d047163f2ee6ef486949e813330466f46def4bd7d98af06af",
+      "workbook_path": "formal_result/cases/2024_C/q1/result1_1.xlsx",
+      "workbook_sha256": "6597b5d0d768975d599eee08d43ab8c2a9de52394bcb7786844fb4d34ea397ec",
+      "workbook_validation_passed": true
+    },
+    {
+      "scenario_id": "q1_discount",
+      "objective_yuan": 63922311.642113775,
+      "assignment_count": 830,
+      "candidate_assignments_sha256": "d0c2eb4bdfc9558dbadfef429e1584684e815a49c5538522f6eae0312855b1d3",
+      "template_path": "official_materials/2024_C/templates/result1_2.xlsx",
+      "template_sha256": "6166d43f5a64bf9d1657e80d4aee7f10f54bb1a5695b81a28a0ac5e657297649",
+      "workbook_path": "formal_result/cases/2024_C/q1/result1_2.xlsx",
+      "workbook_sha256": "d624a76ac25cfc3ab3dc1c2439797a2a32041a21992e9d41af9f2e4a93eb75d6",
+      "workbook_validation_passed": true
+    }
+  ],
+  "q1_waste_objective": 40523383.52588501,
+  "q1_discount_objective": 63922311.642113775,
+  "official_workbook_reverse_validation_passed": true
+}

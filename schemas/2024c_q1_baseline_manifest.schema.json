@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/2024c_q1_baseline_manifest.schema.json",
+  "title": "2024-C Q1 基线 Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "q1_baseline_frozen", "production_ready", "files", "scenarios", "q1_waste_objective", "q1_discount_objective", "official_workbook_reverse_validation_passed"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "2024c_q1_baseline_manifest"},
+    "problem_id": {"const": "2024-C"},
+    "q1_baseline_frozen": {"const": true},
+    "production_ready": {"const": false},
+    "files": {"type": "array", "minItems": 3},
+    "scenarios": {"type": "array", "minItems": 2, "maxItems": 2},
+    "q1_waste_objective": {"type": "number"},
+    "q1_discount_objective": {"type": "number"},
+    "official_workbook_reverse_validation_passed": {"const": true}
+  }
+}
