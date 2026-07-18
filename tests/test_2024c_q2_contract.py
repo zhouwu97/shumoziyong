@@ -32,12 +32,60 @@ def test_q2_randomness_is_reproducible_and_excludes_q3_correlation() -> None:
     random = _contract()["random"]
     assert random["bit_generator"] == "PCG64"
     assert random["numpy_version"] == "2.4.4"
-    assert random["scenarios_per_seed"] == 256
-    assert set(random["optimization_seed_groups"]).isdisjoint(random["evaluation_seed_groups"])
-    assert random["optimization_scenario_count"] == 768
-    assert random["evaluation_scenario_count"] == 512
+    optimization_seeds = random["optimization_seed_groups"]
+    evaluation_seeds = random["evaluation_seed_groups"]
+    assert set(optimization_seeds).isdisjoint(evaluation_seeds)
+    assert random["scenario_pool_per_seed"] == 512
+    assert random["default_optimization_prefix_per_seed"] == 256
+    assert random["default_evaluation_prefix_per_seed"] == 256
+    assert "scenarios_per_seed" not in random
+    assert random["optimization_scenario_count"] == len(optimization_seeds) * random["default_optimization_prefix_per_seed"]
+    assert random["evaluation_scenario_count"] == len(evaluation_seeds) * random["default_evaluation_prefix_per_seed"]
     assert random["q3_correlation_excluded"] is True
     assert random["scenario_manifest"]["sha256_required"] is True
+
+
+def test_q2_scenario_identity_and_prefix_invariants() -> None:
+    random = _contract()["random"]
+    identity = random["scenario_identity"]
+    prefixes = random["convergence_prefixes_per_seed"]
+    assert identity["primary_key"] == ["phase", "seed", "scenario_index"]
+    assert identity["id_template"] == "{phase}_seed_{seed}_scenario_{scenario_index:04d}"
+    assert identity["scenario_index_range"] == [0, 511]
+    assert len(prefixes) == 4
+    assert prefixes == sorted(prefixes)
+    assert max(prefixes) <= random["scenario_pool_per_seed"]
+    assert all(set(range(prefixes[i])).issubset(range(prefixes[i + 1])) for i in range(len(prefixes) - 1))
+
+    ids = {
+        f"{phase}_seed_{seed}_scenario_{index:04d}"
+        for phase, seeds, prefix in (
+            ("opt", random["optimization_seed_groups"], random["default_optimization_prefix_per_seed"]),
+            ("eval", random["evaluation_seed_groups"], random["default_evaluation_prefix_per_seed"]),
+        )
+        for seed in seeds
+        for index in range(prefix)
+    }
+    expected_count = len(random["optimization_seed_groups"]) * 256 + len(random["evaluation_seed_groups"]) * 256
+    assert len(ids) == expected_count
+
+
+def test_q2_seed_sequence_and_manifest_serialization_are_exact() -> None:
+    random = _contract()["random"]
+    assert random["seed_sequence"] == {
+        "constructor": "SeedSequence(entropy=seed, spawn_key=(2024, 3, 2))",
+        "child_stream_order": ["sales", "yield", "cost", "price"],
+        "draw_order": ["year_ascending", "official_crop_id_ascending", "declared_sampling_key"],
+    }
+    assert random["uniform_interval"] == "[low, high)"
+    assert random["scenario_manifest"]["canonical_json"] == {
+        "encoding": "utf-8",
+        "ensure_ascii": False,
+        "sort_keys": True,
+        "separators": [",", ":"],
+        "allow_nan": False,
+        "trailing_newline": False,
+    }
 
 
 def test_q2_parameter_ranges_match_official_question() -> None:
@@ -63,8 +111,13 @@ def test_q2_risk_statistics_and_sensitivity_are_explicit() -> None:
     risk = _contract()["risk"]
     assert risk["alpha"] == 0.90
     assert risk["cvar_tail_count_rule"] == "ceil"
-    assert risk["risk_aversion_lambda"] == 0.25
-    assert risk["sensitivity_lambdas"] == [0.0, 0.25, 0.5]
+    assert risk["primary_lambda"] == 0.25
+    sensitivity = risk["sensitivity"]
+    assert sensitivity["lambdas"] == [0.0, 0.25, 0.5]
+    assert sensitivity["action"] == "reoptimize_each_lambda"
+    assert sensitivity["optimization_scenarios"] == "same_frozen_optimization_manifest"
+    assert sensitivity["evaluation_scenarios"] == "same_frozen_evaluation_manifest"
+    assert sensitivity["compare_plan_structure"] is True
     assert set(["mean", "p05", "p50", "p95", "worst_profit", "cvar_loss"]).issubset(risk["reported_statistics"])
 
 
@@ -75,3 +128,15 @@ def test_q2_requires_real_q1_baseline_and_convergence_audit() -> None:
     convergence = contract["convergence"]
     assert convergence["scenario_budgets"] == [64, 128, 256, 512]
     assert convergence["claim_256_scenarios_sufficient"] is False
+
+
+def test_q2_contract_document_mentions_machine_identity_and_sampling_rules() -> None:
+    document = (ROOT / "docs" / "cases" / "2024_C" / "Q2_MODEL_CONTRACT.md").read_text(encoding="utf-8")
+    for fragment in (
+        "(phase, seed, scenario_index)",
+        "scenario_pool_per_seed",
+        "[a,b)",
+        "分别重新求解",
+        "allow_nan=false",
+    ):
+        assert fragment in document

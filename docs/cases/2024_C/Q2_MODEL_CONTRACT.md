@@ -2,7 +2,7 @@
 
 ## 1. 合同状态与边界
 
-本合同冻结 Q2 的不确定性语义，供后续 Solver、Formal Result 和独立 Validator 共同使用。它不声明 Solver 已完成、不产生 `result2.xlsx`，也不覆盖 Q3 的相关性、替代性或互补性模型。
+本候选合同定义 Q2 的不确定性语义，供后续 Solver、Formal Result 和独立 Validator 审查。它不声明合同已正式冻结，不声明 Solver 已完成，不产生 `result2.xlsx`，也不覆盖 Q3 的相关性、替代性或互补性模型。
 
 ```yaml
 problem_id: 2024-C
@@ -34,13 +34,15 @@ qualification_claimed: false
 | 销售价格 | 食用菌（羊肚菌除外） | `P[t] = P[t-1] * (1 - U(0.01, 0.05))` | `(crop_id, season, year)`；降幅每年重新采样 |
 | 销售价格 | 羊肚菌 | `P[t] = P[t-1] * 0.95` | `(crop_id, season, year)`；题面明确每年下降 5% |
 
-`U(a,b)` 为包含端点的连续均匀分布。类别映射必须来自附件 1 的官方作物字典，不得按作物编号范围猜测；无法映射时 Validator 必须失败。
+`U(a,b)` 严格按 NumPy `Generator.uniform(a, b)` 实现，规范区间为半开区间 `[a,b)`；浮点舍入导致的极端上界返回以 NumPy 实际行为为准，不得由 Solver 或 Validator 另行实现闭区间。类别映射必须来自附件 1 的官方作物字典，不得按作物编号范围猜测；无法映射时 Validator 必须失败。
 
 ## 4. 情景、随机种子与重复实验
 
-使用锁定在 `requirements.lock` 中的 NumPy `2.4.4`、`numpy.random.Generator(PCG64)` 和 `SeedSequence(entropy=seed, spawn_key=(2024, 3, 2))`。每个 seed 的子流按固定参数顺序 `sales, yield, cost, price` 生成；每个子流按年份升序、官方作物编号升序及表中声明的采样键排序。情景按 `scenario_0000` 至 `scenario_0255` 编号，JSON Manifest 使用 UTF-8、`sort_keys=true` 和紧凑分隔符计算 SHA-256。
+使用锁定在 `requirements.lock` 中的 NumPy `2.4.4`、`numpy.random.Generator(PCG64)` 和 `SeedSequence(entropy=seed, spawn_key=(2024, 3, 2))`。每个 seed 的子流按固定参数顺序 `sales, yield, cost, price` 生成；每个子流按年份升序、官方作物编号升序及表中声明的采样键排序。情景身份是三元主键 `(phase, seed, scenario_index)`，规范 ID 为 `opt_seed_20240724_scenario_0000` 或 `eval_seed_20240727_scenario_0000`；任何统计、SHA、日志和 Formal Result 都不得只使用 `scenario_0000`。
 
-优化情景和评估情景严格分离：`optimization_seed_groups=[20240724,20240725,20240726]`，`evaluation_seed_groups=[20240727,20240728]`，每个 seed 生成 256 个情景。Solver 只能消费优化组的 768 个情景；评估组的 512 个情景在方案冻结后才生成或读取，不能参与决策选择、参数调优或敏感性选择。两组 seed 必须不相交，Validator 必须检查这一点。256 是每组的预设计算预算，不是充分性证明。
+机器合同对应字段为 `scenario_pool_per_seed=512`、`default_optimization_prefix_per_seed=256`、`default_evaluation_prefix_per_seed=256` 和 `convergence_prefixes_per_seed=[64,128,256,512]`。每个 seed 必须先生成一个包含 `scenario_index=0..511` 的 512 情景母池。默认优化前缀为每个优化 seed 的 `0..255`，默认评估前缀为每个评估 seed 的 `0..255`；所有收敛预算都从同一母池取规范化前缀，不得因预算变化重新抽样。Scenario Manifest 使用 UTF-8、`ensure_ascii=false`、`sort_keys=true`、`separators=(",", ":")`、`allow_nan=false` 且无尾换行计算 SHA-256。
+
+优化情景和评估情景严格分离：`optimization_seed_groups=[20240724,20240725,20240726]`，`evaluation_seed_groups=[20240727,20240728]`，每个 seed 的母池为 512 个情景。Solver 默认只能消费优化组每个 seed 的前 256 个情景，共 768 个；评估组默认使用每个 seed 的前 256 个情景，共 512 个，并且只能在方案冻结后用于样本外评价。两组 seed 必须不相交，Validator 必须检查这一点。
 
 Formal Result 必须保存：合同版本、NumPy 版本、位生成器、SeedSequence 规则、优化/评估 seed 列表、情景数量、规范化情景 Manifest SHA-256、每个情景参数摘要或其 SHA-256、方案 SHA-256 以及运行日志。Validator 必须按相同规则重新生成两组情景并逐项复算，禁止接受手工填写的均值或区间。
 
@@ -58,9 +60,9 @@ Formal Result 必须保存：合同版本、NumPy 版本、位生成器、SeedSe
 
 `mean(profit_s) - 0.25 * CVaR_0.90(loss_s)`。
 
-`0.25` 是本合同的风险厌恶系数，不是官方题面参数，必须在结果中显式标注，并至少以 `0`、`0.25`、`0.50` 做敏感性重算。所有报告至少包含均值、标准差、P05、P50、P95、最坏情景利润、CVaR，以及评估组中 Q1 基线的对应统计量和配对差异。
+`0.25` 是本合同的主风险厌恶系数，不是官方题面参数。敏感性分析的 `lambda=[0,0.25,0.50]` 必须在**同一份冻结优化情景 Manifest 上分别重新求解**，而不是对同一个方案只换公式打分；每个 lambda 的方案再在同一份冻结评估情景 Manifest 上评价，并比较方案结构。所有报告至少包含均值、标准差、P05、P50、P95、最坏情景利润、CVaR，以及评估组中 Q1 基线的对应统计量和配对差异。
 
-情景预算必须按同一规范化顺序做 `64 → 128 → 256 → 512` 收敛检查。每个预算至少记录期望利润相对变化、CVaR 相对变化、方案面积结构变化和 seed 组间方差；在 256 未达到预设稳定阈值（均值变化不超过 2%、CVaR 变化不超过 5%、面积结构相对 L1 变化不超过 5%）时，不得声称情景数量充分，只能报告为预算不足或未收敛。
+情景预算只在三个优化 seed 上做收敛检查，且使用同一 512 母池的前缀：每个 seed 的前缀为 `64 → 128 → 256 → 512`，优化组总数为 `192 → 384 → 768 → 1536`；评估组默认总数固定为 `2 × 256 = 512`。每个预算至少记录期望利润相对变化、CVaR 相对变化、方案面积结构变化和 seed 组间方差；在 256 未达到预设稳定阈值（均值变化不超过 2%、CVaR 变化不超过 5%、面积结构相对 L1 变化不超过 5%）时，不得声称情景数量充分，只能报告为预算不足或未收敛。
 
 ## 6. Validator 复算边界
 

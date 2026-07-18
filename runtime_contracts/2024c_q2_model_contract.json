@@ -15,17 +15,36 @@
       "child_stream_order": ["sales", "yield", "cost", "price"],
       "draw_order": ["year_ascending", "official_crop_id_ascending", "declared_sampling_key"]
     },
+    "uniform_interval": "[low, high)",
     "optimization_seed_groups": [20240724, 20240725, 20240726],
     "evaluation_seed_groups": [20240727, 20240728],
-    "scenarios_per_seed": 256,
+    "scenario_pool_per_seed": 512,
+    "default_optimization_prefix_per_seed": 256,
+    "default_evaluation_prefix_per_seed": 256,
+    "convergence_prefixes_per_seed": [64, 128, 256, 512],
+    "convergence_phase": "optimization_only",
+    "scenario_identity": {
+      "primary_key": ["phase", "seed", "scenario_index"],
+      "phase_values": ["opt", "eval"],
+      "phase_semantics": {"opt": "optimization", "eval": "evaluation"},
+      "id_template": "{phase}_seed_{seed}_scenario_{scenario_index:04d}",
+      "scenario_index_range": [0, 511],
+      "must_be_unique": true
+    },
     "optimization_scenario_count": 768,
     "evaluation_scenario_count": 512,
-    "scenario_id_format": "scenario_%04d",
     "independence_assumption": "independent_across_declared_sampling_keys_no_shared_market_or_weather_shock",
     "q3_correlation_excluded": true,
     "scenario_manifest": {
       "required": true,
-      "canonical_json": "UTF-8 sort_keys=true compact_separators",
+      "canonical_json": {
+        "encoding": "utf-8",
+        "ensure_ascii": false,
+        "sort_keys": true,
+        "separators": [",", ":"],
+        "allow_nan": false,
+        "trailing_newline": false
+      },
       "sha256_required": true
     }
   },
@@ -47,8 +66,14 @@
     "alpha": 0.90,
     "cvar_tail_fraction": 0.10,
     "cvar_tail_count_rule": "ceil",
-    "risk_aversion_lambda": 0.25,
-    "sensitivity_lambdas": [0.0, 0.25, 0.5],
+    "primary_lambda": 0.25,
+    "sensitivity": {
+      "lambdas": [0.0, 0.25, 0.5],
+      "action": "reoptimize_each_lambda",
+      "optimization_scenarios": "same_frozen_optimization_manifest",
+      "evaluation_scenarios": "same_frozen_evaluation_manifest",
+      "compare_plan_structure": true
+    },
     "reported_statistics": ["mean", "std", "p05", "p50", "p95", "worst_profit", "cvar_loss"]
   },
   "convergence": {
