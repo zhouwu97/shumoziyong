@@ -310,6 +310,20 @@ def build_run_evidence_manifest(
                 "role": role,
             }
         )
+    run_manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
+    if run_manifest.get("paper_content_contract_id"):
+        for filename, role in PAPER_CONTENT_EVIDENCE_SPECS:
+            path = run_dir / filename
+            content = path.read_bytes()
+            artifacts.append(
+                {
+                    "path": filename,
+                    "sha256": sha256_bytes(content),
+                    "media_type": "application/json" if path.suffix == ".json" else "text/yaml",
+                    "size_bytes": len(content),
+                    "role": role,
+                }
+            )
     gate_artifacts_dir = run_dir / "gate_artifacts"
     for filename, role in OPTIONAL_GATE_EVIDENCE_SPECS:
         path = run_dir / filename
@@ -481,6 +495,43 @@ def build_problem_manifest(
         "content_digest": content_digest,
         "errors": verification.errors,
     }
+
+
+def _paper_content_contract_binding(
+    problem_id: str, profile: str
+) -> tuple[str, str | None, str | None, str | None, dict[str, str] | None, Path | None]:
+    """解析题目/Profile 对应的 Gate F 合同，供新 Run 冻结合同身份。"""
+    contracts_dir = ROOT / "paper_content_contracts"
+    prefix = f"{str(problem_id).replace('-', '_')}_{profile}_"
+    candidates = sorted(contracts_dir.glob(f"{prefix}*.yaml"))
+    if len(candidates) > 1:
+        raise ValueError(f"题目/Profile 对应多个论文内容合同：{prefix}")
+    if not candidates:
+        return "1.0.0", None, None, None, None, None
+    path = candidates[0]
+    try:
+        from paper.paper_content_quality import (
+            CONTRACT_RESOLUTION_VERSION,
+            contract_sha256,
+            contract_source_hashes,
+            load_contract,
+        )
+    except ModuleNotFoundError:  # pragma: no cover
+        from scripts.paper.paper_content_quality import (
+            CONTRACT_RESOLUTION_VERSION,
+            contract_sha256,
+            contract_source_hashes,
+            load_contract,
+        )
+    contract = load_contract(path)
+    return (
+        "1.0.0",
+        str(contract["contract_id"]),
+        contract_sha256(contract),
+        CONTRACT_RESOLUTION_VERSION,
+        contract_source_hashes(path),
+        path,
+    )
 
 
 def _experiment_kind(candidate_patches: list[str], excluded_patches: list[str]) -> str:
@@ -722,6 +773,16 @@ def create_gate_run_core(
 
     problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
     write_json(run_dir / "problem_manifest.json", problem_manifest)
+    (
+        paper_contract_version,
+        paper_contract_id,
+        paper_contract_sha,
+        paper_contract_resolution_version,
+        paper_contract_source_hashes,
+        paper_contract_source,
+    ) = _paper_content_contract_binding(args.problem, profile)
+    if paper_contract_source is not None:
+        shutil.copyfile(paper_contract_source, run_dir / "paper_content_contract.yaml")
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
     initial_state = "initialized" if material_verification.ready else "blocked"
@@ -755,6 +816,13 @@ def create_gate_run_core(
         "initial_state": initial_state,
         "gate_3_evidence_contract_version": GATE_3_EVIDENCE_CONTRACT_VERSION,
         "paper_pipeline_contract_version": PAPER_PIPELINE_CONTRACT_VERSION,
+        "paper_content_quality_contract_version": paper_contract_version,
+        "paper_content_contract_id": paper_contract_id,
+        "paper_content_contract_sha256": paper_contract_sha,
+        "paper_content_contract_resolution_version": paper_contract_resolution_version,
+        "paper_content_contract_merged_sha256": paper_contract_sha,
+        "paper_content_contract_source_hashes": paper_contract_source_hashes,
+        "legacy_paper_content_policy": False,
         **FORMAL_IDENTITY_DEFAULTS,
         "runtime_profile_snapshot_sha256": sha256_bytes(
             (run_dir / "runtime_profile.snapshot.json").read_bytes()
@@ -1039,6 +1107,26 @@ def extend_formal_result_evidence_requirements(
             required["formal_result_payload_manifest"] = "formal_result_payload_manifest.json"
             required["collector_derivation_attestation"] = "collector_derivation_attestation.json"
     return summary
+
+
+PAPER_CONTENT_EVIDENCE_SPECS: tuple[tuple[str, str], ...] = (
+    ("paper_content_contract.yaml", "paper_content_contract"),
+    ("paper_evidence_role_registry.json", "paper_evidence_role_registry"),
+    ("paper_substantive_completeness_report.json", "paper_substantive_completeness_report"),
+    ("paper_content_delta_report.json", "paper_content_delta_report"),
+    ("paper_gate_f_status.json", "paper_gate_f_status"),
+)
+
+
+def extend_paper_content_evidence_requirements(
+    run_dir: Path, required: dict[str, str]
+) -> None:
+    """对绑定 Gate F 合同的 Run 增加论文内容证据闭包。"""
+    manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    if not manifest.get("paper_content_contract_id"):
+        return
+    for filename, role in PAPER_CONTENT_EVIDENCE_SPECS:
+        required[role] = filename
 
 
 def _assert_formal_result_mutable(run_dir: Path) -> None:
@@ -1878,6 +1966,7 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
     if gate == 4:
         if _paper_pipeline_is_required(run_manifest):
             verify_candidate_manifest(run_dir, binding)
+        _validate_gate_f_status_for_run(run_dir, require_f3=False)
         result_report = _load_json_object(run_dir / "result_report.json", "result_report.json")
         result_manifest = _load_json_object(
             run_dir / "result_manifest.json", "result_manifest.json"
@@ -1892,6 +1981,83 @@ def verify_gate_artifacts(run_dir: Path, gate: int) -> dict[str, Any]:
         if claim_errors:
             raise ValueError("Gate 4 Claim-Result 检查失败：" + "；".join(claim_errors))
     return manifest
+
+
+def _validate_gate_f_status_for_run(run_dir: Path, *, require_f3: bool) -> dict[str, Any] | None:
+    """验证绑定 Run 的 Gate F 报告、合同身份和状态；未绑定合同的历史 Run 不受影响。"""
+    run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+    contract_id = run_manifest.get("paper_content_contract_id")
+    if not contract_id:
+        return None
+    contract_path = run_dir / "paper_content_contract.yaml"
+    status_path = run_dir / "paper_gate_f_status.json"
+    if not contract_path.is_file():
+        raise ValueError("新 Run 缺少 paper_content_contract.yaml，禁止绕过 Gate F")
+    if not status_path.is_file():
+        raise ValueError("已绑定论文内容合同，但缺少 paper_gate_f_status.json")
+    try:
+        from paper.paper_content_quality import (
+            CONTRACT_RESOLUTION_VERSION,
+            contract_sha256,
+            contract_source_hashes,
+            load_contract,
+        )
+    except ModuleNotFoundError:  # pragma: no cover
+        from scripts.paper.paper_content_quality import (
+            CONTRACT_RESOLUTION_VERSION,
+            contract_sha256,
+            contract_source_hashes,
+            load_contract,
+        )
+    contract = load_contract(contract_path)
+    if contract.get("contract_id") != contract_id:
+        raise ValueError("Run 冻结的论文内容合同 ID 与现场合同不一致")
+    if run_manifest.get("paper_content_contract_sha256") != contract_sha256(contract):
+        raise ValueError("Run 冻结的论文内容合同 SHA-256 与现场合同不一致")
+    if run_manifest.get("paper_content_contract_resolution_version") != CONTRACT_RESOLUTION_VERSION:
+        raise ValueError("Run 冻结的论文内容合同解析版本不受支持")
+    if run_manifest.get("paper_content_contract_merged_sha256") != contract_sha256(contract):
+        raise ValueError("Run 冻结的论文内容合并 SHA-256 与现场合同不一致")
+    if run_manifest.get("paper_content_contract_source_hashes") != contract_source_hashes(contract_path):
+        raise ValueError("Run 冻结的论文内容合同继承链 SHA-256 与现场合同不一致")
+
+    status = _load_json_object(status_path, "paper_gate_f_status.json")
+    _validate_json_schema(status, "schemas/paper_gate_f_status.schema.json", "paper_gate_f_status.json")
+    report_path = run_dir / "paper_substantive_completeness_report.json"
+    if not report_path.is_file():
+        raise ValueError("Gate F 缺少 paper_substantive_completeness_report.json")
+    report_sha = sha256_bytes(report_path.read_bytes())
+    if status.get("completeness_report_sha256") != report_sha:
+        raise ValueError("Gate F 状态未绑定当前完整性报告")
+    if status.get("f2_status") != "passed":
+        raise ValueError("Gate F F2 尚未通过，禁止进入后续生产链")
+    if require_f3:
+        if status.get("status") != "independent_paper_review_passed" or status.get("eligible_for_gate_g") is not True:
+            raise ValueError("Gate F 尚未通过 F1/F2/F3，禁止完成运行或进入 Gate G")
+        review = status.get("f3_review")
+        if not isinstance(review, Mapping):
+            raise ValueError("Gate F 通过状态缺少 F3 审核记录")
+        try:
+            from paper.gate_f_status import validate_f3_review_references
+        except ModuleNotFoundError:  # pragma: no cover
+            from scripts.paper.gate_f_status import validate_f3_review_references
+        validate_f3_review_references(run_dir, review)
+    elif status.get("status") not in {
+        "ready_for_independent_paper_review",
+        "independent_paper_review_passed",
+    }:
+        raise ValueError("Gate F 状态不允许进入 Gate 5")
+    return status
+
+
+def _require_gate_f_ready_for_handoff(run_dir: Path) -> None:
+    """阻止 F2/F3 未闭环的论文 Run 进入最终人工交接。"""
+    try:
+        _validate_gate_f_status_for_run(run_dir, require_f3=True)
+    except FileNotFoundError as exc:
+        if (run_dir / "paper_content_contract.yaml").is_file():
+            raise ValueError("Gate F 尚未通过 F1/F2/F3，禁止生成最终人工终审交接包") from exc
+        raise
 
 
 def _load_and_validate_gate_5_review(run_dir: Path, reviewer: str) -> tuple[dict[str, Any], str]:
@@ -1949,6 +2115,9 @@ def mark_run_completed(run_dir: Path, reviewer: str) -> None:
     if state["current_gate"] != 5:
         raise ValueError(f"当前不在 Gate 5（当前 Gate：{state['current_gate']}），无法完成运行。")
 
+    # 完成前先经过与人工终审交接相同的 Gate F 阻断；历史未绑定 Run 由 helper 保持兼容。
+    _require_gate_f_ready_for_handoff(run_dir)
+    _validate_gate_f_status_for_run(run_dir, require_f3=True)
     review, review_sha = _load_and_validate_gate_5_review(run_dir, reviewer)
     if state.get("transition_version") == TRANSITION_VERSION:
         verify_gate_artifacts(run_dir, 5)
@@ -2807,6 +2976,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             )
             if state.get("completed"):
                 extend_formal_result_evidence_requirements(run_dir, required_artifacts)
+            extend_paper_content_evidence_requirements(run_dir, required_artifacts)
             evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
             if evidence.get("run_id") != manifest.get("run_id"):
                 evidence_errors.append("run_evidence_manifest.run_id 与 run_manifest 不一致")
@@ -2837,6 +3007,13 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
         seal_errors.append(str(exc))
 
     promotion_errors = list(seal_errors) + evidence_errors
+    if manifest.get("paper_content_contract_id") and (
+        state.get("completed") or state.get("current_gate") == 5
+    ):
+        try:
+            _validate_gate_f_status_for_run(run_dir, require_f3=True)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            promotion_errors.append(f"Gate F 未闭环：{exc}")
     if manifest.get("workflow") == "new_problem":
         promotion_errors.append("new_problem 的 competition_execution 运行不具备 Patch 晋级资格")
     if manifest.get("promotion_evidence") is not True:
@@ -2882,6 +3059,7 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
                 runtime_manifest_version=str(runtime_manifest.get("manifest_version")),
             )
             extend_formal_result_evidence_requirements(run_dir, required)
+            extend_paper_content_evidence_requirements(run_dir, required)
             evidence = _load_json_object(
                 run_dir / "run_evidence_manifest.json", "run_evidence_manifest.json"
             )

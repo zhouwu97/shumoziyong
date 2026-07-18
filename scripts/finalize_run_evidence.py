@@ -17,11 +17,13 @@ from formal_result.identity import FORMAL_RESULT_POLICY_LEGACY, FORMAL_RESULT_PO
 from formal_result.verifier import verify_formal_result_bundle
 from run_workflow import (
     OPTIONAL_GATE_EVIDENCE_SPECS,
+    PAPER_CONTENT_EVIDENCE_SPECS,
     ROOT,
     build_run_evidence_manifest,
     evidence_artifact_specs_for_workflow,
     evidence_required_artifacts_for_workflow,
     extend_formal_result_evidence_requirements,
+    extend_paper_content_evidence_requirements,
     formal_result_state_summary,
     replay_transition_log,
     validate_workflow_evidence_purpose,
@@ -44,6 +46,9 @@ for _workflow in ("full_replay", "new_problem"):
             for filename, role, _media_type in evidence_artifact_specs_for_workflow(_workflow)
         }
     )
+KNOWN_EVIDENCE_ARTIFACTS.update(
+    {role: filename for filename, role in PAPER_CONTENT_EVIDENCE_SPECS}
+)
 
 
 def load_policy() -> dict[str, Any]:
@@ -183,6 +188,7 @@ def finalize_run_evidence(run_dir: Path) -> dict[str, Any]:
             raise ValueError("required_v1 Run 封存前必须且只能存在一个 Formal Result Envelope")
         formal_summary = verify_formal_result_bundle(run_dir, envelopes[0])
         extend_formal_result_evidence_requirements(run_dir, required_artifacts)
+    extend_paper_content_evidence_requirements(run_dir, required_artifacts)
     missing_files = [
         filename for filename in sorted(set(required_artifacts.values())) if not (run_dir / filename).is_file()
     ]
