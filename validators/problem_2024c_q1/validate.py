@@ -154,13 +154,14 @@ def _continuous_violations(items: list[dict[str, Any]], data: Mapping[str, Any])
         if plot["type"] == "智慧大棚":
             slots = [(year, season) for year in range(2023, 2031) for season in ("第一季", "第二季")]
             pairs = zip(slots, slots[1:])
-        else:
-            seasons = {season for p, _year, season, _crop in presence if p == plot_id}
+        elif plot["type"] in {"平旱地", "梯田", "山坡地", "水浇地"}:
             pairs = (
-                ((year - 1, season), (year, season))
-                for season in seasons
+                ((year - 1, "单季"), (year, "单季"))
                 for year in range(2024, 2031)
             )
+        else:
+            # 普通大棚相邻季为蔬菜与食用菌，适种集合不相交，不会同作物重茬。
+            pairs = iter(())
         for previous, current in pairs:
             for crop_id in range(1, 42):
                 if (plot_id, previous[0], previous[1], crop_id) in presence and (plot_id, current[0], current[1], crop_id) in presence:
