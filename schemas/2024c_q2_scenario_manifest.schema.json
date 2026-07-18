@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/2024c_q2_scenario_manifest.schema.json",
+  "title": "2024-C Q2 情景 Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "generator_version",
+    "contract_id",
+    "problem_id",
+    "subproblem_id",
+    "status",
+    "q1_baseline_manifest_sha256",
+    "material_manifest_sha256",
+    "random_identity",
+    "key_catalog",
+    "scenario_count",
+    "scenarios",
+    "q2_solver_started",
+    "q2_validator_started",
+    "production_ready",
+    "manifest_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "2024c_q2_scenario_manifest"},
+    "generator_version": {"type": "string"},
+    "contract_id": {"const": "2024c-q2-uncertainty-v1"},
+    "problem_id": {"const": "2024-C"},
+    "subproblem_id": {"const": "Q2"},
+    "status": {"const": "scenario_pool_frozen_solver_pending"},
+    "q1_baseline_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "material_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "random_identity": {"type": "object"},
+    "key_catalog": {"type": "object"},
+    "scenario_count": {"type": "integer", "minimum": 1},
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "phase",
+          "seed",
+          "scenario_index",
+          "scenario_id",
+          "parameter_sha256",
+          "parameter_counts"
+        ],
+        "properties": {
+          "phase": {"enum": ["opt", "eval"]},
+          "seed": {"type": "integer"},
+          "scenario_index": {"type": "integer", "minimum": 0, "maximum": 511},
+          "scenario_id": {"type": "string"},
+          "parameter_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "parameter_counts": {"type": "object"},
+          "sales_growth_min": {"type": ["number", "null"]},
+          "sales_growth_max": {"type": ["number", "null"]},
+          "yield_factor_min": {"type": ["number", "null"]},
+          "yield_factor_max": {"type": ["number", "null"]},
+          "cost_growth_min": {"type": ["number", "null"]},
+          "cost_growth_max": {"type": ["number", "null"]},
+          "price_growth_min": {"type": ["number", "null"]},
+          "price_growth_max": {"type": ["number", "null"]}
+        }
+      }
+    },
+    "q2_solver_started": {"const": false},
+    "q2_validator_started": {"const": false},
+    "production_ready": {"const": false},
+    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
