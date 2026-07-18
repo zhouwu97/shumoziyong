@@ -17,7 +17,13 @@ Q2-A 只生成不确定性情景和 Scenario Manifest，不运行 Solver、Valid
 python scripts/generate_2024c_q2_scenarios.py
 ```
 
-输出为 `formal_result/cases/2024_C/q2/q2_scenario_manifest.json`。Manifest 保存官方基准参数键目录、每个情景的参数摘要与 SHA，不保存 Solver 结果；后续 Solver 必须按同一合同重新生成并消费这些情景。
+输出为 `formal_result/cases/2024_C/q2/q2_scenario_manifest.json`。官方母池 Manifest 已提交并冻结，当前 SHA 为：
+
+```text
+f41c5efe8766f902abbcdb6ae370e09868ccb79aba3d840a49ff2c1fa1d7d7ba
+```
+
+Manifest 保存官方基准参数键目录、每个情景的参数摘要与 SHA，不保存 Solver 结果；后续 Solver 必须按同一合同重新生成，并由 `validate_manifest(manifest, contract, catalog)` 逐项重放核对后才能消费这些情景。官方 CI 会重新生成 Manifest 并与仓库文件逐字节比较。
 
 Manifest 中明确保持：
 

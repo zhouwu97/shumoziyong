@@ -273,6 +273,8 @@ def generate_manifest_for_catalog(
     *,
     q1_baseline_manifest_sha256: str,
     material_manifest_sha256: str,
+    q2_model_contract_sha256: str,
+    scenario_generator_module_sha256: str,
     pool_size: int | None = None,
 ) -> dict[str, Any]:
     """生成不含时间戳的可复现 Q2-A Scenario Manifest。"""
@@ -309,6 +311,8 @@ def generate_manifest_for_catalog(
         "status": "scenario_pool_frozen_solver_pending",
         "q1_baseline_manifest_sha256": q1_baseline_manifest_sha256,
         "material_manifest_sha256": material_manifest_sha256,
+        "q2_model_contract_sha256": q2_model_contract_sha256,
+        "scenario_generator_module_sha256": scenario_generator_module_sha256,
         "random_identity": {
             "numpy_version": random["numpy_version"],
             "bit_generator": random["bit_generator"],
@@ -344,8 +348,12 @@ def write_manifest(manifest: Mapping[str, Any], path: Path) -> str:
     return digest
 
 
-def validate_manifest(manifest: Mapping[str, Any], contract: Mapping[str, Any]) -> None:
-    """验证情景身份、数量、前缀和 Manifest 自身 SHA。"""
+def validate_manifest(
+    manifest: Mapping[str, Any],
+    contract: Mapping[str, Any],
+    catalog: ScenarioKeyCatalog,
+) -> None:
+    """重新生成并逐项验证五组情景、参数摘要和 Manifest 自身 SHA。"""
 
     copy = dict(manifest)
     declared = copy.pop("manifest_sha256", None)
@@ -353,14 +361,60 @@ def validate_manifest(manifest: Mapping[str, Any], contract: Mapping[str, Any]) 
         raise ValueError("Scenario Manifest SHA 校验失败")
     random = contract["random"]
     pool = int(random["scenario_pool_per_seed"])
-    if manifest["scenario_count"] != (len(random["optimization_seed_groups"]) + len(random["evaluation_seed_groups"])) * pool:
+    expected_seeds = {
+        "opt": {int(seed) for seed in random["optimization_seed_groups"]},
+        "eval": {int(seed) for seed in random["evaluation_seed_groups"]},
+    }
+    if expected_seeds["opt"] & expected_seeds["eval"]:
+        raise ValueError("优化和评估 seed 必须互不相交")
+    expected_count = sum(len(seeds) for seeds in expected_seeds.values()) * pool
+    if manifest["scenario_count"] != expected_count:
         raise ValueError("Scenario Manifest 情景总数错误")
     scenarios = manifest["scenarios"]
-    if len({item["scenario_id"] for item in scenarios}) != len(scenarios):
-        raise ValueError("Scenario Manifest 情景 ID 重复")
+    actual: dict[tuple[str, int, int], Mapping[str, Any]] = {}
     for item in scenarios:
-        if not 0 <= int(item["scenario_index"]) < pool:
+        phase = item["phase"]
+        seed = int(item["seed"])
+        index = int(item["scenario_index"])
+        if phase not in expected_seeds or seed not in expected_seeds[phase]:
+            raise ValueError("Scenario Manifest 使用了合同之外的 phase 或 seed")
+        if not 0 <= index < pool:
             raise ValueError("Scenario Manifest 情景索引越界")
-        expected = f"{item['phase']}_seed_{item['seed']}_scenario_{int(item['scenario_index']):04d}"
-        if item["scenario_id"] != expected:
+        key = (phase, seed, index)
+        if key in actual:
+            raise ValueError("Scenario Manifest 情景身份重复")
+        expected_id = f"{phase}_seed_{seed}_scenario_{index:04d}"
+        if item["scenario_id"] != expected_id:
             raise ValueError("Scenario Manifest 情景 ID 与复合身份不一致")
+        actual[key] = item
+
+    expected_keys = {
+        (phase, seed, index)
+        for phase, seeds in expected_seeds.items()
+        for seed in seeds
+        for index in range(pool)
+    }
+    if set(actual) != expected_keys:
+        raise ValueError("Scenario Manifest 未完整覆盖合同规定的五组 0..511 情景")
+
+    # 用同一合同和键目录重放每个情景，防止仅重算顶层 Manifest SHA 的伪造。
+    for phase, seeds in expected_seeds.items():
+        for seed in sorted(seeds):
+            for payload in iter_scenario_payloads(catalog, contract, phase, seed, pool):
+                key = (phase, seed, int(payload["scenario_index"]))
+                expected_summary = _scenario_summary(payload)
+                item = actual[key]
+                for field in (
+                    "parameter_sha256",
+                    "parameter_counts",
+                    "sales_growth_min",
+                    "sales_growth_max",
+                    "yield_factor_min",
+                    "yield_factor_max",
+                    "cost_growth_min",
+                    "cost_growth_max",
+                    "price_growth_min",
+                    "price_growth_max",
+                ):
+                    if item[field] != expected_summary[field]:
+                        raise ValueError(f"情景参数重放不一致：{key} field={field}")

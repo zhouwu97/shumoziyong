@@ -14,6 +14,8 @@
     "status",
     "q1_baseline_manifest_sha256",
     "material_manifest_sha256",
+    "q2_model_contract_sha256",
+    "scenario_generator_module_sha256",
     "random_identity",
     "key_catalog",
     "scenario_count",
@@ -33,8 +35,67 @@
     "status": {"const": "scenario_pool_frozen_solver_pending"},
     "q1_baseline_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "material_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "random_identity": {"type": "object"},
-    "key_catalog": {"type": "object"},
+    "q2_model_contract_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "scenario_generator_module_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "random_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numpy_version", "bit_generator", "seed_sequence", "optimization_seed_groups", "evaluation_seed_groups", "scenario_pool_per_seed", "scenario_identity", "canonical_json"],
+      "properties": {
+        "numpy_version": {"const": "2.4.4"},
+        "bit_generator": {"const": "PCG64"},
+        "seed_sequence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["constructor", "child_stream_order", "draw_order"],
+          "properties": {
+            "constructor": {"const": "SeedSequence(entropy=seed, spawn_key=(2024, 3, 2))"},
+            "child_stream_order": {"const": ["sales", "yield", "cost", "price"]},
+            "draw_order": {"const": ["year_ascending", "official_crop_id_ascending", "declared_sampling_key"]}
+          }
+        },
+        "optimization_seed_groups": {"type": "array", "const": [20240724, 20240725, 20240726]},
+        "evaluation_seed_groups": {"type": "array", "const": [20240727, 20240728]},
+        "scenario_pool_per_seed": {"const": 512},
+        "scenario_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary_key", "phase_values", "phase_semantics", "id_template", "scenario_index_range", "must_be_unique"],
+          "properties": {
+            "primary_key": {"const": ["phase", "seed", "scenario_index"]},
+            "phase_values": {"const": ["opt", "eval"]},
+            "phase_semantics": {"const": {"opt": "optimization", "eval": "evaluation"}},
+            "id_template": {"const": "{phase}_seed_{seed}_scenario_{scenario_index:04d}"},
+            "scenario_index_range": {"const": [0, 511]},
+            "must_be_unique": {"const": true}
+          }
+        },
+        "canonical_json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["encoding", "ensure_ascii", "sort_keys", "separators", "allow_nan", "trailing_newline"],
+          "properties": {
+            "encoding": {"const": "utf-8"},
+            "ensure_ascii": {"const": false},
+            "sort_keys": {"const": true},
+            "separators": {"const": [",", ":"]},
+            "allow_nan": {"const": false},
+            "trailing_newline": {"const": false}
+          }
+        }
+      }
+    },
+    "key_catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sales", "yield", "cost", "price"],
+      "properties": {
+        "sales": {"$ref": "#/$defs/salesCatalog"},
+        "yield": {"$ref": "#/$defs/yieldCatalog"},
+        "cost": {"$ref": "#/$defs/costCatalog"},
+        "price": {"$ref": "#/$defs/priceCatalog"}
+      }
+    },
     "scenario_count": {"type": "integer", "minimum": 1},
     "scenarios": {
       "type": "array",
@@ -55,7 +116,17 @@
           "scenario_index": {"type": "integer", "minimum": 0, "maximum": 511},
           "scenario_id": {"type": "string"},
           "parameter_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-          "parameter_counts": {"type": "object"},
+          "parameter_counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sales_growth", "yield_factor", "cost_growth", "price_growth"],
+            "properties": {
+              "sales_growth": {"type": "integer", "minimum": 0},
+              "yield_factor": {"type": "integer", "minimum": 0},
+              "cost_growth": {"type": "integer", "minimum": 0},
+              "price_growth": {"type": "integer", "minimum": 0}
+            }
+          },
           "sales_growth_min": {"type": ["number", "null"]},
           "sales_growth_max": {"type": ["number", "null"]},
           "yield_factor_min": {"type": ["number", "null"]},
@@ -71,5 +142,39 @@
     "q2_validator_started": {"const": false},
     "production_ready": {"const": false},
     "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "key": {"type": "object", "additionalProperties": false},
+    "salesCatalog": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keys", "base_demand_jin", "rules"],
+      "properties": {
+        "keys": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["crop_id", "season", "year"], "properties": {"crop_id": {"type": "integer"}, "season": {"type": "string"}, "year": {"type": "integer"}}}},
+        "base_demand_jin": {"type": "array", "items": {"type": "number", "minimum": 0}},
+        "rules": {"type": "array", "items": {"enum": ["wheat_corn_growth", "other_change"]}}
+      }
+    },
+    "yieldCatalog": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keys"],
+      "properties": {"keys": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["crop_id", "year"], "properties": {"crop_id": {"type": "integer"}, "year": {"type": "integer"}}}}}
+    },
+    "costCatalog": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keys", "base_cost_yuan_per_mu"],
+      "properties": {
+        "keys": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["plot_type", "season", "crop_id", "year"], "properties": {"plot_type": {"type": "string"}, "season": {"type": "string"}, "crop_id": {"type": "integer"}, "year": {"type": "integer"}}}},
+        "base_cost_yuan_per_mu": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}}
+      }
+    },
+    "priceCatalog": {
+      "type": "object", "additionalProperties": false,
+      "required": ["keys", "base_price_yuan_per_jin", "rules"],
+      "properties": {
+        "keys": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["crop_id", "season", "year"], "properties": {"crop_id": {"type": "integer"}, "season": {"type": "string"}, "year": {"type": "integer"}}}},
+        "base_price_yuan_per_jin": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}},
+        "rules": {"type": "array", "items": {"enum": ["stable", "vegetable_growth", "mushroom_decline", "morel_fixed_decline"]}}
+      }
+    }
   }
 }

@@ -19,6 +19,7 @@ from domains.problem_2024_c.scenarios import (
     validate_manifest,
     write_manifest,
 )
+from validators.problem_2024c_q1.validate import _load_bound_material_manifest
 
 
 def _read_json(path: Path) -> dict:
@@ -42,6 +43,9 @@ def generate_q2_scenario_manifest(
         raise ValueError("Q1 baseline production_ready 必须保持 false")
     baseline_sha = sha256_path(q1_baseline_path)
     material_sha = sha256_path(material_manifest_path)
+    attachment_1 = material_root / "2024_C" / "attachments" / "附件1.xlsx"
+    attachment_2 = material_root / "2024_C" / "attachments" / "附件2.xlsx"
+    _load_bound_material_manifest(material_manifest_path, attachment_1, attachment_2)
     declared_material = next(
         item["sha256"] for item in baseline["files"] if item["role"] == "material_manifest"
     )
@@ -49,13 +53,18 @@ def generate_q2_scenario_manifest(
         raise ValueError("Q1 baseline 与实际 Material Manifest SHA 不一致")
 
     data = load_problem_data(material_root)
+    catalog = build_key_catalog(data)
     manifest = generate_manifest_for_catalog(
-        build_key_catalog(data),
+        catalog,
         contract,
         q1_baseline_manifest_sha256=baseline_sha,
         material_manifest_sha256=material_sha,
+        q2_model_contract_sha256=sha256_path(contract_path),
+        scenario_generator_module_sha256=sha256_path(
+            ROOT / "domains" / "problem_2024_c" / "scenarios.py"
+        ),
     )
-    validate_manifest(manifest, contract)
+    validate_manifest(manifest, contract, catalog)
     write_manifest(manifest, output_path)
     return manifest
 
@@ -106,4 +115,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
