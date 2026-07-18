@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "gate_f_real_pilot_status",
+  "problem_id": "2025-C",
+  "profile": "prediction",
+  "pilot_type": "reconstructed_negative_control_and_repair",
+  "source_candidate_status": "unavailable_original_seven_page_paper",
+  "qualification_usage": false,
+  "qualification_claim_allowed": false,
+  "clean_run_initialized": true,
+  "clean_run_id": "pilot_2025c_reconstructed_negative_control_20260718",
+  "contract_frozen": true,
+  "run_manifest_sha256": "125dc00197d49597ddbeb77161a044e7588eac58915fbdd4f12df0f871724ed5",
+  "evidence_snapshot": {
+    "registry_sha256": "4953f6a606f56c0bb902d0cb432c316d4149a687b82356f7a963bde8533d3a83",
+    "completeness_report_sha256": "0eee2cc6369651f9a0b51be7ddb5f0b4b6f8bb100059e799434cff3aec6af19d",
+    "content_delta_report_sha256": "440778347f9680b17a3ce729b007b1a53bcf426794948c99c6372d79877203aa",
+    "gate_f_status_sha256": "52352180a9329f8a1563fcbba5df55eac3a9341f3fce8b3dfbdb9e7b36dd871e"
+  },
+  "f2_observed": {
+    "f1_status": "passed",
+    "f2_status": "content_repair_required",
+    "f3_status": "pending",
+    "status": "content_repair_required",
+    "eligible_for_gate_g": false,
+    "required_evidence_roles": 64,
+    "realized_evidence_roles": 0,
+    "required_role_coverage": 0.0
+  },
+  "f2_fail_to_pass_transition": "not_demonstrated",
+  "real_f2_negative_control": "reconstructed_negative_control_only",
+  "real_formal_result": "not_available",
+  "real_validator": "not_available",
+  "real_candidate": "not_available",
+  "f3_human_review": "not_started",
+  "gate_f_end_to_end_closure": false,
+  "qualification_status": "not_eligible",
+  "production_allowed": false,
+  "blocker": "原七页论文及其可验证 Formal Result/Validator 绑定不可用"
+}
