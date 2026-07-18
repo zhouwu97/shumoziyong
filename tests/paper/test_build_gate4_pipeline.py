@@ -27,6 +27,72 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _write_bound_gate_f_fixture(run: Path) -> None:
+    contract_path = run / "paper_content_contract.yaml"
+    contract_path.write_text(
+        "schema_version: '1.0.0'\n"
+        "contract_id: fixture_contract\n"
+        "problem_id: 2025-C\n"
+        "role_requirements: {}\n"
+        "binding_requirements: {}\n",
+        encoding="utf-8",
+    )
+    contract = pipeline.load_contract(contract_path)
+    _write(
+        run / "run_manifest.json",
+        {
+            "paper_content_contract_id": "fixture_contract",
+            "paper_content_contract_sha256": pipeline.contract_sha256(contract),
+            "paper_content_contract_resolution_version": pipeline.CONTRACT_RESOLUTION_VERSION,
+            "paper_content_contract_merged_sha256": pipeline.contract_sha256(contract),
+            "paper_content_contract_source_hashes": pipeline.contract_source_hashes(contract_path),
+        },
+    )
+    _write(
+        run / "paper_substantive_completeness_report.json",
+        {
+            "schema_version": "1.0.0",
+            "artifact_type": "paper_substantive_completeness_report",
+            "problem_id": "2025-C",
+            "contract_id": "fixture_contract",
+            "question_coverage": {},
+            "required_evidence_roles": 0,
+            "realized_evidence_roles": 0,
+            "required_role_coverage": 1.0,
+            "critical_missing": [],
+            "major_missing": [],
+            "minor_missing": [],
+            "status": "passed",
+        },
+    )
+    _write(
+        run / "paper_gate_f_status.json",
+        {
+            "schema_version": "1.0.0",
+            "artifact_type": "paper_gate_f_status",
+            "f1_status": "passed",
+            "f2_status": "passed",
+            "f3_status": "passed",
+            "status": "independent_paper_review_passed",
+            "eligible_for_gate_g": True,
+            "completeness_report_sha256": _sha(
+                run / "paper_substantive_completeness_report.json"
+            ),
+            "f3_review": {
+                "reviewer_type": "human",
+                "reviewer_identity": "reviewer-1",
+                "reviewed_candidate_id": "PC-000000000000000000000000",
+                "candidate_sha256": "a" * 64,
+                "completeness_report_sha256": "b" * 64,
+                "decision": "approved",
+                "critical_open": 0,
+                "major_open": 0,
+                "approval_record": "reviews/approval.json",
+            },
+        },
+    )
+
+
 def test_active_formal_result_requires_exactly_one_envelope(tmp_path: Path) -> None:
     _write(tmp_path / "run_manifest.json", {"formal_result_policy": "required_v1"})
 
@@ -344,6 +410,48 @@ def test_late_contract_cannot_bypass_initial_run_binding(tmp_path: Path) -> None
     with pytest.raises(ValueError, match="未在 Run 初始化时冻结"):
         pipeline._run_content_quality_if_bound(run, {})
     with pytest.raises(ValueError, match="未冻结合同身份"):
+        _validate_gate_f_status_for_run(run, require_f3=False)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (lambda status, report: status.update({"f1_status": "failed"}), "派生结果"),
+        (lambda status, report: status.update({"f3_status": "pending", "status": "independent_paper_review_passed"}), "派生结果"),
+        (lambda status, report: status["f3_review"].update({"decision": "rejected"}), "Schema"),
+        (
+            lambda status, report: (
+                status.update(
+                    {
+                        "f3_status": "failed",
+                        "status": "independent_paper_review_failed",
+                        "eligible_for_gate_g": False,
+                    }
+                ),
+                status["f3_review"].update({"decision": "approved"}),
+            ),
+            "必须绑定 decision=rejected",
+        ),
+        (lambda status, report: report.update({"status": "content_repair_required"}), "完整性报告状态"),
+        (lambda status, report: status.update({"eligible_for_gate_g": False}), "派生结果"),
+    ],
+)
+def test_gate_f_runtime_rejects_cross_field_status_tampering(
+    tmp_path: Path, mutation: object, message: str
+) -> None:
+    run = tmp_path / "run"
+    run.mkdir()
+    _write_bound_gate_f_fixture(run)
+    status_path = run / "paper_gate_f_status.json"
+    report_path = run / "paper_substantive_completeness_report.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    mutation(status, report)  # type: ignore[operator]
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    status["completeness_report_sha256"] = _sha(report_path)
+    status_path.write_text(json.dumps(status), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
         _validate_gate_f_status_for_run(run, require_f3=False)
 
 

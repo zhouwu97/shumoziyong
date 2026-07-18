@@ -2039,15 +2039,42 @@ def _validate_gate_f_status_for_run(run_dir: Path, *, require_f3: bool) -> dict[
     report_path = run_dir / "paper_substantive_completeness_report.json"
     if not report_path.is_file():
         raise ValueError("Gate F 缺少 paper_substantive_completeness_report.json")
+    report = _load_json_object(report_path, "paper_substantive_completeness_report.json")
+    _validate_json_schema(
+        report,
+        "schemas/paper_substantive_completeness_report.schema.json",
+        "paper_substantive_completeness_report.json",
+    )
     report_sha = sha256_bytes(report_path.read_bytes())
     if status.get("completeness_report_sha256") != report_sha:
         raise ValueError("Gate F 状态未绑定当前完整性报告")
-    if status.get("f2_status") != "passed":
-        raise ValueError("Gate F F2 尚未通过，禁止进入后续生产链")
+    try:
+        from paper.gate_f_status import derive_gate_f_outcome
+    except ModuleNotFoundError:  # pragma: no cover
+        from scripts.paper.gate_f_status import derive_gate_f_outcome
+    expected_f2_status = "passed" if report.get("status") == "passed" else "content_repair_required"
+    if status.get("f2_status") != expected_f2_status:
+        raise ValueError("Gate F f2_status 与完整性报告状态不一致")
+    expected_status, expected_eligibility = derive_gate_f_outcome(
+        f1_status=str(status.get("f1_status")),
+        f2_status=str(status.get("f2_status")),
+        f3_status=str(status.get("f3_status")),
+    )
+    if status.get("status") != expected_status or status.get("eligible_for_gate_g") is not expected_eligibility:
+        raise ValueError("Gate F 状态字段与 F1/F2/F3 派生结果不一致")
+    f3_status = status.get("f3_status")
+    review = status.get("f3_review")
+    if f3_status == "pending" and review is not None:
+        raise ValueError("Gate F F3 pending 不得携带终审记录")
+    if f3_status in {"passed", "failed"}:
+        if not isinstance(review, Mapping) or review.get("reviewer_type") != "human":
+            raise ValueError("Gate F F3 终态缺少真人审核记录")
+        expected_decision = "approved" if f3_status == "passed" else "rejected"
+        if review.get("decision") != expected_decision:
+            raise ValueError(f"Gate F F3 {f3_status} 必须绑定 decision={expected_decision}")
     if require_f3:
-        if status.get("status") != "independent_paper_review_passed" or status.get("eligible_for_gate_g") is not True:
+        if f3_status != "passed":
             raise ValueError("Gate F 尚未通过 F1/F2/F3，禁止完成运行或进入 Gate G")
-        review = status.get("f3_review")
         if not isinstance(review, Mapping):
             raise ValueError("Gate F 通过状态缺少 F3 审核记录")
         try:

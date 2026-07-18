@@ -115,6 +115,21 @@ PAPER_CANDIDATE_ARTIFACTS: tuple[tuple[str, str, str, str], ...] = (
 )
 
 
+def candidate_id_for_manifest(
+    binding: Mapping[str, str], artifacts: list[dict[str, Any]]
+) -> str:
+    """从候选身份和证据摘要派生稳定 Candidate ID，避免自引用。"""
+    identity_payload = {
+        **dict(binding),
+        "candidate_status": PAPER_CANDIDATE_STATUS,
+        "artifacts": artifacts,
+    }
+    canonical = json.dumps(
+        identity_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return "PC-" + hashlib.sha256(canonical).hexdigest()[:24]
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -329,7 +344,7 @@ def validate_candidate_evidence(
 
 def build_candidate_manifest(run_dir: Path, binding: Mapping[str, str]) -> dict[str, Any]:
     validate_candidate_evidence(run_dir, binding)
-    artifacts = []
+    artifacts: list[dict[str, Any]] = []
     for filename, role, media_type, _schema_name in PAPER_CANDIDATE_ARTIFACTS:
         path = run_dir / filename
         artifacts.append(
@@ -345,6 +360,7 @@ def build_candidate_manifest(run_dir: Path, binding: Mapping[str, str]) -> dict[
         "schema_version": "1.0.0",
         "artifact_type": "paper_candidate_manifest",
         **binding,
+        "candidate_id": candidate_id_for_manifest(binding, artifacts),
         "candidate_status": PAPER_CANDIDATE_STATUS,
         "artifacts": artifacts,
     }
@@ -358,6 +374,9 @@ def verify_candidate_manifest(run_dir: Path, binding: Mapping[str, str]) -> dict
     for field, expected in binding.items():
         if manifest.get(field) != expected:
             raise ValueError(f"paper_candidate_manifest.json.{field} 与当前运行现场不一致")
+    expected_candidate_id = candidate_id_for_manifest(binding, list(manifest["artifacts"]))
+    if manifest.get("candidate_id") != expected_candidate_id:
+        raise ValueError("paper_candidate_manifest.candidate_id 与当前证据集合不一致")
     records = _records_by_role(list(manifest["artifacts"]), "paper_candidate_manifest.artifacts")
     expected_roles = {role for _filename, role, _media, _schema in PAPER_CANDIDATE_ARTIFACTS}
     if set(records) != expected_roles:

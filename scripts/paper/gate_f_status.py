@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[2]
+CANDIDATE_ID_PATTERN = re.compile(r"^PC-[a-f0-9]{24}$")
 
 
 def sha256_file(path: Path) -> str:
@@ -24,6 +26,27 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
+def derive_gate_f_outcome(
+    *, f1_status: str, f2_status: str, f3_status: str
+) -> tuple[str, bool]:
+    """从三个阶段状态唯一派生 Gate F 总状态和 Gate G 资格。"""
+    if f1_status not in {"passed", "failed", "pending"}:
+        raise ValueError(f"非法 F1 状态：{f1_status!r}")
+    if f2_status not in {"passed", "content_repair_required", "pending"}:
+        raise ValueError(f"非法 F2 状态：{f2_status!r}")
+    if f3_status not in {"passed", "failed", "pending"}:
+        raise ValueError(f"非法 F3 状态：{f3_status!r}")
+    if f1_status != "passed":
+        return "mechanically_invalid", False
+    if f2_status != "passed":
+        return "content_repair_required", False
+    if f3_status == "pending":
+        return "ready_for_independent_paper_review", False
+    if f3_status == "failed":
+        return "independent_paper_review_failed", False
+    return "independent_paper_review_passed", True
+
+
 def validate_f3_review_references(run_dir: Path, review: Mapping[str, Any]) -> None:
     """现场验证 F3 审核绑定的 Candidate、F2 报告和不可变审批历史。"""
     root = run_dir.resolve()
@@ -32,20 +55,28 @@ def validate_f3_review_references(run_dir: Path, review: Mapping[str, Any]) -> N
         raise ValueError("F3 引用的完整性报告不存在")
     if review.get("completeness_report_sha256") != sha256_file(report_path):
         raise ValueError("F3 completeness_report_sha256 与现场报告不一致")
-    candidate_path: Path | None = None
+    candidate_path: Path
+    pointer_payload: dict[str, Any] | None = None
     pointer = root / "current_paper_candidate.json"
     if pointer.is_file():
         pointer_payload = _load(pointer)
-        candidate_id = str(pointer_payload.get("candidate_id", ""))
-        if candidate_id:
-            candidate_path = root / "paper_candidates" / candidate_id / "paper_candidate_manifest.json"
-    if candidate_path is None:
+        pointer_id = pointer_payload.get("candidate_id")
+        if not isinstance(pointer_id, str) or not CANDIDATE_ID_PATTERN.fullmatch(pointer_id):
+            raise ValueError("current_paper_candidate.json 缺少合法 candidate_id")
+        candidate_path = root / "paper_candidates" / pointer_id / "paper_candidate_manifest.json"
+        if candidate_path.parent.name != pointer_id:
+            raise ValueError("Candidate 路径中的 ID 与 pointer 不一致")
+    else:
         candidate_path = root / "paper_candidate_manifest.json"
     if not candidate_path.is_file():
         raise ValueError("F3 引用的 Candidate 文件不存在")
     candidate = _load(candidate_path)
-    candidate_id = candidate.get("candidate_id") or (pointer_payload.get("candidate_id") if pointer.is_file() else None)
-    if candidate_id and review.get("reviewed_candidate_id") != candidate_id:
+    manifest_id = candidate.get("candidate_id")
+    if not isinstance(manifest_id, str) or not CANDIDATE_ID_PATTERN.fullmatch(manifest_id):
+        raise ValueError("Candidate Manifest 缺少合法 candidate_id")
+    if pointer_payload is not None and pointer_payload.get("candidate_id") != manifest_id:
+        raise ValueError("Candidate pointer ID 与 Manifest ID 不一致")
+    if review.get("reviewed_candidate_id") != manifest_id:
         raise ValueError("F3 reviewed_candidate_id 与当前 Candidate 不一致")
     if review.get("candidate_sha256") != sha256_file(candidate_path):
         raise ValueError("F3 candidate_sha256 与现场 Candidate 不一致")
@@ -81,24 +112,26 @@ def build_gate_f_status(
     """按固定优先级派生 Gate F 状态。"""
     f1_status = "passed" if f1_passed else "failed"
     f2_status = "passed" if completeness_report.get("status") == "passed" else "content_repair_required"
+    status, eligible_for_gate_g = derive_gate_f_outcome(
+        f1_status=f1_status,
+        f2_status=f2_status,
+        f3_status=f3_status,
+    )
     issues: list[str] = []
-    if not f1_passed:
-        status = "mechanically_invalid"
+    if f1_status != "passed":
         issues.append("F1 机械正确性未通过")
-    elif f2_status != "passed":
-        status = "content_repair_required"
+    if f1_status == "passed" and f2_status != "passed":
         issues.append("F2 实质内容完整性未通过")
-    elif f3_status == "passed":
-        if not f3_review or f3_review.get("reviewer_type") != "human":
-            raise ValueError("F3 通过必须绑定 reviewer_type=human 的独立论文审核")
-        status = "independent_paper_review_passed"
-    elif f3_status == "failed":
-        if not f3_review or f3_review.get("reviewer_type") != "human":
-            raise ValueError("F3 失败也必须保留真人审核记录")
-        status = "independent_paper_review_failed"
+    if f2_status == "passed" and f3_status == "failed":
         issues.append("F3 独立论文审核未通过")
-    else:
-        status = "ready_for_independent_paper_review"
+    if f3_status == "pending" and f3_review is not None:
+        raise ValueError("F3 pending 不得携带终审记录")
+    if f3_status in {"passed", "failed"}:
+        if not f3_review or f3_review.get("reviewer_type") != "human":
+            raise ValueError("F3 终态必须绑定 reviewer_type=human 的独立论文审核")
+        expected_decision = "approved" if f3_status == "passed" else "rejected"
+        if f3_review.get("decision") != expected_decision:
+            raise ValueError(f"F3 {f3_status} 必须绑定 decision={expected_decision}")
     result: dict[str, Any] = {
         "schema_version": "1.0.0",
         "artifact_type": "paper_gate_f_status",
@@ -106,7 +139,7 @@ def build_gate_f_status(
         "f2_status": f2_status,
         "f3_status": f3_status,
         "status": status,
-        "eligible_for_gate_g": status == "independent_paper_review_passed",
+        "eligible_for_gate_g": eligible_for_gate_g,
         "issues": issues,
     }
     if f3_review is not None:
