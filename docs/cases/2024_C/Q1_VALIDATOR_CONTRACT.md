@@ -28,7 +28,7 @@ Q1 Formal Result 的两个场景必须同时存在且不可重复。当前允许
 ```yaml
 q1_validator: implemented
 official_output_workbook_validator: implemented
-q2_validator: contract_pending_model_freeze
+q2_validator: model_contract_frozen_solver_pending
 q3_validator: contract_pending_model_freeze
 qualification_authority: false
 ```

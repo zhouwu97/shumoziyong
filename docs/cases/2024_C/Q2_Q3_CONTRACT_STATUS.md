@@ -1,11 +1,10 @@
 # 2024-C Q2/Q3 合同状态
 
-Q2、Q3 当前只登记需求边界，不提供空接口或伪 Formal Result。
+Q2 不确定性模型合同草案已完成并待独立审查，尚未实现 Solver、Validator 或正式工作簿；Q3 仍只登记需求边界。两者都不提供空接口或伪 Formal Result。
 
 | 问题 | 状态 | 在模型冻结前不得假设 |
 | --- | --- | --- |
-| Q2 | `contract_pending_model_freeze` | 情景规划、鲁棒优化或随机规划；随机变量分布；期望/最坏/风险调整目标 |
+| Q2 | `model_contract_frozen_solver_pending` | 合同已冻结；待 Q1 真实基线完成后实现 Solver、样本外评估、独立 Validator、result2.xlsx 反向复核 |
 | Q3 | `contract_pending_model_freeze` | 替代/互补关系、相关矩阵、联合分布、消融基线和比较指标 |
 
-只有先形成可审查的模型语义合同，才会分别新增 Q2 Validator 和 Q3 Validator。当前 PR 不修改全局 Validator 注册表中的完整回放 scaffold 状态。
-
+Q2 合同见 `docs/cases/2024_C/Q2_MODEL_CONTRACT.md` 和 `runtime_contracts/2024c_q2_model_contract.json`。合同已冻结，但 Q2 Solver 仍必须等待真实 Q1 基线；只有完成合同规定的 Solver、样本外评估和独立复算，才会新增 Q2 Validator；Q3 仍需单独冻结模型合同。当前不修改全局 Validator 注册表中的完整回放 scaffold 状态。
