@@ -57,6 +57,20 @@ def test_q1_constraints_fail_closed_on_capacity_and_suitability() -> None:
     assert max_violation == 0.0
 
 
+@pytest.mark.unit_contract
+def test_q1_constraints_detect_annual_rotation_for_non_greenhouse_plot() -> None:
+    data = _synthetic_data()
+    repeated = [{"year": 2024, "plot_id": "A1", "season": "单季", "crop_id": 1, "area_mu": 10.0}]
+    interrupted = [
+        {"year": 2024, "plot_id": "A1", "season": "单季", "crop_id": 2, "area_mu": 10.0},
+        {"year": 2025, "plot_id": "A1", "season": "单季", "crop_id": 1, "area_mu": 10.0},
+    ]
+    repeated_violations, _ = check_q1_constraints(repeated, data, check_legume_windows=False)
+    interrupted_violations, _ = check_q1_constraints(interrupted, data, check_legume_windows=False)
+    assert any(item.startswith("continuous_crop:") for item in repeated_violations)
+    assert not any(item.startswith("continuous_crop:") for item in interrupted_violations)
+
+
 @pytest.mark.official_integration
 def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Path) -> None:
     manifest = tmp_path / "material_manifest.json"

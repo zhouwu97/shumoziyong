@@ -148,8 +148,12 @@ def _continuous_violations(items: list[dict[str, Any]], data: Mapping[str, Any])
             slots = [(year, season) for year in range(2023, 2031) for season in ("第一季", "第二季")]
             pairs = zip(slots, slots[1:])
         else:
-            slots = [(year, season) for year in range(2023, 2031) for season in ("单季", "第一季", "第二季")]
-            pairs = ((left, right) for left, right in zip(slots, slots[1:]) if left[1] == right[1])
+            seasons = {season for p, _year, season, _crop in presence if p == plot_id}
+            pairs = (
+                ((year - 1, season), (year, season))
+                for season in seasons
+                for year in range(2024, 2031)
+            )
         for previous, current in pairs:
             for crop_id in range(1, 42):
                 if (plot_id, previous[0], previous[1], crop_id) in presence and (plot_id, current[0], current[1], crop_id) in presence:
