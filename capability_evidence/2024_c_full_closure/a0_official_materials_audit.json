@@ -1,0 +1,219 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "2024_c_official_materials_audit",
+  "problem_id": "2024-C",
+  "official_materials_complete": true,
+  "hashes_match_manifest": true,
+  "proxy_data_used": false,
+  "fixture_solver_used": false,
+  "solver_started": false,
+  "qualification_claimed": false,
+  "complete_official_old_problem_closure": 0,
+  "material_manifest_sha256": "e8f322b018207b4eb87c58dff779ed4e56bb83c6bacd39e33f1e012c7d026390",
+  "files": {
+    "2024_C/problem/C题.pdf": {
+      "sha256": "c7b5e58bff4189b8afba5505f7bff7d4f08280fc291c51ef3f46134ebbf74f9a",
+      "size_bytes": 558863
+    },
+    "2024_C/attachments/附件1.xlsx": {
+      "sha256": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932",
+      "size_bytes": 17147
+    },
+    "2024_C/attachments/附件2.xlsx": {
+      "sha256": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce",
+      "size_bytes": 21976
+    },
+    "2024_C/templates/result1_1.xlsx": {
+      "sha256": "4f2484c0d70a5c4d047163f2ee6ef486949e813330466f46def4bd7d98af06af",
+      "size_bytes": 81837
+    },
+    "2024_C/templates/result1_2.xlsx": {
+      "sha256": "6166d43f5a64bf9d1657e80d4aee7f10f54bb1a5695b81a28a0ac5e657297649",
+      "size_bytes": 81836
+    },
+    "2024_C/templates/result2.xlsx": {
+      "sha256": "6a1ba9fc28d14d0a4a795e5f0b7261fb6e32165517afee62bcd1931aba5bee8a",
+      "size_bytes": 81836
+    }
+  },
+  "source_workbooks": {
+    "附件1.xlsx": {
+      "乡村的现有耕地": {
+        "rows": 55,
+        "columns": 4,
+        "merged_ranges": [
+          "D2:D55"
+        ]
+      },
+      "乡村种植的农作物": {
+        "rows": 46,
+        "columns": 5,
+        "merged_ranges": [
+          "D18:D35",
+          "D2:D16",
+          "D36:D38",
+          "D39:D42",
+          "E2:E42"
+        ]
+      }
+    },
+    "附件2.xlsx": {
+      "2023年的农作物种植情况": {
+        "rows": 88,
+        "columns": 6,
+        "merged_ranges": [
+          "A28:A29",
+          "A30:A31",
+          "A32:A33",
+          "A34:A35",
+          "A36:A37",
+          "A38:A39",
+          "A42:A43",
+          "A44:A45",
+          "A46:A47",
+          "A48:A49",
+          "A50:A51",
+          "A52:A53",
+          "A54:A55",
+          "A56:A57",
+          "A58:A59",
+          "A60:A61",
+          "A62:A63",
+          "A64:A65",
+          "A66:A67",
+          "A68:A69",
+          "A70:A72",
+          "A73:A74",
+          "A75:A78",
+          "A79:A82",
+          "A83:A85",
+          "A86:A88"
+        ]
+      },
+      "2023年统计的相关数据": {
+        "rows": 111,
+        "columns": 10,
+        "merged_ranges": []
+      }
+    }
+  },
+  "data_index": {
+    "plot_count": 54,
+    "crop_count": 41,
+    "planting_2023_record_count": 87,
+    "statistics_record_count": 107,
+    "sales_baseline_group_count": 47,
+    "total_area_mu": 1213.0,
+    "plot_type_area_mu": {
+      "山坡地": 108.0,
+      "平旱地": 365.0,
+      "普通大棚": 9.6,
+      "智慧大棚": 2.4,
+      "梯田": 619.0,
+      "水浇地": 109.0
+    },
+    "years": [
+      2024,
+      2025,
+      2026,
+      2027,
+      2028,
+      2029,
+      2030
+    ],
+    "seasons": [
+      "单季",
+      "第一季",
+      "第二季"
+    ]
+  },
+  "area_reconciliation": {
+    "official_plot_count": 54,
+    "open_field_area_mu": 1201.0,
+    "ordinary_greenhouse_area_mu": 9.6,
+    "smart_greenhouse_area_mu": 2.4,
+    "total_area_mu": 1213.0,
+    "passed": true
+  },
+  "units": {
+    "area": "亩",
+    "yield": "斤/亩",
+    "cost": "元/亩",
+    "price": "元/斤",
+    "sales": "斤",
+    "objective": "元"
+  },
+  "merged_cell_recovery": "读取合并区域左上角值并显式传播到区域内各数据行",
+  "path_compatibility": {
+    "windows_non_ascii_repository_path": "passed",
+    "default_output_inside_repository": true,
+    "observed_issue": "控制台曾乱码显示中文路径，但实际输出始终位于当前 worktree；未生成乱码同级目录",
+    "regression_test": "tests/test_2024c_full_data.py::test_official_template_round_trip_preserves_decisions"
+  },
+  "verification": {
+    "official_integration": {
+      "command": "python -m pytest -q -m official_integration",
+      "result": "6_passed"
+    },
+    "contract_fixture": {
+      "command": "python -m pytest -q -m 'unit_contract or integration_fixture'",
+      "result": "10_passed"
+    }
+  },
+  "output_contracts": {
+    "result1_1.xlsx": {
+      "sheets": [
+        "2024",
+        "2025",
+        "2026",
+        "2027",
+        "2028",
+        "2029",
+        "2030"
+      ],
+      "crop_columns": 41,
+      "first_season_rows": 54,
+      "second_season_rows": 28,
+      "merged_ranges": [
+        "A2:A55",
+        "A56:A83"
+      ]
+    },
+    "result1_2.xlsx": {
+      "sheets": [
+        "2024",
+        "2025",
+        "2026",
+        "2027",
+        "2028",
+        "2029",
+        "2030"
+      ],
+      "crop_columns": 41,
+      "first_season_rows": 54,
+      "second_season_rows": 28,
+      "merged_ranges": [
+        "A2:A55",
+        "A56:A83"
+      ]
+    },
+    "result2.xlsx": {
+      "sheets": [
+        "2024",
+        "2025",
+        "2026",
+        "2027",
+        "2028",
+        "2029",
+        "2030"
+      ],
+      "crop_columns": 41,
+      "first_season_rows": 54,
+      "second_season_rows": 28,
+      "merged_ranges": [
+        "A2:A55",
+        "A56:A83"
+      ]
+    }
+  }
+}
