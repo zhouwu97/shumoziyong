@@ -20,6 +20,7 @@ YEARS = tuple(range(2024, 2031))
 Q1_SCENARIOS = ("q1_waste", "q1_discount")
 LEGUME_CROPS = frozenset({1, 2, 3, 4, 5, 17, 18, 19})
 TOLERANCE = 1e-6
+MATERIAL_MANIFEST_SCHEMA_PATH = Path(__file__).parents[2] / "schemas" / "material_manifest.schema.json"
 
 
 def _as_float(value: object) -> float:
@@ -217,6 +218,56 @@ def check_q1_constraints(assignments: Iterable[Mapping[str, Any]], data: Mapping
     return sorted(set(violations)), max_violation
 
 
+def _load_bound_material_manifest(
+    material_manifest: Path,
+    attachment_1: Path,
+    attachment_2: Path,
+) -> dict[str, Any]:
+    """验证材料清单身份，并将两个输入附件绑定到清单声明的文件。"""
+
+    try:
+        manifest = json.loads(material_manifest.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"材料 Manifest 无法读取: {material_manifest}") from exc
+    schema = json.loads(MATERIAL_MANIFEST_SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema_errors = list(Draft202012Validator(schema).iter_errors(manifest))
+    if schema_errors:
+        raise ValueError("材料 Manifest Schema 无效: " + "; ".join(error.message for error in schema_errors))
+    if manifest["problem_id"] != "2024-C":
+        raise ValueError(f"材料 Manifest 题目不匹配: {manifest['problem_id']!r}")
+    if manifest["source"]["kind"] != "official":
+        raise ValueError("Q1 Validator 只接受官方材料 Manifest")
+
+    records: dict[str, dict[str, Any]] = {}
+    for record in manifest["categories"]["attachments"]["files"]:
+        path = record["path"]
+        if path in records:
+            raise ValueError(f"材料 Manifest 附件类别存在重复路径: {path}")
+        records[path] = record
+
+    attachments = {
+        "attachments/附件1.xlsx": attachment_1,
+        "attachments/附件2.xlsx": attachment_2,
+    }
+    manifest_root = material_manifest.parent.resolve()
+    for relative_path, actual_path in attachments.items():
+        record = records.get(relative_path)
+        if record is None:
+            raise ValueError(f"材料 Manifest 缺少附件角色: {relative_path}")
+        expected_path = (manifest_root / relative_path).resolve()
+        resolved_actual = actual_path.resolve()
+        if resolved_actual != expected_path:
+            raise ValueError(
+                f"附件路径未绑定到 Manifest: {actual_path} != {expected_path}"
+            )
+        if not actual_path.is_file():
+            raise ValueError(f"Manifest 声明的附件不存在: {actual_path}")
+        actual_sha = hashlib.sha256(actual_path.read_bytes()).hexdigest()
+        if actual_sha != record["sha256"]:
+            raise ValueError(f"附件 SHA-256 与 Manifest 不匹配: {relative_path}")
+    return manifest
+
+
 def validate_q1_result(result: Mapping[str, Any], attachment_1: Path, attachment_2: Path, material_manifest: Path, *, check_legume_windows: bool = True, objective_tolerance: float = TOLERANCE) -> dict[str, Any]:
     """验证 Q1 两个场景；缺场景、目标漂移或硬约束失败时 fail-closed。"""
 
@@ -227,6 +278,7 @@ def validate_q1_result(result: Mapping[str, Any], attachment_1: Path, attachment
     actual_manifest_sha = hashlib.sha256(material_manifest.read_bytes()).hexdigest()
     if result["material_manifest_sha256"] != actual_manifest_sha:
         raise ValueError("材料 Manifest SHA-256 不匹配")
+    _load_bound_material_manifest(material_manifest, attachment_1, attachment_2)
     data = load_q1_data(attachment_1, attachment_2)
     reports: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -240,4 +292,11 @@ def validate_q1_result(result: Mapping[str, Any], attachment_1: Path, attachment
         difference = abs(recomputed - float(item["objective_reported"]))
         reports.append({"scenario_id": scenario, "objective_recomputed": recomputed, "objective_reported": item["objective_reported"], "objective_difference": difference, "violated_constraints": violations, "max_raw_constraint_violation": max_violation, "output_workbook_status": item["output_workbook_status"], "valid": math.isfinite(difference) and difference <= objective_tolerance and not violations})
     valid = len(reports) == 2 and all(report["valid"] for report in reports)
-    return {"validator": "2024-c-q1-independent-validator-v1", "problem_id": "2024-C", "q1_status": "implemented", "reports": reports, "valid": valid, "production_ready": valid and all(report["output_workbook_status"] == "generated" for report in reports)}
+    return {
+        "validator": "2024-c-q1-independent-validator-v1",
+        "problem_id": "2024-C",
+        "q1_status": "implemented",
+        "reports": reports,
+        "valid": valid,
+        "production_ready": False,
+    }

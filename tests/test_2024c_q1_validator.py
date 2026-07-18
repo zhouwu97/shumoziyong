@@ -31,6 +31,57 @@ def _synthetic_data() -> dict:
     }
 
 
+def _write_test_manifest(
+    tmp_path: Path,
+    *,
+    problem_id: str = "2024-C",
+    include_attachment_2: bool = True,
+) -> tuple[Path, Path, Path]:
+    root = tmp_path / "materials"
+    (root / "problem").mkdir(parents=True)
+    (root / "attachments").mkdir()
+    problem = root / "problem" / "C题.pdf"
+    problem.write_bytes(b"problem")
+    attachment_1 = root / "attachments" / "附件1.xlsx"
+    attachment_2 = root / "attachments" / "附件2.xlsx"
+    attachment_1.write_bytes(b"attachment-1")
+    attachment_2.write_bytes(b"attachment-2")
+    files = [
+        {"path": "problem/C题.pdf", "sha256": hashlib.sha256(problem.read_bytes()).hexdigest()},
+        {"path": "attachments/附件1.xlsx", "sha256": hashlib.sha256(attachment_1.read_bytes()).hexdigest()},
+    ]
+    if include_attachment_2:
+        files.append({"path": "attachments/附件2.xlsx", "sha256": hashlib.sha256(attachment_2.read_bytes()).hexdigest()})
+    manifest = {
+        "manifest_version": "1.0.0",
+        "problem_id": problem_id,
+        "material_root": ".",
+        "source": {"kind": "official", "reference": "unit-test"},
+        "contains_answer_or_solution": False,
+        "categories": {
+            "problem": {"required": True, "files": [files[0]]},
+            "attachments": {"required": True, "files": files[1:]},
+            "templates": {"required": False, "files": []},
+        },
+    }
+    manifest_path = root / "material_manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    return manifest_path, attachment_1, attachment_2
+
+
+def _empty_result(manifest_path: Path) -> dict:
+    return {
+        "schema_version": "1.0.0",
+        "artifact_type": "2024c_q1_formal_result",
+        "problem_id": "2024-C",
+        "material_manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+        "scenarios": [
+            {"scenario_id": scenario, "objective_reported": 0.0, "assignments": [], "output_workbook_status": "not_yet_generated"}
+            for scenario in ("q1_waste", "q1_discount")
+        ],
+    }
+
+
 @pytest.mark.official_integration
 def test_official_loader_recovers_q1_input_shape() -> None:
     attachment_1, attachment_2 = official_2024c_attachments()
@@ -71,10 +122,62 @@ def test_q1_constraints_detect_annual_rotation_for_non_greenhouse_plot() -> None
     assert not any(item.startswith("continuous_crop:") for item in interrupted_violations)
 
 
-@pytest.mark.official_integration
-def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Path) -> None:
+@pytest.mark.unit_contract
+def test_q1_manifest_rejects_empty_manifest(tmp_path: Path) -> None:
     manifest = tmp_path / "material_manifest.json"
     manifest.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="Manifest Schema"):
+        validate_q1_result(
+            _empty_result(manifest),
+            tmp_path / "附件1.xlsx",
+            tmp_path / "附件2.xlsx",
+            manifest,
+            check_legume_windows=False,
+        )
+
+
+@pytest.mark.unit_contract
+def test_q1_manifest_rejects_wrong_problem_and_missing_role(tmp_path: Path) -> None:
+    wrong_problem, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "wrong", problem_id="2024-B")
+    with pytest.raises(ValueError, match="题目不匹配"):
+        validate_q1_result(_empty_result(wrong_problem), attachment_1, attachment_2, wrong_problem, check_legume_windows=False)
+
+    missing_role, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "missing", include_attachment_2=False)
+    with pytest.raises(ValueError, match="缺少附件角色"):
+        validate_q1_result(_empty_result(missing_role), attachment_1, attachment_2, missing_role, check_legume_windows=False)
+
+
+@pytest.mark.unit_contract
+def test_q1_manifest_rejects_replaced_or_swapped_attachment(tmp_path: Path) -> None:
+    manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "binding")
+    replacement = attachment_1.with_name("replacement.xlsx")
+    replacement.write_bytes(attachment_1.read_bytes())
+    result = _empty_result(manifest)
+    with pytest.raises(ValueError, match="路径未绑定"):
+        validate_q1_result(result, replacement, attachment_2, manifest, check_legume_windows=False)
+    with pytest.raises(ValueError, match="路径未绑定"):
+        validate_q1_result(result, attachment_2, attachment_1, manifest, check_legume_windows=False)
+    attachment_1.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="SHA-256"):
+        validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
+
+
+@pytest.mark.official_integration
+def test_q1_generated_workbook_status_never_claims_production_ready() -> None:
+    attachment_1, attachment_2 = official_2024c_attachments()
+    manifest = attachment_1.parents[1] / "material_manifest.json"
+    result = _empty_result(manifest)
+    for scenario in result["scenarios"]:
+        scenario.update({"output_workbook_status": "generated", "output_workbook_path": "fake.xlsx", "output_workbook_sha256": "a" * 64})
+    report = validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
+    assert report["valid"] is True
+    assert report["production_ready"] is False
+
+
+@pytest.mark.official_integration
+def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Path) -> None:
+    attachment_1, attachment_2 = official_2024c_attachments()
+    manifest = attachment_1.parents[1] / "material_manifest.json"
     digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
     result = {
         "schema_version": "1.0.0",
@@ -86,7 +189,6 @@ def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Pat
             for scenario in ("q1_waste", "q1_discount")
         ],
     }
-    attachment_1, attachment_2 = official_2024c_attachments()
     report = validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
     assert report["valid"] is True
     assert report["production_ready"] is False
