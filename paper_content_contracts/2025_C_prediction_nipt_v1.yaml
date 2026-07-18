@@ -1,0 +1,79 @@
+schema_version: "1.0.0"
+contract_id: 2025_C_prediction_nipt_v1
+contract_type: problem_specific
+problem_id: 2025_C
+profile: prediction
+parent_contract_id: generic_submission_v1
+description: 2025 年国赛 C 题 NIPT Prediction 论文实质内容合同。
+role_requirements:
+  Q1:
+    - {role: repeated_measurement_structure, severity: critical}
+    - {role: patient_level_split, severity: critical}
+    - {role: transparent_baseline, severity: major}
+    - {role: fixed_effect_table, severity: major}
+    - {role: fixed_effect_uncertainty, severity: major}
+    - {role: random_intercept_variance, severity: major}
+    - {role: residual_variance, severity: major}
+    - {role: ICC, severity: major}
+    - {role: RMSE_MAE, severity: major}
+    - {role: fold_variability, severity: major}
+    - {role: residual_diagnostics, severity: major}
+    - {role: response_curve, severity: major}
+    - {role: leakage_check, severity: critical}
+    - {role: sensitivity_analysis, severity: major}
+    - {role: limitations, severity: major}
+  Q2:
+    - {role: threshold_definition, severity: critical}
+    - {role: right_censoring_summary, severity: major}
+    - {role: person_period_construction, severity: major}
+    - {role: cumulative_attainment_curve, severity: major}
+    - {role: BMI_group_definition, severity: major}
+    - {role: group_boundary_stability, severity: major}
+    - {role: recommended_week, severity: major}
+    - {role: risk_function_definition, severity: critical}
+    - {role: lambda_1_lambda_2_sensitivity, severity: major}
+    - {role: threshold_sensitivity, severity: major}
+    - {role: recommendation_stability_region, severity: major}
+    - {role: out_of_range_policy, severity: major}
+    - {role: limitations, severity: major}
+  Q3:
+    - {role: same_patient_fold_comparison, severity: critical}
+    - {role: transparent_BMI_baseline, severity: major}
+    - {role: multifactor_model, severity: major}
+    - {role: nested_preprocessing, severity: critical}
+    - {role: per_fold_Brier, severity: major}
+    - {role: per_fold_AUC, severity: major}
+    - {role: uncertainty_interval, severity: major}
+    - {role: calibration, severity: major}
+    - {role: ablation, severity: major}
+    - {role: coefficient_stability, severity: major}
+    - {role: collinearity_check, severity: major}
+    - {role: practical_significance, severity: major}
+    - {role: weak_gain_interpretation, severity: critical}
+    - {role: limitations, severity: major}
+  Q4:
+    - {role: patient_level_split, severity: critical}
+    - {role: class_prevalence, severity: major}
+    - {role: simple_baseline, severity: major}
+    - {role: Z_value_baseline, severity: major}
+    - {role: class_weighting, severity: major}
+    - {role: out_of_fold_predictions, severity: critical}
+    - {role: per_fold_PR_AUC, severity: major}
+    - {role: per_fold_recall, severity: major}
+    - {role: ROC_AUC, severity: major}
+    - {role: Brier, severity: major}
+    - {role: calibration_curve, severity: major}
+    - {role: threshold_tradeoff, severity: major}
+    - {role: confusion_matrix, severity: major}
+    - {role: high_score_negative_analysis, severity: major}
+    - {role: low_score_positive_analysis, severity: major}
+    - {role: feature_stability, severity: major}
+    - {role: screening_not_diagnosis_boundary, severity: critical}
+    - {role: limitations, severity: major}
+binding_requirements:
+  source_artifact_required: true
+  formal_result_required: true
+  validator_artifact_required: true
+  claim_required: true
+  paper_location_required: true
+  source_hash_required: true

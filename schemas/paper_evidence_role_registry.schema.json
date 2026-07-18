@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_evidence_role_registry.schema.json",
+  "title": "论文 Evidence Role Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "contract_id", "run_id", "formal_result_ids", "roles"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_evidence_role_registry"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "contract_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "formal_result_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "roles": {"type": "array", "items": {"$ref": "#/$defs/role"}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256", "formal_result_id"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "formal_result_id": {"type": "string", "minLength": 1},
+        "shared": {"type": "boolean"}
+      }
+    },
+    "role": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role_id", "question", "role", "applicability", "status", "source_artifacts", "validator_artifacts", "claim_ids", "paper_locations"],
+      "properties": {
+        "role_id": {"type": "string", "pattern": "^[A-Z0-9_-]+$"},
+        "question": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["critical", "major", "minor"]},
+        "applicability": {"enum": ["required", "conditional", "not_applicable"]},
+        "status": {"enum": ["realized", "missing", "exempted"]},
+        "not_applicable_reason": {"type": "string", "minLength": 1},
+        "source_artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
+        "validator_artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
+        "claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "paper_locations": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
