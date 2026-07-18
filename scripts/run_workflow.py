@@ -314,6 +314,9 @@ def build_run_evidence_manifest(
     if run_manifest.get("paper_content_contract_id"):
         for filename, role in PAPER_CONTENT_EVIDENCE_SPECS:
             path = run_dir / filename
+            # 活动期清单是现场快照；Gate F 报告在 Gate 4 之后才会逐步产生。
+            if not path.is_file():
+                continue
             content = path.read_bytes()
             artifacts.append(
                 {
@@ -498,7 +501,7 @@ def build_problem_manifest(
 
 
 def _paper_content_contract_binding(
-    problem_id: str, profile: str
+    problem_id: str, profile: str, *, required: bool = True
 ) -> tuple[str, str | None, str | None, str | None, dict[str, str] | None, Path | None]:
     """解析题目/Profile 对应的 Gate F 合同，供新 Run 冻结合同身份。"""
     contracts_dir = ROOT / "paper_content_contracts"
@@ -507,6 +510,8 @@ def _paper_content_contract_binding(
     if len(candidates) > 1:
         raise ValueError(f"题目/Profile 对应多个论文内容合同：{prefix}")
     if not candidates:
+        if required:
+            raise ValueError(f"题目/Profile 缺少唯一论文内容合同：{problem_id}/{profile}")
         return "1.0.0", None, None, None, None, None
     path = candidates[0]
     try:
@@ -744,6 +749,20 @@ def create_gate_run_core(
     if workflow not in {"full_replay", "new_problem"}:
         raise ValueError(f"不支持的 Gate workflow：{workflow!r}")
     profile = resolve_profile_for_workflow(args, workflow)
+    (
+        paper_contract_version,
+        paper_contract_id,
+        paper_contract_sha,
+        paper_contract_resolution_version,
+        paper_contract_source_hashes,
+        paper_contract_source,
+    ) = _paper_content_contract_binding(
+        args.problem,
+        profile,
+        # 当前仅 2025-C prediction 已发布题目专用 Gate F 合同；其他历史/通用
+        # Profile 暂保留未绑定初始化语义，待各自合同进入仓库后再启用闭环。
+        required=profile == "prediction",
+    )
     run_id, run_dir = _resolve_run_directory(args, workflow=workflow, profile=profile)
     material_path = _resolve_material_path(args)
     material_verification = verify_materials(
@@ -773,14 +792,6 @@ def create_gate_run_core(
 
     problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
     write_json(run_dir / "problem_manifest.json", problem_manifest)
-    (
-        paper_contract_version,
-        paper_contract_id,
-        paper_contract_sha,
-        paper_contract_resolution_version,
-        paper_contract_source_hashes,
-        paper_contract_source,
-    ) = _paper_content_contract_binding(args.problem, profile)
     if paper_contract_source is not None:
         shutil.copyfile(paper_contract_source, run_dir / "paper_content_contract.yaml")
 
@@ -1988,6 +1999,8 @@ def _validate_gate_f_status_for_run(run_dir: Path, *, require_f3: bool) -> dict[
     run_manifest = _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
     contract_id = run_manifest.get("paper_content_contract_id")
     if not contract_id:
+        if (run_dir / "paper_content_contract.yaml").is_file():
+            raise ValueError("现场存在论文内容合同，但 Run Manifest 未冻结合同身份")
         return None
     contract_path = run_dir / "paper_content_contract.yaml"
     status_path = run_dir / "paper_gate_f_status.json"
@@ -2976,7 +2989,8 @@ def verify_run(run_dir: Path) -> dict[str, Any]:
             )
             if state.get("completed"):
                 extend_formal_result_evidence_requirements(run_dir, required_artifacts)
-            extend_paper_content_evidence_requirements(run_dir, required_artifacts)
+            if state.get("completed") or state.get("current_gate") == 5:
+                extend_paper_content_evidence_requirements(run_dir, required_artifacts)
             evidence_errors.extend(validate_evidence_manifest(run_dir, evidence, required_artifacts))
             if evidence.get("run_id") != manifest.get("run_id"):
                 evidence_errors.append("run_evidence_manifest.run_id 与 run_manifest 不一致")

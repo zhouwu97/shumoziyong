@@ -12,7 +12,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from paper import build_gate4_pipeline as pipeline  # noqa: E402
-from run_workflow import _require_gate_f_ready_for_handoff  # noqa: E402
+from run_workflow import (  # noqa: E402
+    _require_gate_f_ready_for_handoff,
+    _validate_gate_f_status_for_run,
+)
 
 
 def _write(path: Path, value: object) -> None:
@@ -253,6 +256,21 @@ def test_bound_content_contract_runs_f2_before_candidate_creation(tmp_path: Path
         "schema_version: '1.0.0'\ncontract_id: fixture_contract\nproblem_id: 2025-C\nrole_requirements:\n  Q1:\n    - role: calibration\n      severity: critical\n",
         encoding="utf-8",
     )
+    contract = pipeline.load_contract(run / "paper_content_contract.yaml")
+    _write(
+        run / "run_manifest.json",
+        {
+            "paper_pipeline_contract_version": "1.0.0",
+            "paper_content_contract_id": "fixture_contract",
+            "paper_content_contract_sha256": pipeline.contract_sha256(contract),
+            "paper_content_contract_resolution_version": pipeline.CONTRACT_RESOLUTION_VERSION,
+            "paper_content_contract_merged_sha256": pipeline.contract_sha256(contract),
+            "paper_content_contract_source_hashes": pipeline.contract_source_hashes(
+                run / "paper_content_contract.yaml"
+            ),
+            "legacy_paper_content_policy": False,
+        },
+    )
     _write(
         run / "paper_evidence_role_registry.json",
         {
@@ -303,6 +321,30 @@ def test_new_run_cannot_enable_legacy_policy_manually(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="缺少 paper_content_contract.yaml"):
         pipeline._run_content_quality_if_bound(run, {})
+
+
+def test_late_contract_cannot_bypass_initial_run_binding(tmp_path: Path) -> None:
+    run = tmp_path / "run"
+    run.mkdir()
+    _write(
+        run / "run_manifest.json",
+        {
+            "manifest_version": "2.0.0",
+            "paper_pipeline_contract_version": "1.0.0",
+            "paper_content_contract_id": None,
+            "paper_content_contract_sha256": None,
+            "legacy_paper_content_policy": False,
+        },
+    )
+    (run / "paper_content_contract.yaml").write_text(
+        "schema_version: '1.0.0'\ncontract_id: late_contract\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="未在 Run 初始化时冻结"):
+        pipeline._run_content_quality_if_bound(run, {})
+    with pytest.raises(ValueError, match="未冻结合同身份"):
+        _validate_gate_f_status_for_run(run, require_f3=False)
 
 
 def test_handoff_rejects_bound_run_without_f3_pass(tmp_path: Path) -> None:

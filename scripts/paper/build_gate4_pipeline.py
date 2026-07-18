@@ -485,6 +485,8 @@ def _run_content_quality_if_bound(run_dir: Path, binding: Mapping[str, str]) -> 
         if (run_dir / "run_manifest.json").is_file()
         else {}
     )
+    declared_id = run_manifest.get("paper_content_contract_id")
+    declared_sha = run_manifest.get("paper_content_contract_sha256")
     legacy_policy = bool(run_manifest.get("legacy_paper_content_policy", False)) and run_manifest.get(
         "paper_pipeline_contract_version"
     ) is None
@@ -492,20 +494,20 @@ def _run_content_quality_if_bound(run_dir: Path, binding: Mapping[str, str]) -> 
         if legacy_policy:
             return None
         raise ValueError("新 Run 缺少 paper_content_contract.yaml；只有显式 legacy_paper_content_policy=true 才可跳过 Gate F2")
+    if not declared_id or not declared_sha:
+        raise ValueError("论文内容合同未在 Run 初始化时冻结，禁止后补合同绕过绑定")
     contract = load_contract(contract_path)
-    declared_id = run_manifest.get("paper_content_contract_id")
-    declared_sha = run_manifest.get("paper_content_contract_sha256")
     actual_sha = contract_sha256(contract)
     actual_source_hashes = contract_source_hashes(contract_path)
-    if declared_id is not None and declared_id != contract.get("contract_id"):
+    if declared_id != contract.get("contract_id"):
         raise ValueError("run_manifest.paper_content_contract_id 与合同不一致")
-    if declared_sha is not None and declared_sha != actual_sha:
+    if declared_sha != actual_sha:
         raise ValueError("run_manifest.paper_content_contract_sha256 与合同不一致")
-    if run_manifest.get("paper_content_contract_resolution_version") not in (None, CONTRACT_RESOLUTION_VERSION):
+    if run_manifest.get("paper_content_contract_resolution_version") != CONTRACT_RESOLUTION_VERSION:
         raise ValueError("合同解析版本不受支持")
-    if run_manifest.get("paper_content_contract_merged_sha256") not in (None, actual_sha):
+    if run_manifest.get("paper_content_contract_merged_sha256") != actual_sha:
         raise ValueError("run_manifest.paper_content_contract_merged_sha256 与合并合同不一致")
-    if run_manifest.get("paper_content_contract_source_hashes") not in (None, actual_source_hashes):
+    if run_manifest.get("paper_content_contract_source_hashes") != actual_source_hashes:
         raise ValueError("run_manifest.paper_content_contract_source_hashes 与合同继承链不一致")
     registry_path = run_dir / "paper_evidence_role_registry.json"
     if not registry_path.is_file():
