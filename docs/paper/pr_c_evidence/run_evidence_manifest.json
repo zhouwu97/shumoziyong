@@ -1,0 +1,202 @@
+{
+  "evidence_manifest_version": "2.0.0",
+  "run_id": "pilot_2025c_reconstructed_negative_control_20260718",
+  "artifacts": [
+    {
+      "path": "run_manifest.json",
+      "sha256": "125dc00197d49597ddbeb77161a044e7588eac58915fbdd4f12df0f871724ed5",
+      "media_type": "application/json",
+      "size_bytes": 2303,
+      "role": "run_manifest"
+    },
+    {
+      "path": "material_review.json",
+      "sha256": "5e88db20d767d5c66b78ad3f3f88262eef7bc64a8a3462d0585d5cec12bad55c",
+      "media_type": "application/json",
+      "size_bytes": 1704,
+      "role": "material_review"
+    },
+    {
+      "path": "request.json",
+      "sha256": "53a0f9ac84f519c1ebf6a132ffc3697701867ffdb8f32e44d101438cdadfd15f",
+      "media_type": "application/json",
+      "size_bytes": 169,
+      "role": "request"
+    },
+    {
+      "path": "response.json",
+      "sha256": "bb489eb9a8dfab93381ca53602357a82ab785d652913b4f338dbc5827dbd7896",
+      "media_type": "application/json",
+      "size_bytes": 88,
+      "role": "model_response"
+    },
+    {
+      "path": "runtime_pack.md",
+      "sha256": "61dd0669d8457316149e24da27af028db2765ffe4fe8e49c73734edf2ab8d86c",
+      "media_type": "text/markdown",
+      "size_bytes": 92828,
+      "role": "runtime_pack"
+    },
+    {
+      "path": "runtime_pack.manifest.json",
+      "sha256": "9b5e35c18270b0d90767b0c06395afb8f673cab5cb64ecaab2489a2097680efb",
+      "media_type": "application/json",
+      "size_bytes": 6194,
+      "role": "runtime_pack_manifest"
+    },
+    {
+      "path": "runtime_profile.snapshot.json",
+      "sha256": "2a83fdcd79950b05f84d15f4d9e2c6cedf34edcb0c3715274196298a86624638",
+      "media_type": "application/json",
+      "size_bytes": 275,
+      "role": "runtime_profile_snapshot"
+    },
+    {
+      "path": "patch_selection.snapshot.json",
+      "sha256": "4bea6c459966fe2349ba66b89a9fa2349376befe7a20546c339d50b9301b9bb4",
+      "media_type": "application/json",
+      "size_bytes": 82,
+      "role": "patch_selection_snapshot"
+    },
+    {
+      "path": "problem_manifest.json",
+      "sha256": "da8e1ae84ce0a235072c83dbee9e897380931c5390ad877ecc743b30ae1b0194",
+      "media_type": "application/json",
+      "size_bytes": 1873,
+      "role": "problem_manifest"
+    },
+    {
+      "path": "automatic_evaluation.json",
+      "sha256": "d4c8f5b0c2cc6021de3bcc05f33aa6cd364a71b65408721dcc86febe75b7e039",
+      "media_type": "application/json",
+      "size_bytes": 101,
+      "role": "automatic_evaluation"
+    },
+    {
+      "path": "ai_run_metadata.json",
+      "sha256": "f05761f983a839d835a2ce69fdf34e1801198a541c860f1182ab05afbdf23d11",
+      "media_type": "application/json",
+      "size_bytes": 518,
+      "role": "ai_run_metadata"
+    },
+    {
+      "path": "human_review.md",
+      "sha256": "ebec3a6af57072d739abe0f4bcbb6d906f6477a98fdf73f0cf66d29c648fe116",
+      "media_type": "text/markdown",
+      "size_bytes": 182,
+      "role": "human_review"
+    },
+    {
+      "path": "transitions.jsonl",
+      "sha256": "132990d8188ccd6cd706c3ffc12523bd9af5eb30a7875022fd9b3739a2021840",
+      "media_type": "application/jsonlines",
+      "size_bytes": 789,
+      "role": "transitions"
+    },
+    {
+      "path": "gate_5_review.json",
+      "sha256": "b47990e1f3df50a3bd1042e608a91ccbf4ef973cab02b376b0c42256e011bcf2",
+      "media_type": "application/json",
+      "size_bytes": 108,
+      "role": "gate_5_review"
+    },
+    {
+      "path": "score.json",
+      "sha256": "79f933591da67b7943e0bec080d89979ad5ebfa5a33e74d66867ae86dbcd0784",
+      "media_type": "application/json",
+      "size_bytes": 53,
+      "role": "score"
+    },
+    {
+      "path": "failure_labels.json",
+      "sha256": "d44107a9601727c9f20f78425a6d6ec6d87ff89695ce6fd7fade2ed465b562fe",
+      "media_type": "application/json",
+      "size_bytes": 58,
+      "role": "failure_labels"
+    },
+    {
+      "path": "patch_suggestions.md",
+      "sha256": "f8344bfed8644cb052a22560ddf5e5d3f2c0646c01c20805e77c293813519843",
+      "media_type": "text/markdown",
+      "size_bytes": 65,
+      "role": "patch_suggestions"
+    },
+    {
+      "path": "paper_content_contract.yaml",
+      "sha256": "6718fc788de93aa724ca418c6539ada75f4354c2fbf799e997c835b0e379e790",
+      "media_type": "text/yaml",
+      "size_bytes": 3567,
+      "role": "paper_content_contract"
+    },
+    {
+      "path": "paper_evidence_role_registry.json",
+      "sha256": "4953f6a606f56c0bb902d0cb432c316d4149a687b82356f7a963bde8533d3a83",
+      "media_type": "application/json",
+      "size_bytes": 313,
+      "role": "paper_evidence_role_registry"
+    },
+    {
+      "path": "paper_substantive_completeness_report.json",
+      "sha256": "0eee2cc6369651f9a0b51be7ddb5f0b4b6f8bb100059e799434cff3aec6af19d",
+      "media_type": "application/json",
+      "size_bytes": 11128,
+      "role": "paper_substantive_completeness_report"
+    },
+    {
+      "path": "paper_content_delta_report.json",
+      "sha256": "440778347f9680b17a3ce729b007b1a53bcf426794948c99c6372d79877203aa",
+      "media_type": "application/json",
+      "size_bytes": 860,
+      "role": "paper_content_delta_report"
+    },
+    {
+      "path": "paper_gate_f_status.json",
+      "sha256": "52352180a9329f8a1563fcbba5df55eac3a9341f3fce8b3dfbdb9e7b36dd871e",
+      "media_type": "application/json",
+      "size_bytes": 397,
+      "role": "paper_gate_f_status"
+    },
+    {
+      "path": "diagnosis.json",
+      "sha256": "d55ac4cfc146e33aee4331dc7b21cc68ff91de17c95df6ae63a1ff9db45c27da",
+      "media_type": "application/json",
+      "size_bytes": 102,
+      "role": "gate_0_diagnosis"
+    },
+    {
+      "path": "model_route.json",
+      "sha256": "7bff351f79498583c4a5ac6b888725f0b70c1bffabf91355b0cbf2ecde020566",
+      "media_type": "application/json",
+      "size_bytes": 138,
+      "role": "gate_1_model_route"
+    },
+    {
+      "path": "code_plan.json",
+      "sha256": "75500c5da06e4d80d30b89960a38129c122e67e4ea1b91676ca6837078d9d1f7",
+      "media_type": "application/json",
+      "size_bytes": 136,
+      "role": "gate_2_code_plan"
+    },
+    {
+      "path": "result_report.json",
+      "sha256": "97a67ff0f036e8134db1f52f4a7aabf530a9f890dae318b72400b87b38b89c83",
+      "media_type": "application/json",
+      "size_bytes": 140,
+      "role": "gate_3_result_report"
+    },
+    {
+      "path": "result_manifest.json",
+      "sha256": "9a1589ac58e1c00a0f4e17e187391df1da3e64ea7ff7363962ddf472492cf9f3",
+      "media_type": "application/json",
+      "size_bytes": 142,
+      "role": "gate_3_result_manifest"
+    },
+    {
+      "path": "paper_claim_map.json",
+      "sha256": "c4f3f5821754f274c629cded935c46da41817b120dbfcae97190510444cf70f6",
+      "media_type": "application/json",
+      "size_bytes": 142,
+      "role": "gate_4_paper_claim_map"
+    }
+  ]
+}

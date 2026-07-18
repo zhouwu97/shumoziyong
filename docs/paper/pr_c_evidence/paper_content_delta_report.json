@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_content_delta_report",
+  "before_registry": null,
+  "after_registry": "E:\\AI\\pr-c-2025c-artifacts\\pilot_2025c_reconstructed_negative_control_20260718\\paper_evidence_role_registry.json",
+  "before_candidate_id": null,
+  "after_candidate_id": null,
+  "before_candidate_sha256": null,
+  "after_candidate_sha256": null,
+  "before_run_id": null,
+  "after_run_id": "pilot_2025c_reconstructed_negative_control_20260718",
+  "before_formal_result_ids": [],
+  "after_formal_result_ids": [
+    "reconstructed-negative-control-no-formal-result"
+  ],
+  "revision_type": "new_clean_run",
+  "deltas": [],
+  "new_technical_evidence": false,
+  "new_paper_realization": false,
+  "substantive_paper_improvement": false,
+  "reason": "本轮只完成流程或证据链修复，未增加模型实验与论文论证。"
+}

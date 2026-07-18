@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_gate_f_status",
+  "f1_status": "passed",
+  "f2_status": "content_repair_required",
+  "f3_status": "pending",
+  "status": "content_repair_required",
+  "eligible_for_gate_g": false,
+  "issues": [
+    "F2 实质内容完整性未通过"
+  ],
+  "completeness_report_sha256": "0eee2cc6369651f9a0b51be7ddb5f0b4b6f8bb100059e799434cff3aec6af19d"
+}

@@ -1,0 +1,469 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "paper_substantive_completeness_report",
+  "problem_id": "2025_C",
+  "contract_id": "2025_C_prediction_nipt_v1",
+  "question_coverage": {
+    "Q1": {
+      "required_roles": 15,
+      "realized_roles": 0,
+      "critical_missing": [
+        "repeated_measurement_structure",
+        "patient_level_split",
+        "leakage_check"
+      ],
+      "major_missing": [
+        "transparent_baseline",
+        "fixed_effect_table",
+        "fixed_effect_uncertainty",
+        "random_intercept_variance",
+        "residual_variance",
+        "ICC",
+        "RMSE_MAE",
+        "fold_variability",
+        "residual_diagnostics",
+        "response_curve",
+        "sensitivity_analysis",
+        "limitations"
+      ],
+      "minor_missing": []
+    },
+    "Q2": {
+      "required_roles": 13,
+      "realized_roles": 0,
+      "critical_missing": [
+        "threshold_definition",
+        "risk_function_definition"
+      ],
+      "major_missing": [
+        "right_censoring_summary",
+        "person_period_construction",
+        "cumulative_attainment_curve",
+        "BMI_group_definition",
+        "group_boundary_stability",
+        "recommended_week",
+        "lambda_1_lambda_2_sensitivity",
+        "threshold_sensitivity",
+        "recommendation_stability_region",
+        "out_of_range_policy",
+        "limitations"
+      ],
+      "minor_missing": []
+    },
+    "Q3": {
+      "required_roles": 14,
+      "realized_roles": 0,
+      "critical_missing": [
+        "same_patient_fold_comparison",
+        "nested_preprocessing",
+        "weak_gain_interpretation"
+      ],
+      "major_missing": [
+        "transparent_BMI_baseline",
+        "multifactor_model",
+        "per_fold_Brier",
+        "per_fold_AUC",
+        "uncertainty_interval",
+        "calibration",
+        "ablation",
+        "coefficient_stability",
+        "collinearity_check",
+        "practical_significance",
+        "limitations"
+      ],
+      "minor_missing": []
+    },
+    "Q4": {
+      "required_roles": 18,
+      "realized_roles": 0,
+      "critical_missing": [
+        "patient_level_split",
+        "out_of_fold_predictions",
+        "screening_not_diagnosis_boundary"
+      ],
+      "major_missing": [
+        "class_prevalence",
+        "simple_baseline",
+        "Z_value_baseline",
+        "class_weighting",
+        "per_fold_PR_AUC",
+        "per_fold_recall",
+        "ROC_AUC",
+        "Brier",
+        "calibration_curve",
+        "threshold_tradeoff",
+        "confusion_matrix",
+        "high_score_negative_analysis",
+        "low_score_positive_analysis",
+        "feature_stability",
+        "limitations"
+      ],
+      "minor_missing": []
+    },
+    "limitations": {
+      "required_roles": 1,
+      "realized_roles": 0,
+      "critical_missing": [],
+      "major_missing": [
+        "limitations"
+      ],
+      "minor_missing": []
+    },
+    "model_definition": {
+      "required_roles": 1,
+      "realized_roles": 0,
+      "critical_missing": [
+        "model_definition"
+      ],
+      "major_missing": [],
+      "minor_missing": []
+    },
+    "result_interpretation": {
+      "required_roles": 1,
+      "realized_roles": 0,
+      "critical_missing": [],
+      "major_missing": [
+        "result_interpretation"
+      ],
+      "minor_missing": []
+    },
+    "thesis": {
+      "required_roles": 1,
+      "realized_roles": 0,
+      "critical_missing": [],
+      "major_missing": [
+        "thesis"
+      ],
+      "minor_missing": []
+    }
+  },
+  "required_evidence_roles": 64,
+  "realized_evidence_roles": 0,
+  "required_role_coverage": 0.0,
+  "critical_missing": [
+    {
+      "question": "model_definition",
+      "role": "model_definition",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "repeated_measurement_structure",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "patient_level_split",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "leakage_check",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "threshold_definition",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "risk_function_definition",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "same_patient_fold_comparison",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "nested_preprocessing",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "weak_gain_interpretation",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "patient_level_split",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "out_of_fold_predictions",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "screening_not_diagnosis_boundary",
+      "reason": "Required Role 未注册"
+    }
+  ],
+  "major_missing": [
+    {
+      "question": "thesis",
+      "role": "thesis",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "result_interpretation",
+      "role": "result_interpretation",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "limitations",
+      "role": "limitations",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "transparent_baseline",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "fixed_effect_table",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "fixed_effect_uncertainty",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "random_intercept_variance",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "residual_variance",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "ICC",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "RMSE_MAE",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "fold_variability",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "residual_diagnostics",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "response_curve",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "sensitivity_analysis",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q1",
+      "role": "limitations",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "right_censoring_summary",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "person_period_construction",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "cumulative_attainment_curve",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "BMI_group_definition",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "group_boundary_stability",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "recommended_week",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "lambda_1_lambda_2_sensitivity",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "threshold_sensitivity",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "recommendation_stability_region",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "out_of_range_policy",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q2",
+      "role": "limitations",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "transparent_BMI_baseline",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "multifactor_model",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "per_fold_Brier",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "per_fold_AUC",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "uncertainty_interval",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "calibration",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "ablation",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "coefficient_stability",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "collinearity_check",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "practical_significance",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q3",
+      "role": "limitations",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "class_prevalence",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "simple_baseline",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "Z_value_baseline",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "class_weighting",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "per_fold_PR_AUC",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "per_fold_recall",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "ROC_AUC",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "Brier",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "calibration_curve",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "threshold_tradeoff",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "confusion_matrix",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "high_score_negative_analysis",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "low_score_positive_analysis",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "feature_stability",
+      "reason": "Required Role 未注册"
+    },
+    {
+      "question": "Q4",
+      "role": "limitations",
+      "reason": "Required Role 未注册"
+    }
+  ],
+  "minor_missing": [],
+  "status": "content_repair_required"
+}
