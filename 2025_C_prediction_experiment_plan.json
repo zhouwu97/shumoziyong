@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "prediction_experiment_plan",
+  "problem_id": "2025_C",
+  "profile": "prediction",
+  "experiments": [
+    {"experiment_id": "EXP-Q1-MIXEDLM", "question": "Q1", "required_by_roles": ["fixed_effect_uncertainty", "random_intercept_variance", "ICC", "residual_diagnostics"], "execution_type": "new_formal_result_required", "outputs": ["fixed_effect_table.json", "mixedlm_diagnostics.json", "response_curve.pdf"], "validator": "prediction_mixedlm_validator"},
+    {"experiment_id": "EXP-Q2-STABILITY", "question": "Q2", "required_by_roles": ["lambda_1_lambda_2_sensitivity", "threshold_sensitivity", "recommendation_stability_region"], "execution_type": "new_formal_result_required", "outputs": ["attainment_curve.csv", "recommendation_sensitivity.json", "attainment_curve.pdf"], "validator": "prediction_threshold_validator"},
+    {"experiment_id": "EXP-Q3-CALIBRATION", "question": "Q3", "required_by_roles": ["calibration", "ablation", "coefficient_stability"], "execution_type": "new_formal_result_required", "outputs": ["calibration_metrics.json", "ablation_metrics.json", "calibration_curve.pdf"], "validator": "prediction_calibration_validator"},
+    {"experiment_id": "EXP-Q4-SCREENING", "question": "Q4", "required_by_roles": ["out_of_fold_predictions", "per_fold_PR_AUC", "calibration_curve", "threshold_tradeoff", "screening_not_diagnosis_boundary"], "execution_type": "new_formal_result_required", "outputs": ["oof_predictions.csv", "per_fold_metrics.json", "calibration_curve.pdf", "confusion_matrix.pdf"], "validator": "prediction_screening_validator"}
+  ]
+}

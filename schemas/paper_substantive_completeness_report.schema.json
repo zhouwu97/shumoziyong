@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_substantive_completeness_report.schema.json",
+  "title": "论文实质内容完整性报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "contract_id", "question_coverage", "required_evidence_roles", "realized_evidence_roles", "required_role_coverage", "critical_missing", "major_missing", "minor_missing", "status"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_substantive_completeness_report"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "contract_id": {"type": "string", "minLength": 1},
+    "question_coverage": {"type": "object", "additionalProperties": {"$ref": "#/$defs/coverage"}},
+    "required_evidence_roles": {"type": "integer", "minimum": 0},
+    "realized_evidence_roles": {"type": "integer", "minimum": 0},
+    "required_role_coverage": {"type": "number", "minimum": 0, "maximum": 1},
+    "critical_missing": {"type": "array", "items": {"$ref": "#/$defs/missing"}},
+    "major_missing": {"type": "array", "items": {"$ref": "#/$defs/missing"}},
+    "minor_missing": {"type": "array", "items": {"$ref": "#/$defs/missing"}},
+    "status": {"enum": ["passed", "content_repair_required"]}
+  },
+  "$defs": {
+    "missing": {"type": "object", "additionalProperties": false, "required": ["question", "role", "reason"], "properties": {"question": {"type": "string"}, "role": {"type": "string"}, "reason": {"type": "string"}}},
+    "coverage": {"type": "object", "additionalProperties": false, "required": ["required_roles", "realized_roles", "critical_missing", "major_missing", "minor_missing"], "properties": {"required_roles": {"type": "integer", "minimum": 0}, "realized_roles": {"type": "integer", "minimum": 0}, "critical_missing": {"type": "array", "items": {"type": "string"}}, "major_missing": {"type": "array", "items": {"type": "string"}}, "minor_missing": {"type": "array", "items": {"type": "string"}}}}
+  }
+}

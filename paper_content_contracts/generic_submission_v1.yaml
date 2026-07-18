@@ -1,0 +1,24 @@
+schema_version: "1.0.0"
+contract_id: generic_submission_v1
+contract_type: generic_submission
+description: 通用论文实质内容合同。题目专用合同可增加 Required Role，但不得放宽本合同的绑定要求。
+role_requirements:
+  thesis:
+    severity: major
+    minimum: 1
+  model_definition:
+    severity: critical
+    minimum: 1
+  result_interpretation:
+    severity: major
+    minimum: 1
+  limitations:
+    severity: major
+    minimum: 1
+binding_requirements:
+  source_artifact_required: true
+  formal_result_required: true
+  validator_artifact_required: true
+  claim_required: true
+  paper_location_required: true
+  source_hash_required: true
