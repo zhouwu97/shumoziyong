@@ -123,7 +123,9 @@ def test_q2_risk_statistics_and_sensitivity_are_explicit() -> None:
 
 def test_q2_requires_real_q1_baseline_and_convergence_audit() -> None:
     contract = _contract()
-    assert contract["q1_baseline"]["status"] == "pending_real_q1_result"
+    assert contract["q1_baseline"]["status"] == "frozen"
+    assert len(contract["q1_baseline"]["baseline_manifest_sha256"]) == 64
+    assert contract["q1_baseline"]["paired_baseline_scenario_id"] == "q1_waste"
     assert contract["q1_baseline"]["must_be_frozen_before_q2_solver"] is True
     convergence = contract["convergence"]
     assert convergence["scenario_budgets"] == [64, 128, 256, 512]
