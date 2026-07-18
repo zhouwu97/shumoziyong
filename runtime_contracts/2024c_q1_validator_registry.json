@@ -9,8 +9,8 @@
       "module_path": "validators/problem_2024c_q1/validate.py",
       "status": "active_for_q1_only",
       "independent_from_candidate": true,
-      "implemented_recomputations": ["objective", "hard_constraints", "units", "bounds"],
-      "pending_recomputations": ["official_output_workbook"]
+      "implemented_recomputations": ["objective", "hard_constraints", "units", "bounds", "official_output_workbook"],
+      "pending_recomputations": []
     },
     {
       "subproblem_id": "Q2",

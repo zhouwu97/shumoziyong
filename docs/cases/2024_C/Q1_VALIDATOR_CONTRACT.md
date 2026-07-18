@@ -27,8 +27,12 @@ Q1 Formal Result 的两个场景必须同时存在且不可重复。当前允许
 
 ```yaml
 q1_validator: implemented
-official_output_workbook_validator: pending
+official_output_workbook_validator: implemented
 q2_validator: contract_pending_model_freeze
 q3_validator: contract_pending_model_freeze
 qualification_authority: false
 ```
+
+正式运行入口会先将 Solver assignments 写入官方模板，再由不导入 Solver 的 Workbook Validator
+反向读取工作簿，复核工作表、单元格、面积、季次、约束和目标。Formal Result Validator 仍固定
+返回 `production_ready=false`；工作簿验证通过只证明 Q1 结果文件合同闭合，不构成资格或生产授权。
