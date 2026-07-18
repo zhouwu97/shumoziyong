@@ -148,18 +148,38 @@ def test_q1_manifest_rejects_wrong_problem_and_missing_role(tmp_path: Path) -> N
 
 
 @pytest.mark.unit_contract
-def test_q1_manifest_rejects_replaced_or_swapped_attachment(tmp_path: Path) -> None:
+def test_q1_manifest_rejects_non_official_source(tmp_path: Path) -> None:
+    manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path)
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_data["source"]["kind"] = "user_provided"
+    manifest.write_text(json.dumps(manifest_data, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="只接受官方材料"):
+        validate_q1_result(
+            _empty_result(manifest),
+            attachment_1,
+            attachment_2,
+            manifest,
+            check_legume_windows=False,
+        )
+
+
+@pytest.mark.unit_contract
+@pytest.mark.parametrize("attachment_number", [1, 2])
+def test_q1_manifest_rejects_replaced_attachment(tmp_path: Path, attachment_number: int) -> None:
     manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "binding")
-    replacement = attachment_1.with_name("replacement.xlsx")
-    replacement.write_bytes(attachment_1.read_bytes())
+    replaced = attachment_1 if attachment_number == 1 else attachment_2
+    replaced.write_bytes(b"tampered")
     result = _empty_result(manifest)
-    with pytest.raises(ValueError, match="路径未绑定"):
-        validate_q1_result(result, replacement, attachment_2, manifest, check_legume_windows=False)
-    with pytest.raises(ValueError, match="路径未绑定"):
-        validate_q1_result(result, attachment_2, attachment_1, manifest, check_legume_windows=False)
-    attachment_1.write_bytes(b"tampered")
     with pytest.raises(ValueError, match="SHA-256"):
         validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
+
+
+@pytest.mark.unit_contract
+def test_q1_manifest_rejects_swapped_attachment_roles(tmp_path: Path) -> None:
+    manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "binding")
+    result = _empty_result(manifest)
+    with pytest.raises(ValueError, match="路径未绑定"):
+        validate_q1_result(result, attachment_2, attachment_1, manifest, check_legume_windows=False)
 
 
 @pytest.mark.official_integration
