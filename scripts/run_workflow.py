@@ -1041,13 +1041,13 @@ PAPER_GATE_4_ARTIFACT_SPECS: tuple[tuple[str, str, str, str], ...] = (
 
 
 def _paper_pipeline_is_required(run_manifest: Mapping[str, Any]) -> bool:
-    """仅对显式绑定当前论文闭环合同的新 Run 强制执行严格 Gate 4。"""
+    """仅对显式绑定论文内容合同的新 Run 强制执行严格论文管线。"""
     version = run_manifest.get("paper_pipeline_contract_version")
     if version is None:
         return False
     if version != PAPER_PIPELINE_CONTRACT_VERSION:
         raise ValueError(f"paper_pipeline_contract_version 非法：{version!r}")
-    return True
+    return bool(run_manifest.get("paper_content_contract_id"))
 
 
 def _gate_artifact_specs(

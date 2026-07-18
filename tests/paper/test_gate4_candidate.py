@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,12 @@ from paper.gate4_candidate import (  # noqa: E402
     candidate_id_for_manifest,
     verify_candidate_manifest,
 )
+from paper.paper_content_quality import (  # noqa: E402
+    CONTRACT_RESOLUTION_VERSION,
+    contract_sha256,
+    contract_source_hashes,
+    load_contract,
+)
 from test_repository_tooling import (  # noqa: E402
     _write_minimal_run_binding,
     _write_valid_gate_artifact,
@@ -33,8 +40,54 @@ from test_repository_tooling import (  # noqa: E402
 def enable_paper_contract(run_dir: Path) -> None:
     manifest_path = run_dir / "run_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    contract_path = run_dir / "paper_content_contract.yaml"
+    contract_path.write_text(
+        "schema_version: '1.0.0'\n"
+        "contract_id: fixture_contract\n"
+        "problem_id: 2024-C\n"
+        "role_requirements: {}\n"
+        "binding_requirements: {}\n",
+        encoding="utf-8",
+    )
+    contract = load_contract(contract_path)
     manifest["paper_pipeline_contract_version"] = "1.0.0"
+    manifest["paper_content_contract_id"] = "fixture_contract"
+    manifest["paper_content_contract_sha256"] = contract_sha256(contract)
+    manifest["paper_content_contract_resolution_version"] = CONTRACT_RESOLUTION_VERSION
+    manifest["paper_content_contract_merged_sha256"] = contract_sha256(contract)
+    manifest["paper_content_contract_source_hashes"] = contract_source_hashes(contract_path)
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    report_path = run_dir / "paper_substantive_completeness_report.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "artifact_type": "paper_substantive_completeness_report",
+                "problem_id": "2024-C",
+                "contract_id": "fixture_contract",
+                "question_coverage": {},
+                "required_evidence_roles": 0,
+                "realized_evidence_roles": 0,
+                "required_role_coverage": 1.0,
+                "critical_missing": [],
+                "major_missing": [],
+                "minor_missing": [],
+                "status": "passed",
+            }
+        ),
+        encoding="utf-8",
+    )
+    status = {
+        "schema_version": "1.0.0",
+        "artifact_type": "paper_gate_f_status",
+        "f1_status": "passed",
+        "f2_status": "passed",
+        "f3_status": "pending",
+        "status": "ready_for_independent_paper_review",
+        "eligible_for_gate_g": False,
+        "completeness_report_sha256": sha256(report_path.read_bytes()).hexdigest(),
+    }
+    (run_dir / "paper_gate_f_status.json").write_text(json.dumps(status), encoding="utf-8")
 
 
 def make_strict_gate4_run(tmp_path: Path) -> Path:

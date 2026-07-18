@@ -12,10 +12,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 
 from run_workflow import (  # noqa: E402
     _paper_content_contract_binding,
+    _paper_pipeline_is_required,
     create_full_replay_run,
     extend_paper_content_evidence_requirements,
     verify_run,
 )
+
+
+def test_unbound_run_does_not_enable_strict_paper_pipeline() -> None:
+    assert (
+        _paper_pipeline_is_required(
+            {
+                "paper_pipeline_contract_version": "1.0.0",
+                "paper_content_contract_id": None,
+            }
+        )
+        is False
+    )
+    assert (
+        _paper_pipeline_is_required(
+            {
+                "paper_pipeline_contract_version": "1.0.0",
+                "paper_content_contract_id": "2025_C_prediction_nipt_v1",
+            }
+        )
+        is True
+    )
 
 
 def test_2025c_prediction_run_binding_freezes_merged_and_source_hashes() -> None:
