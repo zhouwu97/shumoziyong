@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_gate4_pipeline_state.schema.json",
+  "title": "Gate 3 到 Gate 4 两阶段论文编排状态",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "binding",
+    "formal_result",
+    "source",
+    "inputs",
+    "paper_profile",
+    "template",
+    "render"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "status": {
+      "enum": [
+        "awaiting_visual_review",
+        "paper_candidate_ready_for_independent_review",
+        "content_repair_required"
+      ]
+    },
+    "binding": {"$ref": "#/$defs/binding"},
+    "formal_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formal_result_id", "domain", "envelope_path", "envelope_sha256"],
+      "properties": {
+        "formal_result_id": {"type": "string", "minLength": 1},
+        "domain": {"type": "string", "minLength": 1},
+        "envelope_path": {"$ref": "#/$defs/runPath"},
+        "envelope_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["directory", "entry", "entry_sha256"],
+      "properties": {
+        "directory": {"$ref": "#/$defs/runPath"},
+        "entry": {"type": "string", "minLength": 1},
+        "entry_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "narrative_input_path",
+        "narrative_input_sha256",
+        "humanization_source_path",
+        "humanization_source_sha256",
+        "model_consistency_sha256"
+      ],
+      "properties": {
+        "narrative_input_path": {"$ref": "#/$defs/runPath"},
+        "narrative_input_sha256": {"$ref": "#/$defs/sha256"},
+        "humanization_source_path": {"$ref": "#/$defs/runPath"},
+        "humanization_source_sha256": {"$ref": "#/$defs/sha256"},
+        "model_consistency_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "paper_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["directory", "selection_sha256", "tree_sha256"],
+      "properties": {
+        "directory": {"type": "string", "minLength": 1},
+        "selection_sha256": {"$ref": "#/$defs/sha256"},
+        "tree_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pdf_path",
+        "pdf_sha256",
+        "attestation_sha256",
+        "raster_report_path",
+        "raster_report_sha256",
+        "pages_directory",
+        "page_count"
+      ],
+      "properties": {
+        "pdf_path": {"$ref": "#/$defs/runPath"},
+        "pdf_sha256": {"$ref": "#/$defs/sha256"},
+        "attestation_sha256": {"$ref": "#/$defs/sha256"},
+        "raster_report_path": {"$ref": "#/$defs/runPath"},
+        "raster_report_sha256": {"$ref": "#/$defs/sha256"},
+        "pages_directory": {"$ref": "#/$defs/runPath"},
+        "page_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_sha256", "gate_manifest_path", "gate_manifest_sha256"],
+      "properties": {
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "gate_manifest_path": {"$ref": "#/$defs/runPath"},
+        "gate_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "content_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status_path", "completeness_report_path"],
+      "properties": {
+        "status_path": {"$ref": "#/$defs/runPath"},
+        "completeness_report_path": {"$ref": "#/$defs/runPath"},
+        "delta_report_path": {"$ref": "#/$defs/runPath"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "paper_candidate_ready_for_independent_review"}
+        },
+        "required": ["status"]
+      },
+      "then": {"required": ["candidate"]}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "runPath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![A-Za-z]:[\\\\/])(?![/\\\\])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "problem_id", "profile", "runtime_version", "runtime_pack_sha256"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "problem_id": {"type": "string", "minLength": 1},
+        "profile": {"type": "string", "minLength": 1},
+        "runtime_version": {"type": "string", "minLength": 1},
+        "runtime_pack_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

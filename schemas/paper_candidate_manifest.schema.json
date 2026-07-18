@@ -12,6 +12,7 @@
     "profile",
     "runtime_version",
     "runtime_pack_sha256",
+    "candidate_id",
     "candidate_status",
     "artifacts"
   ],
@@ -23,6 +24,7 @@
     "profile": {"type": "string", "minLength": 1},
     "runtime_version": {"type": "string", "minLength": 1},
     "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+    "candidate_id": {"type": "string", "pattern": "^PC-[a-f0-9]{24}$"},
     "candidate_status": {"const": "paper_candidate_ready_for_independent_review"},
     "artifacts": {
       "type": "array",

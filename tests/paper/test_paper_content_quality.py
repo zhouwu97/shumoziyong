@@ -18,7 +18,7 @@ from paper_content_quality import (  # noqa: E402
     load_contract,
     _specific_roles,
 )
-from gate_f_status import build_gate_f_status  # noqa: E402
+from gate_f_status import build_gate_f_status, derive_gate_f_outcome  # noqa: E402
 from gate_f_status import validate_f3_review_references  # noqa: E402
 
 
@@ -212,11 +212,31 @@ def test_f2_pass_f3_pending_is_review_ready_but_not_gate_g_eligible() -> None:
     assert status["eligible_for_gate_g"] is False
 
 
+@pytest.mark.parametrize(
+    ("f1_status", "f2_status", "f3_status", "expected"),
+    [
+        ("failed", "passed", "passed", ("mechanically_invalid", False)),
+        ("passed", "content_repair_required", "pending", ("content_repair_required", False)),
+        ("passed", "passed", "pending", ("ready_for_independent_paper_review", False)),
+        ("passed", "passed", "failed", ("independent_paper_review_failed", False)),
+        ("passed", "passed", "passed", ("independent_paper_review_passed", True)),
+    ],
+)
+def test_gate_f_outcome_is_derived_from_all_three_statuses(
+    f1_status: str, f2_status: str, f3_status: str, expected: tuple[str, bool]
+) -> None:
+    assert derive_gate_f_outcome(
+        f1_status=f1_status,
+        f2_status=f2_status,
+        f3_status=f3_status,
+    ) == expected
+
+
 def test_only_f1_f2_f3_pass_allows_gate_g() -> None:
     f3_review = {
         "reviewer_type": "human",
         "reviewer_identity": "reviewer-1",
-        "reviewed_candidate_id": "PC-0001",
+        "reviewed_candidate_id": "PC-000000000000000000000000",
         "candidate_sha256": "a" * 64,
         "completeness_report_sha256": "b" * 64,
         "decision": "approved",
@@ -235,9 +255,37 @@ def test_only_f1_f2_f3_pass_allows_gate_g() -> None:
     assert status["eligible_for_gate_g"] is True
 
 
+@pytest.mark.parametrize(
+    ("f1_passed", "report_status"),
+    [(False, "passed"), (True, "content_repair_required")],
+)
+def test_gate_f_generator_rejects_f3_final_before_prerequisites(
+    f1_passed: bool, report_status: str
+) -> None:
+    with pytest.raises(ValueError, match="只有 F1/F2 通过后才允许记录 F3 终态"):
+        build_gate_f_status(
+            f1_passed=f1_passed,
+            completeness_report={"status": report_status},
+            f3_status="passed",
+            f3_review={
+                "reviewer_type": "human",
+                "reviewer_identity": "reviewer-1",
+                "reviewed_candidate_id": "PC-000000000000000000000000",
+                "candidate_sha256": "a" * 64,
+                "completeness_report_sha256": "b" * 64,
+                "decision": "approved",
+                "critical_open": 0,
+                "major_open": 0,
+                "approval_record": "reviews/approval.json",
+            },
+        )
+
+
 def test_f3_references_require_live_candidate_report_and_history(tmp_path: Path) -> None:
     candidate = tmp_path / "paper_candidate_manifest.json"
-    candidate.write_text(json.dumps({"candidate_id": "PC-0001"}), encoding="utf-8")
+    candidate.write_text(
+        json.dumps({"candidate_id": "PC-000000000000000000000000"}), encoding="utf-8"
+    )
     report = tmp_path / "paper_substantive_completeness_report.json"
     report.write_text(json.dumps({"status": "passed"}), encoding="utf-8")
     approval = tmp_path / "reviews" / "paper_reader" / "PRR-00000001.json"
@@ -249,7 +297,7 @@ def test_f3_references_require_live_candidate_report_and_history(tmp_path: Path)
         encoding="utf-8",
     )
     review = {
-        "reviewed_candidate_id": "PC-0001",
+        "reviewed_candidate_id": "PC-000000000000000000000000",
         "candidate_sha256": _sha(candidate),
         "completeness_report_sha256": _sha(report),
         "approval_record": "reviews/paper_reader/PRR-00000001.json",
@@ -282,6 +330,64 @@ def test_f3_pass_requires_human_review_record() -> None:
             completeness_report={"status": "passed"},
             f3_status="passed",
         )
+
+
+def test_f3_rejects_reviewed_candidate_id_without_manifest_match(tmp_path: Path) -> None:
+    candidate = tmp_path / "paper_candidate_manifest.json"
+    candidate.write_text(
+        json.dumps({"candidate_id": "PC-000000000000000000000000"}), encoding="utf-8"
+    )
+    report = tmp_path / "paper_substantive_completeness_report.json"
+    report.write_text(json.dumps({"status": "passed"}), encoding="utf-8")
+    approval = tmp_path / "reviews" / "approval.json"
+    approval.parent.mkdir(parents=True)
+    approval.write_text("{}", encoding="utf-8")
+    (tmp_path / "paper_reader_review_history.jsonl").write_text(
+        json.dumps({"path": "reviews/approval.json", "sha256": _sha(approval)}) + "\n",
+        encoding="utf-8",
+    )
+    review = {
+        "reviewed_candidate_id": "PC-111111111111111111111111",
+        "candidate_sha256": _sha(candidate),
+        "completeness_report_sha256": _sha(report),
+        "approval_record": "reviews/approval.json",
+    }
+
+    with pytest.raises(ValueError, match="reviewed_candidate_id 与当前 Candidate 不一致"):
+        validate_f3_review_references(tmp_path, review)
+
+
+def test_f3_pointer_id_must_match_candidate_manifest(tmp_path: Path) -> None:
+    candidate_id = "PC-000000000000000000000000"
+    candidate_dir = tmp_path / "paper_candidates" / candidate_id
+    candidate_dir.mkdir(parents=True)
+    candidate = candidate_dir / "paper_candidate_manifest.json"
+    candidate.write_text(json.dumps({"candidate_id": candidate_id}), encoding="utf-8")
+    (tmp_path / "current_paper_candidate.json").write_text(
+        json.dumps({"candidate_id": candidate_id}), encoding="utf-8"
+    )
+    report = tmp_path / "paper_substantive_completeness_report.json"
+    report.write_text(json.dumps({"status": "passed"}), encoding="utf-8")
+    approval = tmp_path / "reviews" / "approval.json"
+    approval.parent.mkdir(parents=True)
+    approval.write_text("{}", encoding="utf-8")
+    (tmp_path / "paper_reader_review_history.jsonl").write_text(
+        json.dumps({"path": "reviews/approval.json", "sha256": _sha(approval)}) + "\n",
+        encoding="utf-8",
+    )
+    review = {
+        "reviewed_candidate_id": candidate_id,
+        "candidate_sha256": _sha(candidate),
+        "completeness_report_sha256": _sha(report),
+        "approval_record": "reviews/approval.json",
+    }
+    validate_f3_review_references(tmp_path, review)
+
+    candidate.write_text(
+        json.dumps({"candidate_id": "PC-111111111111111111111111"}), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="pointer ID 与 Manifest ID 不一致"):
+        validate_f3_review_references(tmp_path, review)
 
 
 def test_parent_contract_is_merged_and_cannot_be_weakened() -> None:
