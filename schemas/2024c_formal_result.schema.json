@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/2024c_formal_result.schema.json",
+  "title": "2024-C Formal Result 总合同",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "q1", "q2", "q3"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "2024c_formal_result_status"},
+    "problem_id": {"const": "2024-C"},
+    "q1": {"$ref": "#/$defs/questionStatus"},
+    "q2": {"$ref": "#/$defs/questionStatus"},
+    "q3": {"$ref": "#/$defs/questionStatus"}
+  },
+  "$defs": {
+    "questionStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "validator_scope"],
+      "properties": {
+        "status": {"enum": ["implemented", "contract_pending_model_freeze", "not_started"]},
+        "validator_scope": {"type": "string", "minLength": 1},
+        "blocking_reason": {"type": "string"}
+      }
+    }
+  }
+}
