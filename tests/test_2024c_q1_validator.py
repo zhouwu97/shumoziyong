@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from official_integration import official_2024c_attachments
+from validators.problem_2024c_q1 import validate as q1_validator
 from validators.problem_2024c_q1.validate import (
     check_q1_constraints,
     evaluate_q1_objective,
@@ -40,8 +41,8 @@ def _water_data() -> dict:
             ("水浇地", "第二季", 18): {"yield": 100.0, "cost": 10.0, "price": 2.0},
         },
         "planting_2023": [],
-        "sales_2023": {},
-        "price_by_crop_season": {},
+        "sales_2023": {(16, "单季"): 0.0, (17, "第一季"): 0.0, (18, "第二季"): 0.0},
+        "price_by_crop_season": {(16, "单季"): 2.0, (17, "第一季"): 2.0, (18, "第二季"): 2.0},
     }
 
 
@@ -184,6 +185,42 @@ def test_q1_water_plot_accepts_pure_single_or_two_season_mode(assignments: list[
     violations, _ = check_q1_constraints(assignments, _water_data(), check_legume_windows=False)
 
     assert not any(item.startswith("water_mode:") for item in violations)
+
+
+@pytest.mark.unit_contract
+def test_q1_water_plot_treats_sub_tolerance_single_area_as_zero() -> None:
+    assignments = [
+        {"year": 2024, "plot_id": "W1", "season": "单季", "crop_id": 16, "area_mu": 1e-7},
+        {"year": 2024, "plot_id": "W1", "season": "第一季", "crop_id": 17, "area_mu": 5.0},
+    ]
+
+    violations, _ = check_q1_constraints(assignments, _water_data(), check_legume_windows=False)
+
+    assert not any(item.startswith("water_mode:") for item in violations)
+
+
+@pytest.mark.unit_contract
+def test_q1_formal_result_rejects_water_mode_mix_at_validation_entrypoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "formal-result")
+    data = _water_data()
+    monkeypatch.setattr(q1_validator, "load_q1_data", lambda *_: data)
+    mixed_mode = [
+        {"year": 2024, "plot_id": "W1", "season": "单季", "crop_id": 16, "area_mu": 5.0},
+        {"year": 2024, "plot_id": "W1", "season": "第一季", "crop_id": 17, "area_mu": 5.0},
+        {"year": 2024, "plot_id": "W1", "season": "第二季", "crop_id": 18, "area_mu": 5.0},
+    ]
+    result = _empty_result(manifest)
+    result["scenarios"][0]["assignments"] = mixed_mode
+    result["scenarios"][0]["objective_reported"] = evaluate_q1_objective(mixed_mode, data, "q1_waste")
+
+    report = validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
+    waste_report = next(item for item in report["reports"] if item["scenario_id"] == "q1_waste")
+
+    assert report["valid"] is False
+    assert waste_report["valid"] is False
+    assert any(item.startswith("water_mode:") for item in waste_report["violated_constraints"])
 
 
 @pytest.mark.unit_contract
