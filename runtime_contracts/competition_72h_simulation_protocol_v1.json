@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_id": "competition_72h_simulation_v1",
+  "capability_id": "competition_production_v1",
+  "state": "preregistered",
+  "source_lifecycle": "blind_review_passed",
+  "maximum_elapsed_hours": 72,
+  "maximum_audit_overhead_ratio": 0.25,
+  "required_stages": [
+    "problem_selection",
+    "material_ingestion",
+    "modeling",
+    "code_execution",
+    "figure_generation",
+    "paper_completion",
+    "submission_artifacts",
+    "final_validation"
+  ],
+  "required_artifacts": [
+    "paper_pdf",
+    "final_excel",
+    "appendix",
+    "submission_bundle",
+    "final_validation_report"
+  ],
+  "human_authority": {
+    "final_validation_required": true,
+    "signature_required": true,
+    "ai_recording_allowed": true,
+    "ai_decision_authority": false
+  },
+  "fatal_conditions": [
+    "elapsed_time_over_72h",
+    "missing_stage",
+    "stage_time_order",
+    "incomplete_official_materials",
+    "missing_submission_artifact",
+    "artifact_hash_drift",
+    "formal_validation_failed",
+    "problem_validator_failed",
+    "ai_decision_substitution",
+    "human_attestation_invalid"
+  ]
+}

@@ -9,7 +9,7 @@
     "capability_id": {"const": "competition_production_v1"},
     "lifecycle": {
       "enum": [
-        "review_ready", "full_replay_passed", "qualification_candidate",
+        "review_ready", "integration_fixture_campaign_passed", "full_replay_passed", "qualification_candidate",
         "blind_review_passed", "human_assisted_review_passed", "default_candidate"
       ]
     },
@@ -27,7 +27,12 @@
       "additionalProperties": false,
       "required": ["path", "sha256"],
       "properties": {
-        "path": {"const": "capability_evidence/competition_production/full_replay/campaign_report_v1.json"},
+        "path": {
+          "enum": [
+            "capability_evidence/competition_production/integration_fixture/campaign_report_v1.json",
+            "capability_evidence/competition_production/full_replay/full_replay_acceptance_report_v1.json"
+          ]
+        },
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
     },
@@ -39,9 +44,19 @@
         "path": {
           "enum": [
             "capability_evidence/competition_production/qualification/qualification_report_v1.json",
-            "capability_evidence/competition_production/qualification/qualification_report_v2.json"
+            "capability_evidence/competition_production/qualification/qualification_report_v2.json",
+            "capability_evidence/competition_production/qualification/qualification_report_v3.json"
           ]
         },
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "simulation_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"const": "capability_evidence/competition_production/simulation/simulation_report_v1.json"},
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
     },
@@ -89,6 +104,20 @@
       "else": {}
     },
     {
+      "if": {"properties": {"lifecycle": {"const": "default_candidate"}}},
+      "then": {
+        "required": ["qualification_evidence", "simulation_evidence"],
+        "properties": {
+          "qualification_evidence": {
+            "properties": {
+              "path": {"const": "capability_evidence/competition_production/qualification/qualification_report_v3.json"}
+            }
+          }
+        }
+      },
+      "else": {"not": {"required": ["simulation_evidence"]}}
+    },
+    {
       "if": {"properties": {"new_problem_default_enabled": {"const": true}}},
       "then": {
         "properties": {
@@ -110,7 +139,7 @@
         "properties": {
           "lifecycle": {
             "enum": [
-              "review_ready", "full_replay_passed", "qualification_candidate",
+              "review_ready", "integration_fixture_campaign_passed", "full_replay_passed", "qualification_candidate",
               "blind_review_passed", "human_assisted_review_passed"
             ]
           }

@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "problem_semantics_registry_v1",
+  "problems": [
+    {
+      "problem_id": "2016-C",
+      "subproblem_ids": ["Q1", "Q2", "Q3"],
+      "required_entities": ["电池", "放电曲线", "电流", "剩余放电时间"],
+      "forbidden_entities": ["多波束", "生产装配", "农作物种植", "深水炸弹"]
+    },
+    {
+      "problem_id": "2023-B",
+      "subproblem_ids": ["Q1", "Q2", "Q3", "Q4"],
+      "required_entities": ["多波束", "覆盖宽度", "重叠率", "测线方向"],
+      "forbidden_entities": ["生产装配", "抽样检验", "次品率", "拆解决策"]
+    },
+    {
+      "problem_id": "2024-B",
+      "subproblem_ids": ["Q1", "Q2", "Q3", "Q4"],
+      "required_entities": ["生产过程", "次品率", "检测", "拆解"],
+      "forbidden_entities": ["多波束", "农作物种植", "深水炸弹"]
+    },
+    {
+      "problem_id": "2024-C",
+      "subproblem_ids": ["Q1", "Q2", "Q3"],
+      "required_entities": ["农作物", "地块", "轮作", "豆类", "种植"],
+      "forbidden_entities": ["多波束", "生产装配", "深水炸弹"]
+    },
+    {
+      "problem_id": "2024-D",
+      "subproblem_ids": ["Q1", "Q2", "Q3"],
+      "required_entities": ["深水炸弹", "潜艇", "投放", "定深", "命中概率"],
+      "forbidden_entities": ["多波束", "生产装配", "农作物种植"]
+    }
+  ],
+  "required_section_aliases": {
+    "problem_specific_variable_table": ["变量与符号", "符号说明", "变量表"],
+    "key_model_derivation": ["模型推导", "模型建立"],
+    "objective_function": ["目标函数"],
+    "constraint_groups": ["约束条件", "约束组"],
+    "solution_algorithm": ["求解算法", "模型求解"],
+    "model_validation": ["模型检验", "模型验证"],
+    "result_figures": ["结果分析", "计算结果"],
+    "sensitivity_or_error_analysis": ["敏感性分析", "误差分析"],
+    "targeted_references": ["参考文献"]
+  },
+  "forbidden_generic_formulas": ["r_star = arg max_{r in F} z_r"]
+}

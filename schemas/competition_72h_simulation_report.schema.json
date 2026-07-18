@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_72h_simulation_report.schema.json",
+  "title": "Competition Production 72 小时模拟赛报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_id", "simulation_id", "protocol_sha256", "evidence_sha256", "status", "default_candidate_eligible", "elapsed_hours", "audit_overhead_ratio", "stage_count", "artifact_count", "human_attested", "ai_record_only", "fatal_codes", "gaps"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "report_id": {"type": "string", "minLength": 1},
+    "simulation_id": {"type": "string", "minLength": 1},
+    "protocol_sha256": {"$ref": "#/$defs/sha256"},
+    "evidence_sha256": {"$ref": "#/$defs/sha256"},
+    "status": {"enum": ["failed", "competition_72h_simulation_passed"]},
+    "default_candidate_eligible": {"type": "boolean"},
+    "elapsed_hours": {"type": "number", "minimum": 0},
+    "audit_overhead_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+    "stage_count": {"type": "integer", "minimum": 0},
+    "artifact_count": {"type": "integer", "minimum": 0},
+    "human_attested": {"type": "boolean"},
+    "ai_record_only": {"type": "boolean"},
+    "fatal_codes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^SIM_[A-Z0-9_]+$"}},
+    "gaps": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

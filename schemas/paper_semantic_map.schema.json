@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_semantic_map.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "run_id", "problem_id", "paper_text",
+    "problem_statement", "bindings", "formula_catalog"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_semantic_map_v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "problem_id": {"type": "string", "minLength": 1},
+    "paper_text": {"$ref": "#/$defs/fileRef"},
+    "problem_statement": {"$ref": "#/$defs/fileRef"},
+    "bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subproblem_id", "mathematical_task", "variable_ids", "formula_ids",
+          "result_ids", "figure_or_table_ids", "conclusion_ids",
+          "model_formula_text", "solver_result_text"
+        ],
+        "properties": {
+          "subproblem_id": {"type": "string", "pattern": "^Q[1-9][0-9]*$"},
+          "mathematical_task": {"type": "string", "minLength": 8},
+          "variable_ids": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+          "formula_ids": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+          "result_ids": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+          "figure_or_table_ids": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+          "conclusion_ids": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+          "model_formula_text": {"type": "string", "minLength": 4},
+          "solver_result_text": {"type": "string", "minLength": 4}
+        }
+      }
+    },
+    "formula_catalog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["formula_id", "expression", "derivation_location", "problem_specific"],
+        "properties": {
+          "formula_id": {"type": "string", "minLength": 1},
+          "expression": {"type": "string", "minLength": 4},
+          "derivation_location": {"type": "string", "minLength": 2},
+          "problem_specific": {"const": true}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "fileRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "nonEmptyUniqueStrings": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

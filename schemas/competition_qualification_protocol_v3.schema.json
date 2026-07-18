@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_qualification_protocol_v3.schema.json",
+  "title": "Competition Production 可信六题资格协议",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "protocol_id", "capability_id", "state", "source_lifecycle",
+    "lifecycle_path", "case_slots", "arms", "blinding", "case_requirements",
+    "controls", "metrics", "promotion_thresholds", "fatal_conditions",
+    "default_candidate_requires"
+  ],
+  "properties": {
+    "schema_version": {"const": "3.0.0"},
+    "protocol_id": {"const": "competition_qualification_v3"},
+    "capability_id": {"const": "competition_production_v1"},
+    "state": {"const": "preregistered"},
+    "source_lifecycle": {"const": "full_replay_passed"},
+    "lifecycle_path": {"const": ["draft", "review_ready", "full_replay_passed", "qualification_candidate", "blind_review_passed", "default_candidate"]},
+    "case_slots": {"const": ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06"]},
+    "arms": {"const": {"baseline": "legacy_v2_1", "treatment": "competition_production_v1"}},
+    "blinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_identity_hidden_before_lock", "arm_identity_hidden_from_human_reviewers",
+        "reviewer_identity_hidden_from_producers", "mapping_revealed_after_all_reviews",
+        "reviewers_per_package", "minimum_external_reviewers",
+        "minimum_independent_coordinators", "human_decision_required",
+        "human_signature_required", "ai_recorders_per_review", "ai_decision_authority"
+      ],
+      "properties": {
+        "case_identity_hidden_before_lock": {"const": true},
+        "arm_identity_hidden_from_human_reviewers": {"const": true},
+        "reviewer_identity_hidden_from_producers": {"const": true},
+        "mapping_revealed_after_all_reviews": {"const": true},
+        "reviewers_per_package": {"const": 2},
+        "minimum_external_reviewers": {"const": 2},
+        "minimum_independent_coordinators": {"const": 1},
+        "human_decision_required": {"const": true},
+        "human_signature_required": {"const": true},
+        "ai_recorders_per_review": {"const": 1},
+        "ai_decision_authority": {"const": false}
+      }
+    },
+    "case_requirements": {"const": ["complete_official_problem", "all_official_attachments", "not_used_during_development", "runner_answer_isolation", "complete_problem_specific_paper", "final_excel_and_appendix_validation"]},
+    "controls": {"const": ["same_problem_materials", "same_model_and_version", "same_reasoning_effort", "same_sampling_settings", "same_time_limit", "same_tool_permissions", "fresh_context", "no_cross_arm_reads", "independent_formal_validation"]},
+    "metrics": {"const": ["model_quality", "executable_solution_rate", "paper_quality", "manual_revision_minutes", "conclusion_overclaim_rate"]},
+    "promotion_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_treatment_model_quality", "minimum_model_quality_gain", "minimum_treatment_paper_quality", "minimum_paper_quality_gain", "minimum_treatment_executable_rate", "minimum_revision_time_reduction_ratio", "maximum_treatment_overclaim_rate", "minimum_cases_with_combined_quality_gain"],
+      "properties": {
+        "minimum_treatment_model_quality": {"const": 80},
+        "minimum_model_quality_gain": {"const": 3},
+        "minimum_treatment_paper_quality": {"const": 80},
+        "minimum_paper_quality_gain": {"const": 3},
+        "minimum_treatment_executable_rate": {"const": 0.8333333333333334},
+        "minimum_revision_time_reduction_ratio": {"const": 0.1},
+        "maximum_treatment_overclaim_rate": {"const": 0.05},
+        "minimum_cases_with_combined_quality_gain": {"const": 4}
+      }
+    },
+    "fatal_conditions": {"const": ["answer_leakage", "time_leakage", "arm_identity_leakage", "reviewer_identity_leakage", "unequal_execution_controls", "missing_formal_validation", "incomplete_official_materials", "missing_submission_artifacts", "treatment_fatal_error", "fabricated_human_decision", "ai_decision_substitution", "ai_record_time_order", "signature_invalid", "post_hoc_case_replacement"]},
+    "default_candidate_requires": {"const": ["blind_review_passed", "competition_72h_simulation_passed"]}
+  }
+}

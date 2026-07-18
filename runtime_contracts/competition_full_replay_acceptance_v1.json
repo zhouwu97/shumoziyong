@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0.0",
+  "contract_id": "competition_full_replay_acceptance_v1",
+  "capability_id": "competition_production_v1",
+  "source_lifecycle": "integration_fixture_campaign_passed",
+  "target_lifecycle": "full_replay_passed",
+  "new_problem_default_enabled": false,
+  "material_requirements": {
+    "complete_official_problem_statement": true,
+    "all_official_attachments": true,
+    "all_official_output_templates": true,
+    "source_and_sha256_closure": true,
+    "answer_or_solution_material_forbidden": true
+  },
+  "execution_requirements": {
+    "all_original_subproblems": true,
+    "original_objectives_and_constraints_only": true,
+    "simplified_proxy_inputs_forbidden": true,
+    "all_required_tables_and_files": true,
+    "candidate_self_report_is_not_evidence": true
+  },
+  "validator_requirements": {
+    "problem_specific_validator_required": true,
+    "independent_from_candidate_executor": true,
+    "recompute_from_decision_variables": [
+      "objective",
+      "hard_constraints",
+      "units",
+      "bounds",
+      "required_output_attachments",
+      "random_samples_and_seed"
+    ],
+    "all_original_subproblems_bound": true,
+    "fail_closed": true
+  },
+  "paper_requirements": {
+    "complete_problem_specific_paper": true,
+    "semantic_chain": [
+      "problem",
+      "subproblem",
+      "mathematical_task",
+      "model_formula",
+      "solver_result",
+      "figure_or_table",
+      "conclusion"
+    ],
+    "required_sections": [
+      "problem_specific_variable_table",
+      "key_model_derivation",
+      "objective_function",
+      "constraint_groups",
+      "solution_algorithm",
+      "model_validation",
+      "result_figures",
+      "sensitivity_or_error_analysis",
+      "targeted_references"
+    ],
+    "generic_single_formula_candidate_forbidden": true
+  },
+  "promotion_policy": {
+    "all_cases_must_pass": true,
+    "all_artifact_hashes_bound": true,
+    "manual_override_forbidden": true
+  }
+}

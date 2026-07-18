@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/problem_replay_requirements_registry.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "problems"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "registry_id": {"const": "problem_replay_requirements_registry_v1"},
+    "problems": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["problem_id", "subproblem_ids", "required_output_ids"],
+        "properties": {
+          "problem_id": {"type": "string", "minLength": 1},
+          "subproblem_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^Q[1-9][0-9]*$"}},
+          "required_output_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    }
+  }
+}

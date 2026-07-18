@@ -34,7 +34,7 @@ NEW_PROBLEM_SHA256 = {
 }
 
 
-def test_capability_registry_is_full_replay_passed_but_not_default() -> None:
+def test_capability_registry_is_integration_fixture_passed_but_not_default() -> None:
     capability = json.loads(
         (ROOT / "runtime_contracts" / "competition_production_capability_v1.json").read_text(
             encoding="utf-8"
@@ -46,7 +46,7 @@ def test_capability_registry_is_full_replay_passed_but_not_default() -> None:
         )
     )
     assert not list(Draft202012Validator(schema).iter_errors(capability))
-    assert capability["lifecycle"] == "full_replay_passed"
+    assert capability["lifecycle"] == "integration_fixture_campaign_passed"
     assert capability["activation_contexts"] == ["full_replay"]
     assert capability["new_problem_default_enabled"] is False
     evidence = capability["promotion_evidence"]
@@ -55,7 +55,7 @@ def test_capability_registry_is_full_replay_passed_but_not_default() -> None:
     assert hashlib.sha256(report_text.encode("utf-8")).hexdigest() == evidence["sha256"]
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["status"] == "passed"
-    assert report["derived_lifecycle"] == "full_replay_passed"
+    assert report["derived_lifecycle"] == "integration_fixture_campaign_passed"
 
 
 def test_full_replay_compiles_v3_chain_in_gate_order_for_four_profiles() -> None:

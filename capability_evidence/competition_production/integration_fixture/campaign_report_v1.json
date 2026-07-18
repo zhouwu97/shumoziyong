@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "artifact_type": "competition_full_replay_campaign_report_v1",
+  "artifact_type": "competition_integration_fixture_campaign_report_v1",
   "campaign_id": "competition-production-pr7-20260717",
   "capability_id": "competition_production_v1",
   "contract": {
-    "path": "runtime_contracts/competition_full_replay_campaign_v1.json",
-    "sha256": "be7fca065c4e3c5d25a4b4f1f5efdf03f7a85d551f7790472d10cf3323de9da9"
+    "path": "runtime_contracts/competition_integration_fixture_campaign_v1.json",
+    "sha256": "aa33b1271ae8fa8e97149641d23b42eff912629a657e42fc4af4226e0e5f571d"
   },
   "runs": [
     {
@@ -766,6 +766,6 @@
     "submission_admission_rate": 1.0
   },
   "status": "passed",
-  "derived_lifecycle": "full_replay_passed",
+  "derived_lifecycle": "integration_fixture_campaign_passed",
   "new_problem_default_enabled": false
 }

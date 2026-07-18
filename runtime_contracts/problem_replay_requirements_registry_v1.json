@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "problem_replay_requirements_registry_v1",
+  "problems": [
+    {"problem_id": "2016-C", "subproblem_ids": ["Q1", "Q2", "Q3"], "required_output_ids": ["q1_curve_fit_table", "q2_current_prediction_table", "q3_remaining_time_table"]},
+    {"problem_id": "2023-B", "subproblem_ids": ["Q1", "Q2", "Q3", "Q4"], "required_output_ids": ["result1.xlsx", "result2.xlsx", "q3_route_plan", "q4_route_plan_and_coverage"]},
+    {"problem_id": "2024-B", "subproblem_ids": ["Q1", "Q2", "Q3", "Q4"], "required_output_ids": ["q1_sampling_plan", "q2_six_scenario_decisions", "q3_multistage_decisions", "q4_reestimated_decisions"]},
+    {"problem_id": "2024-C", "subproblem_ids": ["Q1", "Q2", "Q3"], "required_output_ids": ["result1_1.xlsx", "result1_2.xlsx", "result2.xlsx", "q3_correlation_analysis"]},
+    {"problem_id": "2024-D", "subproblem_ids": ["Q1", "Q2", "Q3"], "required_output_ids": ["q1_single_bomb_parameters", "q2_depth_error_parameters", "q3_nine_bomb_layout"]}
+  ]
+}

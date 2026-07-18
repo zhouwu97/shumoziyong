@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_qualification_evidence_v3.schema.json",
+  "title": "Competition Production 双外部人工评审、AI 仅记录资格证据",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "campaign_id", "protocol_ref", "authority_registry_ref", "source_capability_ref", "locked_at", "cases", "selection_attestation", "human_assisted_reviews", "coordinator_attestation"],
+  "properties": {
+    "schema_version": {"const": "3.0.0"},
+    "campaign_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$"},
+    "protocol_ref": {"$ref": "#/$defs/file_ref"},
+    "authority_registry_ref": {"$ref": "#/$defs/file_ref"},
+    "source_capability_ref": {"allOf": [{"$ref": "#/$defs/file_ref"}, {"type": "object", "required": ["lifecycle"], "properties": {"lifecycle": {"const": "full_replay_passed"}}}]},
+    "locked_at": {"type": "string", "format": "date-time"},
+    "cases": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/case"}},
+    "selection_attestation": {"$ref": "#/$defs/selection_attestation"},
+    "human_assisted_reviews": {"type": "array", "minItems": 24, "maxItems": 24, "items": {"$ref": "#/$defs/review"}},
+    "coordinator_attestation": {"$ref": "#/$defs/coordinator_attestation"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "file_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "lifecycle": {"type": "string"}
+      }
+    },
+    "arm_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "runtime_pack_sha256", "execution_controls_sha256", "started_at", "completed_at", "formal_validation_passed", "problem_validator_passed", "complete_paper_generated", "excel_validated", "appendix_validated", "submission_manifest_sha256", "fatal_error", "executable_solution", "manual_revision_minutes", "supported_claim_count", "overclaim_count"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 1},
+        "runtime_pack_sha256": {"$ref": "#/$defs/sha256"},
+        "execution_controls_sha256": {"$ref": "#/$defs/sha256"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "formal_validation_passed": {"const": true},
+        "problem_validator_passed": {"const": true},
+        "complete_paper_generated": {"const": true},
+        "excel_validated": {"const": true},
+        "appendix_validated": {"const": true},
+        "submission_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "fatal_error": {"type": "boolean"},
+        "executable_solution": {"type": "boolean"},
+        "manual_revision_minutes": {"type": "number", "minimum": 0},
+        "supported_claim_count": {"type": "integer", "minimum": 0},
+        "overclaim_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_id", "label", "artifact_sha256", "created_at", "author_identity_removed", "arm_identity_removed"],
+      "properties": {
+        "package_id": {"type": "string", "minLength": 1},
+        "label": {"enum": ["X", "Y"]},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "author_identity_removed": {"const": true},
+        "arm_identity_removed": {"const": true}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_slot", "material_commitment_sha256", "selection_locked_at", "first_revealed_to_runner_at", "complete_official_problem", "all_official_attachments_included", "not_used_during_development", "runner_answer_isolation", "answer_leakage_detected", "time_leakage_detected", "baseline", "treatment", "review_packages", "package_arm_mapping", "mapping_revealed_at"],
+      "properties": {
+        "case_slot": {"enum": ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06"]},
+        "material_commitment_sha256": {"$ref": "#/$defs/sha256"},
+        "selection_locked_at": {"type": "string", "format": "date-time"},
+        "first_revealed_to_runner_at": {"type": "string", "format": "date-time"},
+        "complete_official_problem": {"const": true},
+        "all_official_attachments_included": {"const": true},
+        "not_used_during_development": {"const": true},
+        "runner_answer_isolation": {"const": true},
+        "answer_leakage_detected": {"const": false},
+        "time_leakage_detected": {"const": false},
+        "baseline": {"$ref": "#/$defs/arm_run"},
+        "treatment": {"$ref": "#/$defs/arm_run"},
+        "review_packages": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/package"}},
+        "package_arm_mapping": {"oneOf": [{"const": {"X": "baseline", "Y": "treatment"}}, {"const": {"X": "treatment", "Y": "baseline"}}]},
+        "mapping_revealed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "ai_recorder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_id", "provider", "model", "model_version", "session_id", "system_prompt_sha256", "transcript_sha256", "record_sha256", "started_at", "completed_at", "decision_authority"],
+      "properties": {
+        "record_id": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1},
+        "session_id": {"type": "string", "minLength": 1},
+        "system_prompt_sha256": {"$ref": "#/$defs/sha256"},
+        "transcript_sha256": {"$ref": "#/$defs/sha256"},
+        "record_sha256": {"$ref": "#/$defs/sha256"},
+        "started_at": {"type": "string", "format": "date-time"},
+        "completed_at": {"type": "string", "format": "date-time"},
+        "decision_authority": {"const": false}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["review_id", "case_slot", "package_id", "reviewer_key_id", "reviewer_kind", "assessment_mode", "human_decision_confirmed", "ai_decision_authority", "ai_recorder", "model_quality_score", "paper_quality_score", "fatal_error", "excel_and_appendix_verified", "signed_at", "signature_algorithm", "signature"],
+      "properties": {
+        "review_id": {"type": "string", "minLength": 1},
+        "case_slot": {"enum": ["Q01", "Q02", "Q03", "Q04", "Q05", "Q06"]},
+        "package_id": {"type": "string", "minLength": 1},
+        "reviewer_key_id": {"type": "string", "minLength": 1},
+        "reviewer_kind": {"const": "external_human"},
+        "assessment_mode": {"const": "human_decision_ai_recorded"},
+        "human_decision_confirmed": {"const": true},
+        "ai_decision_authority": {"const": false},
+        "ai_recorder": {"$ref": "#/$defs/ai_recorder"},
+        "model_quality_score": {"type": "number", "minimum": 0, "maximum": 100},
+        "paper_quality_score": {"type": "number", "minimum": 0, "maximum": 100},
+        "fatal_error": {"type": "boolean"},
+        "excel_and_appendix_verified": {"const": true},
+        "signed_at": {"type": "string", "format": "date-time"},
+        "signature_algorithm": {"const": "RSASSA-PKCS1-v1_5-SHA256"},
+        "signature": {"type": "string", "minLength": 1}
+      }
+    },
+    "selection_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coordinator_key_id", "case_commitment_root", "locked_at", "case_identity_hidden_before_lock", "answers_withheld", "development_use_excluded", "signature_algorithm", "signature"],
+      "properties": {
+        "coordinator_key_id": {"type": "string", "minLength": 1},
+        "case_commitment_root": {"$ref": "#/$defs/sha256"},
+        "locked_at": {"type": "string", "format": "date-time"},
+        "case_identity_hidden_before_lock": {"const": true},
+        "answers_withheld": {"const": true},
+        "development_use_excluded": {"const": true},
+        "signature_algorithm": {"const": "RSASSA-PKCS1-v1_5-SHA256"},
+        "signature": {"type": "string", "minLength": 1}
+      }
+    },
+    "coordinator_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coordinator_key_id", "case_commitment_root", "mapping_sha256", "campaign_evidence_digest", "case_selection_locked_before_runs", "arm_mapping_hidden_until_reviews_complete", "reviewer_assignments_hidden_from_producers", "human_decisions_confirmed", "ai_records_bound_to_human_decisions", "two_external_reviewers_confirmed", "coordinator_independence_confirmed", "final_excel_and_appendices_verified", "signed_at", "signature_algorithm", "signature"],
+      "properties": {
+        "coordinator_key_id": {"type": "string", "minLength": 1},
+        "case_commitment_root": {"$ref": "#/$defs/sha256"},
+        "mapping_sha256": {"$ref": "#/$defs/sha256"},
+        "campaign_evidence_digest": {"$ref": "#/$defs/sha256"},
+        "case_selection_locked_before_runs": {"const": true},
+        "arm_mapping_hidden_until_reviews_complete": {"const": true},
+        "reviewer_assignments_hidden_from_producers": {"const": true},
+        "human_decisions_confirmed": {"const": true},
+        "ai_records_bound_to_human_decisions": {"const": true},
+        "two_external_reviewers_confirmed": {"const": true},
+        "coordinator_independence_confirmed": {"const": true},
+        "final_excel_and_appendices_verified": {"const": true},
+        "signed_at": {"type": "string", "format": "date-time"},
+        "signature_algorithm": {"const": "RSASSA-PKCS1-v1_5-SHA256"},
+        "signature": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

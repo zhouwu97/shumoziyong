@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_full_replay_acceptance_manifest.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "campaign_id", "contract", "cases"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "campaign_id": {"type": "string", "minLength": 8},
+    "contract": {"$ref": "#/$defs/fileRef"},
+    "cases": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["problem_id", "run_id", "case_root", "material_root", "subproblem_ids", "outputs", "validator_report", "semantic_map", "paper_pdf"],
+        "properties": {
+          "problem_id": {"type": "string", "minLength": 1},
+          "run_id": {"type": "string", "minLength": 1},
+          "case_root": {"type": "string", "minLength": 1},
+          "material_root": {"type": "string", "minLength": 1},
+          "subproblem_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+          "outputs": {
+            "type": "array", "minItems": 1,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["output_id", "file"],
+              "properties": {"output_id": {"type": "string", "minLength": 1}, "file": {"$ref": "#/$defs/fileRef"}}
+            }
+          },
+          "validator_report": {"$ref": "#/$defs/fileRef"},
+          "semantic_map": {"$ref": "#/$defs/fileRef"},
+          "paper_pdf": {"$ref": "#/$defs/fileRef"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "fileRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/problem_validator_registry.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "required_recomputations", "validators"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "registry_id": {"const": "problem_validator_registry_v1"},
+    "required_recomputations": {
+      "const": [
+        "objective", "hard_constraints", "units", "bounds",
+        "required_output_attachments", "random_samples_and_seed"
+      ]
+    },
+    "validators": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "problem_id", "subproblem_ids", "validator_id", "validator_version",
+          "module_path", "module_sha256", "status", "independent_from_candidate",
+          "required_recomputations"
+        ],
+        "properties": {
+          "problem_id": {"type": "string", "minLength": 1},
+          "subproblem_ids": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^Q[1-9][0-9]*$"}
+          },
+          "validator_id": {"type": "string", "pattern": "^problem-[a-z0-9-]+-validator-v[0-9]+$"},
+          "validator_version": {"type": "string", "minLength": 1},
+          "module_path": {"type": "string", "pattern": "^validators/[a-zA-Z0-9_/-]+\\.py$"},
+          "module_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "status": {"enum": ["scaffold_fail_closed", "active"]},
+          "independent_from_candidate": {"const": true},
+          "required_recomputations": {
+            "const": [
+              "objective", "hard_constraints", "units", "bounds",
+              "required_output_attachments", "random_samples_and_seed"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

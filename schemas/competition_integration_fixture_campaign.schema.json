@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://shumo.local/schemas/competition_full_replay_campaign.schema.json",
-  "title": "Competition Production 多题 full_replay Campaign 合同",
+  "$id": "https://shumo.local/schemas/competition_integration_fixture_campaign.schema.json",
+  "title": "Competition Production 多题集成 fixture Campaign 合同",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -12,17 +12,17 @@
   ],
   "properties": {
     "schema_version": {"const": "1.0.0"},
-    "contract_id": {"const": "competition_full_replay_campaign_v1"},
+    "contract_id": {"const": "competition_integration_fixture_campaign_v1"},
     "capability_id": {"const": "competition_production_v1"},
     "activation_context": {"const": "full_replay"},
     "lifecycle_path": {
       "const": [
-        "draft", "review_ready", "full_replay_passed", "qualification_candidate",
+        "draft", "review_ready", "integration_fixture_campaign_passed", "full_replay_passed", "qualification_candidate",
         "blind_review_passed", "default_candidate"
       ]
     },
     "current_lifecycle": {"const": "review_ready"},
-    "target_lifecycle": {"const": "full_replay_passed"},
+    "target_lifecycle": {"const": "integration_fixture_campaign_passed"},
     "new_problem_default_enabled": {"const": false},
     "earliest_run_created_at": {"type": "string", "format": "date-time"},
     "required_problems": {
@@ -64,12 +64,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "evidence_scope", "full_replay_claim_forbidden",
         "require_all_problems", "require_all_subproblems", "require_gate3_allow_paper",
         "require_score_v3_submission", "require_no_fatal_codes", "require_gate4_candidate",
         "require_no_time_leakage", "require_no_answer_leakage",
         "require_historical_assets_unchanged"
       ],
       "properties": {
+        "evidence_scope": {"const": "synthetic_or_simplified_integration_fixture_only"},
+        "full_replay_claim_forbidden": {"const": true},
         "require_all_problems": {"const": true},
         "require_all_subproblems": {"const": true},
         "require_gate3_allow_paper": {"const": true},

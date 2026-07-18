@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/competition_full_replay_acceptance_report.schema.json",
+  "title": "Competition Production 完整官方旧题回放准入报告",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "artifact_type", "campaign_id", "capability_id", "contract",
+    "cases", "status", "derived_lifecycle", "new_problem_default_enabled"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "competition_full_replay_acceptance_report_v1"},
+    "campaign_id": {"type": "string", "minLength": 8},
+    "capability_id": {"const": "competition_production_v1"},
+    "contract": {"$ref": "#/$defs/fileRef"},
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/caseResult"}
+    },
+    "status": {"enum": ["passed", "failed"]},
+    "derived_lifecycle": {"enum": ["integration_fixture_campaign_passed", "full_replay_passed"]},
+    "new_problem_default_enabled": {"const": false}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "derived_lifecycle": {"const": "full_replay_passed"},
+          "cases": {"items": {"properties": {"status": {"const": "passed"}}}}
+        }
+      },
+      "else": {
+        "properties": {"derived_lifecycle": {"const": "integration_fixture_campaign_passed"}}
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "caseResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problem_id", "run_id", "official_materials_complete", "all_original_subproblems",
+        "required_outputs", "problem_validator_report", "paper_semantic_report",
+        "paper_pdf", "status", "failure_codes"
+      ],
+      "properties": {
+        "problem_id": {"type": "string", "minLength": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "official_materials_complete": {"type": "boolean"},
+        "all_original_subproblems": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "required_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/fileRef"}
+        },
+        "problem_validator_report": {"$ref": "#/$defs/fileRef"},
+        "paper_semantic_report": {"$ref": "#/$defs/fileRef"},
+        "paper_pdf": {"$ref": "#/$defs/fileRef"},
+        "status": {"enum": ["passed", "failed"]},
+        "failure_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^FRA_[A-Z0-9_]+$"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "passed"}}, "required": ["status"]},
+          "then": {"properties": {"official_materials_complete": {"const": true}}}
+        }
+      ]
+    }
+  }
+}
