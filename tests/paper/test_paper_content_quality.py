@@ -177,6 +177,17 @@ def test_f1_pass_f2_fail_is_blocked_before_f3() -> None:
     assert status["eligible_for_gate_g"] is False
 
 
+def test_f2_pass_f3_pending_is_review_ready_but_not_gate_g_eligible() -> None:
+    status = build_gate_f_status(
+        f1_passed=True,
+        completeness_report={"status": "passed"},
+        f3_status="pending",
+    )
+
+    assert status["status"] == "ready_for_independent_paper_review"
+    assert status["eligible_for_gate_g"] is False
+
+
 def test_only_f1_f2_f3_pass_allows_gate_g() -> None:
     f3_review = {
         "reviewer_type": "human",
