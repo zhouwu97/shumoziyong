@@ -17,7 +17,27 @@
   "candidate_manifest_status": "not_yet_recovered",
   "qualification_usage": false,
   "qualification_claim_allowed": false,
+  "zero_evidence_checkpoint": {
+    "commit": "4ece55d5d8758e6ef627b6cd35079d287c1faf04",
+    "run_id": "pilot_2025c_reconstructed_negative_control_20260718",
+    "run_initialized": true,
+    "immutable": true,
+    "required_roles": 64,
+    "realized_roles": 0,
+    "f2_status": "content_repair_required"
+  },
+  "original_pdf_baseline": {
+    "source_available": true,
+    "source_location": "project_file_library",
+    "source_filename": "submission.pdf",
+    "source_page_count": 7,
+    "controlled_import_completed": false,
+    "run_initialized": false,
+    "pdf_sha256": null,
+    "claim_map_completed": false
+  },
   "clean_run_initialized": true,
+  "clean_run_scope": "zero_evidence_checkpoint",
   "clean_run_id": "pilot_2025c_reconstructed_negative_control_20260718",
   "contract_frozen": true,
   "run_manifest_sha256": "125dc00197d49597ddbeb77161a044e7588eac58915fbdd4f12df0f871724ed5",
