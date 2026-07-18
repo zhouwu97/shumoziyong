@@ -205,6 +205,11 @@ def check_q1_constraints(assignments: Iterable[Mapping[str, Any]], data: Mapping
         if plot["type"] == "水浇地":
             for year in YEARS:
                 single = grouped[(year, plot_id, "单季")]
+                vegetables = grouped[(year, plot_id, "第一季")] + grouped[
+                    (year, plot_id, "第二季")
+                ]
+                if single > TOLERANCE and vegetables > TOLERANCE:
+                    violations.append(f"water_mode:{year}:{plot_id}")
                 for season in ("第一季", "第二季"):
                     violation = max(single + grouped[(year, plot_id, season)] - float(plot["area"]), 0.0)
                     if violation > TOLERANCE:

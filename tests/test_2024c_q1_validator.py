@@ -31,6 +31,20 @@ def _synthetic_data() -> dict:
     }
 
 
+def _water_data() -> dict:
+    return {
+        "plots": {"W1": {"type": "水浇地", "area": 10.0}},
+        "stats": {
+            ("水浇地", "单季", 16): {"yield": 100.0, "cost": 10.0, "price": 2.0},
+            ("水浇地", "第一季", 17): {"yield": 100.0, "cost": 10.0, "price": 2.0},
+            ("水浇地", "第二季", 18): {"yield": 100.0, "cost": 10.0, "price": 2.0},
+        },
+        "planting_2023": [],
+        "sales_2023": {},
+        "price_by_crop_season": {},
+    }
+
+
 def _write_test_manifest(
     tmp_path: Path,
     *,
@@ -124,6 +138,52 @@ def test_q1_constraints_fail_closed_on_capacity_and_suitability() -> None:
     violations, max_violation = check_q1_constraints(bad, data, check_legume_windows=False)
     assert any(item.startswith("suitability:") for item in violations)
     assert max_violation == 0.0
+
+
+@pytest.mark.unit_contract
+def test_q1_water_plot_rejects_mixed_single_and_two_season_modes() -> None:
+    data = _water_data()
+    mixed_mode = [
+        {"year": 2024, "plot_id": "W1", "season": "单季", "crop_id": 16, "area_mu": 5.0},
+        {"year": 2024, "plot_id": "W1", "season": "第一季", "crop_id": 17, "area_mu": 5.0},
+        {"year": 2024, "plot_id": "W1", "season": "第二季", "crop_id": 18, "area_mu": 5.0},
+    ]
+
+    violations, _ = check_q1_constraints(mixed_mode, data, check_legume_windows=False)
+
+    assert any(item.startswith("water_mode:") for item in violations)
+
+
+@pytest.mark.unit_contract
+@pytest.mark.parametrize("vegetable_season", ["第一季", "第二季"])
+def test_q1_water_plot_rejects_mixed_mode_with_one_vegetable_season(vegetable_season: str) -> None:
+    data = _water_data()
+    crop_id = 17 if vegetable_season == "第一季" else 18
+    mixed_mode = [
+        {"year": 2024, "plot_id": "W1", "season": "单季", "crop_id": 16, "area_mu": 5.0},
+        {"year": 2024, "plot_id": "W1", "season": vegetable_season, "crop_id": crop_id, "area_mu": 5.0},
+    ]
+
+    violations, _ = check_q1_constraints(mixed_mode, data, check_legume_windows=False)
+
+    assert any(item.startswith("water_mode:") for item in violations)
+
+
+@pytest.mark.unit_contract
+@pytest.mark.parametrize(
+    "assignments",
+    [
+        [{"year": 2024, "plot_id": "W1", "season": "单季", "crop_id": 16, "area_mu": 10.0}],
+        [
+            {"year": 2024, "plot_id": "W1", "season": "第一季", "crop_id": 17, "area_mu": 10.0},
+            {"year": 2024, "plot_id": "W1", "season": "第二季", "crop_id": 18, "area_mu": 10.0},
+        ],
+    ],
+)
+def test_q1_water_plot_accepts_pure_single_or_two_season_mode(assignments: list[dict[str, object]]) -> None:
+    violations, _ = check_q1_constraints(assignments, _water_data(), check_legume_windows=False)
+
+    assert not any(item.startswith("water_mode:") for item in violations)
 
 
 @pytest.mark.unit_contract
