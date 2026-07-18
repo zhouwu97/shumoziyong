@@ -49,7 +49,7 @@
       "validator_id": "problem-2024-c-validator-v1",
       "validator_version": "scaffold-1.0.0",
       "module_path": "validators/competition_full_replay/problem_2024_c.py",
-      "module_sha256": "9476d07ebbc4ef59cda999cfd3ce87c793aaf7d619c5f05399d94d9465b181d8",
+      "module_sha256": "7db53880824cc707110c24ad8c08a3103d62b70c7c41a6ec9c32e31c1f0c7a3c",
       "status": "scaffold_fail_closed",
       "independent_from_candidate": true,
       "required_recomputations": ["objective", "hard_constraints", "units", "bounds", "required_output_attachments", "random_samples_and_seed"]

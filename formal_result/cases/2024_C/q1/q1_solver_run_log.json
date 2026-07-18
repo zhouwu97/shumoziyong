@@ -1,0 +1,156 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "2024c_q1_solver_run_log",
+  "problem_id": "2024-C",
+  "started_at": "2026-07-18T09:50:23.982192Z",
+  "completed_at": "2026-07-18T09:56:26.623223Z",
+  "material_manifest": "formal_result/cases/2024_C/material_manifest.json",
+  "material_manifest_sha256": "c101ac8e18881552523bf72c91fc7a1fbcbbffadb9622f43dd7bb2d5ff6e28ca",
+  "solver": "scipy.optimize.milp/HiGHS",
+  "settings": {
+    "minimum_area_ratio": 0.1,
+    "minimum_area_mu": 0.3,
+    "fragmentation_penalty_yuan": 1.0,
+    "time_limit_seconds": 180.0,
+    "mip_relative_gap": 0.0001,
+    "random_seed": 20240718
+  },
+  "scenarios": [
+    {
+      "scenario_id": "q1_waste",
+      "solver_status": 1,
+      "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+      "mip_gap": 0.022563562484854853,
+      "optimality_proven": false,
+      "fragmentation_count": 725,
+      "assignment_count": 725,
+      "solver_objective_yuan": 40523383.56833521,
+      "exported_objective_yuan": 40523383.52588501,
+      "export_rounding_delta_yuan": -0.042450204491615295,
+      "workbook": "formal_result/cases/2024_C/q1/result1_1.xlsx",
+      "workbook_sha256": "6597b5d0d768975d599eee08d43ab8c2a9de52394bcb7786844fb4d34ea397ec",
+      "workbook_validation": {
+        "schema_version": "1.0.0",
+        "artifact_type": "2024_c_problem_specific_validation",
+        "problem_id": "2024-C",
+        "scenario_id": "q1_waste",
+        "workbook": "E:\\AI\\数模-2024c-q1\\formal_result\\cases\\2024_C\\q1\\result1_1.xlsx",
+        "objective_reported_yuan": 40523383.52588501,
+        "objective_recomputed_yuan": 40523383.52588501,
+        "objective_absolute_error_yuan": 0.0,
+        "objective_tolerance_yuan": 0.001,
+        "objective_passed": true,
+        "constraints": {
+          "passed": true,
+          "violation_counts": {
+            "nonnegative": 0,
+            "land_capacity": 0,
+            "crop_eligibility": 0,
+            "water_mode": 0,
+            "continuous_cropping": 0,
+            "three_year_legume": 0,
+            "minimum_area": 0
+          },
+          "violations": {
+            "nonnegative": [],
+            "land_capacity": [],
+            "crop_eligibility": [],
+            "water_mode": [],
+            "continuous_cropping": [],
+            "three_year_legume": [],
+            "minimum_area": []
+          },
+          "assignment_count": 725,
+          "total_area_mu": 8837.268895
+        },
+        "passed": true
+      }
+    },
+    {
+      "scenario_id": "q1_discount",
+      "solver_status": 1,
+      "solver_message": "Time limit reached. (HiGHS Status 13: Time limit reached)",
+      "mip_gap": 0.00015873588077829008,
+      "optimality_proven": false,
+      "fragmentation_count": 830,
+      "assignment_count": 830,
+      "solver_objective_yuan": 63922311.6626514,
+      "exported_objective_yuan": 63922311.642113775,
+      "export_rounding_delta_yuan": -0.020537622272968292,
+      "workbook": "formal_result/cases/2024_C/q1/result1_2.xlsx",
+      "workbook_sha256": "d624a76ac25cfc3ab3dc1c2439797a2a32041a21992e9d41af9f2e4a93eb75d6",
+      "workbook_validation": {
+        "schema_version": "1.0.0",
+        "artifact_type": "2024_c_problem_specific_validation",
+        "problem_id": "2024-C",
+        "scenario_id": "q1_discount",
+        "workbook": "E:\\AI\\数模-2024c-q1\\formal_result\\cases\\2024_C\\q1\\result1_2.xlsx",
+        "objective_reported_yuan": 63922311.642113775,
+        "objective_recomputed_yuan": 63922311.642113775,
+        "objective_absolute_error_yuan": 0.0,
+        "objective_tolerance_yuan": 0.001,
+        "objective_passed": true,
+        "constraints": {
+          "passed": true,
+          "violation_counts": {
+            "nonnegative": 0,
+            "land_capacity": 0,
+            "crop_eligibility": 0,
+            "water_mode": 0,
+            "continuous_cropping": 0,
+            "three_year_legume": 0,
+            "minimum_area": 0
+          },
+          "violations": {
+            "nonnegative": [],
+            "land_capacity": [],
+            "crop_eligibility": [],
+            "water_mode": [],
+            "continuous_cropping": [],
+            "three_year_legume": [],
+            "minimum_area": []
+          },
+          "assignment_count": 830,
+          "total_area_mu": 9337.999999
+        },
+        "passed": true
+      }
+    }
+  ],
+  "mathematical_validation": {
+    "validator": "2024-c-q1-independent-validator-v1",
+    "problem_id": "2024-C",
+    "q1_status": "implemented",
+    "reports": [
+      {
+        "scenario_id": "q1_waste",
+        "objective_recomputed": 40523383.52588501,
+        "objective_reported": 40523383.52588501,
+        "objective_difference": 0.0,
+        "violated_constraints": [],
+        "max_raw_constraint_violation": 0.0,
+        "output_workbook_status": "generated",
+        "valid": true
+      },
+      {
+        "scenario_id": "q1_discount",
+        "objective_recomputed": 63922311.642113775,
+        "objective_reported": 63922311.642113775,
+        "objective_difference": 0.0,
+        "violated_constraints": [],
+        "max_raw_constraint_violation": 9.999999974752427e-07,
+        "output_workbook_status": "generated",
+        "valid": true
+      }
+    ],
+    "valid": true,
+    "production_ready": false
+  },
+  "formal_result": "formal_result/cases/2024_C/q1/q1_formal_result.json",
+  "formal_result_sha256": "0aa852f064e69a796f1071acaa242dc775ac7d7373761ed9b4e8f1b0d268a77a",
+  "q1_independent_recalculation_passed": true,
+  "optimality_claimed": false,
+  "qualification_claimed": false,
+  "production_ready": false,
+  "complete_official_old_problem_closure": 0
+}
