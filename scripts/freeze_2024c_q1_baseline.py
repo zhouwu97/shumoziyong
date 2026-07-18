@@ -152,10 +152,13 @@ def freeze_q1_baseline(
         )
         if workbook_report.get("passed") is not True:
             raise ValueError(f"{scenario_id} 官方工作簿独立复核失败")
+        recomputed_objective = workbook_report["objective_recomputed_yuan"]
+        if not isinstance(recomputed_objective, (int, float)):
+            raise ValueError(f"{scenario_id} 独立复核目标值不是数值")
         scenarios.append(
             {
                 "scenario_id": scenario_id,
-                "objective_yuan": float(workbook_report["objective_recomputed_yuan"]),
+                "objective_yuan": float(recomputed_objective),
                 "assignment_count": len(assignments),
                 "candidate_assignments_sha256": _assignment_sha(formal_assignments),
                 "template_path": f"official_materials/2024_C/templates/{template_name}",
