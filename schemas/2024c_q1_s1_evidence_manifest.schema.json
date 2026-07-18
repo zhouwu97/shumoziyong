@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/2024c_q1_s1_evidence_manifest.schema.json",
+  "title": "2024-C Q1 S1 证据 Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "problem_id", "q1_solver_status", "q1_formal_result_status", "q1_mathematical_validation", "q1_workbook_status", "q1_baseline_frozen", "production_ready", "files", "scenario_evidence"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "2024c_q1_s1_evidence_manifest"},
+    "problem_id": {"const": "2024-C"},
+    "q1_solver_status": {"const": "implemented"},
+    "q1_formal_result_status": {"const": "generated"},
+    "q1_mathematical_validation": {"const": "passed"},
+    "q1_workbook_status": {"const": "pending_s2_baseline_freeze"},
+    "q1_baseline_frozen": {"const": false},
+    "production_ready": {"const": false},
+    "files": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "path", "sha256"],
+        "properties": {
+          "role": {"enum": ["formal_result", "solver_run_log", "validator_report"]},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "scenario_evidence": {"type": "array", "minItems": 2}
+  }
+}

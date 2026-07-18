@@ -147,7 +147,7 @@
     "production_ready": false
   },
   "formal_result": "formal_result/cases/2024_C/q1/q1_formal_result.json",
-  "formal_result_sha256": "0aa852f064e69a796f1071acaa242dc775ac7d7373761ed9b4e8f1b0d268a77a",
+  "formal_result_sha256": "cd1c30563eaed3b5943240ebd66ff90bc2a71b45c1d0915a7849e9df73ee7c85",
   "q1_independent_recalculation_passed": true,
   "optimality_claimed": false,
   "qualification_claimed": false,
