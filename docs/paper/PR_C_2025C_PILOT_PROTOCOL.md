@@ -3,18 +3,26 @@
 ## 冻结协议
 
 ```yaml
-protocol_version: "1.0.0"
+protocol_version: "1.1.0"
 problem_id: "2025-C"
 profile: prediction
-pilot_type: reconstructed_negative_control_and_repair
-source_candidate: unavailable_original_seven_page_paper
+pilot_type: original_paper_baseline_with_unrecovered_structured_evidence
+source_candidate: submission.pdf
+source_candidate_status: available_original_seven_page_pdf
+source_candidate_origin: project_file_library
+source_pdf_page_count: 7
+source_pdf_sha256: null
+source_code_status: unavailable
+formal_result_status: not_yet_recovered
+validator_status: not_yet_recovered
+candidate_manifest_status: not_yet_recovered
 expected_initial_result: F2_fail
 expected_final_result: F2_pass
 qualification_usage: false
 qualification_claim_allowed: false
 ```
 
-本协议从 PR #40 合并后的 `main` 建立。官方题目材料和 2025-C Prediction 内容合同可以冻结；原七页论文、原论文 PDF/源码 SHA、可激活 Formal Result、Validator 和正式 Candidate 当前不可用。因此本轮只能登记为重建负例，不能声称已经复现原七页论文，也不能用于比赛资格或能力闭环声明。
+本协议从 PR #40 合并后的 `main` 建立。项目 File Library 中已确认存在七页 `submission.pdf`，但它尚未导出到受控 Run，因此 PDF SHA、页面锚点和结构化证据仍待冻结。原论文源稿、Formal Result、Validator 和正式 Candidate 尚未恢复；在导入和绑定完成前，现有 `4ece55d` 只能继续作为不可变零证据检查点，不能声称已经复现原七页论文，也不能用于比赛资格或能力闭环声明。
 
 ## 允许的证据
 
@@ -34,4 +42,4 @@ qualification_claim_allowed: false
 
 ## 后续解锁条件
 
-只有取得原论文或经用户明确授权的完整重建源稿，并完成真实 Formal Result、独立 Validator、Claim Map 和论文位置绑定后，才可以继续执行 Gate 4 两阶段编排、F2 Pass、F3 真人审核和 Gate 5 封存。
+只有将 `submission.pdf` 导入新的受控 Run、冻结 PDF SHA、完成 Claim Map 和论文位置绑定，并恢复或独立重算真实 Formal Result、Validator 后，才可以继续执行 Gate 4 两阶段编排、F2 Pass、F3 真人审核和 Gate 5 封存。
