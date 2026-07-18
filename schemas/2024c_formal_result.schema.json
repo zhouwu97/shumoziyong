@@ -19,7 +19,7 @@
       "additionalProperties": false,
       "required": ["status", "validator_scope"],
       "properties": {
-        "status": {"enum": ["implemented", "contract_pending_model_freeze", "model_contract_frozen_solver_pending", "not_started"]},
+        "status": {"enum": ["implemented", "contract_pending_model_freeze", "model_contract_draft_review_pending", "model_contract_frozen_solver_pending", "not_started"]},
         "validator_scope": {"type": "string", "minLength": 1},
         "blocking_reason": {"type": "string"}
       }

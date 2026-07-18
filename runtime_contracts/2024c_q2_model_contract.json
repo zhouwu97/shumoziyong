@@ -3,27 +3,45 @@
   "contract_id": "2024c-q2-uncertainty-v1",
   "problem_id": "2024-C",
   "subproblem_id": "Q2",
-  "status": "model_contract_frozen_solver_pending",
+  "status": "model_contract_draft_review_pending",
   "decision_policy": "non_adaptive_single_plan",
   "sales_handling": "waste_surplus_revenue_zero",
   "random": {
     "generator": "numpy.random.Generator",
     "bit_generator": "PCG64",
-    "primary_seed": 20240724,
-    "replicate_seeds": [20240724, 20240725, 20240726, 20240727, 20240728],
-    "scenario_count": 256,
+    "numpy_version": "2.4.4",
+    "seed_sequence": {
+      "constructor": "SeedSequence(entropy=seed, spawn_key=(2024, 3, 2))",
+      "child_stream_order": ["sales", "yield", "cost", "price"],
+      "draw_order": ["year_ascending", "official_crop_id_ascending", "declared_sampling_key"]
+    },
+    "optimization_seed_groups": [20240724, 20240725, 20240726],
+    "evaluation_seed_groups": [20240727, 20240728],
+    "scenarios_per_seed": 256,
+    "optimization_scenario_count": 768,
+    "evaluation_scenario_count": 512,
     "scenario_id_format": "scenario_%04d",
-    "independent_across": ["crop", "year", "parameter"],
-    "q3_correlation_excluded": true
+    "independence_assumption": "independent_across_declared_sampling_keys_no_shared_market_or_weather_shock",
+    "q3_correlation_excluded": true,
+    "scenario_manifest": {
+      "required": true,
+      "canonical_json": "UTF-8 sort_keys=true compact_separators",
+      "sha256_required": true
+    }
   },
   "uncertain_parameters": {
-    "sales_wheat_corn_growth": {"distribution": "uniform", "low": 0.05, "high": 0.10, "recurrence": "compound_previous_year"},
-    "sales_other_change": {"distribution": "uniform", "low": -0.05, "high": 0.05, "recurrence": "compound_previous_year"},
-    "yield_factor": {"distribution": "uniform", "low": 0.90, "high": 1.10, "recurrence": "relative_to_2023"},
-    "cost_growth": {"distribution": "uniform", "low": 0.045, "high": 0.055, "recurrence": "compound_previous_year"},
-    "vegetable_price_growth": {"distribution": "uniform", "low": 0.045, "high": 0.055, "recurrence": "compound_previous_year"},
-    "mushroom_price_decline": {"distribution": "uniform", "low": 0.01, "high": 0.05, "recurrence": "compound_previous_year"},
-    "morel_price_decline": {"distribution": "fixed", "value": 0.05, "recurrence": "compound_previous_year"}
+    "sales_wheat_corn_growth": {"distribution": "uniform", "low": 0.05, "high": 0.10, "recurrence": "compound_previous_year", "sampling_key": "crop_id_season_year"},
+    "sales_other_change": {"distribution": "uniform", "low": -0.05, "high": 0.05, "recurrence": "compound_previous_year", "sampling_key": "crop_id_season_year"},
+    "yield_factor": {"distribution": "uniform", "low": 0.90, "high": 1.10, "recurrence": "relative_to_2023", "sampling_key": "crop_id_year_shared_across_land_and_season"},
+    "cost_growth": {"distribution": "uniform", "low": 0.045, "high": 0.055, "recurrence": "compound_previous_year", "sampling_key": "land_type_season_crop_id_year"},
+    "vegetable_price_growth": {"distribution": "uniform", "low": 0.045, "high": 0.055, "recurrence": "compound_previous_year", "sampling_key": "crop_id_season_year"},
+    "mushroom_price_decline": {"distribution": "uniform", "low": 0.01, "high": 0.05, "recurrence": "compound_previous_year", "sampling_key": "crop_id_season_year"},
+    "morel_price_decline": {"distribution": "fixed", "value": 0.05, "recurrence": "compound_previous_year", "sampling_key": "crop_id_season_year"}
+  },
+  "q1_baseline": {
+    "status": "pending_real_q1_result",
+    "required_artifacts": ["q1_candidate_assignments", "q1_formal_result_sha256", "q1_validator_report_sha256", "q1_waste_objective", "q1_discount_objective"],
+    "must_be_frozen_before_q2_solver": true
   },
   "risk": {
     "alpha": 0.90,
@@ -32,6 +50,12 @@
     "risk_aversion_lambda": 0.25,
     "sensitivity_lambdas": [0.0, 0.25, 0.5],
     "reported_statistics": ["mean", "std", "p05", "p50", "p95", "worst_profit", "cvar_loss"]
+  },
+  "convergence": {
+    "scenario_budgets": [64, 128, 256, 512],
+    "checks": ["mean_profit_relative_change", "cvar_relative_change", "plan_area_relative_l1_change", "seed_group_variance"],
+    "stability_thresholds": {"mean_profit_relative_change": 0.02, "cvar_relative_change": 0.05, "plan_area_relative_l1_change": 0.05},
+    "claim_256_scenarios_sufficient": false
   },
   "validation": {
     "requires_q1_hard_constraints": true,
