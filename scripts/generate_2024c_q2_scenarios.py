@@ -42,6 +42,13 @@ def generate_q2_scenario_manifest(
     if baseline.get("production_ready") is not False:
         raise ValueError("Q1 baseline production_ready 必须保持 false")
     baseline_sha = sha256_path(q1_baseline_path)
+    q1_contract = contract["q1_baseline"]
+    if q1_contract["status"] != "frozen":
+        raise ValueError("Q2 合同尚未登记 frozen 的 Q1 baseline")
+    if q1_contract["baseline_manifest_sha256"] != baseline_sha:
+        raise ValueError("Q2 合同中的 Q1 baseline SHA 与实际文件不一致")
+    if q1_contract["paired_baseline_scenario_id"] != "q1_waste":
+        raise ValueError("Q2 当前销售口径必须配对 q1_waste 基线")
     material_sha = sha256_path(material_manifest_path)
     attachment_1 = material_root / "2024_C" / "attachments" / "附件1.xlsx"
     attachment_2 = material_root / "2024_C" / "attachments" / "附件2.xlsx"

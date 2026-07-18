@@ -46,7 +46,7 @@ qualification_claimed: false
 
 Formal Result 必须保存：合同版本、NumPy 版本、位生成器、SeedSequence 规则、优化/评估 seed 列表、情景数量、规范化情景 Manifest SHA-256、每个情景参数摘要或其 SHA-256、方案 SHA-256 以及运行日志。Validator 必须按相同规则重新生成两组情景并逐项复算，禁止接受手工填写的均值或区间。
 
-在 Q2 Solver 启动前，必须先冻结真实 Q1 基线：Q1 Candidate assignments、Q1 Formal Result SHA-256、Q1 Validator report SHA-256、`q1_waste` 与 `q1_discount` 两个目标值。当前基线状态为 `pending_real_q1_result`；不得在 Q2 中临时构造或口头引用 Q1 方案。Q2 方案和 Q1 基线必须在同一组评估情景上配对复算。
+Q1 基线已经冻结，Manifest SHA-256 为 `1808f73cafeeffd8a70a328e8f29cdd0c478a9a3be6301865ce83b1e06f46c3e`。由于 Q2 合同采用“超产滞销、收入为 0”口径，配对基线明确为 `q1_waste`；`q1_discount` 目标仍作为已冻结的辅助报告值保存。不得在 Q2 中临时构造或口头引用 Q1 方案。Q2 方案和 `q1_waste` 基线必须在同一组评估情景上配对复算。
 
 ## 5. 风险目标与报告统计
 

@@ -310,6 +310,8 @@ def generate_manifest_for_catalog(
         "subproblem_id": "Q2",
         "status": "scenario_pool_frozen_solver_pending",
         "q1_baseline_manifest_sha256": q1_baseline_manifest_sha256,
+        "q1_baseline_status": contract["q1_baseline"]["status"],
+        "paired_baseline_scenario_id": contract["q1_baseline"]["paired_baseline_scenario_id"],
         "material_manifest_sha256": material_manifest_sha256,
         "q2_model_contract_sha256": q2_model_contract_sha256,
         "scenario_generator_module_sha256": scenario_generator_module_sha256,
@@ -360,6 +362,24 @@ def validate_manifest(
     if not isinstance(declared, str) or declared != sha256_bytes(_canonical_bytes(copy)):
         raise ValueError("Scenario Manifest SHA 校验失败")
     random = contract["random"]
+    expected_random_identity = {
+        "numpy_version": random["numpy_version"],
+        "bit_generator": random["bit_generator"],
+        "seed_sequence": random["seed_sequence"],
+        "optimization_seed_groups": [int(seed) for seed in random["optimization_seed_groups"]],
+        "evaluation_seed_groups": [int(seed) for seed in random["evaluation_seed_groups"]],
+        "scenario_pool_per_seed": int(random["scenario_pool_per_seed"]),
+        "scenario_identity": random["scenario_identity"],
+        "canonical_json": random["scenario_manifest"]["canonical_json"],
+    }
+    if manifest["random_identity"] != expected_random_identity:
+        raise ValueError("Scenario Manifest random_identity 与合同不一致")
+    if manifest["key_catalog"] != _catalog_manifest(catalog):
+        raise ValueError("Scenario Manifest key_catalog 与官方数据不一致")
+    if manifest["q1_baseline_status"] != contract["q1_baseline"]["status"]:
+        raise ValueError("Scenario Manifest Q1 baseline 状态与合同不一致")
+    if manifest["paired_baseline_scenario_id"] != contract["q1_baseline"]["paired_baseline_scenario_id"]:
+        raise ValueError("Scenario Manifest 配对基线场景与合同不一致")
     pool = int(random["scenario_pool_per_seed"])
     expected_seeds = {
         "opt": {int(seed) for seed in random["optimization_seed_groups"]},

@@ -58,7 +58,9 @@
     "morel_price_decline": {"distribution": "fixed", "value": 0.05, "recurrence": "compound_previous_year", "sampling_key": "crop_id_season_year"}
   },
   "q1_baseline": {
-    "status": "pending_real_q1_result",
+    "status": "frozen",
+    "baseline_manifest_sha256": "1808f73cafeeffd8a70a328e8f29cdd0c478a9a3be6301865ce83b1e06f46c3e",
+    "paired_baseline_scenario_id": "q1_waste",
     "required_artifacts": ["q1_candidate_assignments", "q1_formal_result_sha256", "q1_validator_report_sha256", "q1_waste_objective", "q1_discount_objective"],
     "must_be_frozen_before_q2_solver": true
   },
