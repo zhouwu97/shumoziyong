@@ -1903,10 +1903,24 @@ def _expected_fixed_gate4_candidate(run_dir: Path) -> tuple[str, str]:
     return f"LEGACY-PC-{digest}", digest
 
 
+def _require_gate_f_ready_for_handoff(run_dir: Path) -> None:
+    """题目专用 Gate F 已启用时，F2/F3 状态必须先通过。"""
+    contract_path = run_dir / "paper_content_contract.yaml"
+    status_path = run_dir / "paper_gate_f_status.json"
+    if not contract_path.is_file():
+        return
+    if not status_path.is_file():
+        raise ValueError("已绑定题目专用 Gate F 合同，但缺少 paper_gate_f_status.json")
+    status = _load_json_object(status_path, "paper_gate_f_status.json")
+    if status.get("status") != "independent_paper_review_passed" or status.get("eligible_for_gate_g") is not True:
+        raise ValueError("Gate F 尚未通过 F1/F2/F3，禁止生成最终人工终审交接包或进入 Gate G")
+
+
 def _validate_gate_5_v2_review(run_dir: Path, review: dict[str, Any]) -> None:
     """验证 v2 最终决策、候选绑定和 recording-only 策略语义。"""
     _validate_json_schema(review, "schemas/gate_5_review_v2.schema.json", "gate_5_review_v2")
     binding = _load_current_run_binding(run_dir)
+    _require_gate_f_ready_for_handoff(run_dir)
     for field, expected in binding.items():
         if review.get(field) != expected:
             raise ValueError(f"gate_5_review_v2.{field} 与当前运行现场不一致")
@@ -2159,6 +2173,7 @@ def prepare_human_final_review_handoff(run_dir: Path) -> dict[str, Any]:
             raise ValueError(
                 "prepare-human-final-review-handoff 仅支持 human_final_technical_required_v1"
             )
+        _require_gate_f_ready_for_handoff(run_dir)
         run_binding = _load_current_run_binding(run_dir)
         candidate = current_candidate(run_dir)
         candidate_manifest_path = (

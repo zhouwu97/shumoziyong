@@ -20,7 +20,8 @@
     "status": {
       "enum": [
         "awaiting_visual_review",
-        "paper_candidate_ready_for_independent_review"
+        "paper_candidate_ready_for_independent_review",
+        "content_repair_required"
       ]
     },
     "binding": {"$ref": "#/$defs/binding"},
@@ -112,6 +113,15 @@
         "manifest_sha256": {"$ref": "#/$defs/sha256"},
         "gate_manifest_path": {"$ref": "#/$defs/runPath"},
         "gate_manifest_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "content_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status_path", "completeness_report_path"],
+      "properties": {
+        "status_path": {"$ref": "#/$defs/runPath"},
+        "completeness_report_path": {"$ref": "#/$defs/runPath"}
       }
     }
   },

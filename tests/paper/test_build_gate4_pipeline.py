@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from paper import build_gate4_pipeline as pipeline  # noqa: E402
+from run_workflow import _require_gate_f_ready_for_handoff  # noqa: E402
 
 
 def _write(path: Path, value: object) -> None:
@@ -243,3 +244,54 @@ def test_prepare_stops_before_visual_review(
 
     assert not (run / "paper_visual_review.json").exists()
     assert not (run / "paper_candidate_manifest.json").exists()
+
+
+def test_bound_content_contract_runs_f2_before_candidate_creation(tmp_path: Path) -> None:
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "paper_content_contract.yaml").write_text(
+        "schema_version: '1.0.0'\ncontract_id: fixture_contract\nproblem_id: 2025-C\nrole_requirements:\n  Q1:\n    - role: calibration\n      severity: critical\n",
+        encoding="utf-8",
+    )
+    _write(
+        run / "paper_evidence_role_registry.json",
+        {
+            "schema_version": "1.0.0",
+            "artifact_type": "paper_evidence_role_registry",
+            "problem_id": "2025-C",
+            "contract_id": "fixture_contract",
+            "run_id": "run-1",
+            "formal_result_ids": ["fr-1"],
+            "roles": [],
+        },
+    )
+    _write(run / "paper_claim_map.json", {"claims": []})
+    status = pipeline._run_content_quality_if_bound(
+        run,
+        {
+            "run_id": "run-1",
+            "problem_id": "2025-C",
+            "profile": "prediction",
+            "runtime_version": "1.0.0",
+            "runtime_pack_sha256": "a" * 64,
+        },
+    )
+
+    assert status is not None
+    assert status["status"] == "content_repair_required"
+    assert (run / "paper_substantive_completeness_report.json").is_file()
+    assert (run / "paper_gate_f_status.json").is_file()
+
+
+def test_handoff_rejects_bound_run_without_f3_pass(tmp_path: Path) -> None:
+    (tmp_path / "paper_content_contract.yaml").write_text("contract_id: fixture\n", encoding="utf-8")
+    _write(
+        tmp_path / "paper_gate_f_status.json",
+        {
+            "status": "content_repair_required",
+            "eligible_for_gate_g": False,
+        },
+    )
+
+    with pytest.raises(ValueError, match="禁止生成最终人工终审交接包"):
+        _require_gate_f_ready_for_handoff(tmp_path)

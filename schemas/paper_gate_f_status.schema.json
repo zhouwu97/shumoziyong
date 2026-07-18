@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_gate_f_status.schema.json",
+  "title": "Gate F1/F2/F3 状态",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "f1_status", "f2_status", "f3_status", "status", "eligible_for_gate_g"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_gate_f_status"},
+    "f1_status": {"enum": ["passed", "failed", "pending"]},
+    "f2_status": {"enum": ["passed", "content_repair_required", "pending"]},
+    "f3_status": {"enum": ["passed", "failed", "pending"]},
+    "status": {"enum": ["mechanically_invalid", "content_repair_required", "ready_for_independent_paper_review", "independent_paper_review_failed", "independent_paper_review_passed"]},
+    "eligible_for_gate_g": {"type": "boolean"},
+    "completeness_report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "f3_review": {"$ref": "#/$defs/f3Review"},
+    "issues": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"f3_status": {"enum": ["passed", "failed"]}}, "required": ["f3_status"]},
+      "then": {"required": ["f3_review"]}
+    },
+    {
+      "if": {"properties": {"status": {"const": "independent_paper_review_passed"}}, "required": ["status"]},
+      "then": {"properties": {"f3_review": {"properties": {"reviewer_type": {"const": "human"}, "decision": {"const": "approved"}, "critical_open": {"const": 0}, "major_open": {"const": 0}}}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "f3Review": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reviewer_type", "reviewer_identity", "reviewed_candidate_id", "candidate_sha256", "completeness_report_sha256", "decision", "critical_open", "major_open", "approval_record"],
+      "properties": {
+        "reviewer_type": {"const": "human"},
+        "reviewer_identity": {"type": "string", "minLength": 1},
+        "reviewed_candidate_id": {"type": "string", "minLength": 1},
+        "candidate_sha256": {"$ref": "#/$defs/sha256"},
+        "completeness_report_sha256": {"$ref": "#/$defs/sha256"},
+        "decision": {"enum": ["approved", "rejected"]},
+        "critical_open": {"type": "integer", "minimum": 0},
+        "major_open": {"type": "integer", "minimum": 0},
+        "approval_record": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

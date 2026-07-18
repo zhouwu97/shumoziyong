@@ -32,6 +32,8 @@ try:
     from .check_narrative import build_narrative_report
     from .external_precheck import run_external_precheck
     from .gate4_candidate import build_candidate_manifest, sha256_file
+    from .gate_f_status import build_gate_f_status
+    from .paper_content_quality import build_substantive_completeness_report
     from .paper_production_manifest import build_paper_production_manifest
     from .rasterize_pdf import rasterize_pdf
     from .render_submission import build_file_manifest, render_submission
@@ -42,6 +44,8 @@ except ImportError:  # pragma: no cover - 允许直接执行脚本。
     from check_narrative import build_narrative_report
     from external_precheck import run_external_precheck
     from gate4_candidate import build_candidate_manifest, sha256_file
+    from gate_f_status import build_gate_f_status
+    from paper_content_quality import build_substantive_completeness_report
     from paper_production_manifest import build_paper_production_manifest
     from rasterize_pdf import rasterize_pdf
     from render_submission import build_file_manifest, render_submission
@@ -459,6 +463,65 @@ def _validate_visual_review(path: Path, *, pdf_sha256: str, page_count: int) -> 
     return review
 
 
+def _run_content_quality_if_bound(run_dir: Path, binding: Mapping[str, str]) -> dict[str, Any] | None:
+    """在题目专用合同已绑定时强制执行 F2；未绑定的历史 Run 保持兼容。"""
+    contract_path = run_dir / "paper_content_contract.yaml"
+    if not contract_path.is_file():
+        return None
+    registry_path = run_dir / "paper_evidence_role_registry.json"
+    if not registry_path.is_file():
+        raise ValueError("已绑定 paper_content_contract.yaml，但缺少 paper_evidence_role_registry.json")
+    registry = load_json_object(registry_path, "paper_evidence_role_registry.json")
+    if registry.get("run_id") != binding["run_id"] or registry.get("problem_id") != binding["problem_id"]:
+        raise ValueError("Evidence Role Registry 与当前 Run 身份不一致")
+    claim_map = load_json_object(run_dir / "paper_claim_map.json", "paper_claim_map.json")
+    claim_ids = {
+        str(item.get("claim_id"))
+        for item in claim_map.get("claims", [])
+        if isinstance(item, Mapping) and item.get("claim_id")
+    }
+    report = build_substantive_completeness_report(
+        contract_path,
+        registry_path,
+        base_dir=run_dir,
+        claim_ids=claim_ids,
+        claim_map=claim_map,
+    )
+    write_json(run_dir / "paper_substantive_completeness_report.json", report)
+    gate_f = build_gate_f_status(
+        f1_passed=True,
+        completeness_report=report,
+        f3_status="pending",
+        completeness_report_path=run_dir / "paper_substantive_completeness_report.json",
+    )
+    write_json(run_dir / "paper_gate_f_status.json", gate_f)
+    return gate_f
+
+
+def _write_internal_content_repair_candidate(run_dir: Path, state: Mapping[str, Any]) -> None:
+    """保留 F1 产物的不可变内部索引，但不生成可交接的 Gate 4 Candidate。"""
+    source_sha = str(state["source"]["entry_sha256"])
+    report_path = run_dir / "paper_substantive_completeness_report.json"
+    manifest = {
+        "schema_version": "1.0.0",
+        "artifact_type": "paper_internal_content_repair_candidate",
+        "candidate_id": f"ICR-{source_sha[:16]}",
+        "run_id": str(state["binding"]["run_id"]),
+        "source_entry": str(state["source"]["entry"]),
+        "source_entry_sha256": source_sha,
+        "f1_status": "passed",
+        "f2_status": "content_repair_required",
+        "completeness_report": {"path": report_path.name, "sha256": sha256_file(report_path)},
+        "final_handoff_allowed": False,
+    }
+    validate_schema(
+        manifest,
+        "paper_internal_content_repair_candidate.schema.json",
+        "paper_internal_content_repair_candidate.json",
+    )
+    write_json(run_dir / "paper_internal_content_repair_candidate.json", manifest)
+
+
 def finalize_pipeline(*, run_dir: Path, visual_review_path: Path | None = None) -> dict[str, Any]:
     run_dir = run_dir.resolve()
     _require_gate_4_state(run_dir)
@@ -504,6 +567,17 @@ def finalize_pipeline(*, run_dir: Path, visual_review_path: Path | None = None) 
         raise ValueError("Submission Verity 未通过：" + ", ".join(failed))
     production = build_paper_production_manifest(run_dir, binding)
     write_json(run_dir / "paper_production_manifest_v2.json", production)
+    content_quality = _run_content_quality_if_bound(run_dir, binding)
+    if content_quality is not None and not content_quality["eligible_for_gate_g"]:
+        state["status"] = "content_repair_required"
+        state["content_quality"] = {
+            "status_path": "paper_gate_f_status.json",
+            "completeness_report_path": "paper_substantive_completeness_report.json",
+        }
+        _write_internal_content_repair_candidate(run_dir, state)
+        validate_schema(state, STATE_SCHEMA, STATE_FILENAME)
+        write_json(state_path, state)
+        return state
     candidate = build_candidate_manifest(run_dir, binding)
     write_json(run_dir / "paper_candidate_manifest.json", candidate)
     gate_manifest_path = write_gate_artifact_manifest(run_dir, 4)

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/paper_internal_content_repair_candidate.schema.json",
+  "title": "F2 失败的内部论文 Candidate 索引",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "candidate_id", "run_id", "source_entry", "source_entry_sha256", "f1_status", "f2_status", "completeness_report", "final_handoff_allowed"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "paper_internal_content_repair_candidate"},
+    "candidate_id": {"type": "string", "pattern": "^ICR-[a-f0-9]{16}$"},
+    "run_id": {"type": "string", "minLength": 1},
+    "source_entry": {"type": "string", "minLength": 1},
+    "source_entry_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "f1_status": {"const": "passed"},
+    "f2_status": {"const": "content_repair_required"},
+    "completeness_report": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+    },
+    "final_handoff_allowed": {"const": false}
+  }
+}
