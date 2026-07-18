@@ -65,6 +65,14 @@ def _write_bound_gate_f_fixture(run: Path) -> None:
             "status": "passed",
         },
     )
+    candidate = run / "paper_candidate_manifest.json"
+    _write(candidate, {"candidate_id": "PC-000000000000000000000000"})
+    approval = run / "reviews" / "approval.json"
+    _write(approval, {"decision": "approved"})
+    (run / "paper_reader_review_history.jsonl").write_text(
+        json.dumps({"path": "reviews/approval.json", "sha256": _sha(approval)}) + "\n",
+        encoding="utf-8",
+    )
     _write(
         run / "paper_gate_f_status.json",
         {
@@ -82,8 +90,10 @@ def _write_bound_gate_f_fixture(run: Path) -> None:
                 "reviewer_type": "human",
                 "reviewer_identity": "reviewer-1",
                 "reviewed_candidate_id": "PC-000000000000000000000000",
-                "candidate_sha256": "a" * 64,
-                "completeness_report_sha256": "b" * 64,
+                "candidate_sha256": _sha(candidate),
+                "completeness_report_sha256": _sha(
+                    run / "paper_substantive_completeness_report.json"
+                ),
                 "decision": "approved",
                 "critical_open": 0,
                 "major_open": 0,
@@ -453,6 +463,43 @@ def test_gate_f_runtime_rejects_cross_field_status_tampering(
 
     with pytest.raises(ValueError, match=message):
         _validate_gate_f_status_for_run(run, require_f3=False)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda status, report: status.update(
+            {"f1_status": "failed", "status": "mechanically_invalid", "eligible_for_gate_g": False}
+        ),
+        lambda status, report: (
+            status.update(
+                {
+                        "f2_status": "content_repair_required",
+                        "status": "content_repair_required",
+                        "eligible_for_gate_g": False,
+                }
+            ),
+            report.update({"status": "content_repair_required"}),
+        ),
+    ],
+)
+def test_require_f3_rejects_final_review_without_all_prerequisites(
+    tmp_path: Path, mutation: object
+) -> None:
+    run = tmp_path / "run"
+    run.mkdir()
+    _write_bound_gate_f_fixture(run)
+    status_path = run / "paper_gate_f_status.json"
+    report_path = run / "paper_substantive_completeness_report.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    mutation(status, report)  # type: ignore[operator]
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    status["completeness_report_sha256"] = _sha(report_path)
+    status_path.write_text(json.dumps(status), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="尚未通过 F1/F2/F3"):
+        _validate_gate_f_status_for_run(run, require_f3=True)
 
 
 def test_handoff_rejects_bound_run_without_f3_pass(tmp_path: Path) -> None:

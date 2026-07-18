@@ -127,6 +127,8 @@ def build_gate_f_status(
     if f3_status == "pending" and f3_review is not None:
         raise ValueError("F3 pending 不得携带终审记录")
     if f3_status in {"passed", "failed"}:
+        if f1_status != "passed" or f2_status != "passed":
+            raise ValueError("只有 F1/F2 通过后才允许记录 F3 终态")
         if not f3_review or f3_review.get("reviewer_type") != "human":
             raise ValueError("F3 终态必须绑定 reviewer_type=human 的独立论文审核")
         expected_decision = "approved" if f3_status == "passed" else "rejected"

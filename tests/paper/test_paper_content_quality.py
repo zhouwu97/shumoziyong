@@ -255,6 +255,32 @@ def test_only_f1_f2_f3_pass_allows_gate_g() -> None:
     assert status["eligible_for_gate_g"] is True
 
 
+@pytest.mark.parametrize(
+    ("f1_passed", "report_status"),
+    [(False, "passed"), (True, "content_repair_required")],
+)
+def test_gate_f_generator_rejects_f3_final_before_prerequisites(
+    f1_passed: bool, report_status: str
+) -> None:
+    with pytest.raises(ValueError, match="只有 F1/F2 通过后才允许记录 F3 终态"):
+        build_gate_f_status(
+            f1_passed=f1_passed,
+            completeness_report={"status": report_status},
+            f3_status="passed",
+            f3_review={
+                "reviewer_type": "human",
+                "reviewer_identity": "reviewer-1",
+                "reviewed_candidate_id": "PC-000000000000000000000000",
+                "candidate_sha256": "a" * 64,
+                "completeness_report_sha256": "b" * 64,
+                "decision": "approved",
+                "critical_open": 0,
+                "major_open": 0,
+                "approval_record": "reviews/approval.json",
+            },
+        )
+
+
 def test_f3_references_require_live_candidate_report_and_history(tmp_path: Path) -> None:
     candidate = tmp_path / "paper_candidate_manifest.json"
     candidate.write_text(

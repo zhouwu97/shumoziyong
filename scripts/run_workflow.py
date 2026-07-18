@@ -2073,7 +2073,7 @@ def _validate_gate_f_status_for_run(run_dir: Path, *, require_f3: bool) -> dict[
         if review.get("decision") != expected_decision:
             raise ValueError(f"Gate F F3 {f3_status} 必须绑定 decision={expected_decision}")
     if require_f3:
-        if f3_status != "passed":
+        if expected_eligibility is not True:
             raise ValueError("Gate F 尚未通过 F1/F2/F3，禁止完成运行或进入 Gate G")
         if not isinstance(review, Mapping):
             raise ValueError("Gate F 通过状态缺少 F3 审核记录")
