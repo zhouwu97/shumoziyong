@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from domains.problem_2024_c.data_loader import load_problem_data
+from domains.problem_2024_c.data_loader import default_audit_output_path, load_problem_data
 from domains.problem_2024_c.official_output_schema import (
     Assignment,
     export_official_workbook,
@@ -38,6 +38,10 @@ def test_full_loader_freezes_all_official_rows(official_material_root: Path) -> 
 def test_official_template_round_trip_preserves_decisions(
     official_material_root: Path, tmp_path: Path
 ) -> None:
+    unicode_root = tmp_path / "中文工作区"
+    expected_output = unicode_root.resolve() / "capability_evidence" / "2024_c_full_closure" / "a0_official_materials_audit.json"
+    assert default_audit_output_path(unicode_root) == expected_output
+
     data = load_problem_data(official_material_root)
     template = official_material_root / "2024_C" / "templates" / "result1_1.xlsx"
     before = inspect_template(template)

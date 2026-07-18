@@ -16,6 +16,12 @@ from .data_model import Crop, CropStat, Planting2023, Plot, ProblemData, SourceC
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
+def default_audit_output_path(repository_root: Path | None = None) -> Path:
+    """在包含非 ASCII 字符的仓库路径下仍返回仓库内部的固定位置。"""
+    root = (repository_root or REPOSITORY_ROOT).resolve()
+    return root / "capability_evidence" / "2024_c_full_closure" / "a0_official_materials_audit.json"
+
+
 def resolve_material_root() -> Path:
     """返回官方材料根目录；受控 CI 可通过环境变量替换。"""
     configured = os.environ.get("SHUMO_OFFICIAL_MATERIALS_DIR", "").strip()
