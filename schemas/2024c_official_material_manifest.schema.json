@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shumo.local/schemas/2024c_official_material_manifest.schema.json",
+  "title": "2024-C 官方材料身份清单",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "problem_id",
+    "source",
+    "material_root",
+    "files",
+    "a0_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "artifact_type": {"const": "official_material_manifest"},
+    "problem_id": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "archive_sha256", "contains_answer_or_solution"],
+      "properties": {
+        "kind": {"enum": ["official", "user_provided", "local_archive"]},
+        "archive_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "contains_answer_or_solution": {"type": "boolean"}
+      }
+    },
+    "material_root": {"const": "official_materials/2024_C"},
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "bytes", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "role": {"type": "string", "minLength": 1},
+          "bytes": {"type": "integer", "minimum": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "a0_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "official_materials_identified",
+        "official_material_hashes_frozen",
+        "sheet_structure_documented",
+        "units_documented",
+        "output_cells_documented",
+        "proxy_data_used",
+        "solver_started",
+        "qualification_claimed"
+      ],
+      "properties": {
+        "official_materials_identified": {"const": true},
+        "official_material_hashes_frozen": {"const": true},
+        "sheet_structure_documented": {"const": true},
+        "units_documented": {"const": true},
+        "output_cells_documented": {"const": true},
+        "proxy_data_used": {"const": false},
+        "solver_started": {"const": false},
+        "qualification_claimed": {"const": false}
+      }
+    }
+  }
+}
