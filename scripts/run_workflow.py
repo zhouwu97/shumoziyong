@@ -627,6 +627,41 @@ def build_problem_manifest(
     }
 
 
+def _paper_content_contract_binding(
+    problem_id: str, profile: str
+) -> tuple[str, str | None, str | None, str | None, dict[str, str] | None, Path | None]:
+    """解析题目/Profile 对应的 Gate F 合同，供新 Run 冻结身份。"""
+    contracts_dir = ROOT / "paper_content_contracts"
+    prefix = str(problem_id).replace("-", "_") + "_" + str(profile) + "_"
+    candidates = sorted(contracts_dir.glob(f"{prefix}*.yaml"))
+    if len(candidates) != 1:
+        return "1.0.0", None, None, None, None, None
+    path = candidates[0]
+    try:
+        from paper.paper_content_quality import (
+            CONTRACT_RESOLUTION_VERSION,
+            contract_sha256,
+            contract_source_hashes,
+            load_contract,
+        )
+    except ModuleNotFoundError:  # pragma: no cover
+        from scripts.paper.paper_content_quality import (
+            CONTRACT_RESOLUTION_VERSION,
+            contract_sha256,
+            contract_source_hashes,
+            load_contract,
+        )
+    contract = load_contract(path)
+    return (
+        "1.0.0",
+        str(contract["contract_id"]),
+        contract_sha256(contract),
+        CONTRACT_RESOLUTION_VERSION,
+        contract_source_hashes(path),
+        path,
+    )
+
+
 def _experiment_kind(candidate_patches: list[str], excluded_patches: list[str]) -> str:
     if excluded_patches and not candidate_patches:
         return "isolation"
@@ -917,6 +952,18 @@ def create_gate_run_core(
 
     problem_manifest = build_problem_manifest(args.problem, material_path, material_verification)
     write_json(run_dir / "problem_manifest.json", problem_manifest)
+    (
+        paper_contract_version,
+        paper_contract_id,
+        paper_contract_sha,
+        paper_contract_resolution_version,
+        paper_contract_source_hashes,
+        paper_contract_source,
+    ) = _paper_content_contract_binding(
+        args.problem, profile
+    )
+    if paper_contract_source is not None:
+        shutil.copyfile(paper_contract_source, run_dir / "paper_content_contract.yaml")
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")
     initial_state = "initialized" if material_verification.ready else "blocked"
@@ -949,6 +996,13 @@ def create_gate_run_core(
         "initial_state": initial_state,
         "gate_3_evidence_contract_version": GATE_3_EVIDENCE_CONTRACT_VERSION,
         "paper_pipeline_contract_version": PAPER_PIPELINE_CONTRACT_VERSION,
+        "paper_content_quality_contract_version": paper_contract_version,
+        "paper_content_contract_id": paper_contract_id,
+        "paper_content_contract_sha256": paper_contract_sha,
+        "paper_content_contract_resolution_version": paper_contract_resolution_version,
+        "paper_content_contract_merged_sha256": paper_contract_sha,
+        "paper_content_contract_source_hashes": paper_contract_source_hashes,
+        "legacy_paper_content_policy": False,
         **_formal_identity_defaults(
             str(getattr(args, "formal_result_policy", FORMAL_RESULT_POLICY_REQUIRED))
         ),
@@ -1907,13 +1961,33 @@ def _require_gate_f_ready_for_handoff(run_dir: Path) -> None:
     """题目专用 Gate F 已启用时，F2/F3 状态必须先通过。"""
     contract_path = run_dir / "paper_content_contract.yaml"
     status_path = run_dir / "paper_gate_f_status.json"
-    if not contract_path.is_file():
+    manifest = (
+        _load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+        if (run_dir / "run_manifest.json").is_file()
+        else {}
+    )
+    if not contract_path.is_file() and manifest.get("paper_pipeline_contract_version") is None:
         return
+    if not contract_path.is_file():
+        if (
+            manifest.get("legacy_paper_content_policy") is True
+            and manifest.get("paper_pipeline_contract_version") is None
+        ):
+            return
+        raise ValueError("新 Run 缺少 paper_content_contract.yaml，禁止绕过 Gate F")
     if not status_path.is_file():
         raise ValueError("已绑定题目专用 Gate F 合同，但缺少 paper_gate_f_status.json")
     status = _load_json_object(status_path, "paper_gate_f_status.json")
     if status.get("status") != "independent_paper_review_passed" or status.get("eligible_for_gate_g") is not True:
         raise ValueError("Gate F 尚未通过 F1/F2/F3，禁止生成最终人工终审交接包或进入 Gate G")
+    review = status.get("f3_review")
+    if not isinstance(review, Mapping):
+        raise ValueError("Gate F 通过状态缺少 F3 审核记录")
+    try:
+        from paper.gate_f_status import validate_f3_review_references
+    except ModuleNotFoundError:  # pragma: no cover
+        from scripts.paper.gate_f_status import validate_f3_review_references
+    validate_f3_review_references(run_dir, review)
 
 
 def _validate_gate_5_v2_review(run_dir: Path, review: dict[str, Any]) -> None:

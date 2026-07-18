@@ -13,6 +13,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_RESOLUTION_VERSION = "1.0.0"
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -45,10 +46,109 @@ def _candidate_identity(path: Path | None) -> tuple[str | None, str | None]:
 
 
 def load_contract(path: Path) -> dict[str, Any]:
+    return _load_contract_recursive(path.resolve(), seen=set())
+
+
+def _load_contract_recursive(path: Path, *, seen: set[Path]) -> dict[str, Any]:
+    if path in seen:
+        raise ValueError(f"内容合同父级循环引用：{path}")
     value = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
         raise ValueError(f"内容合同必须是 YAML 对象：{path}")
-    return value
+    parent_id = value.get("parent_contract_id")
+    if not parent_id:
+        return value
+    parent_path = _resolve_parent_path(path, str(parent_id))
+    if not parent_path.is_file():
+        raise FileNotFoundError(f"父内容合同不存在：{parent_id}")
+    parent = _load_contract_recursive(parent_path.resolve(), seen=seen | {path})
+    merged = dict(parent)
+    merged.update(value)
+    merged["role_requirements"] = _merge_role_requirements(
+        parent.get("role_requirements", {}), value.get("role_requirements", {})
+    )
+    merged["binding_requirements"] = _merge_binding_requirements(
+        parent.get("binding_requirements", {}), value.get("binding_requirements", {})
+    )
+    merged["inherited_contract_ids"] = list(parent.get("inherited_contract_ids", [])) + [
+        str(parent.get("contract_id"))
+    ]
+    return merged
+
+
+def _resolve_parent_path(path: Path, parent_id: str) -> Path:
+    sibling = path.with_name(f"{parent_id}.yaml")
+    return sibling if sibling.is_file() else ROOT / "paper_content_contracts" / f"{parent_id}.yaml"
+
+
+def contract_source_hashes(path: Path, *, seen: set[Path] | None = None) -> dict[str, str]:
+    """返回合同继承链上每个原始 YAML 的现场 SHA-256。"""
+    resolved = path.resolve()
+    visited = set() if seen is None else set(seen)
+    if resolved in visited:
+        raise ValueError(f"内容合同父级循环引用：{resolved}")
+    visited.add(resolved)
+    raw = yaml.safe_load(resolved.read_text(encoding="utf-8"))
+    if not isinstance(raw, Mapping):
+        raise ValueError(f"内容合同必须是 YAML 对象：{resolved}")
+    result = {str(raw.get("contract_id", resolved.stem)): sha256_file(resolved)}
+    parent_id = raw.get("parent_contract_id")
+    if parent_id:
+        result.update(contract_source_hashes(_resolve_parent_path(resolved, str(parent_id)), seen=visited))
+    return result
+
+
+def _as_role_list(requirements: Any) -> list[dict[str, Any]]:
+    if isinstance(requirements, Mapping):
+        return [dict(requirements)]
+    if not isinstance(requirements, list):
+        raise ValueError("role_requirements 必须是对象或数组")
+    return [dict(item) for item in requirements if isinstance(item, Mapping)]
+
+
+def _merge_role_requirements(parent: Any, child: Any) -> dict[str, list[dict[str, Any]]]:
+    merged: dict[str, list[dict[str, Any]]] = {}
+    for question, entries in (parent or {}).items():
+        normalized = _as_role_list(entries)
+        for item in normalized:
+            item.setdefault("role", str(question))
+        merged[str(question)] = normalized
+    for question, entries in (child or {}).items():
+        target = merged.setdefault(str(question), [])
+        by_role = {str(item.get("role")): item for item in target if item.get("role")}
+        for item in _as_role_list(entries):
+            role = str(item.get("role", question))
+            item["role"] = role
+            if role in by_role:
+                existing = by_role[role]
+                severities = {"minor": 0, "major": 1, "critical": 2}
+                if severities.get(str(item.get("severity", "major")), 1) < severities.get(
+                    str(existing.get("severity", "major")), 1
+                ):
+                    raise ValueError(f"子合同不能降低父合同要求：{question}/{role}")
+                existing.update(item)
+            else:
+                target.append(item)
+    return merged
+
+
+def _merge_binding_requirements(parent: Any, child: Any) -> dict[str, Any]:
+    if not isinstance(parent, Mapping) or not isinstance(child, Mapping):
+        raise ValueError("binding_requirements 必须是对象")
+    merged = dict(parent)
+    for key, value in child.items():
+        if isinstance(value, bool) and isinstance(merged.get(key), bool):
+            if merged[key] and not value:
+                raise ValueError(f"子合同不能关闭父合同绑定要求：{key}")
+            merged[key] = merged[key] or value
+        else:
+            merged[key] = value
+    return merged
+
+
+def contract_sha256(contract: Mapping[str, Any]) -> str:
+    payload = json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _specific_roles(contract: Mapping[str, Any]) -> list[dict[str, str]]:
@@ -296,7 +396,28 @@ def _fingerprint(entry: Mapping[str, Any] | None) -> tuple[Any, ...] | None:
             if isinstance(item, Mapping)
         )
     )
-    return source, validator
+    claims = tuple(sorted(str(value) for value in entry.get("claim_ids", [])))
+    locations = tuple(sorted(str(value) for value in entry.get("paper_locations", [])))
+    return source, validator, claims, locations
+
+
+def _validate_registry_materialized(registry: Mapping[str, Any], *, base_dir: Path) -> None:
+    _validate_registry_schema(registry)
+    allowed_formal_ids = {str(value) for value in registry.get("formal_result_ids", [])}
+    for role in registry.get("roles", []):
+        if not isinstance(role, Mapping) or role.get("status") != "realized":
+            continue
+        issues = _check_artifacts(
+            role.get("source_artifacts"), base_dir=base_dir, label=f"{role.get('role_id')} source", allowed_formal_ids=allowed_formal_ids
+        )
+        issues += _check_artifacts(
+            role.get("validator_artifacts"), base_dir=base_dir, label=f"{role.get('role_id')} validator", allowed_formal_ids=allowed_formal_ids
+        )
+        issues += _check_paper_locations(
+            role.get("paper_locations"), base_dir=base_dir, label=f"{role.get('role_id')} paper_locations"
+        )
+        if issues:
+            raise ValueError("Content Delta Registry 未通过现场完整性验证：" + "；".join(issues))
 
 
 def build_content_delta_report(
@@ -305,13 +426,24 @@ def build_content_delta_report(
     before_registry_path: Path | None = None,
     before_candidate_path: Path | None = None,
     after_candidate_path: Path | None = None,
+    before_completeness_report_path: Path | None = None,
+    after_completeness_report_path: Path | None = None,
     revision_type: str = "new_clean_run",
 ) -> dict[str, Any]:
-    """仅依据证据绑定变化派生论文实质增量。"""
+    """依据现场验证的证据绑定变化派生论文实质增量。"""
     after = _load_json(after_registry_path)
     before = _load_json(before_registry_path) if before_registry_path else {"roles": []}
+    after_base = after_registry_path.resolve().parent
+    before_base = before_registry_path.resolve().parent if before_registry_path else after_base
+    _validate_registry_materialized(after, base_dir=after_base)
+    if before_registry_path:
+        _validate_registry_materialized(before, base_dir=before_base)
     before_formal_ids = {str(value) for value in before.get("formal_result_ids", [])}
     after_formal_ids = {str(value) for value in after.get("formal_result_ids", [])}
+    if before_completeness_report_path:
+        _load_json(before_completeness_report_path)
+    if after_completeness_report_path:
+        _load_json(after_completeness_report_path)
     before_candidate = _load_json(before_candidate_path) if before_candidate_path else {}
     after_candidate = _load_json(after_candidate_path) if after_candidate_path else {}
     before_candidate_id, before_candidate_sha = _candidate_identity(before_candidate_path)
@@ -323,17 +455,32 @@ def build_content_delta_report(
         old, new = before_index.get(role_id), after_index.get(role_id)
         old_fp, new_fp = _fingerprint(old), _fingerprint(new)
         if old is None:
-            change_type, substantive = "new_analysis", bool(new and new.get("status") == "realized")
+            change_type = "new_analysis"
         elif new is None:
-            change_type, substantive = "removed_analysis", False
+            change_type = "removed_analysis"
         elif old_fp == new_fp:
-            change_type, substantive = "unchanged", False
+            change_type = "unchanged"
         else:
-            change_type, substantive = "updated_analysis", bool(new.get("status") == "realized")
-        if substantive and revision_type in {"new_clean_run", "legal_technical_revision"} and before_formal_ids & after_formal_ids:
-            substantive = False
+            change_type = "updated_analysis"
+        old_claims = tuple(sorted(str(value) for value in (old or {}).get("claim_ids", [])))
+        new_claims = tuple(sorted(str(value) for value in (new or {}).get("claim_ids", [])))
+        old_locations = tuple(sorted(str(value) for value in (old or {}).get("paper_locations", [])))
+        new_locations = tuple(sorted(str(value) for value in (new or {}).get("paper_locations", [])))
+        role_after_formal_ids = {
+            str(item.get("formal_result_id"))
+            for item in (new or {}).get("source_artifacts", []) + (new or {}).get("validator_artifacts", [])
+            if isinstance(item, Mapping) and item.get("formal_result_id")
+        }
+        new_role_formal_ids = role_after_formal_ids - before_formal_ids
+        new_technical_evidence = bool(new and new.get("status") == "realized" and new_role_formal_ids)
         if revision_type == "writing_only":
-            substantive = False
+            new_technical_evidence = False
+        new_paper_realization = bool(
+            new
+            and new.get("status") == "realized"
+            and (old is None or old_claims != new_claims or old_locations != new_locations)
+        )
+        substantive = new_technical_evidence or new_paper_realization
         if change_type == "unchanged":
             continue
         deltas.append(
@@ -341,6 +488,8 @@ def build_content_delta_report(
                 "delta_id": f"DELTA-{role_id}",
                 "change_type": change_type,
                 "role_id": role_id,
+                "new_technical_evidence": new_technical_evidence,
+                "new_paper_realization": new_paper_realization,
                 "substantive": substantive,
                 "formal_result_ids": sorted(
                     {
@@ -356,7 +505,9 @@ def build_content_delta_report(
                 "paper_locations": list(new.get("paper_locations", [])) if new else [],
             }
         )
-    substantive = any(item["substantive"] for item in deltas)
+    new_technical_evidence = any(item["new_technical_evidence"] for item in deltas)
+    new_paper_realization = any(item["new_paper_realization"] for item in deltas)
+    substantive = new_technical_evidence or new_paper_realization
     report = {
         "schema_version": "1.0.0",
         "artifact_type": "paper_content_delta_report",
@@ -372,6 +523,8 @@ def build_content_delta_report(
         "after_formal_result_ids": sorted(after_formal_ids),
         "revision_type": revision_type,
         "deltas": deltas,
+        "new_technical_evidence": new_technical_evidence,
+        "new_paper_realization": new_paper_realization,
         "substantive_paper_improvement": substantive,
         "reason": "检测到新的或变更的真实证据角色。" if substantive else "本轮只完成流程或证据链修复，未增加模型实验与论文论证。",
     }
@@ -393,6 +546,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--delta-output", type=Path)
     parser.add_argument("--before-candidate", type=Path)
     parser.add_argument("--after-candidate", type=Path)
+    parser.add_argument("--before-completeness-report", type=Path)
+    parser.add_argument("--after-completeness-report", type=Path)
     parser.add_argument("--revision-type", choices=("new_clean_run", "legal_technical_revision", "writing_only"), default="new_clean_run")
     return parser
 
@@ -413,6 +568,8 @@ def main() -> int:
             before_registry_path=args.before_registry,
             before_candidate_path=args.before_candidate,
             after_candidate_path=args.after_candidate,
+            before_completeness_report_path=args.before_completeness_report,
+            after_completeness_report_path=args.after_completeness_report,
             revision_type=args.revision_type,
         )
         _write_json(args.delta_output, delta)

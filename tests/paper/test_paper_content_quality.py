@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -13,8 +14,11 @@ sys.path.insert(0, str(ROOT / "scripts" / "paper"))
 from paper_content_quality import (  # noqa: E402
     build_content_delta_report,
     build_substantive_completeness_report,
+    load_contract,
+    _specific_roles,
 )
 from gate_f_status import build_gate_f_status  # noqa: E402
+from gate_f_status import validate_f3_review_references  # noqa: E402
 
 
 def _sha(path: Path) -> str:
@@ -132,7 +136,9 @@ def test_content_delta_requires_real_evidence_change(tmp_path: Path) -> None:
     after = _registry(tmp_path, include_interpretation=True)
     report = build_content_delta_report(after, before_registry_path=before)
 
-    assert report["substantive_paper_improvement"] is False
+    assert report["substantive_paper_improvement"] is True
+    assert report["new_technical_evidence"] is False
+    assert report["new_paper_realization"] is True
     assert {item["role_id"] for item in report["deltas"]} == {"Q1_INTERPRETATION"}
 
 
@@ -192,6 +198,42 @@ def test_only_f1_f2_f3_pass_allows_gate_g() -> None:
 
     assert status["status"] == "independent_paper_review_passed"
     assert status["eligible_for_gate_g"] is True
+
+
+def test_f3_references_require_live_candidate_report_and_history(tmp_path: Path) -> None:
+    candidate = tmp_path / "paper_candidate_manifest.json"
+    candidate.write_text(json.dumps({"candidate_id": "PC-0001"}), encoding="utf-8")
+    report = tmp_path / "paper_substantive_completeness_report.json"
+    report.write_text(json.dumps({"status": "passed"}), encoding="utf-8")
+    approval = tmp_path / "reviews" / "paper_reader" / "PRR-00000001.json"
+    approval.parent.mkdir(parents=True)
+    approval.write_text(json.dumps({"decision": "approved"}), encoding="utf-8")
+    approval_sha = _sha(approval)
+    (tmp_path / "paper_reader_review_history.jsonl").write_text(
+        json.dumps({"path": "reviews/paper_reader/PRR-00000001.json", "sha256": approval_sha}) + "\n",
+        encoding="utf-8",
+    )
+    review = {
+        "reviewed_candidate_id": "PC-0001",
+        "candidate_sha256": _sha(candidate),
+        "completeness_report_sha256": _sha(report),
+        "approval_record": "reviews/paper_reader/PRR-00000001.json",
+    }
+    validate_f3_review_references(tmp_path, review)
+    review["candidate_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="Candidate 不一致"):
+        validate_f3_review_references(tmp_path, review)
+
+
+def test_parent_contract_is_merged_and_cannot_be_weakened() -> None:
+    contract = yaml.safe_load(
+        (ROOT / "paper_content_contracts" / "2025_C_prediction_nipt_v1.yaml").read_text(encoding="utf-8")
+    )
+    merged = load_contract(ROOT / "paper_content_contracts" / "2025_C_prediction_nipt_v1.yaml")
+    assert merged["inherited_contract_ids"] == ["generic_submission_v1"]
+    roles = {(item["question"], item["role"]) for item in _specific_roles(merged)}
+    assert {("thesis", "thesis"), ("model_definition", "model_definition"), ("Q1", "repeated_measurement_structure")} <= roles
+    assert contract["parent_contract_id"] == "generic_submission_v1"
 
 
 def test_2025_prediction_contract_contains_all_four_questions() -> None:

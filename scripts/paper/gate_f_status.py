@@ -24,6 +24,52 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
+def validate_f3_review_references(run_dir: Path, review: Mapping[str, Any]) -> None:
+    """现场验证 F3 审核绑定的 Candidate、F2 报告和不可变审批历史。"""
+    root = run_dir.resolve()
+    report_path = root / "paper_substantive_completeness_report.json"
+    if not report_path.is_file():
+        raise ValueError("F3 引用的完整性报告不存在")
+    if review.get("completeness_report_sha256") != sha256_file(report_path):
+        raise ValueError("F3 completeness_report_sha256 与现场报告不一致")
+    candidate_path: Path | None = None
+    pointer = root / "current_paper_candidate.json"
+    if pointer.is_file():
+        pointer_payload = _load(pointer)
+        candidate_id = str(pointer_payload.get("candidate_id", ""))
+        if candidate_id:
+            candidate_path = root / "paper_candidates" / candidate_id / "paper_candidate_manifest.json"
+    if candidate_path is None:
+        candidate_path = root / "paper_candidate_manifest.json"
+    if not candidate_path.is_file():
+        raise ValueError("F3 引用的 Candidate 文件不存在")
+    candidate = _load(candidate_path)
+    candidate_id = candidate.get("candidate_id") or (pointer_payload.get("candidate_id") if pointer.is_file() else None)
+    if candidate_id and review.get("reviewed_candidate_id") != candidate_id:
+        raise ValueError("F3 reviewed_candidate_id 与当前 Candidate 不一致")
+    if review.get("candidate_sha256") != sha256_file(candidate_path):
+        raise ValueError("F3 candidate_sha256 与现场 Candidate 不一致")
+    approval = str(review.get("approval_record", ""))
+    approval_path = (root / approval).resolve()
+    if not approval or not approval_path.is_file() or not approval_path.is_relative_to(root):
+        raise ValueError("F3 approval_record 不存在或越出当前 Run")
+    history_path = root / "paper_reader_review_history.jsonl"
+    if not history_path.is_file():
+        raise ValueError("F3 审核尚未进入 paper_reader_review_history.jsonl")
+    approval_relative = approval_path.relative_to(root).as_posix()
+    approval_sha = sha256_file(approval_path)
+    recorded = False
+    for line in history_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        event = json.loads(line)
+        if event.get("path") == approval_relative and event.get("sha256") == approval_sha:
+            recorded = True
+            break
+    if not recorded:
+        raise ValueError("F3 approval_record 未进入不可变审核历史")
+
+
 def build_gate_f_status(
     *,
     f1_passed: bool,

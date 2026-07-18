@@ -33,7 +33,14 @@ try:
     from .external_precheck import run_external_precheck
     from .gate4_candidate import build_candidate_manifest, sha256_file
     from .gate_f_status import build_gate_f_status
-    from .paper_content_quality import build_substantive_completeness_report
+    from .paper_content_quality import (
+        build_content_delta_report,
+        build_substantive_completeness_report,
+        CONTRACT_RESOLUTION_VERSION,
+        contract_source_hashes,
+        contract_sha256,
+        load_contract,
+    )
     from .paper_production_manifest import build_paper_production_manifest
     from .rasterize_pdf import rasterize_pdf
     from .render_submission import build_file_manifest, render_submission
@@ -45,7 +52,14 @@ except ImportError:  # pragma: no cover - 允许直接执行脚本。
     from external_precheck import run_external_precheck
     from gate4_candidate import build_candidate_manifest, sha256_file
     from gate_f_status import build_gate_f_status
-    from paper_content_quality import build_substantive_completeness_report
+    from paper_content_quality import (
+        build_content_delta_report,
+        build_substantive_completeness_report,
+        CONTRACT_RESOLUTION_VERSION,
+        contract_source_hashes,
+        contract_sha256,
+        load_contract,
+    )
     from paper_production_manifest import build_paper_production_manifest
     from rasterize_pdf import rasterize_pdf
     from render_submission import build_file_manifest, render_submission
@@ -464,10 +478,35 @@ def _validate_visual_review(path: Path, *, pdf_sha256: str, page_count: int) -> 
 
 
 def _run_content_quality_if_bound(run_dir: Path, binding: Mapping[str, str]) -> dict[str, Any] | None:
-    """在题目专用合同已绑定时强制执行 F2；未绑定的历史 Run 保持兼容。"""
+    """对新 Run 强制执行 Gate F2；历史兼容必须由显式政策声明。"""
     contract_path = run_dir / "paper_content_contract.yaml"
+    run_manifest = (
+        load_json_object(run_dir / "run_manifest.json", "run_manifest.json")
+        if (run_dir / "run_manifest.json").is_file()
+        else {}
+    )
+    legacy_policy = bool(run_manifest.get("legacy_paper_content_policy", False)) and run_manifest.get(
+        "paper_pipeline_contract_version"
+    ) is None
     if not contract_path.is_file():
-        return None
+        if legacy_policy:
+            return None
+        raise ValueError("新 Run 缺少 paper_content_contract.yaml；只有显式 legacy_paper_content_policy=true 才可跳过 Gate F2")
+    contract = load_contract(contract_path)
+    declared_id = run_manifest.get("paper_content_contract_id")
+    declared_sha = run_manifest.get("paper_content_contract_sha256")
+    actual_sha = contract_sha256(contract)
+    actual_source_hashes = contract_source_hashes(contract_path)
+    if declared_id is not None and declared_id != contract.get("contract_id"):
+        raise ValueError("run_manifest.paper_content_contract_id 与合同不一致")
+    if declared_sha is not None and declared_sha != actual_sha:
+        raise ValueError("run_manifest.paper_content_contract_sha256 与合同不一致")
+    if run_manifest.get("paper_content_contract_resolution_version") not in (None, CONTRACT_RESOLUTION_VERSION):
+        raise ValueError("合同解析版本不受支持")
+    if run_manifest.get("paper_content_contract_merged_sha256") not in (None, actual_sha):
+        raise ValueError("run_manifest.paper_content_contract_merged_sha256 与合并合同不一致")
+    if run_manifest.get("paper_content_contract_source_hashes") not in (None, actual_source_hashes):
+        raise ValueError("run_manifest.paper_content_contract_source_hashes 与合同继承链不一致")
     registry_path = run_dir / "paper_evidence_role_registry.json"
     if not registry_path.is_file():
         raise ValueError("已绑定 paper_content_contract.yaml，但缺少 paper_evidence_role_registry.json")
@@ -488,6 +527,13 @@ def _run_content_quality_if_bound(run_dir: Path, binding: Mapping[str, str]) -> 
         claim_map=claim_map,
     )
     write_json(run_dir / "paper_substantive_completeness_report.json", report)
+    before_registry = run_dir / "before_paper_evidence_role_registry.json"
+    delta = build_content_delta_report(
+        registry_path,
+        before_registry_path=before_registry if before_registry.is_file() else None,
+        after_completeness_report_path=run_dir / "paper_substantive_completeness_report.json",
+    )
+    write_json(run_dir / "paper_content_delta_report.json", delta)
     gate_f = build_gate_f_status(
         f1_passed=True,
         completeness_report=report,
@@ -568,12 +614,14 @@ def finalize_pipeline(*, run_dir: Path, visual_review_path: Path | None = None) 
     production = build_paper_production_manifest(run_dir, binding)
     write_json(run_dir / "paper_production_manifest_v2.json", production)
     content_quality = _run_content_quality_if_bound(run_dir, binding)
-    if content_quality is not None and not content_quality["eligible_for_gate_g"]:
-        state["status"] = "content_repair_required"
+    if content_quality is not None:
         state["content_quality"] = {
             "status_path": "paper_gate_f_status.json",
             "completeness_report_path": "paper_substantive_completeness_report.json",
+            "delta_report_path": "paper_content_delta_report.json",
         }
+    if content_quality is not None and content_quality["f2_status"] != "passed":
+        state["status"] = "content_repair_required"
         _write_internal_content_repair_candidate(run_dir, state)
         validate_schema(state, STATE_SCHEMA, STATE_FILENAME)
         write_json(state_path, state)

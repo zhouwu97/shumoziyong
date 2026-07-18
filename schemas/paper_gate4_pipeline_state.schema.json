@@ -121,7 +121,8 @@
       "required": ["status_path", "completeness_report_path"],
       "properties": {
         "status_path": {"$ref": "#/$defs/runPath"},
-        "completeness_report_path": {"$ref": "#/$defs/runPath"}
+        "completeness_report_path": {"$ref": "#/$defs/runPath"},
+        "delta_report_path": {"$ref": "#/$defs/runPath"}
       }
     }
   },

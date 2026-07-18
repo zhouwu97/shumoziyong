@@ -4,7 +4,7 @@
   "title": "论文实质内容增量报告",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "artifact_type", "before_registry", "after_registry", "before_candidate_id", "after_candidate_id", "before_candidate_sha256", "after_candidate_sha256", "before_run_id", "after_run_id", "before_formal_result_ids", "after_formal_result_ids", "revision_type", "deltas", "substantive_paper_improvement", "reason"],
+  "required": ["schema_version", "artifact_type", "before_registry", "after_registry", "before_candidate_id", "after_candidate_id", "before_candidate_sha256", "after_candidate_sha256", "before_run_id", "after_run_id", "before_formal_result_ids", "after_formal_result_ids", "revision_type", "deltas", "new_technical_evidence", "new_paper_realization", "substantive_paper_improvement", "reason"],
   "properties": {
     "schema_version": {"const": "1.0.0"},
     "artifact_type": {"const": "paper_content_delta_report"},
@@ -20,17 +20,21 @@
     "after_formal_result_ids": {"type": "array", "items": {"type": "string"}},
     "revision_type": {"enum": ["new_clean_run", "legal_technical_revision", "writing_only"]},
     "deltas": {"type": "array", "items": {"$ref": "#/$defs/delta"}},
+    "new_technical_evidence": {"type": "boolean"},
+    "new_paper_realization": {"type": "boolean"},
     "substantive_paper_improvement": {"type": "boolean"},
     "reason": {"type": "string", "minLength": 1}
   },
   "$defs": {
     "delta": {
       "type": "object", "additionalProperties": false,
-      "required": ["delta_id", "change_type", "role_id", "substantive", "formal_result_ids", "source_after", "claim_ids", "paper_locations"],
+      "required": ["delta_id", "change_type", "role_id", "new_technical_evidence", "new_paper_realization", "substantive", "formal_result_ids", "source_after", "claim_ids", "paper_locations"],
       "properties": {
         "delta_id": {"type": "string", "minLength": 1},
         "change_type": {"enum": ["new_analysis", "updated_analysis", "removed_analysis", "unchanged"]},
         "role_id": {"type": "string", "minLength": 1},
+        "new_technical_evidence": {"type": "boolean"},
+        "new_paper_realization": {"type": "boolean"},
         "substantive": {"type": "boolean"},
         "formal_result_ids": {"type": "array", "items": {"type": "string"}},
         "source_before": {"type": ["object", "null"]},

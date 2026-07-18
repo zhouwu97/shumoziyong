@@ -283,6 +283,28 @@ def test_bound_content_contract_runs_f2_before_candidate_creation(tmp_path: Path
     assert (run / "paper_gate_f_status.json").is_file()
 
 
+def test_new_run_without_contract_fails_closed(tmp_path: Path) -> None:
+    run = tmp_path / "run"
+    run.mkdir()
+    _write(run / "run_manifest.json", {"legacy_paper_content_policy": False})
+    with pytest.raises(ValueError, match="缺少 paper_content_contract.yaml"):
+        pipeline._run_content_quality_if_bound(run, {})
+
+
+def test_new_run_cannot_enable_legacy_policy_manually(tmp_path: Path) -> None:
+    run = tmp_path / "run"
+    run.mkdir()
+    _write(
+        run / "run_manifest.json",
+        {
+            "legacy_paper_content_policy": True,
+            "paper_pipeline_contract_version": "1.0.0",
+        },
+    )
+    with pytest.raises(ValueError, match="缺少 paper_content_contract.yaml"):
+        pipeline._run_content_quality_if_bound(run, {})
+
+
 def test_handoff_rejects_bound_run_without_f3_pass(tmp_path: Path) -> None:
     (tmp_path / "paper_content_contract.yaml").write_text("contract_id: fixture\n", encoding="utf-8")
     _write(
