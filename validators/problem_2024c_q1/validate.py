@@ -20,7 +20,13 @@ YEARS = tuple(range(2024, 2031))
 Q1_SCENARIOS = ("q1_waste", "q1_discount")
 LEGUME_CROPS = frozenset({1, 2, 3, 4, 5, 17, 18, 19})
 TOLERANCE = 1e-6
-MATERIAL_MANIFEST_SCHEMA_PATH = Path(__file__).parents[2] / "schemas" / "material_manifest.schema.json"
+FORMAL_MATERIAL_MANIFEST_SCHEMA_PATH = (
+    Path(__file__).parents[2] / "schemas" / "2024c_official_material_manifest.schema.json"
+)
+ATTACHMENT_ROLES = {
+    "attachment_1": ("land_and_crop_dictionary", "attachments/附件1.xlsx"),
+    "attachment_2": ("historical_planting_and_statistics", "attachments/附件2.xlsx"),
+}
 
 
 def _as_float(value: object) -> float:
@@ -229,7 +235,7 @@ def _load_bound_material_manifest(
         manifest = json.loads(material_manifest.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"材料 Manifest 无法读取: {material_manifest}") from exc
-    schema = json.loads(MATERIAL_MANIFEST_SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema = json.loads(FORMAL_MATERIAL_MANIFEST_SCHEMA_PATH.read_text(encoding="utf-8"))
     schema_errors = list(Draft202012Validator(schema).iter_errors(manifest))
     if schema_errors:
         raise ValueError("材料 Manifest Schema 无效: " + "; ".join(error.message for error in schema_errors))
@@ -239,32 +245,30 @@ def _load_bound_material_manifest(
         raise ValueError("Q1 Validator 只接受官方材料 Manifest")
 
     records: dict[str, dict[str, Any]] = {}
-    for record in manifest["categories"]["attachments"]["files"]:
+    paths: set[str] = set()
+    for record in manifest["files"]:
+        role = record["role"]
         path = record["path"]
-        if path in records:
-            raise ValueError(f"材料 Manifest 附件类别存在重复路径: {path}")
-        records[path] = record
+        if role in records or path in paths:
+            raise ValueError(f"正式材料 Manifest 存在重复角色或路径: {role} ({path})")
+        records[role] = record
+        paths.add(path)
 
-    attachments = {
-        "attachments/附件1.xlsx": attachment_1,
-        "attachments/附件2.xlsx": attachment_2,
-    }
-    manifest_root = material_manifest.parent.resolve()
-    for relative_path, actual_path in attachments.items():
-        record = records.get(relative_path)
+    attachments = {"attachment_1": attachment_1, "attachment_2": attachment_2}
+    for attachment_role, actual_path in attachments.items():
+        manifest_role, relative_path = ATTACHMENT_ROLES[attachment_role]
+        record = records.get(manifest_role)
         if record is None:
-            raise ValueError(f"材料 Manifest 缺少附件角色: {relative_path}")
-        expected_path = (manifest_root / relative_path).resolve()
-        resolved_actual = actual_path.resolve()
-        if resolved_actual != expected_path:
-            raise ValueError(
-                f"附件路径未绑定到 Manifest: {actual_path} != {expected_path}"
-            )
+            raise ValueError(f"正式材料 Manifest 缺少附件角色: {manifest_role}")
+        if record["path"] != relative_path or actual_path.name != Path(relative_path).name:
+            raise ValueError(f"实际附件与正式 Manifest 角色不匹配: {attachment_role}")
         if not actual_path.is_file():
             raise ValueError(f"Manifest 声明的附件不存在: {actual_path}")
+        if actual_path.stat().st_size != record["bytes"]:
+            raise ValueError(f"附件字节数与正式 Manifest 不匹配: {relative_path}")
         actual_sha = hashlib.sha256(actual_path.read_bytes()).hexdigest()
         if actual_sha != record["sha256"]:
-            raise ValueError(f"附件 SHA-256 与 Manifest 不匹配: {relative_path}")
+            raise ValueError(f"附件 SHA-256 与正式 Manifest 不匹配: {relative_path}")
     return manifest
 
 

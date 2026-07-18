@@ -38,30 +38,48 @@ def _write_test_manifest(
     include_attachment_2: bool = True,
 ) -> tuple[Path, Path, Path]:
     root = tmp_path / "materials"
-    (root / "problem").mkdir(parents=True)
-    (root / "attachments").mkdir()
-    problem = root / "problem" / "C题.pdf"
-    problem.write_bytes(b"problem")
+    (root / "attachments").mkdir(parents=True)
     attachment_1 = root / "attachments" / "附件1.xlsx"
     attachment_2 = root / "attachments" / "附件2.xlsx"
     attachment_1.write_bytes(b"attachment-1")
     attachment_2.write_bytes(b"attachment-2")
     files = [
-        {"path": "problem/C题.pdf", "sha256": hashlib.sha256(problem.read_bytes()).hexdigest()},
-        {"path": "attachments/附件1.xlsx", "sha256": hashlib.sha256(attachment_1.read_bytes()).hexdigest()},
+        {
+            "path": "attachments/附件1.xlsx",
+            "role": "land_and_crop_dictionary",
+            "bytes": attachment_1.stat().st_size,
+            "sha256": hashlib.sha256(attachment_1.read_bytes()).hexdigest(),
+        },
     ]
     if include_attachment_2:
-        files.append({"path": "attachments/附件2.xlsx", "sha256": hashlib.sha256(attachment_2.read_bytes()).hexdigest()})
+        files.append(
+            {
+                "path": "attachments/附件2.xlsx",
+                "role": "historical_planting_and_statistics",
+                "bytes": attachment_2.stat().st_size,
+                "sha256": hashlib.sha256(attachment_2.read_bytes()).hexdigest(),
+            }
+        )
     manifest = {
-        "manifest_version": "1.0.0",
+        "schema_version": "1.0.0",
+        "artifact_type": "official_material_manifest",
         "problem_id": problem_id,
-        "material_root": ".",
-        "source": {"kind": "official", "reference": "unit-test"},
-        "contains_answer_or_solution": False,
-        "categories": {
-            "problem": {"required": True, "files": [files[0]]},
-            "attachments": {"required": True, "files": files[1:]},
-            "templates": {"required": False, "files": []},
+        "source": {
+            "kind": "official",
+            "archive_sha256": "a" * 64,
+            "contains_answer_or_solution": False,
+        },
+        "material_root": "official_materials/2024_C",
+        "files": files,
+        "a0_status": {
+            "official_materials_identified": True,
+            "official_material_hashes_frozen": True,
+            "sheet_structure_documented": True,
+            "units_documented": True,
+            "output_cells_documented": True,
+            "proxy_data_used": False,
+            "solver_started": False,
+            "qualification_claimed": False,
         },
     }
     manifest_path = root / "material_manifest.json"
@@ -137,6 +155,22 @@ def test_q1_manifest_rejects_empty_manifest(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit_contract
+def test_q1_manifest_rejects_wrong_artifact_type(tmp_path: Path) -> None:
+    manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path)
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_data["artifact_type"] = "other_manifest"
+    manifest.write_text(json.dumps(manifest_data, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ValueError, match="Manifest Schema"):
+        validate_q1_result(
+            _empty_result(manifest),
+            attachment_1,
+            attachment_2,
+            manifest,
+            check_legume_windows=False,
+        )
+
+
+@pytest.mark.unit_contract
 def test_q1_manifest_rejects_wrong_problem_and_missing_role(tmp_path: Path) -> None:
     wrong_problem, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "wrong", problem_id="2024-B")
     with pytest.raises(ValueError, match="题目不匹配"):
@@ -168,24 +202,38 @@ def test_q1_manifest_rejects_non_official_source(tmp_path: Path) -> None:
 def test_q1_manifest_rejects_replaced_attachment(tmp_path: Path, attachment_number: int) -> None:
     manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "binding")
     replaced = attachment_1 if attachment_number == 1 else attachment_2
-    replaced.write_bytes(b"tampered")
+    replaced.write_bytes(b"x" * replaced.stat().st_size)
     result = _empty_result(manifest)
     with pytest.raises(ValueError, match="SHA-256"):
         validate_q1_result(result, attachment_1, attachment_2, manifest, check_legume_windows=False)
 
 
 @pytest.mark.unit_contract
+def test_q1_manifest_rejects_changed_attachment_size(tmp_path: Path) -> None:
+    manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "binding")
+    attachment_1.write_bytes(b"different-size")
+    with pytest.raises(ValueError, match="字节数"):
+        validate_q1_result(
+            _empty_result(manifest),
+            attachment_1,
+            attachment_2,
+            manifest,
+            check_legume_windows=False,
+        )
+
+
+@pytest.mark.unit_contract
 def test_q1_manifest_rejects_swapped_attachment_roles(tmp_path: Path) -> None:
     manifest, attachment_1, attachment_2 = _write_test_manifest(tmp_path / "binding")
     result = _empty_result(manifest)
-    with pytest.raises(ValueError, match="路径未绑定"):
+    with pytest.raises(ValueError, match="角色不匹配"):
         validate_q1_result(result, attachment_2, attachment_1, manifest, check_legume_windows=False)
 
 
 @pytest.mark.official_integration
 def test_q1_generated_workbook_status_never_claims_production_ready() -> None:
     attachment_1, attachment_2 = official_2024c_attachments()
-    manifest = attachment_1.parents[1] / "material_manifest.json"
+    manifest = ROOT / "formal_result" / "cases" / "2024_C" / "material_manifest.json"
     result = _empty_result(manifest)
     for scenario in result["scenarios"]:
         scenario.update({"output_workbook_status": "generated", "output_workbook_path": "fake.xlsx", "output_workbook_sha256": "a" * 64})
@@ -195,9 +243,9 @@ def test_q1_generated_workbook_status_never_claims_production_ready() -> None:
 
 
 @pytest.mark.official_integration
-def test_q1_formal_result_requires_both_scenarios_and_manifest_sha(tmp_path: Path) -> None:
+def test_q1_formal_result_requires_both_scenarios_and_manifest_sha() -> None:
     attachment_1, attachment_2 = official_2024c_attachments()
-    manifest = attachment_1.parents[1] / "material_manifest.json"
+    manifest = ROOT / "formal_result" / "cases" / "2024_C" / "material_manifest.json"
     digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
     result = {
         "schema_version": "1.0.0",
