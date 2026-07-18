@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "gate_f_pilot_status",
+  "gate_f_contracts": "implemented_locally",
+  "gate_f_specialized_2025c_contract": "implemented_locally",
+  "gate_f_unit_and_regression_tests": "reported_passed",
+  "production_pipeline_wiring": "verified_locally",
+  "remote_code_review": "draft_pr_open",
+  "draft_pr_url": "https://github.com/zhouwu97/shumoziyong/pull/38",
+  "real_2025c_candidate_negative_control": "not_yet_proven",
+  "real_2025c_candidate_observation": "仓库当前没有可用的 2025-C 七页 PC-0001 Candidate；现有主 Run 仅有阻塞报告和空 paper_candidates 目录。",
+  "new_clean_run_for_content_repair": "not_started",
+  "f2_transition_fail_to_pass": "not_demonstrated",
+  "issue_fully_resolved": false,
+  "qualification_status": "not_eligible",
+  "evidence_boundary": "本地合同、检查器、状态阻断和生产入口测试已通过；未将其等同于真实 2025-C 论文闭环。"
+}
