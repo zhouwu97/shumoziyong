@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "artifact_type": "official_material_manifest",
+  "problem_id": "2024-C",
+  "source": {
+    "kind": "official",
+    "archive_sha256": "38d9effcede947354f9e9a9c2b4fc68947d83a77c2ff75737e9a662888158726",
+    "contains_answer_or_solution": false
+  },
+  "material_root": "official_materials/2024_C",
+  "files": [
+    {"path": "problem/C题.pdf", "role": "problem_statement", "bytes": 558863, "sha256": "c7b5e58bff4189b8afba5505f7bff7d4f08280fc291c51ef3f46134ebbf74f9a"},
+    {"path": "problem/C题_extracted_text.txt", "role": "problem_text_check", "bytes": 3900, "sha256": "94c0a7e2b508367b42a8139461c09e1799aa1d152fdad0c6937f6cc9f7682aa3"},
+    {"path": "attachments/附件1.xlsx", "role": "land_and_crop_dictionary", "bytes": 17147, "sha256": "b799a137294a5c5497fed9667c5dfed6c967f1fb180316c5adc8509cfa6f0932"},
+    {"path": "attachments/附件2.xlsx", "role": "historical_planting_and_statistics", "bytes": 21976, "sha256": "869081a3ab47d3bf8d0955106b622aaf0fd2c068fada7948da69b20ebf1d00ce"},
+    {"path": "templates/result1_1.xlsx", "role": "q1_waste_output_template", "bytes": 81837, "sha256": "4f2484c0d70a5c4d047163f2ee6ef486949e813330466f46def4bd7d98af06af"},
+    {"path": "templates/result1_2.xlsx", "role": "q1_discount_output_template", "bytes": 81836, "sha256": "6166d43f5a64bf9d1657e80d4aee7f10f54bb1a5695b81a28a0ac5e657297649"},
+    {"path": "templates/result2.xlsx", "role": "q2_output_template", "bytes": 81836, "sha256": "6a1ba9fc28d14d0a4a795e5f0b7261fb6e32165517afee62bcd1931aba5bee8a"},
+    {"path": "templates/format2024.doc", "role": "paper_format_reference", "bytes": 69120, "sha256": "ec699bbe89e25cad16ca907b305c6cc76112ec04083cfe56ca65fd7a26fbaafe"}
+  ],
+  "a0_status": {
+    "official_materials_identified": true,
+    "official_material_hashes_frozen": true,
+    "sheet_structure_documented": true,
+    "units_documented": true,
+    "output_cells_documented": true,
+    "proxy_data_used": false,
+    "solver_started": false,
+    "qualification_claimed": false
+  }
+}
