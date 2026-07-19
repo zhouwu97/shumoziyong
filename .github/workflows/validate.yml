@@ -43,9 +43,9 @@ jobs:
       - name: Check generated current status
         run: python scripts/check_state_consistency.py
       - name: Run unit-contract tests
-        run: python -m coverage run -m pytest -q -m "not integration_fixture and not official_integration"
+        run: python -m coverage run -m pytest tests -q -m "not integration_fixture and not official_integration"
       - name: Run public fixture integration tests
-        run: python -m coverage run --append -m pytest -q -m integration_fixture
+        run: python -m coverage run --append -m pytest tests -q -m integration_fixture
       - run: python -m coverage report --fail-under=75
       - name: Verify deterministic runtime build
         shell: bash

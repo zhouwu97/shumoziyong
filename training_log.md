@@ -33,6 +33,9 @@
 | 2026-07-08 | 2024-B Gate 0-2 第三类机制泛化测试 | official_materials/2024_B + export/cumcm_runtime_pack.md + engineering_optimization_runtime |  | pass；未触发代码/论文/最终生产决策方案 | cross-problem | 否，stable candidate 证据 | 2024-B Gate 0-2 third-mechanism generalization pass；工程优化 runtime 升级为 stable candidate，仍不得标记 stable |
 | 2026-07-08 | B311 论文学习 | 2023_B311_学习卡片 + 知识卡片 + patch_B311_spatial_coverage_optimization |  | 未验证 | 论文学习 | 否 | 等待旧题闭环验证，不修改 base/plugin |
 | 2026-07-09 | B311/B477 candidate patch 负控验证：2024-B 生产过程中的决策问题 | default runtime_pack(A092+A127) vs candidate runtime_pack(A092+A127+B311+B477) | 96/96 | 无；M1-M5均无 | T4 | 否，不升级 | candidate 包未误触发空间覆盖/路径搜索经验；无实质提分，B311/B477 保持 candidate，下一步做相似非同题验证 |
+| 2026-07-19 | 优秀论文驱动的国赛评审工作流升级 | A092/A127/B311/B477 学习卡与知识卡 + NATIONAL_CONTEST_REVIEW_WORKFLOW |  | 工作流治理更新 | 论文学习汇总 | 否，不构成能力晋级 | 建立来源/核验/规则晋级注册表；新题自动独立终审与全新对话复审；加入创新性、可读性和 AI 痕迹风险审计 |
+| 2026-07-19 | 工程闭环与论文质量闭环分离 | 03_新题执行流 + Paper Admission + NATIONAL_CONTEST_REVIEW_WORKFLOW |  | 当前 7 页稿准入失败 | 工作流生产回归 | 否，不构成能力晋级 | 建立四层状态、每问准入矩阵和 Reviewer 硬门槛；当前 2024-C 稿标为 technical_report / major_revision / not_ready |
+| 2026-07-19 | 作者学习上下文与准入机器保护 | LEARNING_CONTEXT + 完整 Paper Admission JSON + registry v1.2 |  | 34 tests passed | 工作流治理更新 | 否，不构成能力晋级 | 作者建模前检索已授权资产、成稿后回填落点；R001-R005 因无生产 Run 证据降为 cross_paper_candidate；CI 校验晋级证据 |
 
 ## 标签统计
 

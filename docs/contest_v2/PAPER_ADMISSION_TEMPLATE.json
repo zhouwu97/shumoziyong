@@ -1,0 +1,34 @@
+{
+  "artifact_type": "contest_v2_paper_admission",
+  "engineering_verification": "fail",
+  "paper_type": "technical_report",
+  "paper_admission": "fail",
+  "pdf_sha256": "sha256:<current_pdf_digest>",
+  "learning_context_path": "reports/learning_context.json",
+  "learning_context_sha256": "sha256:<current_learning_context_digest>",
+  "direct_blockers": [
+    "待完成逐问准入"
+  ],
+  "questions": {
+    "q1": {
+      "items": {
+        "problem_requirement": {"status": "MISSING", "evidence": []},
+        "final_answer": {"status": "MISSING", "evidence": []},
+        "variables_and_parameters": {"status": "MISSING", "evidence": []},
+        "mathematical_expression": {"status": "MISSING", "evidence": []},
+        "solution_or_derivation": {"status": "MISSING", "evidence": []},
+        "core_results": {"status": "MISSING", "evidence": []},
+        "baseline_or_comparison": {
+          "status": "MISSING",
+          "required": true,
+          "evidence": [],
+          "not_applicable_reason": ""
+        },
+        "validity_checks": {"status": "MISSING", "evidence": []},
+        "figure_or_table_evidence": {"status": "MISSING", "evidence": []},
+        "result_interpretation": {"status": "MISSING", "evidence": []},
+        "scope_and_limitations": {"status": "MISSING", "evidence": []}
+      }
+    }
+  }
+}

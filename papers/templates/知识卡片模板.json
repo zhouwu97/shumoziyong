@@ -25,6 +25,43 @@
     {"model_name": "待填写"}
   ],
   "reusable_experience": ["待填写"],
+  "transfer_scope": {
+    "applicable_problem_types": [],
+    "required_conditions": [],
+    "excluded_conditions": []
+  },
+  "misuse_risk": [],
+  "non_transferable": [],
+  "semantic_duplicate_of": [],
+  "counterexamples_and_conflicts": [
+    {
+      "conflicts_with_rule_id": "",
+      "evidence_page_refs": [],
+      "failure_condition": "",
+      "effect_on_rule": "narrow_scope"
+    }
+  ],
+  "production_validation_runs": [
+    {
+      "run_id": "",
+      "mode": "production_replay",
+      "leakage_audit": "pending",
+      "engineering_verification": "pending",
+      "paper_admission": "pending",
+      "external_review": "pending",
+      "evidence_summary": ""
+    }
+  ],
+  "review_standard_candidates": [
+    {
+      "rule_id": "",
+      "rule": "",
+      "evidence_page_refs": [],
+      "verification_status": "unverified",
+      "promotion_status": "single_paper_candidate",
+      "blocking_or_advisory": "advisory"
+    }
+  ],
   "keywords": [],
   "transferable_skills": [
     {
