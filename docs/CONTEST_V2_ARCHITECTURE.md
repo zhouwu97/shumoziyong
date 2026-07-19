@@ -152,13 +152,13 @@ ENGINEERING_VERIFICATION = PASS
 
 工程 PASS 后，作者任务必须按 `docs/workflows/03_新题执行流.md` 对每问填写 Paper Admission 矩阵。任一核心模型、明确回答、求解证据、结果解释或适用边界缺失，论文只能标为 `technical_report / PAPER_ADMISSION=FAIL`。页数不是硬门槛。
 
-准入不是作者顶层字段自声明。交接构建器必须校验全部必需问题、11 个固定矩阵项、PASS 状态、非空 evidence、条件项 NOT_APPLICABLE 理由、空 direct_blockers、学习资产选择权限、章节覆盖和应用回填。准入 PASS 必须同时绑定当前 PDF 与 LEARNING_CONTEXT SHA-256；任一文件改变后准入自动 PENDING。
+准入不是作者顶层字段自声明。交接构建器必须校验全部必需问题、11 个固定矩阵项、PASS 状态、非空 evidence、条件项 NOT_APPLICABLE 理由、空 direct_blockers、学习资产选择权限、章节覆盖和应用回填。Reviewer 不负责核对 PDF 或学习上下文哈希；结果链中的 Result 摘要仍由 Verification 用于 stale 判断。
 
-只有 Paper Admission 对当前 PDF 有效，才允许由独立新对话执行 Final Review。评审采用 `docs/contest_v2/NATIONAL_CONTEST_REVIEW_WORKFLOW.md`：以仓库内优秀论文学习卡片抽象出的高分论文画像为标准，同时检查题目覆盖、模型、求解证据、结果决策价值、图表、可读性和创新性，不得把技术一致性检查当成竞赛质量评审。Reviewer 只读取隔离交接包，不读取主任务完整对话或同题优秀论文。Reviewer 输出 `review/final_review.md`，其必须修复项经修补后必须另建一个全新的 Reviewer 对话复审。
+只有 Paper Admission 通过，才允许由独立新对话执行 Final Review。评审采用 `docs/contest_v2/NATIONAL_CONTEST_REVIEW_WORKFLOW.md`：以仓库内优秀论文学习卡片抽象出的高分论文画像为标准，同时检查题目覆盖、模型、求解证据、结果决策价值、图表、可读性和创新性，不得把技术一致性检查当成竞赛质量评审。Reviewer 只读取隔离交接包，不读取主任务完整对话或同题优秀论文。Reviewer 输出 `review/final_review.md`，其必须修复项经修补后必须另建一个全新的 Reviewer 对话复审。
 
-新题只有在工程验收和 Paper Admission 均通过后，作者任务才自动创建新的 Codex 桌面 Reviewer 任务；修补后重建全部受影响产物、重新准入，并创建另一全新任务复审。此自动触发属于 Agent/桌面运行时，不进入薄 CLI；没有新任务接口时只能交付隔离包，不能在作者任务内自评。
+新题只有在工程验收和 Paper Admission 均通过后，作者/编排者才按文档约定手动创建新的 Codex 桌面 Reviewer 对话；修补后重建全部受影响产物、重新准入，并创建另一全新对话复审。此约定不进入薄 CLI，也不要求实现触发器；没有独立对话时只能交付隔离包，不能在作者任务内自评。
 
-Reviewer 固定采用 20/20/20/15/15/10 六维权重。`SUBMISSION_RECOMMENDED` 要求总分至少 80、MUST 为空、题目覆盖/模型/求解三个核心维度各至少 14/20、其他维度至少达到满分 60%。创新性不单独一票否决。作者任务无权声明 `SUBMISSION_STATUS=READY`；只有全新复审推荐、MUST 为空、Paper Admission 有效、最终 PDF/package 与被评摘要一致且完成附件核包时，编排层才能派生 READY。
+Reviewer 固定采用 20/20/20/15/15/10 六维权重。`SUBMISSION_RECOMMENDED` 要求总分至少 80、MUST 为空、题目覆盖/模型/求解三个核心维度各至少 14/20、其他维度至少达到满分 60%。创新性不单独一票否决。作者任务无权声明 `SUBMISSION_STATUS=READY`；只有全新复审推荐、MUST 为空、Paper Admission 有效且完成附件核包时，编排层才能派生 READY。
 
 新优秀论文必须按 `docs/workflows/01_论文学习流.md` 写入学习卡、知识卡、训练日志和 `papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json`。单篇或未核验经验只能作为候选；只有具备已核验 source claim、跨论文支持和明确 production replay/陌生题完整生产 Run 证据的规则才能进入 `global_active`。缺少生产 Run ID 时必须降级并记录 activation blocker。
 

@@ -8,14 +8,12 @@ PAPER_TYPE: technical_report | submission_candidate
 PAPER_ADMISSION: PASS | FAIL | PENDING
 EXTERNAL_REVIEW: PENDING
 SUBMISSION_STATUS: NOT_READY
-PDF_SHA256: sha256:<当前 paper/submission.pdf 摘要>
 LEARNING_CONTEXT: reports/learning_context.json
-LEARNING_CONTEXT_SHA256: sha256:<当前学习上下文摘要>
 ```
 
 工程验收未 PASS 时，Paper Admission 保持 PENDING。作者任务不得在本报告中声明 `SUBMISSION_STATUS: READY`。
 
-机器文件必须使用 `docs/contest_v2/PAPER_ADMISSION_TEMPLATE.json` 的完整结构。顶层 `pass` 不能代替逐问矩阵；任一固定键缺失、`PARTIAL/MISSING`、空 evidence、无理由的 `NOT_APPLICABLE`、非空 `direct_blockers`、学习上下文不完整或摘要 stale 都会被交接构建器拒绝。
+机器文件必须使用 `docs/contest_v2/PAPER_ADMISSION_TEMPLATE.json` 的完整结构。顶层 `pass` 不能代替逐问矩阵；任一固定键缺失、`PARTIAL/MISSING`、空 evidence、无理由的 `NOT_APPLICABLE`、非空 `direct_blockers` 或学习上下文不完整都会被交接构建器拒绝。Reviewer 不需要人工计算或核对 PDF/学习上下文哈希。
 
 ## 每问矩阵
 
@@ -53,5 +51,4 @@ LEARNING_CONTEXT_SHA256: sha256:<当前学习上下文摘要>
 
 - 全部必需项 PASS、条件项处理合理且无直接不准入项：`submission_candidate / PASS`。
 - 其他情况：`technical_report / FAIL`，返回作者侧大修。
-- PDF 摘要改变：本报告自动过期，`PAPER_ADMISSION=PENDING`。
 - 页数不作为硬门槛。

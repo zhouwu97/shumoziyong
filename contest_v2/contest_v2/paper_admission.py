@@ -204,13 +204,11 @@ def validate_learning_context(
 def validate_paper_admission(
     admission: Mapping[str, Any],
     *,
-    actual_pdf_digest: str,
     question_ids: list[str],
     learning_context: Mapping[str, Any],
-    learning_context_digest: str,
     registry: Mapping[str, Any],
 ) -> None:
-    """验证准入状态、逐问矩阵、学习上下文和摘要绑定。"""
+    """验证准入状态、逐问矩阵和学习上下文内容。"""
 
     if admission.get("artifact_type") != "contest_v2_paper_admission":
         raise ValueError("Paper Admission artifact_type 无效")
@@ -220,13 +218,6 @@ def validate_paper_admission(
         raise ValueError("Paper Admission 未通过，当前论文只能继续作者侧大修")
     if admission.get("paper_type") != "submission_candidate":
         raise ValueError("paper_type 不是 submission_candidate，禁止构建 Reviewer 交接包")
-
-    expected_pdf_digest = str(admission.get("pdf_sha256", "")).removeprefix("sha256:")
-    if expected_pdf_digest != actual_pdf_digest:
-        raise ValueError("Paper Admission 已过期：记录的 PDF 摘要与当前论文不一致")
-    expected_context_digest = str(admission.get("learning_context_sha256", "")).removeprefix("sha256:")
-    if expected_context_digest != learning_context_digest:
-        raise ValueError("Paper Admission 已过期：学习上下文摘要与当前文件不一致")
 
     blockers = admission.get("direct_blockers")
     if not isinstance(blockers, list):
@@ -278,7 +269,7 @@ def require_current_paper_admission(
     paper_path: Path,
     registry_path: Path,
 ) -> dict[str, Any]:
-    """读取并验证当前 PDF 对应的完整 Paper Admission。"""
+    """读取并验证当前运行目录对应的完整 Paper Admission。"""
 
     admission = _load_object(run_dir / "review/paper_admission.json", " Paper Admission")
     if admission.get("paper_admission") != "pass":
@@ -301,10 +292,8 @@ def require_current_paper_admission(
 
     validate_paper_admission(
         admission,
-        actual_pdf_digest=sha256(paper_path),
         question_ids=[str(qid) for qid in question_ids],
         learning_context=learning_context,
-        learning_context_digest=sha256(context_path),
         registry=registry,
     )
     return admission

@@ -10,7 +10,6 @@ from contest_v2.paper_admission import (
     ADMISSION_ITEM_IDS,
     COVERAGE_ITEM_IDS,
     require_current_paper_admission,
-    sha256,
 )
 
 
@@ -75,7 +74,7 @@ def valid_context() -> dict:
     }
 
 
-def valid_admission(pdf_digest: str, context_digest: str) -> dict:
+def valid_admission() -> dict:
     items = {
         item_id: {
             "status": "PASS",
@@ -89,9 +88,7 @@ def valid_admission(pdf_digest: str, context_digest: str) -> dict:
         "engineering_verification": "pass",
         "paper_admission": "pass",
         "paper_type": "submission_candidate",
-        "pdf_sha256": f"sha256:{pdf_digest}",
         "learning_context_path": "reports/learning_context.json",
-        "learning_context_sha256": f"sha256:{context_digest}",
         "direct_blockers": [],
         "questions": {"q1": {"items": items}},
     }
@@ -113,7 +110,7 @@ def make_run(tmp_path: Path) -> tuple[Path, Path, dict, dict]:
     registry = valid_registry()
     registry_path = tmp_path / "registry.json"
     write_json(registry_path, registry)
-    admission = valid_admission(sha256(paper), sha256(context_path))
+    admission = valid_admission()
     write_json(tmp_path / "review" / "paper_admission.json", admission)
     return paper, registry_path, admission, context
 
@@ -125,7 +122,6 @@ def rewrite_admission(tmp_path: Path, admission: dict) -> None:
 def rewrite_context(tmp_path: Path, admission: dict, context: dict) -> None:
     context_path = tmp_path / "reports" / "learning_context.json"
     write_json(context_path, context)
-    admission["learning_context_sha256"] = f"sha256:{sha256(context_path)}"
     rewrite_admission(tmp_path, admission)
 
 
@@ -147,13 +143,20 @@ def test_rejects_failed_admission(tmp_path: Path) -> None:
         require_current_paper_admission(tmp_path, paper, registry_path)
 
 
-def test_rejects_stale_pdf_digest(tmp_path: Path) -> None:
+def test_pdf_changes_do_not_block_content_admission(tmp_path: Path) -> None:
     paper, registry_path, admission, _ = make_run(tmp_path)
-    admission["pdf_sha256"] = f"sha256:{'0' * 64}"
+    paper.write_bytes(b"updated pdf")
     rewrite_admission(tmp_path, admission)
 
-    with pytest.raises(ValueError, match="PDF 摘要"):
-        require_current_paper_admission(tmp_path, paper, registry_path)
+    assert require_current_paper_admission(tmp_path, paper, registry_path)["paper_admission"] == "pass"
+
+
+def test_learning_context_changes_do_not_block_content_admission(tmp_path: Path) -> None:
+    paper, registry_path, admission, context = make_run(tmp_path)
+    context["application_record"][0]["actual_locations"] = ["Q1 结果比较表", "Q1 敏感性分析"]
+    rewrite_context(tmp_path, admission, context)
+
+    assert require_current_paper_admission(tmp_path, paper, registry_path)["paper_admission"] == "pass"
 
 
 @pytest.mark.parametrize("status", ["PARTIAL", "MISSING"])

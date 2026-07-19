@@ -14,7 +14,9 @@ def _file_state(path: Path, *, draft_marker: str | None = None) -> str:
         return "missing"
     if path.stat().st_size == 0:
         return "draft"
-    if draft_marker and draft_marker in path.read_text(encoding="utf-8", errors="replace"):
+    text = path.read_text(encoding="utf-8", errors="replace")
+    markers = (draft_marker,) if draft_marker else ("TODO", "DRAFT", "PENDING")
+    if any(marker and marker in text for marker in markers):
         return "draft"
     return "ready"
 

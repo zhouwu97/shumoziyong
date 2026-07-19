@@ -3,9 +3,7 @@
   "engineering_verification": "fail",
   "paper_type": "technical_report",
   "paper_admission": "fail",
-  "pdf_sha256": "sha256:<current_pdf_digest>",
   "learning_context_path": "reports/learning_context.json",
-  "learning_context_sha256": "sha256:<current_learning_context_digest>",
   "direct_blockers": [
     "待完成逐问准入"
   ],

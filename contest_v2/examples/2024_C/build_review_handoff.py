@@ -146,10 +146,9 @@ python ..\\..\\scripts\\contest.py package .
     )
     return {
         "handoff_dir": str(output),
-        "pdf_sha256": sha256(output / "final_submission.pdf"),
+        "submission_file_sha256": sha256(output / "final_submission.pdf"),
         "ledger_sha256": sha256(output / "result_ledger.json"),
         "figure_count": len(figure_paths),
-        "paper_admission_pdf_sha256": admission["pdf_sha256"],
         "review_output": str(run_dir / "review/final_review_round2.md"),
     }
 
