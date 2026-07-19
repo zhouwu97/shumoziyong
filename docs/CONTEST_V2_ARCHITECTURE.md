@@ -156,7 +156,7 @@ ENGINEERING_VERIFICATION = PASS
 
 只有 Paper Admission 通过，才允许由独立新对话执行 Final Review。评审采用 `docs/contest_v2/NATIONAL_CONTEST_REVIEW_WORKFLOW.md`：以仓库内优秀论文学习卡片抽象出的高分论文画像为标准，同时检查题目覆盖、模型、求解证据、结果决策价值、图表、可读性和创新性，不得把技术一致性检查当成竞赛质量评审。Reviewer 只读取隔离交接包，不读取主任务完整对话或同题优秀论文。Reviewer 输出 `review/final_review.md`，其必须修复项经修补后必须另建一个全新的 Reviewer 对话复审。
 
-新题只有在工程验收和 Paper Admission 均通过后，作者/编排者才按文档约定手动创建新的 Codex 桌面 Reviewer 对话；修补后重建全部受影响产物、重新准入，并创建另一全新对话复审。此约定不进入薄 CLI，也不要求实现触发器；没有独立对话时只能交付隔离包，不能在作者任务内自评。
+新题只有在工程验收和 Paper Admission 均通过后，AI 编排层才按文档约定自动创建新的 Codex 桌面 Reviewer 对话；修补后重建全部受影响产物、重新准入，并自动创建另一全新对话复审。对话创建属于编排层，不进入薄 CLI；CLI 只生成交接包和状态。没有独立对话时只能交付隔离包，不能在作者任务内自评。
 
 Reviewer 固定采用 20/20/20/15/15/10 六维权重。`SUBMISSION_RECOMMENDED` 要求总分至少 80、MUST 为空、题目覆盖/模型/求解三个核心维度各至少 14/20、其他维度至少达到满分 60%。创新性不单独一票否决。作者任务无权声明 `SUBMISSION_STATUS=READY`；只有全新复审推荐、MUST 为空、Paper Admission 有效且完成附件核包时，编排层才能派生 READY。
 

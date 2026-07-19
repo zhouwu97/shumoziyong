@@ -76,6 +76,7 @@ def _stage_reports(run_dir: Path) -> None:
         "MODEL_REVIEW.md": "MODEL_REVIEW: DRAFT\n\n作者完成模型假设、变量、目标函数、约束和推导后改为 READY；存在题意或公式问题时改为 REVISE。\n",
         "EXPERIMENT_REVIEW.md": "EXPERIMENT_REVIEW: PENDING\n\n完成运行、基线/对照、复算、稳定性或边界检查后改为 PASS；证据不足时改为 REVISE。\n",
         "PAPER_COHERENCE_REVIEW.md": "PAPER_COHERENCE_REVIEW: PENDING\n\n逐问正文、图表、Ledger 数字和结论闭合后改为 READY；缺少解释或可读性问题时改为 REVISE。\n",
+        "FORMAT_SUBMISSION_REVIEW.md": "FORMAT_SUBMISSION_REVIEW: PENDING\n\n完成 PDF、字体、公式渲染、匿名、引用、附录、AI 披露和提交包检查后改为 READY；发现格式或内容交付问题时改为 REVISE。\n",
     }
     for name, text in reports.items():
         _write_new(run_dir / "reports" / name, text)
