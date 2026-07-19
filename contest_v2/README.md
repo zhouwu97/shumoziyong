@@ -18,6 +18,18 @@ python scripts/contest.py package <run-dir>
 
 安装为可编辑包后也可直接使用 `contest` 命令。完整架构边界见 `docs/CONTEST_V2_ARCHITECTURE.md`。
 
+工程命令只建立工程闭环。论文进入 Reviewer 前还必须完成：
+
+```text
+LEARNING_CONTEXT
+→ ENGINEERING_VERIFICATION
+→ 完整 Paper Admission 矩阵机器校验
+→ 独立 Reviewer
+→ 摘要一致的提交就绪派生
+```
+
+`paper_admission.json` 不能只写顶层 PASS；每问 11 项、证据定位、直接阻断项、章节覆盖计划、学习资产实际落点以及 PDF/学习上下文摘要都会被交接构建器校验。
+
 ## 2024-C packaging smoke
 
 `contest_v2.migrate_2024c` 读取历史 Run，只验证包装能力：

@@ -2,47 +2,22 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 from pathlib import Path
 
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1 << 20), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
+from contest_v2.paper_admission import require_current_paper_admission, sha256
 
 def copy(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
 
 
-def require_current_paper_admission(run_dir: Path, paper_path: Path) -> dict[str, object]:
-    """只允许已通过且绑定当前 PDF 的 submission candidate 进入独立评审。"""
-
-    admission_path = run_dir / "review/paper_admission.json"
-    if not admission_path.is_file():
-        raise FileNotFoundError(f"缺少 Paper Admission：{admission_path}")
-    admission = json.loads(admission_path.read_text(encoding="utf-8"))
-    if admission.get("paper_admission") != "pass":
-        raise ValueError("Paper Admission 未通过，当前论文只能继续作者侧大修")
-    if admission.get("paper_type") != "submission_candidate":
-        raise ValueError("paper_type 不是 submission_candidate，禁止构建 Reviewer 交接包")
-    expected_digest = str(admission.get("pdf_sha256", "")).removeprefix("sha256:")
-    actual_digest = sha256(paper_path)
-    if expected_digest != actual_digest:
-        raise ValueError("Paper Admission 已过期：记录的 PDF 摘要与当前论文不一致")
-    return admission
-
-
 def build(run_dir: Path) -> dict[str, object]:
     run_dir = run_dir.resolve()
     paper_path = run_dir / "paper/submission.pdf"
-    admission = require_current_paper_admission(run_dir, paper_path)
+    registry_path = run_dir.parents[2] / "papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json"
+    admission = require_current_paper_admission(run_dir, paper_path, registry_path)
     output = run_dir / "review_handoff_round2"
     output.mkdir(parents=True, exist_ok=True)
     copy(paper_path, output / "final_submission.pdf")
@@ -53,9 +28,10 @@ def build(run_dir: Path) -> dict[str, object]:
         output / "NATIONAL_CONTEST_REVIEW_WORKFLOW.md",
     )
     copy(
-        run_dir.parents[2] / "papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json",
+        registry_path,
         output / "EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json",
     )
+    copy(run_dir / str(admission["learning_context_path"]), output / "learning_context.json")
     figure_paths = [
         "questions/q1/figures/scenario_profit.png",
         "questions/q1/figures/resource_usage.png",
@@ -141,6 +117,7 @@ python ..\\..\\scripts\\contest.py package .
 - `NATIONAL_CONTEST_REVIEW_WORKFLOW.md`
 - `EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json`
 - `paper_admission.json`
+- `learning_context.json`
 
 不要读取主实现任务对话、中间思考、旧 Formal Result、旧 Gate、旧论文、首次评阅文件、作者修补清单或同题优秀论文。必须按 `NATIONAL_CONTEST_REVIEW_WORKFLOW.md` 评审：使用优秀论文学习库抽象出的跨题高分论文画像，而不是只检查文件一致性。
 
