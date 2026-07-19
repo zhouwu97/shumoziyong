@@ -1,0 +1,53 @@
+name: Contest v2 quality gates
+
+on:
+  push:
+    paths:
+      - "contest_v2/**"
+      - "docs/contest_v2/**"
+      - "docs/CONTEST_V2_ARCHITECTURE.md"
+      - "docs/workflows/**"
+      - "papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json"
+      - "papers/templates/**"
+      - ".github/workflows/contest-v2.yml"
+  pull_request:
+    paths:
+      - "contest_v2/**"
+      - "docs/contest_v2/**"
+      - "docs/CONTEST_V2_ARCHITECTURE.md"
+      - "docs/workflows/**"
+      - "papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json"
+      - "papers/templates/**"
+      - ".github/workflows/contest-v2.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contest-v2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONPATH: contest_v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: contest_v2/pyproject.toml
+      - name: Install test dependency
+        run: python -m pip install "pytest>=8,<9"
+      - name: Run Contest v2 tests
+        run: python -m pytest contest_v2/tests -q
+      - name: Compile Python sources
+        run: python -m compileall -q contest_v2/contest_v2 contest_v2/examples/2024_C/build_review_handoff.py
+      - name: Validate JSON assets and rule governance
+        run: |
+          python -c "import json, pathlib; [json.loads(pathlib.Path(p).read_text(encoding='utf-8')) for p in ['papers/templates/知识卡片模板.json','papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json','docs/contest_v2/PAPER_ADMISSION_TEMPLATE.json','docs/contest_v2/LEARNING_CONTEXT_TEMPLATE.json']]"
+          python -c "from pathlib import Path; from contest_v2.learning_registry import validate_registry_file; validate_registry_file(Path('papers/EXCELLENT_PAPER_REVIEW_STANDARD_REGISTRY.json'))"

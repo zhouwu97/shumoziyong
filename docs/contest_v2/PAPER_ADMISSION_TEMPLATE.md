@@ -9,9 +9,13 @@ PAPER_ADMISSION: PASS | FAIL | PENDING
 EXTERNAL_REVIEW: PENDING
 SUBMISSION_STATUS: NOT_READY
 PDF_SHA256: sha256:<当前 paper/submission.pdf 摘要>
+LEARNING_CONTEXT: reports/learning_context.json
+LEARNING_CONTEXT_SHA256: sha256:<当前学习上下文摘要>
 ```
 
 工程验收未 PASS 时，Paper Admission 保持 PENDING。作者任务不得在本报告中声明 `SUBMISSION_STATUS: READY`。
+
+机器文件必须使用 `docs/contest_v2/PAPER_ADMISSION_TEMPLATE.json` 的完整结构。顶层 `pass` 不能代替逐问矩阵；任一固定键缺失、`PARTIAL/MISSING`、空 evidence、无理由的 `NOT_APPLICABLE`、非空 `direct_blockers`、学习上下文不完整或摘要 stale 都会被交接构建器拒绝。
 
 ## 每问矩阵
 

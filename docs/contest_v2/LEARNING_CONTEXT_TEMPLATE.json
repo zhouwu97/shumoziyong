@@ -1,0 +1,42 @@
+{
+  "artifact_type": "contest_v2_learning_context",
+  "registry_version": "<current_registry_version>",
+  "problem_types": [
+    "<problem_type>"
+  ],
+  "selected_rules": [],
+  "selected_patterns": [
+    {
+      "source": "2023_A092",
+      "pattern_id": "A092_baseline",
+      "pattern": "冻结统一评价口径后比较廉价基线与优化候选",
+      "reason": "<why_applicable>",
+      "planned_use": "<question_and_section>"
+    }
+  ],
+  "excluded": [
+    {
+      "exclusion_type": "same_problem_material",
+      "source": "同题优秀论文、题解和答案",
+      "reason": "防止同题答案、专用公式和结论泄漏"
+    }
+  ],
+  "section_coverage_plan": {
+    "q1": {
+      "problem_response": {"status": "MISSING", "prepared_material": []},
+      "model_formula_group": {"status": "MISSING", "prepared_material": []},
+      "solution_algorithm": {"status": "MISSING", "prepared_material": []},
+      "result_evidence": {"status": "MISSING", "prepared_material": []},
+      "validation": {"status": "MISSING", "prepared_material": []},
+      "interpretation_and_scope": {"status": "MISSING", "prepared_material": []}
+    }
+  },
+  "application_record": [
+    {
+      "asset_key": "pattern:2023_A092:A092_baseline",
+      "adopted": false,
+      "actual_locations": [],
+      "reason": "待完成正文后回填"
+    }
+  ]
+}

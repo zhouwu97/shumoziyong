@@ -1,6 +1,6 @@
 {
   "artifact_type": "excellent_paper_review_standard_registry",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "updated_at": "2026-07-19",
   "purpose": "记录优秀论文学习来源、核验状态、允许用途和评审规则晋级，避免把单篇经验或同题答案直接写成全局标准。",
   "promotion_policy": {
@@ -82,63 +82,160 @@
       "notes": "只作现实变量链、代理模型边界、多起点/失败路径和图表论证链的审稿启发。"
     }
   ],
-  "active_review_rules": [
+  "verified_cross_problem_patterns": [
+    {
+      "pattern_id": "A092_mechanism_chain",
+      "source": "2023_A092",
+      "source_claim_ids": [
+        "A092-C001"
+      ],
+      "status": "verified",
+      "pattern": "先建立有物理或业务含义的机制链，再定义综合评价输出。",
+      "allowed_use": "cross_problem_method_pattern",
+      "misuse_risk": "只迁移机制分解方法，不迁移定日镜参数、公式或结论。"
+    },
+    {
+      "pattern_id": "A092_baseline",
+      "source": "2023_A092",
+      "source_claim_ids": [
+        "A092-C002",
+        "A092-C003",
+        "A092-C005"
+      ],
+      "status": "verified",
+      "pattern": "冻结统一评价口径后比较廉价基线与优化候选，并解释绝对和相对增益。",
+      "allowed_use": "cross_problem_method_pattern",
+      "misuse_risk": "评价口径或目标权重变化时不能直接比较改进率。"
+    },
+    {
+      "pattern_id": "A092_honest_optimality",
+      "source": "2023_A092",
+      "source_claim_ids": [
+        "A092-C004",
+        "A092-C006",
+        "A092-C007"
+      ],
+      "status": "verified",
+      "pattern": "独立复算最终方案，并让最优性措辞服从 gap、搜索范围、随机对照和敏感性证据。",
+      "allowed_use": "cross_problem_method_pattern",
+      "misuse_risk": "有限随机对照和局部搜索不能证明全局最优。"
+    }
+  ],
+  "review_rules": [
     {
       "rule_id": "R001_problem_chain",
-      "status": "global_active",
+      "status": "cross_paper_candidate",
       "rule": "逐问形成现实对象、数学变量、评价指标、约束和输出的连续问题链。",
+      "source_claim_ids": [
+        "A092-C001",
+        "A092-C002"
+      ],
       "evidence_sources": [
         "2023_A092",
         "2023_A127",
         "2023_B311",
         "2023_B477"
       ],
-      "use": "scored"
+      "validation_evidence": [],
+      "counterexamples": [],
+      "activation_blockers": [
+        "缺少无泄漏 production_replay 或陌生题完整生产 Run ID"
+      ],
+      "last_reviewed": "2026-07-19",
+      "use": "review_inspiration_only"
     },
     {
       "rule_id": "R002_baseline_and_validation",
-      "status": "global_active",
+      "status": "cross_paper_candidate",
       "rule": "核心结论必须有统一评价口径、可复算基线和与声明强度相匹配的验证证据。",
+      "source_claim_ids": [
+        "A092-C002",
+        "A092-C003",
+        "A092-C004",
+        "A092-C005",
+        "A092-C006"
+      ],
       "evidence_sources": [
         "2023_A092",
         "2023_A127",
         "2023_B477"
       ],
-      "use": "scored_and_blocking_when_core_claim_fails"
+      "validation_evidence": [],
+      "counterexamples": [],
+      "activation_blockers": [
+        "缺少无泄漏 production_replay 或陌生题完整生产 Run ID"
+      ],
+      "last_reviewed": "2026-07-19",
+      "use": "review_inspiration_only"
     },
     {
       "rule_id": "R003_figures_as_evidence",
-      "status": "global_active",
+      "status": "cross_paper_candidate",
       "rule": "图表必须服务推理链并与正文、结果和附件一致，图多本身不构成质量。",
+      "source_claim_ids": [
+        "A092-C005"
+      ],
       "evidence_sources": [
         "2023_A092",
         "2023_A127",
         "2023_B311",
         "2023_B477"
       ],
-      "use": "scored"
+      "validation_evidence": [],
+      "counterexamples": [],
+      "activation_blockers": [
+        "缺少无泄漏 production_replay 或陌生题完整生产 Run ID"
+      ],
+      "last_reviewed": "2026-07-19",
+      "use": "review_inspiration_only"
     },
     {
       "rule_id": "R004_honest_scope",
-      "status": "global_active",
+      "status": "cross_paper_candidate",
       "rule": "局部、受限、启发式或样本内结果必须明确边界，不得夸大为全局最优或普遍规律。",
+      "source_claim_ids": [
+        "A092-C006",
+        "A092-C007"
+      ],
       "evidence_sources": [
         "2023_A092",
         "2023_B311",
         "2023_B477"
       ],
-      "use": "scored_and_blocking_when_misleading"
+      "validation_evidence": [],
+      "counterexamples": [
+        {
+          "source": "2023_A092",
+          "source_claim_id": "A092-C006",
+          "failure": "有限随机可行解对照被用于强于证据的最优性表述"
+        }
+      ],
+      "activation_blockers": [
+        "缺少无泄漏 production_replay 或陌生题完整生产 Run ID"
+      ],
+      "last_reviewed": "2026-07-19",
+      "use": "review_inspiration_only"
     },
     {
       "rule_id": "R005_problem_driven_innovation",
-      "status": "global_active",
+      "status": "cross_paper_candidate",
       "rule": "创新必须说明相对基线的实际新增机制、题意依据、证据增益和适用边界；算法名堆砌不算创新。",
+      "source_claim_ids": [
+        "A092-C003",
+        "A092-C007"
+      ],
       "evidence_sources": [
         "2023_A092",
         "2023_A127",
         "2023_B477"
       ],
-      "use": "scored"
+      "validation_evidence": [],
+      "counterexamples": [],
+      "activation_blockers": [
+        "缺少无泄漏 production_replay 或陌生题完整生产 Run ID"
+      ],
+      "last_reviewed": "2026-07-19",
+      "use": "review_inspiration_only"
     }
   ],
   "change_log": [
@@ -151,6 +248,11 @@
       "date": "2026-07-19",
       "version": "1.1.0",
       "change": "加入语义去重、反例/冲突登记，并限定 validated_candidate 必须来自 production_replay 或陌生题完整生产。"
+    },
+    {
+      "date": "2026-07-19",
+      "version": "1.2.0",
+      "change": "补充逐规则 source_claim_ids、validation_evidence 和 activation_blockers；没有生产 Run 证据的 R001-R005 降为 cross_paper_candidate，并登记 A092 已核验跨题模式供作者检索。"
     }
   ]
 }
