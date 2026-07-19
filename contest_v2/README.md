@@ -16,6 +16,18 @@ python scripts/contest.py verify <run-dir> --mode contest_standard
 python scripts/contest.py package <run-dir>
 ```
 
+阶段审核与 R5 外部 Reviewer 编排使用独立入口，不属于薄 `contest` CLI：
+
+```powershell
+python scripts/contest_review_orchestrator.py gate <run-dir> R1
+python scripts/contest_review_orchestrator.py prepare <run-dir>
+python scripts/contest_review_orchestrator.py dispatch <run-dir> --adapter-command <command>
+python scripts/contest_review_orchestrator.py collect <run-dir> --adapter-command <command>
+```
+
+未提供 `--adapter-command` 时只生成 `review/review_request.json` 并保持 `REQUEST_READY`，不会伪造
+Reviewer 对话或任务 ID。adapter 的 `create/result` JSON 合同见 `contest_v2/review_orchestrator.py`。
+
 安装为可编辑包后也可直接使用 `contest` 命令。完整架构边界见 `docs/CONTEST_V2_ARCHITECTURE.md`。
 
 工程命令只建立工程闭环。论文进入 Reviewer 前还必须完成：

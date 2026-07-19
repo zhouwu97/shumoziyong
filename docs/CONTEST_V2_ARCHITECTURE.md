@@ -121,6 +121,11 @@ package  生成 submission.pdf 与 support.zip
 
 CLI 不推进 Gate、不维护 progress、不判断资格、不调用 LLM。
 
+阶段审核与 R5 生命周期由独立编排入口负责：
+`contest_v2/scripts/contest_review_orchestrator.py` 提供 `gate`、`prepare`、`dispatch`、`collect` 和
+`rereview`。它只通过配置的 Reviewer adapter 调用外部对话系统；未配置 adapter 时保持
+`REQUEST_READY`，不生成虚假 `task_id`。
+
 ## 10. Package
 
 Package 只产出：
@@ -156,7 +161,7 @@ ENGINEERING_VERIFICATION = PASS
 
 只有 Paper Admission 通过，才允许由独立新对话执行 Final Review。评审采用 `docs/contest_v2/NATIONAL_CONTEST_REVIEW_WORKFLOW.md`：以仓库内优秀论文学习卡片抽象出的高分论文画像为标准，同时检查题目覆盖、模型、求解证据、结果决策价值、图表、可读性和创新性，不得把技术一致性检查当成竞赛质量评审。Reviewer 只读取隔离交接包，不读取主任务完整对话或同题优秀论文。Reviewer 输出 `review/final_review.md`，其必须修复项经修补后必须另建一个全新的 Reviewer 对话复审。
 
-新题只有在工程验收和 Paper Admission 均通过后，AI 编排层才按文档约定自动创建新的 Codex 桌面 Reviewer 对话；修补后重建全部受影响产物、重新准入，并自动创建另一全新对话复审。对话创建属于编排层，不进入薄 CLI；CLI 只生成交接包和状态。没有独立对话时只能交付隔离包，不能在作者任务内自评。
+新题只有在 R1→R2→R3→Verification/package-draft→R4 依次通过、工程验收和 Paper Admission 均通过后，编排器才生成 `review/review_request.json`。配置 Reviewer adapter 后才实际创建新的 Codex 桌面 Reviewer 对话并保存任务 ID；未配置 adapter 时状态为 `REQUEST_READY`，只能交付隔离包，不能声称对话已创建。修补后重建全部受影响产物、重新准入，并通过新请求创建另一全新对话复审。对话创建属于编排层，不进入薄 CLI；CLI 只负责生产链。
 
 Reviewer 固定采用 20/20/20/15/15/10 六维权重。`SUBMISSION_RECOMMENDED` 要求总分至少 80、MUST 为空、题目覆盖/模型/求解三个核心维度各至少 14/20、其他维度至少达到满分 60%。创新性不单独一票否决。作者任务无权声明 `SUBMISSION_STATUS=READY`；只有全新复审推荐、MUST 为空、Paper Admission 有效且完成附件核包时，编排层才能派生 READY。
 
