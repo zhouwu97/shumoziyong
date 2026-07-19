@@ -1,0 +1,156 @@
+{
+  "artifact_type": "excellent_paper_review_standard_registry",
+  "version": "1.1.0",
+  "updated_at": "2026-07-19",
+  "purpose": "记录优秀论文学习来源、核验状态、允许用途和评审规则晋级，避免把单篇经验或同题答案直接写成全局标准。",
+  "promotion_policy": {
+    "states": [
+      "single_paper_candidate",
+      "cross_paper_candidate",
+      "validated_candidate",
+      "global_active",
+      "retired"
+    ],
+    "automatic_write_scope": [
+      "learning_card",
+      "knowledge_card",
+      "patch_index",
+      "training_log",
+      "source_registration",
+      "candidate_rule_registration"
+    ],
+    "global_activation_requirements": [
+      "关键 claim 已核验",
+      "至少有跨论文重复证据，并有 production_replay 或陌生题完整生产证据",
+      "已记录适用范围、误用风险和不可迁移内容",
+      "已完成同义规则去重以及反例/冲突检查",
+      "已完成与现有规则的冲突检查",
+      "评审工作流已记录版本和变更理由"
+    ],
+    "prohibited": [
+      "用同题优秀论文答案反向对答案",
+      "把奖项标签或算法名称当作质量证据",
+      "把单篇未核验经验自动升级为全局硬规则",
+      "静默覆盖存在冲突的旧规则",
+      "用 diagnostic、Prompt 回归、文件生成或旧 Gate 通过替代生产验证",
+      "为语义相同规则重复创建 patch"
+    ]
+  },
+  "sources": [
+    {
+      "paper_id": "2023_A092",
+      "learning_card": "papers/2023_A092_学习卡片.md",
+      "knowledge_card": "papers/2023_A092_知识卡片.json",
+      "claim_verification_status": "verified",
+      "allowed_use": [
+        "global_review_evidence",
+        "cross_problem_method_pattern"
+      ],
+      "notes": "逐条 claims 已核验；仍禁止迁移同题数值、答案和专用实现。"
+    },
+    {
+      "paper_id": "2023_A127",
+      "learning_card": "papers/2023_A127_学习卡片.md",
+      "knowledge_card": "papers/2023_A127_知识卡片.json",
+      "claim_verification_status": "unverified",
+      "allowed_use": [
+        "review_inspiration",
+        "candidate_rule_evidence"
+      ],
+      "notes": "只作机制分解、参数简化、结果取舍和收敛/敏感性审稿启发。"
+    },
+    {
+      "paper_id": "2023_B311",
+      "learning_card": "papers/2023_B311_学习卡片.md",
+      "knowledge_card": "papers/2023_B311_知识卡片.json",
+      "claim_verification_status": "unverified",
+      "allowed_use": [
+        "review_inspiration",
+        "candidate_rule_evidence"
+      ],
+      "notes": "只作歧义指标定义、边界情形、空间图和诚实局限的审稿启发。"
+    },
+    {
+      "paper_id": "2023_B477",
+      "learning_card": "papers/2023_B477_学习卡片.md",
+      "knowledge_card": "papers/2023_B477_知识卡片.json",
+      "claim_verification_status": "unverified",
+      "allowed_use": [
+        "review_inspiration",
+        "candidate_rule_evidence"
+      ],
+      "notes": "只作现实变量链、代理模型边界、多起点/失败路径和图表论证链的审稿启发。"
+    }
+  ],
+  "active_review_rules": [
+    {
+      "rule_id": "R001_problem_chain",
+      "status": "global_active",
+      "rule": "逐问形成现实对象、数学变量、评价指标、约束和输出的连续问题链。",
+      "evidence_sources": [
+        "2023_A092",
+        "2023_A127",
+        "2023_B311",
+        "2023_B477"
+      ],
+      "use": "scored"
+    },
+    {
+      "rule_id": "R002_baseline_and_validation",
+      "status": "global_active",
+      "rule": "核心结论必须有统一评价口径、可复算基线和与声明强度相匹配的验证证据。",
+      "evidence_sources": [
+        "2023_A092",
+        "2023_A127",
+        "2023_B477"
+      ],
+      "use": "scored_and_blocking_when_core_claim_fails"
+    },
+    {
+      "rule_id": "R003_figures_as_evidence",
+      "status": "global_active",
+      "rule": "图表必须服务推理链并与正文、结果和附件一致，图多本身不构成质量。",
+      "evidence_sources": [
+        "2023_A092",
+        "2023_A127",
+        "2023_B311",
+        "2023_B477"
+      ],
+      "use": "scored"
+    },
+    {
+      "rule_id": "R004_honest_scope",
+      "status": "global_active",
+      "rule": "局部、受限、启发式或样本内结果必须明确边界，不得夸大为全局最优或普遍规律。",
+      "evidence_sources": [
+        "2023_A092",
+        "2023_B311",
+        "2023_B477"
+      ],
+      "use": "scored_and_blocking_when_misleading"
+    },
+    {
+      "rule_id": "R005_problem_driven_innovation",
+      "status": "global_active",
+      "rule": "创新必须说明相对基线的实际新增机制、题意依据、证据增益和适用边界；算法名堆砌不算创新。",
+      "evidence_sources": [
+        "2023_A092",
+        "2023_A127",
+        "2023_B477"
+      ],
+      "use": "scored"
+    }
+  ],
+  "change_log": [
+    {
+      "date": "2026-07-19",
+      "version": "1.0.0",
+      "change": "建立来源治理与规则晋级机制，并登记现有四篇优秀论文学习资产。"
+    },
+    {
+      "date": "2026-07-19",
+      "version": "1.1.0",
+      "change": "加入语义去重、反例/冲突登记，并限定 validated_candidate 必须来自 production_replay 或陌生题完整生产。"
+    }
+  ]
+}
